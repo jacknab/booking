@@ -4,7 +4,14 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { z } from "zod";
-import { insertServiceSchema, insertStaffSchema, insertCustomerSchema, insertAppointmentSchema, insertProductSchema } from "@shared/schema";
+import { 
+  insertStoreSchema,
+  insertServiceSchema, 
+  insertStaffSchema, 
+  insertCustomerSchema, 
+  insertAppointmentSchema, 
+  insertProductSchema 
+} from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -14,9 +21,32 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
 
+  // === STORES ===
+  app.get(api.stores.list.path, async (_req, res) => {
+    const stores = await storage.getStores();
+    res.json(stores);
+  });
+
+  app.get(api.stores.get.path, async (req, res) => {
+    const store = await storage.getStore(Number(req.params.id));
+    if (!store) return res.status(404).json({ message: "Store not found" });
+    res.json(store);
+  });
+
+  app.post(api.stores.create.path, async (req, res) => {
+    try {
+      const input = insertStoreSchema.parse(req.body);
+      const store = await storage.createStore(input);
+      res.status(201).json(store);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
   // === SERVICES ===
-  app.get(api.services.list.path, async (_req, res) => {
-    const services = await storage.getServices();
+  app.get(api.services.list.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    const services = await storage.getServices(storeId);
     res.json(services);
   });
 
@@ -57,8 +87,9 @@ export async function registerRoutes(
   });
 
   // === STAFF ===
-  app.get(api.staff.list.path, async (_req, res) => {
-    const staff = await storage.getAllStaff();
+  app.get(api.staff.list.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    const staff = await storage.getAllStaff(storeId);
     res.json(staff);
   });
 
@@ -95,8 +126,9 @@ export async function registerRoutes(
   });
 
   // === CUSTOMERS ===
-  app.get(api.customers.list.path, async (_req, res) => {
-    const customers = await storage.getCustomers();
+  app.get(api.customers.list.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    const customers = await storage.getCustomers(storeId);
     res.json(customers);
   });
 
@@ -127,6 +159,7 @@ export async function registerRoutes(
       from: req.query.from ? new Date(req.query.from as string) : undefined,
       to: req.query.to ? new Date(req.query.to as string) : undefined,
       staffId: req.query.staffId ? Number(req.query.staffId) : undefined,
+      storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
     };
     const appointments = await storage.getAppointments(filters);
     res.json(appointments);
@@ -166,8 +199,9 @@ export async function registerRoutes(
   });
 
   // === PRODUCTS ===
-  app.get(api.products.list.path, async (_req, res) => {
-    const products = await storage.getProducts();
+  app.get(api.products.list.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    const products = await storage.getProducts(storeId);
     res.json(products);
   });
 
@@ -204,10 +238,22 @@ export async function registerRoutes(
 }
 
 async function seedDatabase() {
-  const existingServices = await storage.getServices();
-  if (existingServices.length === 0) {
-    console.log("Seeding database...");
+  const existingStores = await storage.getStores();
+  if (existingStores.length === 0) {
+    console.log("Seeding database with stores...");
     
+    // Stores
+    const store1 = await storage.createStore({
+      name: "Main Street Salon",
+      timezone: "America/New_York",
+      address: "123 Main St, New York, NY",
+    });
+    const store2 = await storage.createStore({
+      name: "West Side Spa",
+      timezone: "America/Los_Angeles",
+      address: "456 West Blvd, Los Angeles, CA",
+    });
+
     // Services
     const service1 = await storage.createService({
       name: "Haircut - Women",
@@ -215,6 +261,7 @@ async function seedDatabase() {
       duration: 60,
       price: "65.00",
       category: "Hair",
+      storeId: store1.id,
     });
     const service2 = await storage.createService({
       name: "Haircut - Men",
@@ -222,60 +269,25 @@ async function seedDatabase() {
       duration: 30,
       price: "35.00",
       category: "Hair",
-    });
-    const service3 = await storage.createService({
-      name: "Manicure",
-      description: "Classic manicure with polish",
-      duration: 45,
-      price: "40.00",
-      category: "Nails",
+      storeId: store2.id,
     });
 
     // Staff
     const staff1 = await storage.createStaff({
       name: "Sarah Jenkins",
       role: "Senior Stylist",
-      bio: "10 years experience in cutting and coloring.",
+      bio: "10 years experience.",
       color: "#f472b6",
+      storeId: store1.id,
     });
     const staff2 = await storage.createStaff({
       name: "Mike Chen",
       role: "Barber",
-      bio: "Expert in fades and beard trims.",
+      bio: "Expert in fades.",
       color: "#60a5fa",
+      storeId: store2.id,
     });
 
-    // Customers
-    const customer1 = await storage.createCustomer({
-      name: "Alice Smith",
-      email: "alice@example.com",
-      phone: "555-0101",
-      notes: "Prefers tea over coffee.",
-    });
-
-    // Appointments (Today and Tomorrow)
-    const today = new Date();
-    today.setHours(10, 0, 0, 0);
-    
-    await storage.createAppointment({
-      date: today,
-      duration: 60,
-      serviceId: service1.id,
-      staffId: staff1.id,
-      customerId: customer1.id,
-      status: "confirmed",
-      notes: "First time client",
-    });
-
-    // Products
-    await storage.createProduct({
-      name: "Argan Oil Shampoo",
-      brand: "LuxeLocks",
-      price: "24.00",
-      stock: 15,
-      category: "Hair Care",
-    });
-    
-    console.log("Database seeded!");
+    console.log("Database seeded with stores!");
   }
 }

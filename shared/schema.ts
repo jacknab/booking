@@ -9,6 +9,14 @@ import { users } from "./models/auth";
 
 // === TABLE DEFINITIONS ===
 
+export const stores = pgTable("stores", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  timezone: text("timezone").notNull().default("UTC"),
+  address: text("address"),
+  phone: text("phone"),
+});
+
 export const services = pgTable("services", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -17,6 +25,7 @@ export const services = pgTable("services", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull(),
   imageUrl: text("image_url"),
+  storeId: integer("store_id").references(() => stores.id),
 });
 
 export const staff = pgTable("staff", {
@@ -28,6 +37,7 @@ export const staff = pgTable("staff", {
   bio: text("bio"),
   color: text("color").default("#3b82f6"), // For calendar visualization
   avatarUrl: text("avatar_url"),
+  storeId: integer("store_id").references(() => stores.id),
 });
 
 export const customers = pgTable("customers", {
@@ -36,6 +46,7 @@ export const customers = pgTable("customers", {
   email: text("email"),
   phone: text("phone"),
   notes: text("notes"),
+  storeId: integer("store_id").references(() => stores.id),
 });
 
 export const appointments = pgTable("appointments", {
@@ -47,6 +58,7 @@ export const appointments = pgTable("appointments", {
   serviceId: integer("service_id").references(() => services.id),
   staffId: integer("staff_id").references(() => staff.id),
   customerId: integer("customer_id").references(() => customers.id),
+  storeId: integer("store_id").references(() => stores.id),
 });
 
 export const products = pgTable("products", {
@@ -56,9 +68,18 @@ export const products = pgTable("products", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").default(0),
   category: text("category"),
+  storeId: integer("store_id").references(() => stores.id),
 });
 
 // === RELATIONS ===
+
+export const storesRelations = relations(stores, ({ many }) => ({
+  services: many(services),
+  staff: many(staff),
+  customers: many(customers),
+  appointments: many(appointments),
+  products: many(products),
+}));
 
 export const appointmentsRelations = relations(appointments, ({ one }) => ({
   service: one(services, {
@@ -73,10 +94,15 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
     fields: [appointments.customerId],
     references: [customers.id],
   }),
+  store: one(stores, {
+    fields: [appointments.storeId],
+    references: [stores.id],
+  }),
 }));
 
 // === SCHEMAS ===
 
+export const insertStoreSchema = createInsertSchema(stores).omit({ id: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true });
 export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
@@ -84,6 +110,9 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({ i
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
 
 // === EXPLICIT API TYPES ===
+
+export type Store = typeof stores.$inferSelect;
+export type InsertStore = z.infer<typeof insertStoreSchema>;
 
 export type Service = typeof services.$inferSelect;
 export type InsertService = z.infer<typeof insertServiceSchema>;
@@ -105,4 +134,5 @@ export type AppointmentWithDetails = Appointment & {
   service: Service | null;
   staff: Staff | null;
   customer: Customer | null;
+  store: Store | null;
 };

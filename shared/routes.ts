@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { 
+  insertStoreSchema,
   insertServiceSchema, 
   insertStaffSchema, 
   insertCustomerSchema, 
   insertAppointmentSchema, 
   insertProductSchema,
+  stores,
   services,
   staff,
   customers,
@@ -26,10 +28,37 @@ export const errorSchemas = {
 };
 
 export const api = {
+  stores: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/stores' as const,
+      responses: {
+        200: z.array(z.custom<typeof stores.$inferSelect>()),
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/stores/:id' as const,
+      responses: {
+        200: z.custom<typeof stores.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/stores' as const,
+      input: insertStoreSchema,
+      responses: {
+        201: z.custom<typeof stores.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+  },
   services: {
     list: {
       method: 'GET' as const,
       path: '/api/services' as const,
+      input: z.object({ storeId: z.coerce.number().optional() }).optional(),
       responses: {
         200: z.array(z.custom<typeof services.$inferSelect>()),
       },
@@ -73,6 +102,7 @@ export const api = {
     list: {
       method: 'GET' as const,
       path: '/api/staff' as const,
+      input: z.object({ storeId: z.coerce.number().optional() }).optional(),
       responses: {
         200: z.array(z.custom<typeof staff.$inferSelect>()),
       },
@@ -116,6 +146,7 @@ export const api = {
     list: {
       method: 'GET' as const,
       path: '/api/customers' as const,
+      input: z.object({ storeId: z.coerce.number().optional() }).optional(),
       responses: {
         200: z.array(z.custom<typeof customers.$inferSelect>()),
       },
@@ -147,12 +178,14 @@ export const api = {
         from: z.string().optional(),
         to: z.string().optional(),
         staffId: z.coerce.number().optional(),
+        storeId: z.coerce.number().optional(),
       }).optional(),
       responses: {
         200: z.array(z.custom<typeof appointments.$inferSelect & {
           service: typeof services.$inferSelect | null;
           staff: typeof staff.$inferSelect | null;
           customer: typeof customers.$inferSelect | null;
+          store: typeof stores.$inferSelect | null;
         }>()),
       },
     },
@@ -187,6 +220,7 @@ export const api = {
     list: {
       method: 'GET' as const,
       path: '/api/products' as const,
+      input: z.object({ storeId: z.coerce.number().optional() }).optional(),
       responses: {
         200: z.array(z.custom<typeof products.$inferSelect>()),
       },
