@@ -1,38 +1,193 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { 
+  services, staff, customers, appointments, products,
+  type Service, type InsertService,
+  type Staff, type InsertStaff,
+  type Customer, type InsertCustomer,
+  type Appointment, type InsertAppointment, type AppointmentWithDetails,
+  type Product, type InsertProduct
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Services
+  getServices(): Promise<Service[]>;
+  getService(id: number): Promise<Service | undefined>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: number, service: Partial<InsertService>): Promise<Service | undefined>;
+  deleteService(id: number): Promise<void>;
+
+  // Staff
+  getAllStaff(): Promise<Staff[]>;
+  getStaffMember(id: number): Promise<Staff | undefined>;
+  createStaff(staffMember: InsertStaff): Promise<Staff>;
+  updateStaff(id: number, staffMember: Partial<InsertStaff>): Promise<Staff | undefined>;
+  deleteStaff(id: number): Promise<void>;
+
+  // Customers
+  getCustomers(): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
+  deleteCustomer(id: number): Promise<void>;
+
+  // Appointments
+  getAppointments(filters?: { from?: Date; to?: Date; staffId?: number }): Promise<AppointmentWithDetails[]>;
+  getAppointment(id: number): Promise<AppointmentWithDetails | undefined>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  deleteAppointment(id: number): Promise<void>;
+
+  // Products
+  getProducts(): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  // Services
+  async getServices(): Promise<Service[]> {
+    return await db.select().from(services);
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getService(id: number): Promise<Service | undefined> {
+    const [service] = await db.select().from(services).where(eq(services.id, id));
+    return service;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createService(insertService: InsertService): Promise<Service> {
+    const [service] = await db.insert(services).values(insertService).returning();
+    return service;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async updateService(id: number, updateData: Partial<InsertService>): Promise<Service | undefined> {
+    const [service] = await db.update(services).set(updateData).where(eq(services.id, id)).returning();
+    return service;
+  }
+
+  async deleteService(id: number): Promise<void> {
+    await db.delete(services).where(eq(services.id, id));
+  }
+
+  // Staff
+  async getAllStaff(): Promise<Staff[]> {
+    return await db.select().from(staff);
+  }
+
+  async getStaffMember(id: number): Promise<Staff | undefined> {
+    const [staffMember] = await db.select().from(staff).where(eq(staff.id, id));
+    return staffMember;
+  }
+
+  async createStaff(insertStaff: InsertStaff): Promise<Staff> {
+    const [staffMember] = await db.insert(staff).values(insertStaff).returning();
+    return staffMember;
+  }
+
+  async updateStaff(id: number, updateData: Partial<InsertStaff>): Promise<Staff | undefined> {
+    const [staffMember] = await db.update(staff).set(updateData).where(eq(staff.id, id)).returning();
+    return staffMember;
+  }
+
+  async deleteStaff(id: number): Promise<void> {
+    await db.delete(staff).where(eq(staff.id, id));
+  }
+
+  // Customers
+  async getCustomers(): Promise<Customer[]> {
+    return await db.select().from(customers);
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    return customer;
+  }
+
+  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
+    const [customer] = await db.insert(customers).values(insertCustomer).returning();
+    return customer;
+  }
+
+  async updateCustomer(id: number, updateData: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    const [customer] = await db.update(customers).set(updateData).where(eq(customers.id, id)).returning();
+    return customer;
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    await db.delete(customers).where(eq(customers.id, id));
+  }
+
+  // Appointments
+  async getAppointments(filters?: { from?: Date; to?: Date; staffId?: number }): Promise<AppointmentWithDetails[]> {
+    const conditions = [];
+    if (filters?.from) conditions.push(gte(appointments.date, filters.from));
+    if (filters?.to) conditions.push(lte(appointments.date, filters.to));
+    if (filters?.staffId) conditions.push(eq(appointments.staffId, filters.staffId));
+
+    const result = await db.query.appointments.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      with: {
+        service: true,
+        staff: true,
+        customer: true,
+      },
+      orderBy: (appointments, { asc }) => [asc(appointments.date)],
+    });
+    
+    return result;
+  }
+
+  async getAppointment(id: number): Promise<AppointmentWithDetails | undefined> {
+    const result = await db.query.appointments.findFirst({
+      where: eq(appointments.id, id),
+      with: {
+        service: true,
+        staff: true,
+        customer: true,
+      },
+    });
+    return result;
+  }
+
+  async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
+    const [appointment] = await db.insert(appointments).values(insertAppointment).returning();
+    return appointment;
+  }
+
+  async updateAppointment(id: number, updateData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
+    const [appointment] = await db.update(appointments).set(updateData).where(eq(appointments.id, id)).returning();
+    return appointment;
+  }
+
+  async deleteAppointment(id: number): Promise<void> {
+    await db.delete(appointments).where(eq(appointments.id, id));
+  }
+
+  // Products
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products);
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(insertProduct: InsertProduct): Promise<Product> {
+    const [product] = await db.insert(products).values(insertProduct).returning();
+    return product;
+  }
+
+  async updateProduct(id: number, updateData: Partial<InsertProduct>): Promise<Product | undefined> {
+    const [product] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
+    return product;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
