@@ -40,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 - `services` — Salon services (name, duration, price, category, linked to store)
 - `staff` — Team members (name, role, color for calendar, linked to store)
 - `customers` — Client records (name, contact info, notes, linked to store)
-- `appointments` — Bookings (date, time, status, linked to customer/staff/service/store)
+- `appointments` — Bookings (date, time, status, payment details, linked to customer/staff/service/store)
 - `products` — Retail inventory (name, price, stock, linked to store)
 - `users` — Auth users (managed by Replit Auth)
 - `sessions` — Session storage for authentication
