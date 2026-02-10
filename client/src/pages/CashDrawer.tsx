@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -15,9 +14,44 @@ import type { CashDrawerSessionWithActions } from "@shared/schema";
 import {
   DollarSign, Lock, Unlock, FileText, Clock, ArrowDownCircle,
   ArrowUpCircle, Banknote, CreditCard, Smartphone, Printer,
-  AlertTriangle, Check, ChevronDown, ChevronRight, X
+  AlertTriangle, ChevronDown, ChevronRight, X, Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const DENOMINATIONS = [
+  { label: "$100 Bills", value: 100, key: "100" },
+  { label: "$50 Bills", value: 50, key: "50" },
+  { label: "$20 Bills", value: 20, key: "20" },
+  { label: "$10 Bills", value: 10, key: "10" },
+  { label: "$5 Bills", value: 5, key: "5" },
+  { label: "$2 Bills", value: 2, key: "2" },
+  { label: "$1 Bills", value: 1, key: "1" },
+  { label: "Quarters ($0.25)", value: 0.25, key: "0.25" },
+  { label: "Dimes ($0.10)", value: 0.10, key: "0.10" },
+  { label: "Nickels ($0.05)", value: 0.05, key: "0.05" },
+  { label: "Pennies ($0.01)", value: 0.01, key: "0.01" },
+];
+
+type DenominationCounts = Record<string, number>;
+
+function useDenominationCounter() {
+  const [counts, setCounts] = useState<DenominationCounts>({});
+
+  const setCount = (key: string, count: number) => {
+    setCounts(prev => ({ ...prev, [key]: count }));
+  };
+
+  const total = useMemo(() => {
+    return DENOMINATIONS.reduce((sum, d) => {
+      const count = counts[d.key] || 0;
+      return sum + Math.round(count * d.value * 100) / 100;
+    }, 0);
+  }, [counts]);
+
+  const reset = () => setCounts({});
+
+  return { counts, setCount, total, reset };
+}
 
 export default function CashDrawer() {
   const { selectedStore } = useSelectedStore();
@@ -27,7 +61,6 @@ export default function CashDrawer() {
   const userName = user?.firstName || user?.email || "Staff";
 
   const [openingAmount, setOpeningAmount] = useState("0.00");
-  const [closingAmount, setClosingAmount] = useState("");
   const [closeNotes, setCloseNotes] = useState("");
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [actionType, setActionType] = useState<"cash_in" | "cash_out" | null>(null);
@@ -35,6 +68,9 @@ export default function CashDrawer() {
   const [actionReason, setActionReason] = useState("");
   const [viewingReportId, setViewingReportId] = useState<number | null>(null);
   const [expandedHistory, setExpandedHistory] = useState<number | null>(null);
+  const [showDepositSlip, setShowDepositSlip] = useState(false);
+
+  const denomCounter = useDenominationCounter();
 
   const { data: openSession, isLoading: loadingOpen } = useQuery<CashDrawerSessionWithActions | null>({
     queryKey: [`/api/cash-drawer/open?storeId=${selectedStore?.id}`],
@@ -46,9 +82,15 @@ export default function CashDrawer() {
     enabled: !!selectedStore,
   });
 
-  const { data: zReport } = useQuery({
+  const { data: zReport } = useQuery<any>({
     queryKey: [`/api/cash-drawer/sessions/${viewingReportId}/z-report`],
     enabled: !!viewingReportId,
+  });
+
+  const { data: liveZReport } = useQuery<any>({
+    queryKey: [`/api/cash-drawer/sessions/${openSession?.id}/z-report`],
+    enabled: !!openSession && showCloseDialog,
+    refetchInterval: false,
   });
 
   const invalidateDrawerQueries = () => {
@@ -76,19 +118,22 @@ export default function CashDrawer() {
 
   const closeDrawerMutation = useMutation({
     mutationFn: async () => {
+      const denomData = JSON.stringify(denomCounter.counts);
       return apiRequest("POST", `/api/cash-drawer/sessions/${openSession!.id}/close`, {
-        closingBalance: closingAmount,
+        closingBalance: denomCounter.total.toFixed(2),
+        denominationBreakdown: denomData,
         closedBy: userName,
         notes: closeNotes,
       });
     },
     onSuccess: () => {
+      const sessionId = openSession!.id;
       invalidateDrawerQueries();
       toast({ title: "Shift closed", description: "Day close completed. Z Report generated." });
       setShowCloseDialog(false);
-      setClosingAmount("");
       setCloseNotes("");
-      setViewingReportId(openSession!.id);
+      denomCounter.reset();
+      setViewingReportId(sessionId);
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message || "Could not close drawer", variant: "destructive" });
@@ -127,7 +172,17 @@ export default function CashDrawer() {
     },
   });
 
-  const closedSessions = sessions.filter(s => s.status === "closed");
+  const closedSessions = useMemo(() => {
+    return sessions
+      .filter(s => s.status === "closed")
+      .sort((a, b) => {
+        const aTime = a.closedAt ? new Date(a.closedAt).getTime() : 0;
+        const bTime = b.closedAt ? new Date(b.closedAt).getTime() : 0;
+        return bTime - aTime;
+      });
+  }, [sessions]);
+
+  const priorDaySession = closedSessions.length > 0 ? closedSessions[0] : null;
 
   if (loadingOpen) {
     return (
@@ -147,13 +202,35 @@ export default function CashDrawer() {
               Manage your cash drawer, record cash movements, and generate Z reports
             </p>
           </div>
-          {openSession && (
-            <Badge variant="outline" className="no-default-active-elevate text-green-600 border-green-300 gap-1.5">
-              <Unlock className="w-3.5 h-3.5" />
-              Drawer Open
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {priorDaySession && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setShowDepositSlip(!showDepositSlip)}
+                data-testid="button-deposit-slip"
+              >
+                <Building2 className="w-4 h-4" />
+                Deposit Slip
+              </Button>
+            )}
+            {openSession && (
+              <Badge variant="outline" className="no-default-active-elevate text-green-600 border-green-300 gap-1.5">
+                <Unlock className="w-3.5 h-3.5" />
+                Drawer Open
+              </Badge>
+            )}
+          </div>
         </div>
+
+        {showDepositSlip && priorDaySession && (
+          <DepositSlipView
+            session={priorDaySession}
+            sessions={closedSessions}
+            timezone={timezone}
+            onClose={() => setShowDepositSlip(false)}
+          />
+        )}
 
         {!openSession ? (
           <Card data-testid="open-drawer-card">
@@ -241,7 +318,10 @@ export default function CashDrawer() {
                     </Button>
                     <Button
                       className="gap-2 bg-destructive text-destructive-foreground"
-                      onClick={() => setShowCloseDialog(true)}
+                      onClick={() => {
+                        denomCounter.reset();
+                        setShowCloseDialog(true);
+                      }}
                       data-testid="button-end-shift"
                     >
                       <Lock className="w-4 h-4" />
@@ -340,60 +420,17 @@ export default function CashDrawer() {
             )}
 
             {showCloseDialog && (
-              <Card className="border-destructive/30" data-testid="close-dialog-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-destructive" />
-                    End Shift / Day Close
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Closing the drawer will end this shift and generate a Z Report. Count the cash in the drawer and enter the amount below.
-                  </p>
-                  <div className="flex items-end gap-3 flex-wrap">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Closing Cash Count</label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={closingAmount}
-                          onChange={(e) => setClosingAmount(e.target.value)}
-                          placeholder="0.00"
-                          className="pl-9 w-40"
-                          data-testid="input-closing-balance"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
-                      <label className="text-xs font-medium text-muted-foreground">Notes (optional)</label>
-                      <Input
-                        value={closeNotes}
-                        onChange={(e) => setCloseNotes(e.target.value)}
-                        placeholder="Any notes about this shift..."
-                        data-testid="input-close-notes"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-2">
-                    <Button
-                      className="gap-2 bg-destructive text-destructive-foreground"
-                      onClick={() => closeDrawerMutation.mutate()}
-                      disabled={closeDrawerMutation.isPending}
-                      data-testid="button-confirm-close"
-                    >
-                      <Lock className="w-4 h-4" />
-                      {closeDrawerMutation.isPending ? "Closing..." : "Close Drawer & Generate Z Report"}
-                    </Button>
-                    <Button variant="ghost" onClick={() => setShowCloseDialog(false)} data-testid="button-cancel-close">
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <EndShiftDialog
+                openSession={openSession}
+                denomCounter={denomCounter}
+                closeNotes={closeNotes}
+                setCloseNotes={setCloseNotes}
+                onClose={() => setShowCloseDialog(false)}
+                onConfirm={() => closeDrawerMutation.mutate()}
+                isPending={closeDrawerMutation.isPending}
+                timezone={timezone}
+                liveZReport={liveZReport}
+              />
             )}
           </div>
         )}
@@ -481,6 +518,296 @@ export default function CashDrawer() {
   );
 }
 
+function EndShiftDialog({
+  openSession,
+  denomCounter,
+  closeNotes,
+  setCloseNotes,
+  onClose,
+  onConfirm,
+  isPending,
+  timezone,
+  liveZReport,
+}: {
+  openSession: CashDrawerSessionWithActions;
+  denomCounter: ReturnType<typeof useDenominationCounter>;
+  closeNotes: string;
+  setCloseNotes: (v: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+  timezone: string;
+  liveZReport?: any;
+}) {
+  const expectedCash = liveZReport?.expectedCash ?? null;
+  const cashSales = liveZReport?.paymentBreakdown?.cash ?? 0;
+  const countedTotal = denomCounter.total;
+  const variance = expectedCash !== null ? countedTotal - expectedCash : null;
+
+  return (
+    <Card className="border-destructive/30" data-testid="close-dialog-card">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            End Shift / Day Close
+          </CardTitle>
+          <Button size="icon" variant="ghost" onClick={onClose} data-testid="button-cancel-close">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <p className="text-sm text-muted-foreground">
+          Count each denomination in the cash drawer. The total will be calculated automatically.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Bills</div>
+            {DENOMINATIONS.filter(d => d.value >= 1).map(d => (
+              <DenominationRow
+                key={d.key}
+                label={d.label}
+                denomValue={d.value}
+                count={denomCounter.counts[d.key] || 0}
+                onChange={(count) => denomCounter.setCount(d.key, count)}
+                denomKey={d.key}
+              />
+            ))}
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Coins</div>
+            {DENOMINATIONS.filter(d => d.value < 1).map(d => (
+              <DenominationRow
+                key={d.key}
+                label={d.label}
+                denomValue={d.value}
+                count={denomCounter.counts[d.key] || 0}
+                onChange={(count) => denomCounter.setCount(d.key, count)}
+                denomKey={d.key}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t pt-4 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="bg-muted/50 rounded-md p-3 space-y-1">
+              <p className="text-xs text-muted-foreground">Counted Total</p>
+              <p className="text-xl font-bold" data-testid="text-counted-total">
+                ${countedTotal.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-muted/50 rounded-md p-3 space-y-1">
+              <p className="text-xs text-muted-foreground">Expected in Drawer</p>
+              <p className="text-xl font-bold text-muted-foreground" data-testid="text-expected-cash">
+                {expectedCash !== null ? `$${expectedCash.toFixed(2)}` : "Loading..."}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Open + Cash Sales + In - Out</p>
+            </div>
+            <div className="bg-muted/50 rounded-md p-3 space-y-1">
+              <p className="text-xs text-muted-foreground">Variance</p>
+              <p className={cn("text-xl font-bold", variance === null ? "text-muted-foreground" : variance === 0 ? "text-green-600" : variance > 0 ? "text-blue-600" : "text-destructive")} data-testid="text-variance">
+                {countedTotal === 0 || variance === null ? "---" : variance === 0 ? "Even" : variance > 0 ? `+$${variance.toFixed(2)}` : `-$${Math.abs(variance).toFixed(2)}`}
+              </p>
+              {countedTotal > 0 && variance !== null && variance !== 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  {variance > 0 ? "Over" : "Short"}
+                </p>
+              )}
+            </div>
+          </div>
+          {liveZReport && cashSales > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Includes ${cashSales.toFixed(2)} in cash sales from {liveZReport.transactionCount} transaction(s)
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Notes (optional)</label>
+          <Input
+            value={closeNotes}
+            onChange={(e) => setCloseNotes(e.target.value)}
+            placeholder="Any notes about this shift..."
+            data-testid="input-close-notes"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
+          <Button
+            className="gap-2 bg-destructive text-destructive-foreground"
+            onClick={onConfirm}
+            disabled={isPending || countedTotal === 0}
+            data-testid="button-confirm-close"
+          >
+            <Lock className="w-4 h-4" />
+            {isPending ? "Closing..." : "Close Drawer & Generate Z Report"}
+          </Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DenominationRow({
+  label,
+  denomValue,
+  count,
+  onChange,
+  denomKey,
+}: {
+  label: string;
+  denomValue: number;
+  count: number;
+  onChange: (count: number) => void;
+  denomKey: string;
+}) {
+  const subtotal = Math.round(count * denomValue * 100) / 100;
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 border-b last:border-0">
+      <span className="text-sm flex-1 min-w-[120px]">{label}</span>
+      <Input
+        type="number"
+        min="0"
+        value={count || ""}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className="w-20 text-center"
+        placeholder="0"
+        data-testid={`input-denom-${denomKey}`}
+      />
+      <span className="text-sm font-medium w-20 text-right tabular-nums" data-testid={`text-denom-subtotal-${denomKey}`}>
+        ${subtotal.toFixed(2)}
+      </span>
+    </div>
+  );
+}
+
+function DepositSlipView({
+  session,
+  sessions,
+  timezone,
+  onClose,
+}: {
+  session: CashDrawerSessionWithActions;
+  sessions: CashDrawerSessionWithActions[];
+  timezone: string;
+  onClose: () => void;
+}) {
+  const { data: depositZReport } = useQuery<any>({
+    queryKey: [`/api/cash-drawer/sessions/${session.id}/z-report`],
+    enabled: !!session.id,
+  });
+
+  const closingBal = Number(session.closingBalance) || 0;
+  const openingBal = Number(session.openingBalance) || 0;
+
+  const cashSales = depositZReport?.paymentBreakdown?.cash ?? 0;
+  const cashIn = depositZReport?.cashIn ?? 0;
+  const cashOut = depositZReport?.cashOut ?? 0;
+
+  const depositAmount = Math.max(0, cashSales + cashIn - cashOut);
+
+  let denomData: Record<string, number> | null = null;
+  if (session.denominationBreakdown) {
+    try {
+      denomData = JSON.parse(session.denominationBreakdown);
+    } catch {
+      denomData = null;
+    }
+  }
+
+  return (
+    <Card className="border-2" data-testid="deposit-slip-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Cash Deposit Slip
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()} data-testid="button-print-deposit">
+              <Printer className="w-3.5 h-3.5" />
+              Print
+            </Button>
+            <Button size="icon" variant="ghost" onClick={onClose} data-testid="button-close-deposit">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Prior shift: {formatInTz(session.openedAt, timezone, "EEEE, MMMM d, yyyy")}
+          {" | "}
+          {formatInTz(session.openedAt, timezone, "h:mm a")} - {session.closedAt ? formatInTz(session.closedAt, timezone, "h:mm a") : "N/A"}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="bg-muted/50 rounded-md p-4 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Deposit Amount</p>
+          <p className="text-3xl font-bold" data-testid="text-deposit-amount">${depositAmount.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Cash revenue to be deposited at bank</p>
+        </div>
+
+        <div className="space-y-2 text-sm">
+          <h4 className="font-medium">Deposit Calculation</h4>
+          <div className="flex justify-between py-1 border-b">
+            <span className="text-muted-foreground">Cash Sales</span>
+            <span>${cashSales.toFixed(2)}</span>
+          </div>
+          {cashIn > 0 && (
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Plus: Cash In (Paid In)</span>
+              <span>+${cashIn.toFixed(2)}</span>
+            </div>
+          )}
+          {cashOut > 0 && (
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Less: Cash Out (Paid Out)</span>
+              <span>-${cashOut.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between py-1 font-semibold">
+            <span>Net Cash Revenue (Deposit)</span>
+            <span data-testid="text-deposit-net">${depositAmount.toFixed(2)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Opening float of ${openingBal.toFixed(2)} stays in drawer for next shift
+          </p>
+        </div>
+
+        {denomData && Object.keys(denomData).length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Denomination Breakdown (from close count)</h4>
+            <div className="text-sm space-y-1">
+              {DENOMINATIONS.filter(d => (denomData![d.key] || 0) > 0).map(d => {
+                const cnt = denomData![d.key] || 0;
+                const sub = Math.round(cnt * d.value * 100) / 100;
+                return (
+                  <div key={d.key} className="flex justify-between py-0.5 text-xs" data-testid={`deposit-denom-${d.key}`}>
+                    <span className="text-muted-foreground">{d.label} x {cnt}</span>
+                    <span>${sub.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="border-t pt-3 space-y-1.5 text-xs text-muted-foreground">
+          <p>Shift opened by: {session.openedBy || "Unknown"}</p>
+          <p>Shift closed by: {session.closedBy || "Unknown"}</p>
+          {session.notes && <p>Notes: {session.notes}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ZReportView({
   report,
   timezone,
@@ -493,6 +820,15 @@ function ZReportView({
   const session = report.session;
   const closingBal = Number(session.closingBalance) || 0;
   const variance = closingBal - report.expectedCash;
+
+  let denomData: Record<string, number> | null = null;
+  if (session.denominationBreakdown) {
+    try {
+      denomData = JSON.parse(session.denominationBreakdown);
+    } catch {
+      denomData = null;
+    }
+  }
 
   return (
     <Card className="border-2" data-testid="z-report-card">
@@ -613,6 +949,24 @@ function ZReportView({
             )}
           </div>
         </div>
+
+        {denomData && Object.keys(denomData).length > 0 && (
+          <div className="border-t pt-3 space-y-2">
+            <h4 className="text-sm font-medium">Denomination Count</h4>
+            <div className="grid grid-cols-2 gap-x-4 text-xs">
+              {DENOMINATIONS.filter(d => (denomData![d.key] || 0) > 0).map(d => {
+                const cnt = denomData![d.key] || 0;
+                const sub = Math.round(cnt * d.value * 100) / 100;
+                return (
+                  <div key={d.key} className="flex justify-between py-0.5 border-b" data-testid={`zr-denom-${d.key}`}>
+                    <span className="text-muted-foreground">{d.label} x {cnt}</span>
+                    <span className="font-medium">${sub.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {session.notes && (
           <div className="bg-muted/30 rounded-md p-3">

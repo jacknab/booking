@@ -117,6 +117,7 @@ export const cashDrawerSessions = pgTable("cash_drawer_sessions", {
   closedAt: timestamp("closed_at"),
   openingBalance: decimal("opening_balance", { precision: 10, scale: 2 }).notNull().default("0.00"),
   closingBalance: decimal("closing_balance", { precision: 10, scale: 2 }),
+  denominationBreakdown: text("denomination_breakdown"),
   status: text("status").notNull().default("open"),
   openedBy: text("opened_by"),
   closedBy: text("closed_by"),

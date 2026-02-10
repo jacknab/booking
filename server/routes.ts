@@ -624,6 +624,7 @@ export async function registerRoutes(
       const updated = await storage.updateCashDrawerSession(id, {
         closedAt: new Date(),
         closingBalance: input.closingBalance || "0.00",
+        denominationBreakdown: input.denominationBreakdown || null,
         closedBy: input.closedBy || null,
         status: "closed",
         notes: input.notes || null,

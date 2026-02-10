@@ -474,6 +474,7 @@ export const api = {
       path: '/api/cash-drawer/sessions/:id/close' as const,
       input: z.object({
         closingBalance: z.string().optional().default("0.00"),
+        denominationBreakdown: z.string().nullable().optional(),
         closedBy: z.string().nullable().optional(),
         notes: z.string().nullable().optional(),
       }),
