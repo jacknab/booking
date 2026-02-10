@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,10 +15,10 @@ import { useCreateAppointment } from "@/hooks/use-appointments";
 import { useAddonsForService, useSetAppointmentAddons, useServiceCategories } from "@/hooks/use-addons";
 import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
-import { getTimezoneAbbr, formatInTz } from "@/lib/timezone";
+import { getTimezoneAbbr, formatInTz, storeLocalToUtc } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays } from "lucide-react";
+import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
 
@@ -30,6 +30,13 @@ export default function NewBooking() {
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const tzAbbr = getTimezoneAbbr(timezone);
+
+  const params = new URLSearchParams(window.location.search);
+  const calStaffId = params.get("staffId") ? Number(params.get("staffId")) : null;
+  const calDate = params.get("date");
+  const calTime = params.get("time");
+  const calAvailableMinutes = params.get("availableMinutes") ? Number(params.get("availableMinutes")) : null;
+  const isCalendarBooking = !!(calStaffId && calDate && calTime);
 
   const { data: services, isLoading: servicesLoading } = useServices();
   const { data: categories } = useServiceCategories();
@@ -46,11 +53,39 @@ export default function NewBooking() {
   const [notes, setNotes] = useState("");
   const [step, setStep] = useState<BookingStep>("services");
 
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const availableMinutes = isCalendarBooking && calAvailableMinutes && calAvailableMinutes > 0 ? calAvailableMinutes : null;
+
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    if (calDate) {
+      const [y, m, d] = calDate.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  });
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [staffMode, setStaffMode] = useState<"any" | "specific">("any");
-  const [specificStaffId, setSpecificStaffId] = useState<number | null>(null);
+  const [staffMode, setStaffMode] = useState<"any" | "specific">(isCalendarBooking ? "specific" : "any");
+  const [specificStaffId, setSpecificStaffId] = useState<number | null>(calStaffId);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [calendarSlotInitialized, setCalendarSlotInitialized] = useState(false);
+
+  useEffect(() => {
+    if (isCalendarBooking && staffList && !calendarSlotInitialized) {
+      const staffMember = staffList.find((s: Staff) => s.id === calStaffId);
+      if (staffMember) {
+        setSelectedStaff(staffMember);
+        const [hours, mins] = calTime!.split(":").map(Number);
+        const localDate = new Date(selectedDate!);
+        localDate.setHours(hours, mins, 0, 0);
+        const utcTime = storeLocalToUtc(`${calDate}T${calTime}:00`, timezone);
+        setSelectedSlot({
+          time: utcTime.toISOString(),
+          staffId: calStaffId!,
+          staffName: staffMember.name,
+        });
+        setCalendarSlotInitialized(true);
+      }
+    }
+  }, [isCalendarBooking, staffList, calStaffId, calTime, timezone, selectedDate, calendarSlotInitialized]);
 
   const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(selectedService?.id || null);
 
@@ -74,7 +109,7 @@ export default function NewBooking() {
 
   const categoryNames = useMemo(() => {
     if (categories && categories.length > 0) {
-      return [...new Set(categories.map((c: any) => c.name))].sort() as string[];
+      return Array.from(new Set(categories.map((c: any) => c.name))).sort() as string[];
     }
     if (!services) return [];
     const catSet = new Set<string>();
@@ -94,8 +129,10 @@ export default function NewBooking() {
   const handleSelectService = (service: Service) => {
     if (selectedService?.id !== service.id) {
       setSelectedAddons([]);
-      setSelectedSlot(null);
-      setSelectedStaff(null);
+      if (!isCalendarBooking) {
+        setSelectedSlot(null);
+        setSelectedStaff(null);
+      }
     }
     setSelectedService(service);
   };
@@ -123,13 +160,19 @@ export default function NewBooking() {
   const handleContinueToAddons = () => {
     if (availableAddons && availableAddons.length > 0) {
       setStep("addons");
+    } else if (isCalendarBooking) {
+      handleRequestBooking();
     } else {
       setStep("details");
     }
   };
 
   const handleContinueToDetails = () => {
-    setStep("details");
+    if (isCalendarBooking) {
+      handleRequestBooking();
+    } else {
+      setStep("details");
+    }
   };
 
   const handleDateChange = (date: Date | undefined) => {
@@ -275,6 +318,8 @@ export default function NewBooking() {
             onSetCustomer={setSelectedCustomer}
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
+            availableMinutes={availableMinutes}
+            isCalendarBooking={isCalendarBooking}
             footerContent={
               <Button
                 className="w-full bg-pink-500 text-white h-12"
@@ -362,6 +407,8 @@ export default function NewBooking() {
             onSetCustomer={setSelectedCustomer}
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
+            availableMinutes={availableMinutes}
+            isCalendarBooking={isCalendarBooking}
             footerContent={
               <Button
                 className="w-full bg-pink-500 text-white h-12"
@@ -581,6 +628,8 @@ export default function NewBooking() {
             onSetCustomer={setSelectedCustomer}
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
+            availableMinutes={availableMinutes}
+            isCalendarBooking={isCalendarBooking}
             footerContent={
               <div className="space-y-2">
                 {selectedSlot && (
@@ -665,6 +714,8 @@ function BookingSummaryPanel({
   onRemoveService,
   onRemoveAddon,
   footerContent,
+  availableMinutes,
+  isCalendarBooking,
 }: {
   selectedService: Service | null;
   selectedAddons: Addon[];
@@ -677,7 +728,11 @@ function BookingSummaryPanel({
   onRemoveService: () => void;
   onRemoveAddon: (id: number) => void;
   footerContent: React.ReactNode;
+  availableMinutes?: number | null;
+  isCalendarBooking?: boolean;
 }) {
+  const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
+  const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   return (
     <div className="w-[320px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
@@ -771,6 +826,30 @@ function BookingSummaryPanel({
       </div>
 
       <div className="border-t p-4 space-y-3">
+        {isCalendarBooking && availableMinutes != null && (
+          <div
+            className={cn(
+              "rounded-md p-3 flex items-start gap-2.5",
+              isOverTime
+                ? "bg-destructive/10 border border-destructive/20"
+                : "bg-sky-50 dark:bg-sky-950 border border-sky-200 dark:border-sky-800"
+            )}
+            data-testid="available-time-banner"
+          >
+            <Timer className={cn("w-4 h-4 mt-0.5 flex-shrink-0", isOverTime ? "text-destructive" : "text-sky-600 dark:text-sky-400")} />
+            <div>
+              <p className={cn("text-sm font-semibold", isOverTime ? "text-destructive" : "text-foreground")}>
+                Available Time
+              </p>
+              <p className={cn("text-xs", isOverTime ? "text-destructive/80" : "text-muted-foreground")}>
+                {isOverTime
+                  ? `Exceeds available time by ${Math.abs(remainingMinutes!)} min.`
+                  : `You have ${availableMinutes} minutes available for this slot. Used: ${totalDuration} min.`
+                }
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <div>
             <span className="font-semibold">Total</span>

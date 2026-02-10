@@ -103,7 +103,7 @@ export default function Calendar() {
   }, [selectedStore?.id]);
 
   const { data: appointments } = useAppointments();
-  const { data: staffList } = useStaffList();
+  const { data: staffList, isLoading: staffLoading } = useStaffList();
 
   const filteredStaff = useMemo(() => {
     if (!staffList) return [];
@@ -172,6 +172,34 @@ export default function Calendar() {
   const goNext = () => setCurrentDate(addDays(currentDate, 1));
 
   const isToday = isSameDay(currentDate, storeNow);
+
+  const getAvailableMinutesForSlot = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
+    if (!appointments) return END_HOUR * 60 - (slotHour * 60 + slotMinute);
+    const staffApts = appointments.filter((apt: any) => {
+      if (apt.staffId !== staffId || apt.status === "cancelled") return false;
+      const localDate = toStoreLocal(apt.date, timezone);
+      return isSameDay(localDate, currentDate);
+    });
+    const slotStartMin = slotHour * 60 + slotMinute;
+    const endOfDayMin = END_HOUR * 60;
+    let nextBoundary = endOfDayMin;
+    for (const apt of staffApts) {
+      const localDate = toStoreLocal(apt.date, timezone);
+      const aptStartMin = localDate.getHours() * 60 + localDate.getMinutes();
+      if (aptStartMin > slotStartMin && aptStartMin < nextBoundary) {
+        nextBoundary = aptStartMin;
+      }
+    }
+    return nextBoundary - slotStartMin;
+  }, [appointments, timezone, currentDate, END_HOUR]);
+
+  const handleSlotClick = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
+    const availMins = getAvailableMinutesForSlot(staffId, slotHour, slotMinute);
+    if (availMins <= 0) return;
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+    const timeStr = `${String(slotHour).padStart(2, "0")}:${String(slotMinute).padStart(2, "0")}`;
+    navigate(`/booking/new?staffId=${staffId}&date=${dateStr}&time=${timeStr}&availableMinutes=${availMins}`);
+  }, [currentDate, navigate, getAvailableMinutesForSlot]);
 
   const handleCancelAppointment = (apt: AppointmentWithDetails) => {
     setShowCancelFlow(true);
@@ -357,7 +385,7 @@ export default function Calendar() {
 
                 {filteredStaff.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
-                    No staff members found for this store.
+                    {staffLoading ? "Loading staff..." : "No staff members found for this store."}
                   </div>
                 ) : (
                   filteredStaff.map((member: any) => {
@@ -393,11 +421,16 @@ export default function Calendar() {
                             return (
                               <div
                                 key={`${slot.hour}-${slot.minute}`}
-                                className={cn("absolute left-0 right-0 border-b", slot.isHour ? "border-border/40" : "border-border/20")}
+                                className={cn(
+                                  "absolute left-0 right-0 border-b cursor-pointer transition-colors hover:bg-primary/5",
+                                  slot.isHour ? "border-border/40" : "border-border/20"
+                                )}
                                 style={{
                                   top: `${topPx}px`,
                                   height: `${slotHeight}px`,
                                 }}
+                                onClick={() => handleSlotClick(member.id, slot.hour, slot.minute)}
+                                data-testid={`calendar-slot-${member.id}-${slot.hour}-${slot.minute}`}
                               />
                             );
                           })}
