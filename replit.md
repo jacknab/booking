@@ -1,4 +1,4 @@
-# Replit Agent Guide
+# Project Guide
 
 ## Overview
 
@@ -107,4 +107,4 @@ script/build.ts   — Production build script (Vite + esbuild)
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable
 - **Session Secret**: Uses `SESSION_SECRET` environment variable for express-session
 - **Google Fonts**: Outfit, DM Sans, Fira Code, Geist Mono (loaded via CDN in index.html and CSS imports)
-- **Replit Vite Plugins**: `@replit/vite-plugin-runtime-error-modal`, `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner` (dev only)
+- **Vite**: Build tool with React plugin for frontend bundling
