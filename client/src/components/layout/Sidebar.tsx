@@ -6,7 +6,8 @@ import {
   Scissors, 
   ShoppingBag, 
   LogOut,
-  UserCircle
+  UserCircle,
+  Banknote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/staff", label: "Staff", icon: UserCircle },
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/customers", label: "Customers", icon: Users },
+  { href: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
 ];
 
 export function Sidebar() {

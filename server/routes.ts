@@ -15,7 +15,8 @@ import {
   insertCustomerSchema, 
   insertAppointmentSchema, 
   type Staff,
-  insertProductSchema 
+  insertProductSchema,
+  insertCashDrawerSessionSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(
@@ -556,6 +557,187 @@ export async function registerRoutes(
   app.delete(api.products.delete.path, async (req, res) => {
     await storage.deleteProduct(Number(req.params.id));
     res.status(204).end();
+  });
+
+  // === CASH DRAWER ===
+  app.get(api.cashDrawer.sessions.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    if (!storeId) return res.status(400).json({ message: "storeId required" });
+    const sessions = await storage.getCashDrawerSessions(storeId);
+    res.json(sessions);
+  });
+
+  app.get(api.cashDrawer.open.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    if (!storeId) return res.status(400).json({ message: "storeId required" });
+    const session = await storage.getOpenCashDrawerSession(storeId);
+    res.json(session || null);
+  });
+
+  app.get(api.cashDrawer.get.path, async (req, res) => {
+    const session = await storage.getCashDrawerSession(Number(req.params.id));
+    if (!session) return res.status(404).json({ message: "Session not found" });
+    res.json(session);
+  });
+
+  app.post(api.cashDrawer.create.path, async (req, res) => {
+    try {
+      const input = api.cashDrawer.create.input.parse(req.body);
+
+      const existing = await storage.getOpenCashDrawerSession(input.storeId);
+      if (existing) {
+        return res.status(409).json({ message: "A drawer session is already open for this store" });
+      }
+
+      const session = await storage.createCashDrawerSession({
+        storeId: input.storeId,
+        openedAt: new Date(),
+        openingBalance: input.openingBalance || "0.00",
+        openedBy: input.openedBy || null,
+        status: "open",
+      });
+
+      await storage.createDrawerAction({
+        sessionId: session.id,
+        type: "open_drawer",
+        reason: "Shift started",
+        performedBy: input.openedBy || null,
+        performedAt: new Date(),
+      });
+
+      res.status(201).json(session);
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.post(api.cashDrawer.close.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const session = await storage.getCashDrawerSession(id);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.status === "closed") return res.status(400).json({ message: "Session already closed" });
+
+      const input = api.cashDrawer.close.input.parse(req.body);
+
+      const updated = await storage.updateCashDrawerSession(id, {
+        closedAt: new Date(),
+        closingBalance: input.closingBalance || "0.00",
+        closedBy: input.closedBy || null,
+        status: "closed",
+        notes: input.notes || null,
+      });
+
+      await storage.createDrawerAction({
+        sessionId: id,
+        type: "close_drawer",
+        reason: input.notes || "Shift ended",
+        performedBy: input.closedBy || null,
+        performedAt: new Date(),
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.post(api.cashDrawer.action.path, async (req, res) => {
+    try {
+      const sessionId = Number(req.params.id);
+      const session = await storage.getCashDrawerSession(sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      const input = api.cashDrawer.action.input.parse(req.body);
+
+      const action = await storage.createDrawerAction({
+        sessionId,
+        type: input.type,
+        amount: input.amount || null,
+        reason: input.reason || null,
+        performedBy: input.performedBy || null,
+        performedAt: new Date(),
+      });
+
+      res.status(201).json(action);
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.get(api.cashDrawer.zReport.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const session = await storage.getCashDrawerSession(id);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      const from = new Date(session.openedAt);
+      const to = session.closedAt ? new Date(session.closedAt) : new Date();
+
+      const allAppointments = await storage.getAppointments({
+        from,
+        to,
+        storeId: session.storeId,
+      });
+
+      const completedAppointments = allAppointments.filter(a => a.status === "completed" && a.totalPaid);
+
+      let totalSales = 0;
+      let totalTips = 0;
+      let totalDiscounts = 0;
+      const paymentBreakdown: Record<string, number> = {};
+
+      for (const apt of completedAppointments) {
+        const paid = Number(apt.totalPaid) || 0;
+        const tip = Number(apt.tipAmount) || 0;
+        const disc = Number(apt.discountAmount) || 0;
+        totalSales += paid;
+        totalTips += tip;
+        totalDiscounts += disc;
+
+        if (apt.paymentMethod) {
+          const parts = apt.paymentMethod.split(",");
+          for (const part of parts) {
+            const [method, amtStr] = part.split(":");
+            const amt = Number(amtStr) || paid;
+            const key = method.trim().toLowerCase();
+            paymentBreakdown[key] = (paymentBreakdown[key] || 0) + amt;
+          }
+        }
+      }
+
+      let cashIn = 0;
+      let cashOut = 0;
+      for (const action of session.actions || []) {
+        if (action.type === "cash_in" || action.type === "paid_in") {
+          cashIn += Number(action.amount) || 0;
+        } else if (action.type === "cash_out" || action.type === "paid_out") {
+          cashOut += Number(action.amount) || 0;
+        }
+      }
+
+      const openingBal = Number(session.openingBalance) || 0;
+      const cashFromSales = paymentBreakdown["cash"] || 0;
+      const expectedCash = openingBal + cashFromSales + cashIn - cashOut;
+
+      res.json({
+        session,
+        totalSales: Math.round(totalSales * 100) / 100,
+        totalTips: Math.round(totalTips * 100) / 100,
+        totalDiscounts: Math.round(totalDiscounts * 100) / 100,
+        transactionCount: completedAppointments.length,
+        paymentBreakdown,
+        cashIn: Math.round(cashIn * 100) / 100,
+        cashOut: Math.round(cashOut * 100) / 100,
+        expectedCash: Math.round(expectedCash * 100) / 100,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   });
 
   // Seed Data

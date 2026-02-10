@@ -1,6 +1,7 @@
 import { 
   stores, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices,
+  cashDrawerSessions, drawerActions,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -11,7 +12,9 @@ import {
   type StaffService, type InsertStaffService,
   type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type AppointmentWithDetails,
-  type Product, type InsertProduct
+  type Product, type InsertProduct,
+  type CashDrawerSession, type InsertCashDrawerSession, type CashDrawerSessionWithActions,
+  type DrawerAction, type InsertDrawerAction
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
@@ -74,6 +77,14 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: number): Promise<void>;
+
+  getCashDrawerSessions(storeId: number): Promise<CashDrawerSessionWithActions[]>;
+  getCashDrawerSession(id: number): Promise<CashDrawerSessionWithActions | undefined>;
+  getOpenCashDrawerSession(storeId: number): Promise<CashDrawerSessionWithActions | undefined>;
+  createCashDrawerSession(session: InsertCashDrawerSession): Promise<CashDrawerSession>;
+  updateCashDrawerSession(id: number, data: Partial<InsertCashDrawerSession>): Promise<CashDrawerSession | undefined>;
+  createDrawerAction(action: InsertDrawerAction): Promise<DrawerAction>;
+  getDrawerActions(sessionId: number): Promise<DrawerAction[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -341,6 +352,51 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  // Cash Drawer Sessions
+  async getCashDrawerSessions(storeId: number): Promise<CashDrawerSessionWithActions[]> {
+    const result = await db.query.cashDrawerSessions.findMany({
+      where: eq(cashDrawerSessions.storeId, storeId),
+      with: { actions: true },
+      orderBy: (sessions, { desc }) => [desc(sessions.openedAt)],
+    });
+    return result as any;
+  }
+
+  async getCashDrawerSession(id: number): Promise<CashDrawerSessionWithActions | undefined> {
+    const result = await db.query.cashDrawerSessions.findFirst({
+      where: eq(cashDrawerSessions.id, id),
+      with: { actions: true },
+    });
+    return result as any;
+  }
+
+  async getOpenCashDrawerSession(storeId: number): Promise<CashDrawerSessionWithActions | undefined> {
+    const result = await db.query.cashDrawerSessions.findFirst({
+      where: and(eq(cashDrawerSessions.storeId, storeId), eq(cashDrawerSessions.status, "open")),
+      with: { actions: true },
+    });
+    return result as any;
+  }
+
+  async createCashDrawerSession(session: InsertCashDrawerSession): Promise<CashDrawerSession> {
+    const [result] = await db.insert(cashDrawerSessions).values(session).returning();
+    return result;
+  }
+
+  async updateCashDrawerSession(id: number, data: Partial<InsertCashDrawerSession>): Promise<CashDrawerSession | undefined> {
+    const [result] = await db.update(cashDrawerSessions).set(data).where(eq(cashDrawerSessions.id, id)).returning();
+    return result;
+  }
+
+  async createDrawerAction(action: InsertDrawerAction): Promise<DrawerAction> {
+    const [result] = await db.insert(drawerActions).values(action).returning();
+    return result;
+  }
+
+  async getDrawerActions(sessionId: number): Promise<DrawerAction[]> {
+    return await db.select().from(drawerActions).where(eq(drawerActions.sessionId, sessionId));
   }
 }
 

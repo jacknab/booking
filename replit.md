@@ -42,6 +42,8 @@ Preferred communication style: Simple, everyday language.
 - `customers` — Client records (name, contact info, notes, linked to store)
 - `appointments` — Bookings (date, time, status, payment details, linked to customer/staff/service/store)
 - `products` — Retail inventory (name, price, stock, linked to store)
+- `cashDrawerSessions` — Cash drawer shift sessions (storeId, openedAt, closedAt, openingBalance, closingBalance, status, openedBy, closedBy, notes)
+- `drawerActions` — Actions within a drawer session (sessionId, type [open_drawer/close_drawer/cash_in/cash_out], amount, reason, performedBy, performedAt)
 - `users` — Auth users (managed by Replit Auth)
 - `sessions` — Session storage for authentication
 

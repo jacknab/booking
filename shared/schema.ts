@@ -110,6 +110,29 @@ export const products = pgTable("products", {
   storeId: integer("store_id").references(() => stores.id),
 });
 
+export const cashDrawerSessions = pgTable("cash_drawer_sessions", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  openedAt: timestamp("opened_at").notNull(),
+  closedAt: timestamp("closed_at"),
+  openingBalance: decimal("opening_balance", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  closingBalance: decimal("closing_balance", { precision: 10, scale: 2 }),
+  status: text("status").notNull().default("open"),
+  openedBy: text("opened_by"),
+  closedBy: text("closed_by"),
+  notes: text("notes"),
+});
+
+export const drawerActions = pgTable("drawer_actions", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").references(() => cashDrawerSessions.id).notNull(),
+  type: text("type").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }),
+  reason: text("reason"),
+  performedBy: text("performed_by"),
+  performedAt: timestamp("performed_at").notNull(),
+});
+
 // === RELATIONS ===
 
 export const storesRelations = relations(stores, ({ many }) => ({
@@ -120,6 +143,16 @@ export const storesRelations = relations(stores, ({ many }) => ({
   products: many(products),
   serviceCategories: many(serviceCategories),
   addons: many(addons),
+  cashDrawerSessions: many(cashDrawerSessions),
+}));
+
+export const cashDrawerSessionsRelations = relations(cashDrawerSessions, ({ one, many }) => ({
+  store: one(stores, { fields: [cashDrawerSessions.storeId], references: [stores.id] }),
+  actions: many(drawerActions),
+}));
+
+export const drawerActionsRelations = relations(drawerActions, ({ one }) => ({
+  session: one(cashDrawerSessions, { fields: [drawerActions.sessionId], references: [cashDrawerSessions.id] }),
 }));
 
 export const serviceCategoriesRelations = relations(serviceCategories, ({ one, many }) => ({
@@ -193,6 +226,8 @@ export const insertStaffServiceSchema = createInsertSchema(staffServices).omit({
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
+export const insertCashDrawerSessionSchema = createInsertSchema(cashDrawerSessions).omit({ id: true });
+export const insertDrawerActionSchema = createInsertSchema(drawerActions).omit({ id: true });
 
 // === EXPLICIT API TYPES ===
 
@@ -228,6 +263,16 @@ export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
+
+export type CashDrawerSession = typeof cashDrawerSessions.$inferSelect;
+export type InsertCashDrawerSession = z.infer<typeof insertCashDrawerSessionSchema>;
+
+export type DrawerAction = typeof drawerActions.$inferSelect;
+export type InsertDrawerAction = z.infer<typeof insertDrawerActionSchema>;
+
+export type CashDrawerSessionWithActions = CashDrawerSession & {
+  actions: DrawerAction[];
+};
 
 export type AppointmentWithDetails = Appointment & {
   service: Service | null;

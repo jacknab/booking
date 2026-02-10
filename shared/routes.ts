@@ -11,6 +11,8 @@ import {
   insertCustomerSchema, 
   insertAppointmentSchema, 
   insertProductSchema,
+  insertCashDrawerSessionSchema,
+  insertDrawerActionSchema,
   stores,
   serviceCategories,
   services,
@@ -21,7 +23,9 @@ import {
   staff,
   customers,
   appointments,
-  products
+  products,
+  cashDrawerSessions,
+  drawerActions,
 } from './schema';
 
 export const errorSchemas = {
@@ -427,7 +431,90 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
-  }
+  },
+  cashDrawer: {
+    sessions: {
+      method: 'GET' as const,
+      path: '/api/cash-drawer/sessions' as const,
+      responses: {
+        200: z.array(z.custom<typeof cashDrawerSessions.$inferSelect>()),
+      },
+    },
+    open: {
+      method: 'GET' as const,
+      path: '/api/cash-drawer/open' as const,
+      responses: {
+        200: z.custom<typeof cashDrawerSessions.$inferSelect>().nullable(),
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/cash-drawer/sessions/:id' as const,
+      responses: {
+        200: z.custom<typeof cashDrawerSessions.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/cash-drawer/sessions' as const,
+      input: z.object({
+        storeId: z.number(),
+        openingBalance: z.string().optional().default("0.00"),
+        openedBy: z.string().nullable().optional(),
+      }),
+      responses: {
+        201: z.custom<typeof cashDrawerSessions.$inferSelect>(),
+        400: errorSchemas.validation,
+        409: z.object({ message: z.string() }),
+      },
+    },
+    close: {
+      method: 'POST' as const,
+      path: '/api/cash-drawer/sessions/:id/close' as const,
+      input: z.object({
+        closingBalance: z.string().optional().default("0.00"),
+        closedBy: z.string().nullable().optional(),
+        notes: z.string().nullable().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof cashDrawerSessions.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    action: {
+      method: 'POST' as const,
+      path: '/api/cash-drawer/sessions/:id/action' as const,
+      input: z.object({
+        type: z.enum(["open_drawer", "close_drawer", "cash_in", "cash_out"]),
+        amount: z.string().nullable().optional(),
+        reason: z.string().nullable().optional(),
+        performedBy: z.string().nullable().optional(),
+      }),
+      responses: {
+        201: z.custom<typeof drawerActions.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    zReport: {
+      method: 'GET' as const,
+      path: '/api/cash-drawer/sessions/:id/z-report' as const,
+      responses: {
+        200: z.object({
+          session: z.custom<typeof cashDrawerSessions.$inferSelect>(),
+          totalSales: z.number(),
+          totalTips: z.number(),
+          totalDiscounts: z.number(),
+          transactionCount: z.number(),
+          paymentBreakdown: z.record(z.string(), z.number()),
+          cashIn: z.number(),
+          cashOut: z.number(),
+          expectedCash: z.number(),
+        }),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
