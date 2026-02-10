@@ -9,7 +9,7 @@ import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -749,6 +749,12 @@ const TIP_PRESETS = [
   { label: "25%", percent: 0.25 },
 ];
 
+type TenderLine = {
+  id: number;
+  method: string;
+  amount: number;
+};
+
 function CheckoutPOSPanel({
   appointment,
   timezone,
@@ -762,13 +768,17 @@ function CheckoutPOSPanel({
   onFinalize: (data: { paymentMethod: string; tip: number; discount: number; totalPaid: number }) => void;
   isUpdating: boolean;
 }) {
-  const [paymentMethod, setPaymentMethod] = useState<string>("card");
+  const [phase, setPhase] = useState<"cart" | "payment">("cart");
   const [tipMode, setTipMode] = useState<"preset" | "custom">("preset");
   const [selectedTipIndex, setSelectedTipIndex] = useState(0);
   const [customTip, setCustomTip] = useState("");
   const [discountValue, setDiscountValue] = useState("");
   const [discountType, setDiscountType] = useState<"dollar" | "percent">("dollar");
-  const [showReceipt, setShowReceipt] = useState(false);
+
+  const [tenders, setTenders] = useState<TenderLine[]>([]);
+  const [keypadDisplay, setKeypadDisplay] = useState("0");
+  const [nextTenderId, setNextTenderId] = useState(1);
+  const [showComplete, setShowComplete] = useState(false);
 
   const aptAddons = appointment.appointmentAddons?.map(aa => aa.addon).filter(Boolean) || [];
   const servicePrice = Number(appointment.service?.price || 0);
@@ -785,108 +795,252 @@ function CheckoutPOSPanel({
   const tip = tipMode === "custom"
     ? (Number(customTip) || 0)
     : (TIP_PRESETS[selectedTipIndex]?.percent
-        ? preTotal * TIP_PRESETS[selectedTipIndex].percent!
-        : TIP_PRESETS[selectedTipIndex]?.value || 0);
+        ? preTotal * (TIP_PRESETS[selectedTipIndex] as any).percent
+        : (TIP_PRESETS[selectedTipIndex] as any)?.value || 0);
 
-  const grandTotal = preTotal + tip;
+  const grandTotal = Math.round((preTotal + tip) * 100) / 100;
+  const totalTendered = tenders.reduce((sum, t) => sum + t.amount, 0);
+  const balanceDue = Math.round((grandTotal - totalTendered) * 100) / 100;
+  const changeDue = balanceDue < 0 ? Math.abs(balanceDue) : 0;
 
   const endTime = addMinutes(new Date(appointment.date), appointment.duration);
   const dateStr = formatInTz(appointment.date, timezone, "EEE, MMM d");
   const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
 
-  const handleFinalize = () => {
-    onFinalize({
-      paymentMethod,
-      tip: Math.round(tip * 100) / 100,
-      discount: Math.round(discount * 100) / 100,
-      totalPaid: Math.round(grandTotal * 100) / 100,
+  const handleKeypadPress = (key: string) => {
+    if (key === "C") {
+      setKeypadDisplay("0");
+      return;
+    }
+    if (key === "BS") {
+      setKeypadDisplay(prev => prev.length <= 1 ? "0" : prev.slice(0, -1));
+      return;
+    }
+    if (key === ".") {
+      if (keypadDisplay.includes(".")) return;
+      setKeypadDisplay(prev => prev + ".");
+      return;
+    }
+    setKeypadDisplay(prev => {
+      if (prev === "0" && key !== ".") return key;
+      const parts = prev.split(".");
+      if (parts[1] && parts[1].length >= 2) return prev;
+      return prev + key;
     });
   };
 
-  if (showReceipt) {
+  useEffect(() => {
+    if (phase === "payment") {
+      setShowComplete(totalTendered >= grandTotal && tenders.length > 0);
+    }
+  }, [totalTendered, grandTotal, tenders.length, phase]);
+
+  const handleApplyTender = (method: string) => {
+    const amount = Number(keypadDisplay);
+    if (amount <= 0) return;
+    setTenders(prev => [...prev, { id: nextTenderId, method, amount }]);
+    setNextTenderId(prev => prev + 1);
+    setKeypadDisplay("0");
+  };
+
+  const handleRemoveTender = (id: number) => {
+    setTenders(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleQuickAmount = (amount: number) => {
+    setKeypadDisplay(String(amount.toFixed(2)));
+  };
+
+  const handleCompleteTransaction = () => {
+    const methodsSummary = tenders.map(t => `${t.method}:${t.amount.toFixed(2)}`).join(",");
+    onFinalize({
+      paymentMethod: methodsSummary,
+      tip: Math.round(tip * 100) / 100,
+      discount: Math.round(discount * 100) / 100,
+      totalPaid: Math.round(totalTendered * 100) / 100,
+    });
+  };
+
+  const getMethodIcon = (method: string) => {
+    const found = PAYMENT_METHODS.find(m => m.id === method);
+    if (!found) return Banknote;
+    return found.icon;
+  };
+
+  if (phase === "cart") {
     return (
-      <div className="w-[400px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-receipt-panel">
+      <div className="w-[400px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-pos-panel">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-muted-foreground" />
-            <h2 className="font-semibold text-lg">Payment Summary</h2>
+            <DollarSign className="w-5 h-5 text-muted-foreground" />
+            <h2 className="font-semibold text-lg">Checkout</h2>
+            <Badge variant="outline" className="no-default-active-elevate text-[10px]">#{appointment.id}</Badge>
           </div>
-          <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-receipt">
+          <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-checkout">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
           <div className="flex items-center gap-3">
-            <Avatar className="w-9 h-9">
+            <Avatar className="w-8 h-8">
               <AvatarFallback className="text-xs font-bold bg-muted">
                 {appointment.customer?.name?.[0]?.toUpperCase() || "W"}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium text-sm">{appointment.customer?.name || "Walk-In"}</p>
+              <p className="font-medium text-sm" data-testid="pos-customer-name">{appointment.customer?.name || "Walk-In"}</p>
               <p className="text-xs text-muted-foreground">{dateStr} &middot; {timeStr}</p>
             </div>
+            {appointment.staff && (
+              <Badge variant="outline" className="no-default-active-elevate text-[10px] ml-auto">{appointment.staff.name}</Badge>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>{appointment.service?.name}</span>
-              <span className="font-medium">${servicePrice.toFixed(2)}</span>
-            </div>
-            {aptAddons.map((addon: any) => (
-              <div key={addon.id} className="flex items-center justify-between text-sm pl-3">
-                <span className="text-muted-foreground">+ {addon.name}</span>
-                <span>${Number(addon.price).toFixed(2)}</span>
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Line Items</h3>
+            <div className="border rounded-md divide-y">
+              <div className="flex items-center justify-between p-3">
+                <div>
+                  <p className="text-sm font-medium" data-testid="pos-service-name">{appointment.service?.name}</p>
+                  <p className="text-xs text-muted-foreground">{appointment.service?.duration} min</p>
+                </div>
+                <span className="text-sm font-semibold" data-testid="pos-service-price">${servicePrice.toFixed(2)}</span>
               </div>
-            ))}
+              {aptAddons.map((addon: any) => (
+                <div key={addon.id} className="flex items-center justify-between p-3" data-testid={`pos-addon-${addon.id}`}>
+                  <div>
+                    <p className="text-sm font-medium">+ {addon.name}</p>
+                    <p className="text-xs text-muted-foreground">{addon.duration} min</p>
+                  </div>
+                  <span className="text-sm font-semibold">${Number(addon.price).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="border-t pt-3 space-y-1.5 text-sm">
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Discount</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-discount"
+                />
+              </div>
+              <div className="flex rounded-md border overflow-visible">
+                <button
+                  className={cn(
+                    "px-3 py-2 text-sm transition-colors",
+                    discountType === "dollar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  )}
+                  onClick={() => setDiscountType("dollar")}
+                  data-testid="button-discount-dollar"
+                >
+                  $
+                </button>
+                <button
+                  className={cn(
+                    "px-3 py-2 text-sm transition-colors",
+                    discountType === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  )}
+                  onClick={() => setDiscountType("percent")}
+                  data-testid="button-discount-percent"
+                >
+                  %
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tip</h3>
+            <div className="grid grid-cols-5 gap-1.5">
+              {TIP_PRESETS.map((preset, i) => (
+                <Button
+                  key={preset.label}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "text-xs",
+                    tipMode === "preset" && selectedTipIndex === i && "border-primary bg-primary/5 text-primary"
+                  )}
+                  onClick={() => { setTipMode("preset"); setSelectedTipIndex(i); }}
+                  data-testid={`button-tip-${preset.label.replace(/[^a-z0-9]/gi, "").toLowerCase()}`}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Custom:</span>
+              <div className="relative flex-1">
+                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={customTip}
+                  onChange={(e) => { setCustomTip(e.target.value); setTipMode("custom"); }}
+                  onFocus={() => setTipMode("custom")}
+                  className={cn("pl-8", tipMode === "custom" && "border-primary")}
+                  data-testid="input-custom-tip"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t p-4 space-y-3 bg-card">
+          <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span data-testid="pos-subtotal">${subtotal.toFixed(2)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount</span>
-                <span>-${discount.toFixed(2)}</span>
+                <span data-testid="pos-discount">-${discount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
-              <span>${tax.toFixed(2)}</span>
+              <span data-testid="pos-tax">${tax.toFixed(2)}</span>
             </div>
             {tip > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tip</span>
-                <span>${tip.toFixed(2)}</span>
+                <span data-testid="pos-tip">${tip.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-base pt-2 border-t">
-              <span>Total Paid</span>
-              <span>${grandTotal.toFixed(2)}</span>
+            <div className="flex justify-between font-bold text-lg pt-2 border-t">
+              <span>Total</span>
+              <span data-testid="pos-total">${grandTotal.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-md p-3">
-            {PAYMENT_METHODS.find(m => m.id === paymentMethod)?.icon && (() => {
-              const Icon = PAYMENT_METHODS.find(m => m.id === paymentMethod)!.icon;
-              return <Icon className="w-4 h-4 text-muted-foreground" />;
-            })()}
-            <span className="capitalize">{paymentMethod}</span>
-          </div>
-        </div>
-
-        <div className="border-t p-4">
           <Button
             className="w-full bg-green-600 text-white h-12"
-            onClick={handleFinalize}
-            disabled={isUpdating}
-            data-testid="button-confirm-payment"
+            onClick={() => setPhase("payment")}
+            data-testid="button-finalize-pay"
           >
-            <Check className="w-4 h-4 mr-2" />
-            {isUpdating ? "Processing..." : "Complete & Close"}
+            <Receipt className="w-4 h-4 mr-2" />
+            Finalize & Pay
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={onClose}
+            data-testid="button-abort-checkout"
+          >
+            Back to Appointment
           </Button>
         </div>
       </div>
@@ -894,203 +1048,222 @@ function CheckoutPOSPanel({
   }
 
   return (
-    <div className="w-[400px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-pos-panel">
-      <div className="p-4 border-b flex items-center justify-between gap-2">
+    <div className="w-[680px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-payment-panel">
+      <div className="p-3 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-muted-foreground" />
-          <h2 className="font-semibold text-lg">Checkout</h2>
+          <h2 className="font-semibold">Payment</h2>
           <Badge variant="outline" className="no-default-active-elevate text-[10px]">#{appointment.id}</Badge>
+          <span className="text-xs text-muted-foreground">&middot; {appointment.customer?.name || "Walk-In"}</span>
         </div>
-        <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-checkout">
-          <X className="w-4 h-4" />
+        <button onClick={() => setPhase("cart")} className="text-muted-foreground" data-testid="button-back-to-cart">
+          <ArrowLeft className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs font-bold bg-muted">
-              {appointment.customer?.name?.[0]?.toUpperCase() || "W"}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium text-sm" data-testid="pos-customer-name">{appointment.customer?.name || "Walk-In"}</p>
-            <p className="text-xs text-muted-foreground">{dateStr} &middot; {timeStr}</p>
-          </div>
-          {appointment.staff && (
-            <Badge variant="outline" className="no-default-active-elevate text-[10px] ml-auto">{appointment.staff.name}</Badge>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Line Items</h3>
-          <div className="border rounded-md divide-y">
-            <div className="flex items-center justify-between p-3">
-              <div>
-                <p className="text-sm font-medium" data-testid="pos-service-name">{appointment.service?.name}</p>
-                <p className="text-xs text-muted-foreground">{appointment.service?.duration} min</p>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-[300px] flex-shrink-0 border-r flex flex-col">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between py-1.5 text-sm">
+                <span className="font-medium">{appointment.service?.name}</span>
+                <span>${servicePrice.toFixed(2)}</span>
               </div>
-              <span className="text-sm font-semibold" data-testid="pos-service-price">${servicePrice.toFixed(2)}</span>
-            </div>
-            {aptAddons.map((addon: any) => (
-              <div key={addon.id} className="flex items-center justify-between p-3" data-testid={`pos-addon-${addon.id}`}>
-                <div>
-                  <p className="text-sm font-medium">+ {addon.name}</p>
-                  <p className="text-xs text-muted-foreground">{addon.duration} min</p>
+              {aptAddons.map((addon: any) => (
+                <div key={addon.id} className="flex items-center justify-between py-1 text-sm text-muted-foreground pl-2">
+                  <span>+ {addon.name}</span>
+                  <span>${Number(addon.price).toFixed(2)}</span>
                 </div>
-                <span className="text-sm font-semibold">${Number(addon.price).toFixed(2)}</span>
+              ))}
+            </div>
+
+            <div className="border-t pt-2 mt-2 space-y-1 text-xs">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
               </div>
-            ))}
+              {discount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount</span>
+                  <span>-${discount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-muted-foreground">
+                <span>Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              {tip > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tip</span>
+                  <span>${tip.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-sm pt-1 border-t">
+                <span>Total</span>
+                <span data-testid="payment-total">${grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {tenders.length > 0 && (
+              <div className="border-t pt-2 mt-2 space-y-1.5">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payments Applied</h4>
+                {tenders.map((tender) => {
+                  const Icon = getMethodIcon(tender.method);
+                  return (
+                    <div key={tender.id} className="flex items-center justify-between bg-muted/50 rounded-md p-2" data-testid={`tender-line-${tender.id}`}>
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-sm capitalize">{tender.method}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-green-600" data-testid={`tender-amount-${tender.id}`}>${tender.amount.toFixed(2)}</span>
+                        <button
+                          onClick={() => handleRemoveTender(tender.id)}
+                          className="text-muted-foreground"
+                          data-testid={`button-remove-tender-${tender.id}`}
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t p-3">
+            {balanceDue > 0 ? (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Balance Due</span>
+                <span className="text-lg font-bold text-destructive" data-testid="pos-balance-due">${balanceDue.toFixed(2)}</span>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-green-600">Paid in Full</span>
+                  <Check className="w-4 h-4 text-green-600" />
+                </div>
+                {changeDue > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Change Due</span>
+                    <span className="font-medium" data-testid="pos-change-due">${changeDue.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="space-y-1">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Discount</h3>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                type="number"
-                min="0"
-                placeholder="0"
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                className="pl-9"
-                data-testid="input-discount"
-              />
-            </div>
-            <div className="flex rounded-md border overflow-visible">
-              <button
-                className={cn(
-                  "px-3 py-2 text-sm transition-colors",
-                  discountType === "dollar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                )}
-                onClick={() => setDiscountType("dollar")}
-                data-testid="button-discount-dollar"
-              >
-                $
-              </button>
-              <button
-                className={cn(
-                  "px-3 py-2 text-sm transition-colors",
-                  discountType === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                )}
-                onClick={() => setDiscountType("percent")}
-                data-testid="button-discount-percent"
-              >
-                %
-              </button>
+        <div className="flex-1 flex flex-col relative">
+          <div className="bg-muted/30 px-4 py-3 border-b flex items-center justify-end">
+            <div className="text-right">
+              <span className="text-2xl font-mono font-bold tracking-wider" data-testid="keypad-display">${keypadDisplay}</span>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-1">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Payment Method</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {PAYMENT_METHODS.map((method) => {
-              const Icon = method.icon;
-              return (
+          <div className="flex-1 p-3 flex flex-col gap-2">
+            <div className="grid grid-cols-4 gap-1.5 flex-1">
+              {["7","8","9","BS","4","5","6","C","1","2","3",".","00","0"].map((key) => (
                 <Button
-                  key={method.id}
+                  key={key}
                   variant="outline"
                   className={cn(
-                    "h-auto py-3 flex flex-col items-center gap-1.5",
-                    paymentMethod === method.id && "border-primary bg-primary/5"
+                    "text-lg font-medium h-auto",
+                    key === "C" && "text-destructive",
+                    key === "BS" && "text-muted-foreground"
                   )}
-                  onClick={() => setPaymentMethod(method.id)}
-                  data-testid={`button-payment-${method.id}`}
+                  onClick={() => handleKeypadPress(key)}
+                  data-testid={`keypad-${key === "BS" ? "backspace" : key === "." ? "dot" : key}`}
                 >
-                  <Icon className={cn("w-5 h-5", paymentMethod === method.id ? "text-primary" : "text-muted-foreground")} />
-                  <span className={cn("text-xs", paymentMethod === method.id && "text-primary font-medium")}>{method.label}</span>
+                  {key === "BS" ? <Delete className="w-5 h-5" /> : key === "C" ? "CLR" : key}
                 </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tip</h3>
-          <div className="grid grid-cols-5 gap-1.5">
-            {TIP_PRESETS.map((preset, i) => (
+              ))}
               <Button
-                key={preset.label}
                 variant="outline"
-                size="sm"
-                className={cn(
-                  "text-xs",
-                  tipMode === "preset" && selectedTipIndex === i && "border-primary bg-primary/5 text-primary"
-                )}
-                onClick={() => { setTipMode("preset"); setSelectedTipIndex(i); }}
-                data-testid={`button-tip-${preset.label.replace(/[^a-z0-9]/gi, "").toLowerCase()}`}
+                className="text-lg font-medium h-auto col-span-2 bg-primary/5 border-primary text-primary"
+                onClick={() => setKeypadDisplay(balanceDue > 0 ? balanceDue.toFixed(2) : "0")}
+                data-testid="keypad-exact"
               >
-                {preset.label}
+                EXACT
               </Button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Custom:</span>
-            <div className="relative flex-1">
-              <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={customTip}
-                onChange={(e) => { setCustomTip(e.target.value); setTipMode("custom"); }}
-                onFocus={() => setTipMode("custom")}
-                className={cn("pl-8", tipMode === "custom" && "border-primary")}
-                data-testid="input-custom-tip"
-              />
+            </div>
+
+            <div className="grid grid-cols-4 gap-1.5">
+              {[1, 5, 10, 20].map((amt) => (
+                <Button
+                  key={amt}
+                  variant="secondary"
+                  size="sm"
+                  className="text-sm font-medium"
+                  onClick={() => handleQuickAmount(amt)}
+                  data-testid={`quick-amount-${amt}`}
+                >
+                  ${amt}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5 mt-1">
+              {PAYMENT_METHODS.map((method) => {
+                const Icon = method.icon;
+                return (
+                  <Button
+                    key={method.id}
+                    className={cn(
+                      "h-auto py-3 flex flex-col items-center gap-1",
+                      method.id === "cash" && "bg-green-600 text-white",
+                      method.id === "card" && "bg-blue-600 text-white",
+                      method.id === "mobile" && "bg-purple-600 text-white"
+                    )}
+                    onClick={() => handleApplyTender(method.id)}
+                    disabled={Number(keypadDisplay) <= 0}
+                    data-testid={`tender-${method.id}`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-xs font-medium">{method.label}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="border-t p-4 space-y-3 bg-card">
-        <div className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span data-testid="pos-subtotal">${subtotal.toFixed(2)}</span>
-          </div>
-          {discount > 0 && (
-            <div className="flex justify-between text-green-600">
-              <span>Discount</span>
-              <span data-testid="pos-discount">-${discount.toFixed(2)}</span>
+          {showComplete && (
+            <div className="absolute inset-0 bg-background/95 flex flex-col items-center justify-center gap-6 z-10" data-testid="payment-complete-overlay">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Check className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold">Payment Complete</h3>
+                <p className="text-sm text-muted-foreground">Total: ${grandTotal.toFixed(2)}</p>
+                {changeDue > 0 && (
+                  <p className="text-sm font-medium">Change Due: ${changeDue.toFixed(2)}</p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleCompleteTransaction}
+                  disabled={isUpdating}
+                  data-testid="button-print-receipt"
+                >
+                  <Printer className="w-4 h-4" />
+                  {isUpdating ? "Processing..." : "Print Receipt"}
+                </Button>
+                <Button
+                  className="gap-2 bg-green-600 text-white"
+                  onClick={handleCompleteTransaction}
+                  disabled={isUpdating}
+                  data-testid="button-no-receipt"
+                >
+                  <Check className="w-4 h-4" />
+                  {isUpdating ? "Processing..." : "No Receipt"}
+                </Button>
+              </div>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
-            <span data-testid="pos-tax">${tax.toFixed(2)}</span>
-          </div>
-          {tip > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tip</span>
-              <span data-testid="pos-tip">${tip.toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-bold text-lg pt-2 border-t">
-            <span>Total</span>
-            <span data-testid="pos-total">${grandTotal.toFixed(2)}</span>
-          </div>
         </div>
-
-        <Button
-          className="w-full bg-green-600 text-white h-12"
-          onClick={() => setShowReceipt(true)}
-          data-testid="button-finalize-pay"
-        >
-          <Receipt className="w-4 h-4 mr-2" />
-          Finalize & Pay
-        </Button>
-        <Button
-          variant="ghost"
-          className="w-full text-muted-foreground"
-          onClick={onClose}
-          data-testid="button-abort-checkout"
-        >
-          Back to Appointment
-        </Button>
       </div>
     </div>
   );
