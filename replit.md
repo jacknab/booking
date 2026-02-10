@@ -44,16 +44,17 @@ Preferred communication style: Simple, everyday language.
 - `products` — Retail inventory (name, price, stock, linked to store)
 - `cashDrawerSessions` — Cash drawer shift sessions (storeId, openedAt, closedAt, openingBalance, closingBalance, status, openedBy, closedBy, notes)
 - `drawerActions` — Actions within a drawer session (sessionId, type [open_drawer/close_drawer/cash_in/cash_out], amount, reason, performedBy, performedAt)
-- `users` — Auth users (email/password)
+- `users` — Auth users (email/password, onboardingCompleted flag)
 - `sessions` — Session storage for authentication
 
-### Authentication
+### Authentication & Onboarding
 - **Method**: Simple email/password authentication
 - **Password Hashing**: bcryptjs
 - **Session Store**: PostgreSQL via `connect-pg-simple`
 - **Session Management**: `express-session`
 - **Auth File**: `server/auth.ts` — register, login, logout routes + isAuthenticated middleware
 - **Frontend**: `/auth` page with login/register toggle, `useAuth()` hook in `client/src/hooks/use-auth.ts`
+- **Onboarding**: After registration, new users are directed to `/onboarding` where they select a business type (Hair Salon, Nail Salon, Spa, Barbershop). This auto-creates the store with categories, services, and addons from templates defined in `server/onboarding-data.ts`. The `onboardingCompleted` flag on the user controls redirect logic. Existing users with stores are auto-marked as onboarding completed.
 
 ### Project Structure
 ```

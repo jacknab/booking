@@ -4,6 +4,7 @@ import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { users } from "@shared/models/auth";
+import { stores } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export function setupAuth(app: Express) {
@@ -113,10 +114,19 @@ export function setupAuth(app: Express) {
     }
 
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      let [user] = await db.select().from(users).where(eq(users.id, userId));
       if (!user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
+
+      if (!user.onboardingCompleted) {
+        const existingStores = await db.select().from(stores);
+        if (existingStores.length > 0) {
+          await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, userId));
+          [user] = await db.select().from(users).where(eq(users.id, userId));
+        }
+      }
+
       const { password: _, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {

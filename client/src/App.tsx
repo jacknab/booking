@@ -20,6 +20,7 @@ import CalendarSettingsPage from "@/pages/CalendarSettings";
 import BusinessSettings from "@/pages/BusinessSettings";
 import CashDrawer from "@/pages/CashDrawer";
 import Auth from "@/pages/Auth";
+import Onboarding from "@/pages/Onboarding";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,6 +28,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/auth" component={Auth} />
+      <Route path="/onboarding" component={Onboarding} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/services" component={Services} />
       <Route path="/staff" component={Staff} />

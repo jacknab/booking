@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
   const [, navigate] = useLocation();
-  const { isAuthenticated, login, register, isLoggingIn, isRegistering } = useAuth();
+  const { isAuthenticated, user, login, register, isLoggingIn, isRegistering } = useAuth();
   const { toast } = useToast();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -18,20 +18,30 @@ export default function Auth() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  if (isAuthenticated) {
-    navigate("/dashboard");
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (user && !user.onboardingCompleted) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let result: any;
       if (mode === "login") {
-        await login({ email, password });
+        result = await login({ email, password });
       } else {
-        await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
+        result = await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
       }
-      navigate("/dashboard");
+      if (result && !result.onboardingCompleted) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       const message = error?.message || (mode === "login" ? "Login failed" : "Registration failed");
       let description = message;

@@ -1,21 +1,27 @@
 import { Sidebar } from "./Sidebar";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
+  const [, navigate] = useLocation();
+  const needsOnboarding = isAuthenticated && user && !user.onboardingCompleted;
 
-  if (isLoading) {
+  useEffect(() => {
+    if (needsOnboarding) {
+      navigate("/onboarding");
+    }
+  }, [needsOnboarding, navigate]);
+
+  if (isLoading || needsOnboarding) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  // If not authenticated, the pages themselves will handle redirect 
-  // or show public content, but for dashboard pages we want this layout.
   
   return (
     <div className="min-h-screen bg-muted/30">
