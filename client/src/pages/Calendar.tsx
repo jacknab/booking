@@ -10,7 +10,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -82,6 +82,7 @@ export default function Calendar() {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showClientLookup, setShowClientLookup] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
@@ -337,7 +338,7 @@ export default function Calendar() {
               <Settings className="w-4 h-4" />
             </Button>
           </Link>
-          <Button onClick={() => navigate("/booking/new")} data-testid="button-new-appointment">
+          <Button onClick={() => { setSelectedAppointment(null); setShowCancelFlow(false); setShowCheckout(false); setShowClientLookup(true); }} data-testid="button-new-appointment">
             <CalendarPlus className="w-4 h-4 mr-2" />
             New Appointment
           </Button>
@@ -526,6 +527,20 @@ export default function Calendar() {
             onClose={() => { setShowCheckout(false); }}
             onFinalize={(paymentData) => handleFinalizePayment(selectedAppointment, paymentData)}
             isUpdating={updateAppointment.isPending}
+          />
+        )}
+
+        {showClientLookup && (
+          <ChooseClientPanel
+            onClose={() => setShowClientLookup(false)}
+            onSelectClient={(clientId) => {
+              setShowClientLookup(false);
+              navigate(`/booking/new?clientId=${clientId}`);
+            }}
+            onWalkIn={() => {
+              setShowClientLookup(false);
+              navigate("/booking/new");
+            }}
           />
         )}
       </div>
@@ -1346,6 +1361,149 @@ function CheckoutPOSPanel({
               </div>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChooseClientPanel({
+  onClose,
+  onSelectClient,
+  onWalkIn,
+}: {
+  onClose: () => void;
+  onSelectClient: (clientId: number) => void;
+  onWalkIn: () => void;
+}) {
+  const [phoneDigits, setPhoneDigits] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchDone, setSearchDone] = useState(false);
+  const { selectedStore } = useSelectedStore();
+
+  const formatPhone = (digits: string): string => {
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const handleDigit = useCallback((digit: string) => {
+    if (phoneDigits.length < 10) {
+      setPhoneDigits(prev => prev + digit);
+      setSearchDone(false);
+    }
+  }, [phoneDigits.length]);
+
+  const handleBackspace = useCallback(() => {
+    setPhoneDigits(prev => prev.slice(0, -1));
+    setSearchDone(false);
+  }, []);
+
+  useEffect(() => {
+    if (phoneDigits.length === 10 && !searchDone && selectedStore) {
+      setIsSearching(true);
+      fetch(`/api/customers/search?phone=${encodeURIComponent(phoneDigits)}&storeId=${selectedStore.id}`, {
+        credentials: "include",
+      })
+        .then(res => res.json())
+        .then((customer: any) => {
+          setIsSearching(false);
+          setSearchDone(true);
+          if (customer && customer.id) {
+            onSelectClient(customer.id);
+          } else {
+            onWalkIn();
+          }
+        })
+        .catch(() => {
+          setIsSearching(false);
+          setSearchDone(true);
+          onWalkIn();
+        });
+    }
+  }, [phoneDigits, searchDone, selectedStore, onSelectClient, onWalkIn]);
+
+  const numKeys = [
+    ["1", "2", "3"],
+    ["4", "5", "6"],
+    ["7", "8", "9"],
+    ["walk-in", "0", "backspace"],
+  ];
+
+  return (
+    <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="choose-client-panel">
+      <div className="p-4 border-b flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-back-client-lookup">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <span className="font-semibold text-sm">Choose A Client</span>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-client-lookup">
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center px-6 pt-8">
+        <div className="w-full rounded-lg border p-6 mb-8 text-center">
+          {phoneDigits.length > 0 ? (
+            <p className="text-xl font-semibold tracking-wide" data-testid="text-phone-display">
+              {formatPhone(phoneDigits)}
+            </p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-foreground" data-testid="text-enter-phone">Enter Telephone Number</p>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                Use <PersonStanding className="w-3.5 h-3.5 inline" /> for walk-in
+              </p>
+            </>
+          )}
+          {isSearching && (
+            <p className="text-xs text-muted-foreground mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
+          )}
+        </div>
+
+        <div className="w-full max-w-[280px] space-y-3">
+          {numKeys.map((row, ri) => (
+            <div key={ri} className="flex justify-center gap-3">
+              {row.map((key) => {
+                if (key === "walk-in") {
+                  return (
+                    <button
+                      key={key}
+                      onClick={onWalkIn}
+                      className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                      data-testid="numpad-walkin"
+                    >
+                      <PersonStanding className="w-5 h-5" />
+                    </button>
+                  );
+                }
+                if (key === "backspace") {
+                  return (
+                    <button
+                      key={key}
+                      onClick={handleBackspace}
+                      className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                      data-testid="numpad-backspace"
+                    >
+                      <Delete className="w-5 h-5" />
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleDigit(key)}
+                    className="w-[80px] h-[56px] rounded-lg bg-muted text-xl font-semibold text-foreground hover-elevate active-elevate-2"
+                    data-testid={`numpad-${key}`}
+                  >
+                    {key}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     </div>
