@@ -14,6 +14,19 @@ export const stores = pgTable("stores", {
   timezone: text("timezone").notNull().default("UTC"),
   address: text("address"),
   phone: text("phone"),
+  email: text("email"),
+  category: text("category"),
+  city: text("city"),
+  postcode: text("postcode"),
+});
+
+export const businessHours = pgTable("business_hours", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(),
+  openTime: text("open_time").notNull().default("09:00"),
+  closeTime: text("close_time").notNull().default("17:00"),
+  isClosed: boolean("is_closed").notNull().default(false),
 });
 
 export const serviceCategories = pgTable("service_categories", {
@@ -164,6 +177,11 @@ export const storesRelations = relations(stores, ({ many }) => ({
   addons: many(addons),
   cashDrawerSessions: many(cashDrawerSessions),
   calendarSettings: many(calendarSettings),
+  businessHours: many(businessHours),
+}));
+
+export const businessHoursRelations = relations(businessHours, ({ one }) => ({
+  store: one(stores, { fields: [businessHours.storeId], references: [stores.id] }),
 }));
 
 export const calendarSettingsRelations = relations(calendarSettings, ({ one }) => ({
@@ -256,6 +274,7 @@ export const insertStaffAvailabilitySchema = createInsertSchema(staffAvailabilit
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
+export const insertBusinessHoursSchema = createInsertSchema(businessHours).omit({ id: true });
 export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings).omit({ id: true });
 export const insertCashDrawerSessionSchema = createInsertSchema(cashDrawerSessions).omit({ id: true });
 export const insertDrawerActionSchema = createInsertSchema(drawerActions).omit({ id: true });
@@ -297,6 +316,9 @@ export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
+
+export type BusinessHours = typeof businessHours.$inferSelect;
+export type InsertBusinessHours = z.infer<typeof insertBusinessHoursSchema>;
 
 export type CalendarSettings = typeof calendarSettings.$inferSelect;
 export type InsertCalendarSettings = z.infer<typeof insertCalendarSettingsSchema>;
