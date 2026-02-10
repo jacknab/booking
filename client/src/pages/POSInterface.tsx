@@ -12,9 +12,10 @@ import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation } from "wouter";
-import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart } from "lucide-react";
+import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Addon, Customer, Staff } from "@shared/schema";
+import { ReceiptContent, useReceiptPrinter, type ReceiptData } from "@/components/Receipt";
 
 type TicketItem = { service: Service; addons: Addon[]; staffId: number | null };
 
@@ -188,6 +189,9 @@ export default function POSInterface() {
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
   const [showTipScreen, setShowTipScreen] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
+  const [checkoutComplete, setCheckoutComplete] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const { printReceipt } = useReceiptPrinter();
 
   const { data: services, isLoading: servicesLoading } = useServices();
   const { data: categories } = useServiceCategories();
@@ -280,6 +284,81 @@ export default function POSInterface() {
     setTipAmount(amount);
     setShowTipScreen(false);
   };
+
+  const handleCheckout = () => {
+    const data: ReceiptData = {
+      store: selectedStore,
+      client: client || null,
+      staff: primaryStaff,
+      items: ticketItems,
+      subtotal: ticketTotal,
+      tipAmount,
+      grandTotal,
+      paymentMethod: "Card",
+      transactionId: Math.random().toString(36).substring(2, 10).toUpperCase(),
+    };
+    setReceiptData(data);
+    setCheckoutComplete(true);
+    printReceipt(data);
+  };
+
+  const handleNewTransaction = () => {
+    setTicketItems([]);
+    setTipAmount(0);
+    setCheckoutComplete(false);
+    setReceiptData(null);
+    setActiveItemIndex(null);
+    setSelectedCategory(null);
+  };
+
+  if (checkoutComplete && receiptData) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-start bg-background overflow-y-auto">
+        <div className="w-full max-w-md mx-auto py-8 px-4 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold" data-testid="text-checkout-success">Payment Complete</h1>
+            <p className="text-muted-foreground">Transaction #{receiptData.transactionId}</p>
+          </div>
+
+          <Card className="p-0 overflow-hidden">
+            <div className="flex items-center justify-center bg-muted/30 py-4">
+              <ReceiptContent data={receiptData} />
+            </div>
+          </Card>
+
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => printReceipt(receiptData)}
+              className="w-full"
+              data-testid="button-print-receipt"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print Receipt
+            </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                onClick={handleNewTransaction}
+                data-testid="button-new-transaction"
+              >
+                New Sale
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/dashboard")}
+                data-testid="button-back-dashboard"
+              >
+                Dashboard
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen flex bg-background">
@@ -521,9 +600,7 @@ export default function POSInterface() {
               className="flex-1"
               size="lg"
               disabled={ticketItems.length === 0}
-              onClick={() => {
-                navigate("/calendar");
-              }}
+              onClick={handleCheckout}
               data-testid="button-pos-checkout"
             >
               Checkout - ${grandTotal.toFixed(2)}
