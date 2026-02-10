@@ -30,6 +30,7 @@ export function useAppointments(filters?: AppointmentFilters) {
       return res.json();
     },
     enabled: !!storeId,
+    refetchInterval: 5 * 60 * 1000,
   });
 }
 
