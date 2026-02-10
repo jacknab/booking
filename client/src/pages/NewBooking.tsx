@@ -199,6 +199,7 @@ export default function NewBooking() {
       }
     }
     setSelectedService(service);
+    setStep("addons");
   };
 
   const handleRemoveService = () => {
