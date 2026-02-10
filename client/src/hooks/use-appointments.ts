@@ -40,13 +40,18 @@ export function useCreateAppointment() {
 
   return useMutation({
     mutationFn: async (data: Partial<InsertAppointment> & { date: string; serviceId: number; staffId: number; customerId: number; duration: number }) => {
-      const timezone = selectedStore?.timezone || "UTC";
-      const utcDate = storeLocalToUtc(data.date, timezone);
+      let dateStr: string = String(data.date);
+      if (!dateStr.endsWith("Z") && !dateStr.match(/[+-]\d{2}:\d{2}$/)) {
+        const timezone = selectedStore?.timezone || "UTC";
+        const utcDate = storeLocalToUtc(dateStr, timezone);
+        dateStr = utcDate.toISOString();
+      }
 
+      const { date: _date, ...rest } = data;
       const payload = {
-        ...data,
+        ...rest,
         storeId: selectedStore?.id ?? null,
-        date: utcDate.toISOString(),
+        date: dateStr,
       };
 
       const res = await fetch(api.appointments.create.path, {
@@ -72,9 +77,12 @@ export function useUpdateAppointment() {
       const url = buildUrl(api.appointments.update.path, { id });
       const payload = { ...updates };
       if (payload.date) {
-        const timezone = selectedStore?.timezone || "UTC";
-        const utcDate = storeLocalToUtc(String(payload.date), timezone);
-        payload.date = utcDate.toISOString() as any;
+        const dateVal = String(payload.date);
+        if (!dateVal.endsWith("Z") && !dateVal.match(/[+-]\d{2}:\d{2}$/)) {
+          const timezone = selectedStore?.timezone || "UTC";
+          const utcDate = storeLocalToUtc(dateVal, timezone);
+          payload.date = utcDate.toISOString() as any;
+        }
       }
 
       const res = await fetch(url, {

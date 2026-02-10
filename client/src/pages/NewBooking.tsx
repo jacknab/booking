@@ -15,7 +15,7 @@ import { useCreateAppointment } from "@/hooks/use-appointments";
 import { useAddonsForService, useSetAppointmentAddons, useServiceCategories } from "@/hooks/use-addons";
 import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
-import { getTimezoneAbbr, formatInTz, storeLocalToUtc } from "@/lib/timezone";
+import { getTimezoneAbbr, formatInTz, storeLocalToUtc, getNowInTimezone } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer } from "lucide-react";
@@ -60,7 +60,7 @@ export default function NewBooking() {
       const [y, m, d] = calDate.split("-").map(Number);
       return new Date(y, m - 1, d);
     }
-    return new Date();
+    return getNowInTimezone(timezone);
   });
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [staffMode, setStaffMode] = useState<"any" | "specific">(isCalendarBooking ? "specific" : "any");
