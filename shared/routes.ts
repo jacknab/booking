@@ -319,6 +319,14 @@ export const api = {
         200: z.array(z.custom<typeof customers.$inferSelect>()),
       },
     },
+    searchByPhone: {
+      method: 'GET' as const,
+      path: '/api/customers/search' as const,
+      input: z.object({ phone: z.string(), storeId: z.coerce.number() }),
+      responses: {
+        200: z.custom<typeof customers.$inferSelect>().nullable(),
+      },
+    },
     create: {
       method: 'POST' as const,
       path: '/api/customers' as const,

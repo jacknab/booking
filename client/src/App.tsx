@@ -12,6 +12,8 @@ import Customers from "@/pages/Customers";
 import Calendar from "@/pages/Calendar";
 import Products from "@/pages/Products";
 import NewBooking from "@/pages/NewBooking";
+import ClientLookup from "@/pages/ClientLookup";
+import POSInterface from "@/pages/POSInterface";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/calendar" component={Calendar} />
       <Route path="/appointments" component={Calendar} />
       <Route path="/booking/new" component={NewBooking} />
+      <Route path="/client-lookup" component={ClientLookup} />
+      <Route path="/pos" component={POSInterface} />
       <Route path="/products" component={Products} />
       <Route component={NotFound} />
     </Switch>

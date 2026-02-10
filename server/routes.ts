@@ -431,6 +431,16 @@ export async function registerRoutes(
   });
 
   // === CUSTOMERS ===
+  app.get(api.customers.searchByPhone.path, async (req, res) => {
+    const phone = req.query.phone as string;
+    const storeId = Number(req.query.storeId);
+    if (!phone || !storeId) return res.status(400).json({ message: "phone and storeId required" });
+    const digits = phone.replace(/\D/g, "");
+    const allCustomers = await storage.getCustomers(storeId);
+    const match = allCustomers.find(c => c.phone && c.phone.replace(/\D/g, "") === digits);
+    res.json(match || null);
+  });
+
   app.get(api.customers.list.path, async (req, res) => {
     const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
     const customers = await storage.getCustomers(storeId);
