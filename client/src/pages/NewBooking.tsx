@@ -596,33 +596,14 @@ export default function NewBooking() {
                     </span>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-12"
-                    onClick={handleRequestBooking}
-                    disabled={!selectedService || !selectedSlot || !selectedCustomer || createAppointment.isPending}
-                    data-testid="button-save-changes"
-                  >
-                    <span className="flex flex-col items-center leading-tight">
-                      <span className="font-semibold text-sm">
-                        {createAppointment.isPending ? "Saving..." : "Save Changes"}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">Update Ticket</span>
-                    </span>
-                  </Button>
-                  <Button
-                    className="flex-1 bg-pink-500 text-white h-12"
-                    onClick={handleRequestBooking}
-                    disabled={!selectedService || !selectedSlot || !selectedCustomer || createAppointment.isPending}
-                    data-testid="button-checkout"
-                  >
-                    <span className="flex flex-col items-center leading-tight">
-                      <span className="font-semibold">Checkout</span>
-                      <span className="text-[10px] opacity-80">${totalPrice.toFixed(2)}</span>
-                    </span>
-                  </Button>
-                </div>
+                <Button
+                  className="w-full h-12 bg-primary text-primary-foreground"
+                  onClick={handleRequestBooking}
+                  disabled={!selectedService || !selectedSlot || createAppointment.isPending}
+                  data-testid="button-complete-booking"
+                >
+                  {createAppointment.isPending ? "Booking..." : "Complete Booking"}
+                </Button>
               </div>
             }
           />
