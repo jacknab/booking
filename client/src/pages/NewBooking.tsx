@@ -149,7 +149,7 @@ export default function NewBooking() {
   };
 
   const handleRequestBooking = () => {
-    if (!selectedService || !selectedSlot || !selectedCustomer) return;
+    if (!selectedService || !selectedSlot) return;
 
     const staffId = selectedSlot.staffId;
 
@@ -158,7 +158,7 @@ export default function NewBooking() {
         date: selectedSlot.time,
         serviceId: selectedService.id,
         staffId,
-        customerId: selectedCustomer.id,
+        customerId: selectedCustomer?.id || undefined,
         duration: totalDuration,
         notes: notes || undefined,
         status: "pending",
@@ -631,9 +631,11 @@ function BookingSummaryPanel({
   return (
     <div className="w-[320px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-          <User className="w-4 h-4 text-muted-foreground" />
-        </div>
+        <Avatar className="w-8 h-8">
+          <AvatarFallback className="text-xs font-bold bg-muted">
+            {selectedCustomer ? selectedCustomer.name.slice(0, 1).toUpperCase() : "W"}
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1">
           {selectedCustomer ? (
             <div className="flex items-center gap-2">
@@ -649,19 +651,22 @@ function BookingSummaryPanel({
               </button>
             </div>
           ) : (
-            <Select onValueChange={(val) => {
-              const cust = customers?.find((c: Customer) => c.id === Number(val));
-              if (cust) onSetCustomer(cust);
-            }}>
-              <SelectTrigger className="h-8 text-xs" data-testid="select-booking-customer">
-                <SelectValue placeholder="Walk-In" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers?.map((c: Customer) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium" data-testid="text-walk-in">Walk-In</span>
+              <Select onValueChange={(val) => {
+                const cust = customers?.find((c: Customer) => c.id === Number(val));
+                if (cust) onSetCustomer(cust);
+              }}>
+                <SelectTrigger className="h-7 w-7 p-0 border-0 [&>svg]:hidden" data-testid="select-booking-customer">
+                  <User className="w-3.5 h-3.5 text-muted-foreground" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers?.map((c: Customer) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
         </div>
       </div>
