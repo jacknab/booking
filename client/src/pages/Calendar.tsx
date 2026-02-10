@@ -290,30 +290,32 @@ export default function Calendar() {
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" onClick={goPrev} data-testid="button-prev-day">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-base font-semibold whitespace-nowrap" data-testid="text-current-date">
+          <span className="text-base font-semibold whitespace-nowrap px-2" data-testid="text-current-date">
             {formatInTz(currentDate, timezone, "EEE d MMM, yyyy")}
           </span>
-          <div className="hidden lg:flex items-center bg-muted rounded-full p-0.5 ml-1">
+          <div className="hidden lg:flex items-center gap-0.5 ml-1">
             {weekDayLabels.map((wd) => {
-              const isSelected = isSameDay(wd.date, currentDate);
               const wdIsToday = isSameDay(wd.date, storeNow);
+              const isSelected = isSameDay(wd.date, currentDate);
               return (
                 <button
                   key={wd.label + wd.date.toISOString()}
                   className={cn(
                     "px-3 py-1 text-sm font-medium rounded-full transition-colors",
-                    isSelected
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover-elevate"
+                    wdIsToday
+                      ? "bg-primary text-primary-foreground"
+                      : isSelected
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover-elevate"
                   )}
                   onClick={() => setCurrentDate(wd.date)}
                   data-testid={`button-weekday-${wd.label.toLowerCase()}`}
                 >
-                  {wdIsToday && isSelected ? "Today" : wd.label}
+                  {wdIsToday ? "Today" : wd.label}
                 </button>
               );
             })}
@@ -351,8 +353,8 @@ export default function Calendar() {
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
                 <div
-                  className="absolute left-0 right-0 z-30 pointer-events-none"
-                  style={{ top: `${timeLinePosition + 60}px` }}
+                  className="absolute right-0 z-30 pointer-events-none"
+                  style={{ top: `${timeLinePosition + 60}px`, left: "72px" }}
                   data-testid="current-time-line-full"
                 >
                   <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
@@ -369,7 +371,7 @@ export default function Calendar() {
                         className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
                         style={{ top: `${topPx}px` }}
                       >
-                        <span className={cn("text-xs", slot.isHour ? "font-medium text-muted-foreground" : "text-muted-foreground/60 text-[10px]")}>
+                        <span className={cn("text-xs", slot.isHour ? "font-bold text-foreground/70" : "text-muted-foreground/50 text-[10px]")}>
                           {slot.label}
                         </span>
                       </div>
@@ -505,7 +507,7 @@ export default function Calendar() {
             onCancel={() => handleCancelAppointment(selectedAppointment)}
             onStart={() => handleStartService(selectedAppointment)}
             onCheckout={() => handleCheckout(selectedAppointment)}
-            onEdit={() => navigate("/booking/new")}
+            onEdit={() => navigate(`/booking/new?editId=${selectedAppointment.id}`)}
             isUpdating={updateAppointment.isPending}
           />
         )}
@@ -742,7 +744,7 @@ function AppointmentDetailsPanel({
 }
 
 const CANCEL_REASONS = [
-  "Client Canceled/Rescheduled",
+  "Client Canceled",
   "Duplicated Booking",
   "No Show",
   "Other",

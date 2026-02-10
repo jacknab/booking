@@ -36,6 +36,8 @@ export default function NewBooking() {
   const calDate = params.get("date");
   const calTime = params.get("time");
   const calAvailableMinutes = params.get("availableMinutes") ? Number(params.get("availableMinutes")) : null;
+  const paramClientId = params.get("clientId") ? Number(params.get("clientId")) : null;
+  const editAppointmentId = params.get("editId") ? Number(params.get("editId")) : null;
   const isCalendarBooking = !!(calStaffId && calDate && calTime);
 
   const { data: services, isLoading: servicesLoading } = useServices();
@@ -52,6 +54,8 @@ export default function NewBooking() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
   const [step, setStep] = useState<BookingStep>("services");
+  const [editInitialized, setEditInitialized] = useState(false);
+  const [clientInitialized, setClientInitialized] = useState(false);
 
   const availableMinutes = isCalendarBooking && calAvailableMinutes && calAvailableMinutes > 0 ? calAvailableMinutes : null;
 
@@ -86,6 +90,66 @@ export default function NewBooking() {
       }
     }
   }, [isCalendarBooking, staffList, calStaffId, calTime, timezone, selectedDate, calendarSlotInitialized]);
+
+  useEffect(() => {
+    if (paramClientId && customers && !clientInitialized) {
+      const client = customers.find((c: Customer) => c.id === paramClientId);
+      if (client) {
+        setSelectedCustomer(client);
+        setClientInitialized(true);
+      }
+    }
+  }, [paramClientId, customers, clientInitialized]);
+
+  useEffect(() => {
+    if (editAppointmentId && services && staffList && !editInitialized) {
+      fetch(`/api/appointments?storeId=${selectedStore?.id}`, { credentials: "include" })
+        .then(res => res.json())
+        .then((allAppointments: any[]) => {
+          const apt = allAppointments.find((a: any) => a.id === editAppointmentId);
+          if (!apt) return;
+
+          const svc = services.find((s: Service) => s.id === apt.serviceId);
+          if (svc) {
+            setSelectedService(svc);
+            setSelectedCategory(svc.category);
+          }
+
+          const staff = staffList.find((s: Staff) => s.id === apt.staffId);
+          if (staff) {
+            setSelectedStaff(staff);
+            setStaffMode("specific");
+            setSpecificStaffId(staff.id);
+          }
+
+          if (apt.customer && customers) {
+            const client = customers.find((c: Customer) => c.id === apt.customerId);
+            if (client) setSelectedCustomer(client);
+          }
+
+          if (apt.notes) setNotes(apt.notes);
+
+          if (apt.appointmentAddons && apt.appointmentAddons.length > 0) {
+            const addonItems = apt.appointmentAddons
+              .map((aa: any) => aa.addon)
+              .filter(Boolean);
+            setSelectedAddons(addonItems);
+          }
+
+          const aptDate = new Date(apt.date);
+          setSelectedDate(aptDate);
+
+          setSelectedSlot({
+            time: apt.date,
+            staffId: apt.staffId,
+            staffName: staff?.name || "",
+          });
+
+          setEditInitialized(true);
+        })
+        .catch(() => {});
+    }
+  }, [editAppointmentId, services, staffList, customers, selectedStore, editInitialized]);
 
   const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(selectedService?.id || null);
 
@@ -271,37 +335,48 @@ export default function NewBooking() {
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredServices.map((service: Service) => {
-                    const isSelected = selectedService?.id === service.id;
-                    return (
-                      <Card
-                        key={service.id}
-                        className={cn(
-                          "p-4 cursor-pointer transition-all",
-                          isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
-                        )}
-                        onClick={() => handleSelectService(service)}
-                        data-testid={`card-service-${service.id}`}
-                      >
-                        <div className="flex flex-col gap-2">
-                          <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1">
-                            <Scissors className="w-8 h-8 text-muted-foreground/40" />
-                          </div>
-                          <h3 className="font-semibold text-sm leading-tight" data-testid={`text-service-name-${service.id}`}>{service.name}</h3>
-                          {service.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">{service.description}</p>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {filteredServices.map((service: Service) => {
+                      const isSelected = selectedService?.id === service.id;
+                      return (
+                        <Card
+                          key={service.id}
+                          className={cn(
+                            "p-4 cursor-pointer transition-all",
+                            isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
                           )}
-                          <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-                            <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
-                            <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
-                              {service.duration}m
-                            </Badge>
+                          onClick={() => handleSelectService(service)}
+                          data-testid={`card-service-${service.id}`}
+                        >
+                          <div className="flex flex-col gap-2">
+                            <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1">
+                              <Scissors className="w-8 h-8 text-muted-foreground/40" />
+                            </div>
+                            <h3 className="font-semibold text-sm leading-tight" data-testid={`text-service-name-${service.id}`}>{service.name}</h3>
+                            {service.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2">{service.description}</p>
+                            )}
+                            <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                              <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
+                              <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
+                                {service.duration}m
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
+                        </Card>
+                      );
+                    })}
+                  </div>
+
+                  {selectedService && (
+                    <InlineAddonsSection
+                      serviceId={selectedService.id}
+                      serviceName={selectedService.name}
+                      selectedAddons={selectedAddons}
+                      onToggleAddon={handleToggleAddon}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -698,6 +773,74 @@ export default function NewBooking() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function InlineAddonsSection({
+  serviceId,
+  serviceName,
+  selectedAddons,
+  onToggleAddon,
+}: {
+  serviceId: number;
+  serviceName: string;
+  selectedAddons: Addon[];
+  onToggleAddon: (addon: Addon) => void;
+}) {
+  const { data: availableAddons, isLoading } = useAddonsForService(serviceId);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-4">
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">Loading extras...</span>
+      </div>
+    );
+  }
+
+  if (!availableAddons || availableAddons.length === 0) return null;
+
+  return (
+    <div data-testid="inline-addons-section">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 text-muted-foreground" />
+        <h3 className="font-semibold text-sm">Extras for {serviceName}</h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {availableAddons.map((addon: Addon) => {
+          const isSelected = selectedAddons.some(a => a.id === addon.id);
+          return (
+            <Card
+              key={addon.id}
+              className={cn(
+                "p-3 cursor-pointer transition-all relative",
+                isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
+              )}
+              onClick={() => onToggleAddon(addon)}
+              data-testid={`inline-addon-${addon.id}`}
+            >
+              {isSelected && (
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="w-3 h-3 text-primary-foreground" />
+                </div>
+              )}
+              <div className="flex flex-col gap-1.5">
+                <h4 className="font-semibold text-xs leading-tight">{addon.name}</h4>
+                {addon.description && (
+                  <p className="text-[10px] text-muted-foreground line-clamp-2">{addon.description}</p>
+                )}
+                <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                  <span className="font-bold text-xs">${Number(addon.price).toFixed(2)}</span>
+                  <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
+                    {addon.duration}m
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
