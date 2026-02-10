@@ -1031,5 +1031,227 @@ export async function registerRoutes(
     }
   });
 
+  // === PUBLIC BOOKING ROUTES (no auth required) ===
+
+  app.get("/api/public/store/:slug", async (req, res) => {
+    try {
+      const store = await storage.getStoreBySlug(req.params.slug);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+      const { userId, ...publicStore } = store;
+      const hours = await storage.getBusinessHours(store.id);
+      res.json({ ...publicStore, businessHours: hours });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/public/store/:slug/services", async (req, res) => {
+    try {
+      const store = await storage.getStoreBySlug(req.params.slug);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+      const storeServices = await storage.getServices(store.id);
+      const categories = await storage.getServiceCategories(store.id);
+      res.json({ services: storeServices, categories });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/public/store/:slug/staff", async (req, res) => {
+    try {
+      const store = await storage.getStoreBySlug(req.params.slug);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+      const storeStaff = await storage.getAllStaff(store.id);
+      const safeStaff = storeStaff.map(({ email, phone, ...rest }) => rest);
+      res.json(safeStaff);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/public/store/:slug/availability", async (req, res) => {
+    try {
+      const store = await storage.getStoreBySlug(req.params.slug);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+
+      const serviceId = Number(req.query.serviceId);
+      const date = String(req.query.date);
+      const duration = Number(req.query.duration);
+      const specificStaffId = req.query.staffId ? Number(req.query.staffId) : undefined;
+
+      if (!serviceId || !date || !duration) {
+        return res.status(400).json({ message: "serviceId, date, and duration are required" });
+      }
+
+      const tz = store.timezone || "UTC";
+      const calSettings = await storage.getCalendarSettings(store.id);
+      const businessStartHour = 9;
+      const businessEndHour = 18;
+      const slotInterval = calSettings?.timeSlotInterval || 15;
+
+      const hours = await storage.getBusinessHours(store.id);
+      const dayStartLocal = fromZonedTime(new Date(`${date}T00:00:00`), tz);
+      const dayEndLocal = fromZonedTime(new Date(`${date}T23:59:59.999`), tz);
+
+      const dayAppointments = await storage.getAppointments({
+        from: dayStartLocal,
+        to: dayEndLocal,
+        storeId: store.id,
+      });
+
+      let candidateStaff: typeof import("@shared/schema").staff.$inferSelect[];
+      if (specificStaffId) {
+        const member = await storage.getStaffMember(specificStaffId);
+        candidateStaff = member ? [member] : [];
+      } else {
+        candidateStaff = await storage.getStaffForService(serviceId);
+        if (candidateStaff.length === 0) {
+          candidateStaff = await storage.getAllStaff(store.id);
+        }
+      }
+
+      if (candidateStaff.length === 0) return res.json([]);
+
+      const dateParts = date.split("-").map(Number);
+      const dayOfWeek = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]).getDay();
+      const dayHours = hours.find(h => h.dayOfWeek === dayOfWeek);
+      const startHour = dayHours && !dayHours.isClosed ? parseInt(dayHours.openTime.split(":")[0]) : businessStartHour;
+      const endHour = dayHours && !dayHours.isClosed ? parseInt(dayHours.closeTime.split(":")[0]) : businessEndHour;
+
+      if (dayHours?.isClosed) return res.json([]);
+
+      const businessEndUtc = fromZonedTime(new Date(`${date}T${String(endHour).padStart(2, "0")}:00:00`), tz);
+      const nowUtc = new Date();
+
+      type SlotResult = { time: string; staffId: number; staffName: string };
+      const slots: SlotResult[] = [];
+
+      const staffLastAppointment: Map<number, Date> = new Map();
+      const allAppointments = await storage.getAppointments({ storeId: store.id });
+      for (const apt of allAppointments) {
+        if (apt.status === "cancelled") continue;
+        if (!apt.staffId) continue;
+        const aptDate = new Date(apt.date);
+        const current = staffLastAppointment.get(apt.staffId);
+        if (!current || aptDate > current) {
+          staffLastAppointment.set(apt.staffId, aptDate);
+        }
+      }
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        for (let min = 0; min < 60; min += slotInterval) {
+          const slotStart = fromZonedTime(new Date(`${date}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`), tz);
+          const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+
+          if (slotStart < nowUtc) continue;
+          if (slotEnd > businessEndUtc) continue;
+
+          const availableForSlot: { staffMember: any; lastApt: Date | null }[] = [];
+
+          for (const staffMember of candidateStaff) {
+            let hasConflict = false;
+            for (const apt of dayAppointments) {
+              if (apt.staffId !== staffMember.id) continue;
+              if (apt.status === "cancelled") continue;
+              const aptStart = new Date(apt.date);
+              const aptEnd = new Date(aptStart.getTime() + apt.duration * 60000);
+              if (slotStart < aptEnd && slotEnd > aptStart) {
+                hasConflict = true;
+                break;
+              }
+            }
+            if (!hasConflict) {
+              availableForSlot.push({
+                staffMember,
+                lastApt: staffLastAppointment.get(staffMember.id) || null,
+              });
+            }
+          }
+
+          if (availableForSlot.length > 0) {
+            availableForSlot.sort((a, b) => {
+              if (a.lastApt === null && b.lastApt === null) return 0;
+              if (a.lastApt === null) return -1;
+              if (b.lastApt === null) return 1;
+              return a.lastApt.getTime() - b.lastApt.getTime();
+            });
+
+            const chosen = availableForSlot[0];
+            slots.push({
+              time: slotStart.toISOString(),
+              staffId: chosen.staffMember.id,
+              staffName: chosen.staffMember.name,
+            });
+          }
+        }
+      }
+
+      res.json(slots);
+    } catch (error) {
+      console.error("Public availability error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/public/store/:slug/book", async (req, res) => {
+    try {
+      const store = await storage.getStoreBySlug(req.params.slug);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+
+      const bookingSchema = z.object({
+        serviceId: z.number(),
+        staffId: z.number(),
+        date: z.string(),
+        duration: z.number(),
+        customerName: z.string().min(1),
+        customerEmail: z.string().email().optional(),
+        customerPhone: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const input = bookingSchema.parse(req.body);
+
+      let customer = input.customerPhone
+        ? await storage.searchCustomerByPhone(input.customerPhone, store.id)
+        : undefined;
+
+      if (!customer) {
+        customer = await storage.createCustomer({
+          name: input.customerName,
+          email: input.customerEmail || null,
+          phone: input.customerPhone || null,
+          storeId: store.id,
+          notes: null,
+        });
+      }
+
+      const appointment = await storage.createAppointment({
+        date: new Date(input.date),
+        serviceId: input.serviceId,
+        staffId: input.staffId,
+        customerId: customer.id,
+        duration: input.duration,
+        status: "pending",
+        storeId: store.id,
+        notes: input.notes || null,
+        cancellationReason: null,
+        paymentMethod: null,
+        tipAmount: null,
+        discountAmount: null,
+        totalPaid: null,
+      });
+
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Public booking error:", error);
+      res.status(400).json({ message: "Failed to create booking" });
+    }
+  });
+
+  app.get("/api/public/check-slug/:slug", async (req, res) => {
+    const store = await storage.getStoreBySlug(req.params.slug);
+    res.json({ available: !store });
+  });
+
   return httpServer;
 }

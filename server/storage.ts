@@ -25,6 +25,7 @@ import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
 export interface IStorage {
   getStores(userId?: string): Promise<Store[]>;
   getStore(id: number): Promise<Store | undefined>;
+  getStoreBySlug(slug: string): Promise<Store | undefined>;
   createStore(store: InsertStore): Promise<Store>;
   updateStore(id: number, store: Partial<InsertStore>): Promise<Store | undefined>;
 
@@ -114,6 +115,10 @@ export class DatabaseStorage implements IStorage {
   }
   async getStore(id: number): Promise<Store | undefined> {
     const [store] = await db.select().from(stores).where(eq(stores.id, id));
+    return store;
+  }
+  async getStoreBySlug(slug: string): Promise<Store | undefined> {
+    const [store] = await db.select().from(stores).where(eq(stores.bookingSlug, slug));
     return store;
   }
   async createStore(insertStore: InsertStore): Promise<Store> {

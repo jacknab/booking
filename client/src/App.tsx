@@ -21,14 +21,17 @@ import BusinessSettings from "@/pages/BusinessSettings";
 import CashDrawer from "@/pages/CashDrawer";
 import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
+import OnlineBooking from "@/pages/OnlineBooking";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
+import PublicBooking from "@/pages/PublicBooking";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/book/:slug" component={PublicBooking} />
       <Route path="/auth" component={Auth} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/dashboard" component={Dashboard} />
@@ -47,6 +50,7 @@ function Router() {
       <Route path="/commission-report" component={CommissionReport} />
       <Route path="/calendar-settings" component={CalendarSettingsPage} />
       <Route path="/business-settings" component={BusinessSettings} />
+      <Route path="/online-booking" component={OnlineBooking} />
       <Route path="/cash-drawer" component={CashDrawer} />
       <Route component={NotFound} />
     </Switch>

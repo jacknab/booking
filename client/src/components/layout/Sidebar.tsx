@@ -11,7 +11,8 @@ import {
   Settings,
   Building2,
   Puzzle,
-  BarChart3
+  BarChart3,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
   { href: "/commission-report", label: "Commissions", icon: BarChart3 },
+  { href: "/online-booking", label: "Online Booking", icon: Globe },
   { href: "/business-settings", label: "Business Settings", icon: Building2 },
   { href: "/calendar-settings", label: "Calendar Settings", icon: Settings },
 ];

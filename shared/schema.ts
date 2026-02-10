@@ -18,6 +18,7 @@ export const stores = pgTable("stores", {
   category: text("category"),
   city: text("city"),
   postcode: text("postcode"),
+  bookingSlug: text("booking_slug").unique(),
   commissionPayoutFrequency: text("commission_payout_frequency").default("monthly"),
   userId: text("user_id").references(() => users.id),
 });
