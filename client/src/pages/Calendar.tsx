@@ -153,7 +153,21 @@ export default function Calendar() {
 
   const handleStartService = (apt: AppointmentWithDetails) => {
     updateAppointment.mutate(
-      { id: apt.id, status: "confirmed" } as any,
+      { id: apt.id, status: "started" } as any,
+      {
+        onSuccess: (updated: any) => {
+          setSelectedAppointment({ ...apt, status: "started" });
+        },
+      }
+    );
+  };
+
+  const handleCheckout = (apt: AppointmentWithDetails) => {
+    updateAppointment.mutate(
+      { id: apt.id, status: "completed" } as any,
+      {
+        onSuccess: () => setSelectedAppointment(null),
+      }
     );
   };
 
@@ -380,8 +394,9 @@ export default function Calendar() {
             onClose={() => setSelectedAppointment(null)}
             onCancel={() => handleCancelAppointment(selectedAppointment)}
             onStart={() => handleStartService(selectedAppointment)}
+            onCheckout={() => handleCheckout(selectedAppointment)}
             onEdit={() => navigate("/booking/new")}
-            isCancelling={updateAppointment.isPending}
+            isUpdating={updateAppointment.isPending}
           />
         )}
       </div>
@@ -395,26 +410,36 @@ function AppointmentDetailsPanel({
   onClose,
   onCancel,
   onStart,
+  onCheckout,
   onEdit,
-  isCancelling,
+  isUpdating,
 }: {
   appointment: AppointmentWithDetails;
   timezone: string;
   onClose: () => void;
   onCancel: () => void;
   onStart: () => void;
+  onCheckout: () => void;
   onEdit: () => void;
-  isCancelling: boolean;
+  isUpdating: boolean;
 }) {
   const localDate = toStoreLocal(appointment.date, timezone);
   const endTime = addMinutes(new Date(appointment.date), appointment.duration);
   const dateStr = formatInTz(appointment.date, timezone, "EEEE, d MMM yyyy");
   const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
 
-  const statusLabel = appointment.status === "confirmed" ? "Confirmed" : appointment.status === "cancelled" ? "Cancelled" : appointment.status === "completed" ? "Completed" : "Booked";
-  const statusVariant = appointment.status === "cancelled" ? "destructive" as const : "secondary" as const;
-
-  const progressColor = appointment.status === "confirmed" ? "#22c55e" : appointment.status === "cancelled" ? "#ef4444" : "#3b82f6";
+  const statusMap: Record<string, { label: string; variant: "destructive" | "secondary"; color: string }> = {
+    pending: { label: "Booked", variant: "secondary", color: "#3b82f6" },
+    confirmed: { label: "Booked", variant: "secondary", color: "#3b82f6" },
+    started: { label: "Started", variant: "secondary", color: "#22c55e" },
+    cancelled: { label: "Cancelled", variant: "destructive", color: "#ef4444" },
+    completed: { label: "Completed", variant: "secondary", color: "#22c55e" },
+    "no-show": { label: "No-Show", variant: "destructive", color: "#ef4444" },
+  };
+  const statusInfo = statusMap[appointment.status || "pending"] || statusMap.pending;
+  const statusLabel = statusInfo.label;
+  const statusVariant = statusInfo.variant;
+  const progressColor = statusInfo.color;
 
   const aptAddons = appointment.appointmentAddons?.map(aa => aa.addon).filter(Boolean) || [];
   const addonTotal = aptAddons.reduce((sum, a) => sum + Number(a!.price), 0);
@@ -518,7 +543,7 @@ function AppointmentDetailsPanel({
           </div>
         </div>
 
-        {appointment.status !== "cancelled" && appointment.status !== "completed" && (
+        {appointment.status !== "cancelled" && appointment.status !== "completed" && appointment.status !== "no-show" && (
           <>
             <div className="flex gap-2">
               <Button
@@ -533,23 +558,38 @@ function AppointmentDetailsPanel({
                 variant="outline"
                 className="flex-1 text-destructive border-destructive/30"
                 onClick={onCancel}
-                disabled={isCancelling}
+                disabled={isUpdating}
                 data-testid="button-cancel-appointment"
               >
-                {isCancelling ? "Cancelling..." : "Cancel Appointment"}
+                {isUpdating ? "Updating..." : "Cancel Appointment"}
               </Button>
             </div>
 
-            <Button
-              className="w-full bg-blue-600 text-white hover:bg-blue-700 h-12"
-              onClick={onStart}
-              data-testid="button-start-service"
-            >
-              <span className="flex flex-col items-center leading-tight">
-                <span className="font-semibold">Start</span>
-                <span className="text-[10px] opacity-80">Begin Service</span>
-              </span>
-            </Button>
+            {appointment.status === "started" ? (
+              <Button
+                className="w-full bg-green-600 text-white h-12"
+                onClick={onCheckout}
+                disabled={isUpdating}
+                data-testid="button-checkout"
+              >
+                <span className="flex flex-col items-center leading-tight">
+                  <span className="font-semibold">Checkout</span>
+                  <span className="text-[10px] opacity-80">Finish Appointment</span>
+                </span>
+              </Button>
+            ) : (
+              <Button
+                className="w-full bg-blue-600 text-white h-12"
+                onClick={onStart}
+                disabled={isUpdating}
+                data-testid="button-start-service"
+              >
+                <span className="flex flex-col items-center leading-tight">
+                  <span className="font-semibold">Start</span>
+                  <span className="text-[10px] opacity-80">Begin Service</span>
+                </span>
+              </Button>
+            )}
           </>
         )}
       </div>
