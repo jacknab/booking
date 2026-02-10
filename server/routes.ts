@@ -373,11 +373,16 @@ export async function registerRoutes(
       }
 
       const businessEndUtc = fromZonedTime(new Date(`${date}T${String(businessEndHour).padStart(2, "0")}:00:00`), tz);
+      const nowUtc = new Date();
 
       for (let hour = businessStartHour; hour < businessEndHour; hour++) {
         for (let min = 0; min < 60; min += slotInterval) {
           const slotStart = fromZonedTime(new Date(`${date}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`), tz);
           const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+
+          if (slotStart < nowUtc) {
+            continue;
+          }
 
           if (slotEnd > businessEndUtc) {
             continue;
