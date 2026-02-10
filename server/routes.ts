@@ -4,15 +4,17 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { z } from "zod";
+import { fromZonedTime } from "date-fns-tz";
 import { 
   insertStoreSchema,
   insertServiceCategorySchema,
   insertServiceSchema, 
   insertAddonSchema,
   insertServiceAddonSchema,
-  insertStaffSchema, 
+  insertStaffSchema,
   insertCustomerSchema, 
   insertAppointmentSchema, 
+  type Staff,
   insertProductSchema 
 } from "@shared/schema";
 
@@ -286,6 +288,148 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
+  // === STAFF SERVICES ===
+  app.get(api.staffServices.list.path, async (req, res) => {
+    const staffId = req.query.staffId ? Number(req.query.staffId) : undefined;
+    const serviceId = req.query.serviceId ? Number(req.query.serviceId) : undefined;
+    const result = await storage.getStaffServices(staffId, serviceId);
+    res.json(result);
+  });
+
+  app.get(api.staffServices.forService.path, async (req, res) => {
+    const serviceId = Number(req.params.id);
+    const capableStaff = await storage.getStaffForService(serviceId);
+    res.json(capableStaff);
+  });
+
+  app.post(api.staffServices.set.path, async (req, res) => {
+    try {
+      const staffId = Number(req.params.id);
+      const { serviceIds } = z.object({ serviceIds: z.array(z.number()) }).parse(req.body);
+      await storage.setStaffServices(staffId, serviceIds);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  // === AVAILABILITY ===
+  app.get(api.availability.slots.path, async (req, res) => {
+    try {
+      const serviceId = Number(req.query.serviceId);
+      const storeId = Number(req.query.storeId);
+      const date = String(req.query.date);
+      const duration = Number(req.query.duration);
+      const specificStaffId = req.query.staffId ? Number(req.query.staffId) : undefined;
+
+      if (!serviceId || !storeId || !date || !duration) {
+        return res.status(400).json({ message: "serviceId, storeId, date, and duration are required" });
+      }
+
+      const store = await storage.getStore(storeId);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+
+      let candidateStaff: Staff[];
+      if (specificStaffId) {
+        const member = await storage.getStaffMember(specificStaffId);
+        candidateStaff = member ? [member] : [];
+      } else {
+        candidateStaff = await storage.getStaffForService(serviceId);
+      }
+
+      if (candidateStaff.length === 0) {
+        return res.json([]);
+      }
+
+      const tz = store.timezone || "UTC";
+
+      const businessStartHour = 9;
+      const businessEndHour = 21;
+      const slotInterval = 30;
+
+      const dayStartLocal = fromZonedTime(new Date(`${date}T00:00:00`), tz);
+      const dayEndLocal = fromZonedTime(new Date(`${date}T23:59:59.999`), tz);
+
+      const dayAppointments = await storage.getAppointments({
+        from: dayStartLocal,
+        to: dayEndLocal,
+        storeId,
+      });
+
+      type SlotResult = { time: string; staffId: number; staffName: string };
+      const slots: SlotResult[] = [];
+
+      const staffLastAppointment: Map<number, Date> = new Map();
+      const allAppointments = await storage.getAppointments({ storeId });
+      for (const apt of allAppointments) {
+        if (apt.status === "cancelled") continue;
+        const staffId = apt.staffId;
+        if (!staffId) continue;
+        const aptDate = new Date(apt.date);
+        const current = staffLastAppointment.get(staffId);
+        if (!current || aptDate > current) {
+          staffLastAppointment.set(staffId, aptDate);
+        }
+      }
+
+      const businessEndUtc = fromZonedTime(new Date(`${date}T${String(businessEndHour).padStart(2, "0")}:00:00`), tz);
+
+      for (let hour = businessStartHour; hour < businessEndHour; hour++) {
+        for (let min = 0; min < 60; min += slotInterval) {
+          const slotStart = fromZonedTime(new Date(`${date}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`), tz);
+          const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+
+          if (slotEnd > businessEndUtc) {
+            continue;
+          }
+
+          const availableForSlot: { staffMember: Staff; lastApt: Date | null }[] = [];
+
+          for (const staffMember of candidateStaff) {
+            let hasConflict = false;
+            for (const apt of dayAppointments) {
+              if (apt.staffId !== staffMember.id) continue;
+              if (apt.status === "cancelled") continue;
+              const aptStart = new Date(apt.date);
+              const aptEnd = new Date(aptStart.getTime() + apt.duration * 60000);
+              if (slotStart < aptEnd && slotEnd > aptStart) {
+                hasConflict = true;
+                break;
+              }
+            }
+            if (!hasConflict) {
+              availableForSlot.push({
+                staffMember,
+                lastApt: staffLastAppointment.get(staffMember.id) || null,
+              });
+            }
+          }
+
+          if (availableForSlot.length > 0) {
+            availableForSlot.sort((a, b) => {
+              if (a.lastApt === null && b.lastApt === null) return 0;
+              if (a.lastApt === null) return -1;
+              if (b.lastApt === null) return 1;
+              return a.lastApt.getTime() - b.lastApt.getTime();
+            });
+
+            const chosen = availableForSlot[0];
+            slots.push({
+              time: slotStart.toISOString(),
+              staffId: chosen.staffMember.id,
+              staffName: chosen.staffMember.name,
+            });
+          }
+        }
+      }
+
+      res.json(slots);
+    } catch (error) {
+      console.error("Availability error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // === CUSTOMERS ===
   app.get(api.customers.list.path, async (req, res) => {
     const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
@@ -431,19 +575,19 @@ async function seedDatabase() {
       name: "Haircut - Women", description: "Wash, cut and blow dry", duration: 60, price: "65.00",
       category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcHaircutM = await storage.createService({
       name: "Haircut - Men", description: "Classic men's cut", duration: 30, price: "35.00",
       category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcBlowDry = await storage.createService({
       name: "Blow Dry & Style", description: "Professional blow dry and styling", duration: 45, price: "45.00",
       category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcColorFull = await storage.createService({
       name: "Color - Full", description: "Full head color application", duration: 120, price: "150.00",
       category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcHighlights = await storage.createService({
       name: "Highlights", description: "Partial or full highlights", duration: 90, price: "120.00",
       category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
@@ -460,24 +604,24 @@ async function seedDatabase() {
       name: "Deluxe Pedicure", description: "Soak, scrub, massage and polish", duration: 60, price: "55.00",
       category: "Nails", categoryId: catNails1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcSpaPedi = await storage.createService({
       name: "Spa Pedicure", description: "Premium pedicure with paraffin wax", duration: 75, price: "70.00",
       category: "Nails", categoryId: catNails1.id, storeId: store1.id,
     });
 
-    await storage.createService({
+    const svcFacial = await storage.createService({
       name: "Classic Facial", description: "Deep cleanse and hydration", duration: 60, price: "85.00",
       category: "Skin Care", categoryId: catSkin1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcAntiAging = await storage.createService({
       name: "Anti-Aging Facial", description: "Targeted anti-aging treatment", duration: 75, price: "110.00",
       category: "Skin Care", categoryId: catSkin1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcEyebrowWax = await storage.createService({
       name: "Eyebrow Wax", description: "Precision eyebrow shaping", duration: 15, price: "18.00",
       category: "Waxing", categoryId: catWaxing1.id, storeId: store1.id,
     });
-    await storage.createService({
+    const svcLegWax = await storage.createService({
       name: "Full Leg Wax", description: "Complete leg waxing", duration: 45, price: "65.00",
       category: "Waxing", categoryId: catWaxing1.id, storeId: store1.id,
     });
@@ -487,11 +631,11 @@ async function seedDatabase() {
       name: "Haircut - Men", description: "Wash and cut", duration: 30, price: "35.00",
       category: "Hair", categoryId: catHair2.id, storeId: store2.id,
     });
-    await storage.createService({
+    const svcBeardTrim = await storage.createService({
       name: "Beard Trim", description: "Shape and trim beard", duration: 20, price: "20.00",
       category: "Hair", categoryId: catHair2.id, storeId: store2.id,
     });
-    await storage.createService({
+    const svcHotTowel = await storage.createService({
       name: "Hot Towel Shave", description: "Traditional straight razor shave", duration: 30, price: "40.00",
       category: "Hair", categoryId: catHair2.id, storeId: store2.id,
     });
@@ -500,19 +644,19 @@ async function seedDatabase() {
       name: "Deep Tissue Massage", description: "60 min therapeutic massage", duration: 60, price: "95.00",
       category: "Massage", categoryId: catMassage2.id, storeId: store2.id,
     });
-    await storage.createService({
+    const svcSwedish = await storage.createService({
       name: "Swedish Massage", description: "Relaxation full body massage", duration: 60, price: "85.00",
       category: "Massage", categoryId: catMassage2.id, storeId: store2.id,
     });
-    await storage.createService({
+    const svcHotStone = await storage.createService({
       name: "Hot Stone Massage", description: "Heated stone therapy massage", duration: 75, price: "110.00",
       category: "Massage", categoryId: catMassage2.id, storeId: store2.id,
     });
-    await storage.createService({
+    const svcAromaFacial = await storage.createService({
       name: "Aromatherapy Facial", description: "Essential oil infused facial", duration: 60, price: "90.00",
       category: "Skin Care", categoryId: catSkin2.id, storeId: store2.id,
     });
-    await storage.createService({
+    const svcBodyScrub = await storage.createService({
       name: "Body Scrub", description: "Full body exfoliation treatment", duration: 45, price: "75.00",
       category: "Skin Care", categoryId: catSkin2.id, storeId: store2.id,
     });
@@ -590,6 +734,28 @@ async function seedDatabase() {
     const staff4 = await storage.createStaff({
       name: "Emma Rodriguez", role: "Massage Therapist", bio: "Certified LMT.", color: "#34d399", storeId: store2.id,
     });
+
+    // Staff-Service links (which staff can perform which services)
+    // Sarah Jenkins (Senior Stylist) - all hair, skin care, waxing
+    await storage.setStaffServices(staff1.id, [
+      svcHaircutW.id, svcHaircutM.id, svcBlowDry.id, svcColorFull.id, svcHighlights.id,
+      svcFacial.id, svcAntiAging.id, svcEyebrowWax.id, svcLegWax.id,
+    ]);
+    // Lisa Park (Nail Tech) - all nail services, eyebrow wax, facials
+    await storage.setStaffServices(staff3.id, [
+      svcManicure.id, svcGelMani.id, svcPedi.id, svcSpaPedi.id,
+      svcEyebrowWax.id, svcFacial.id, svcAntiAging.id,
+    ]);
+    // Mike Chen (Barber) - hair services at store 2, skin care
+    await storage.setStaffServices(staff2.id, [
+      svcBarberCut.id, svcBeardTrim.id, svcHotTowel.id,
+      svcAromaFacial.id, svcBodyScrub.id,
+    ]);
+    // Emma Rodriguez (Massage Therapist) - massage services, skin care
+    await storage.setStaffServices(staff4.id, [
+      svcDeepTissue.id, svcSwedish.id, svcHotStone.id,
+      svcAromaFacial.id, svcBodyScrub.id,
+    ]);
 
     // Customers
     const cust1 = await storage.createCustomer({

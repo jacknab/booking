@@ -6,16 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import { useServices } from "@/hooks/use-services";
 import { useStaffList } from "@/hooks/use-staff";
 import { useCustomers } from "@/hooks/use-customers";
 import { useCreateAppointment } from "@/hooks/use-appointments";
 import { useAddonsForService, useSetAppointmentAddons, useServiceCategories } from "@/hooks/use-addons";
+import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
-import { getTimezoneAbbr } from "@/lib/timezone";
+import { getTimezoneAbbr, formatInTz } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { ArrowLeft, Clock, User, X, Scissors, Sparkles, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
 
@@ -40,11 +42,33 @@ export default function NewBooking() {
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [dateTime, setDateTime] = useState("");
   const [notes, setNotes] = useState("");
   const [step, setStep] = useState<BookingStep>("services");
 
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [staffMode, setStaffMode] = useState<"any" | "specific">("any");
+  const [specificStaffId, setSpecificStaffId] = useState<number | null>(null);
+
   const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(selectedService?.id || null);
+
+  const addonTotal = selectedAddons.reduce((sum, a) => sum + Number(a.price), 0);
+  const addonDuration = selectedAddons.reduce((sum, a) => sum + a.duration, 0);
+  const servicePrice = selectedService ? Number(selectedService.price) : 0;
+  const totalPrice = servicePrice + addonTotal;
+  const totalDuration = (selectedService?.duration || 0) + addonDuration;
+
+  const dateString = selectedDate
+    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
+    : null;
+
+  const { data: slots, isLoading: slotsLoading } = useAvailableSlots(
+    selectedService?.id || null,
+    selectedStore?.id || null,
+    dateString,
+    totalDuration,
+    staffMode === "specific" ? specificStaffId : null
+  );
 
   const categoryNames = useMemo(() => {
     if (categories && categories.length > 0) {
@@ -65,15 +89,11 @@ export default function NewBooking() {
 
   const activeCategory = selectedCategory || (categoryNames.length > 0 ? categoryNames[0] : null);
 
-  const addonTotal = selectedAddons.reduce((sum, a) => sum + Number(a.price), 0);
-  const addonDuration = selectedAddons.reduce((sum, a) => sum + a.duration, 0);
-  const servicePrice = selectedService ? Number(selectedService.price) : 0;
-  const totalPrice = servicePrice + addonTotal;
-  const totalDuration = (selectedService?.duration || 0) + addonDuration;
-
   const handleSelectService = (service: Service) => {
     if (selectedService?.id !== service.id) {
       setSelectedAddons([]);
+      setSelectedSlot(null);
+      setSelectedStaff(null);
     }
     setSelectedService(service);
   };
@@ -81,6 +101,8 @@ export default function NewBooking() {
   const handleRemoveService = () => {
     setSelectedService(null);
     setSelectedAddons([]);
+    setSelectedSlot(null);
+    setSelectedStaff(null);
     setStep("services");
   };
 
@@ -108,14 +130,34 @@ export default function NewBooking() {
     setStep("details");
   };
 
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedSlot(null);
+  };
+
+  const handleStaffModeChange = (mode: "any" | "specific") => {
+    setStaffMode(mode);
+    setSelectedSlot(null);
+    if (mode === "any") {
+      setSpecificStaffId(null);
+    }
+  };
+
+  const handleSpecificStaffSelect = (staffId: number) => {
+    setSpecificStaffId(staffId);
+    setSelectedSlot(null);
+  };
+
   const handleRequestBooking = () => {
-    if (!selectedService || !selectedStaff || !selectedCustomer || !dateTime) return;
+    if (!selectedService || !selectedSlot || !selectedCustomer) return;
+
+    const staffId = selectedSlot.staffId;
 
     createAppointment.mutate(
       {
-        date: dateTime,
+        date: selectedSlot.time,
         serviceId: selectedService.id,
-        staffId: selectedStaff.id,
+        staffId,
         customerId: selectedCustomer.id,
         duration: totalDuration,
         notes: notes || undefined,
@@ -343,85 +385,190 @@ export default function NewBooking() {
 
       {step === "details" && (
         <>
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4 border-b flex items-center gap-2 bg-card">
-              <Button variant="ghost" size="icon" onClick={() => {
-                if (availableAddons && availableAddons.length > 0) setStep("addons");
-                else setStep("services");
-              }} data-testid="button-back-from-details">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <span className="font-semibold text-lg">Booking Details</span>
-            </div>
-            <div className="max-w-lg mx-auto p-6 space-y-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Staff Member</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {staffList?.map((member: Staff) => (
-                    <Card
-                      key={member.id}
-                      className={cn(
-                        "p-3 cursor-pointer transition-all flex items-center gap-3",
-                        selectedStaff?.id === member.id ? "ring-2 ring-primary" : "hover-elevate"
-                      )}
-                      onClick={() => setSelectedStaff(member)}
-                      data-testid={`card-staff-${member.id}`}
+          <div className="flex-1 overflow-hidden flex">
+            <div className="w-[300px] flex-shrink-0 border-r bg-card flex flex-col">
+              <div className="p-4 border-b flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => {
+                  if (availableAddons && availableAddons.length > 0) setStep("addons");
+                  else setStep("services");
+                }} data-testid="button-back-from-details">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <span className="font-semibold text-lg">Select Date</span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateChange}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  className="rounded-md border mx-auto"
+                  data-testid="calendar-date-picker"
+                />
+
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Staff Preference</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={staffMode === "any" ? "default" : "outline"}
+                      className="flex-1 gap-1.5"
+                      onClick={() => handleStaffModeChange("any")}
+                      data-testid="button-staff-any"
                     >
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback
-                          style={{ backgroundColor: (member.color || "#3b82f6") + "22", color: member.color || "#3b82f6" }}
-                          className="text-sm font-bold"
+                      <Users className="w-4 h-4" />
+                      Any Staff
+                    </Button>
+                    <Button
+                      variant={staffMode === "specific" ? "default" : "outline"}
+                      className="flex-1 gap-1.5"
+                      onClick={() => handleStaffModeChange("specific")}
+                      data-testid="button-staff-specific"
+                    >
+                      <User className="w-4 h-4" />
+                      Specific
+                    </Button>
+                  </div>
+
+                  {staffMode === "specific" && (
+                    <div className="space-y-2">
+                      {staffList?.map((member: Staff) => (
+                        <button
+                          key={member.id}
+                          onClick={() => handleSpecificStaffSelect(member.id)}
+                          className={cn(
+                            "w-full flex items-center gap-3 p-2.5 rounded-md text-left transition-colors",
+                            specificStaffId === member.id
+                              ? "bg-primary/10 ring-1 ring-primary"
+                              : "hover-elevate"
+                          )}
+                          data-testid={`button-select-staff-${member.id}`}
                         >
-                          {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">{member.role}</p>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {!selectedCustomer && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Client</Label>
-                  <Select onValueChange={(val) => {
-                    const cust = customers?.find((c: Customer) => c.id === Number(val));
-                    if (cust) setSelectedCustomer(cust);
-                  }}>
-                    <SelectTrigger data-testid="select-details-customer">
-                      <SelectValue placeholder="Select Client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers?.map((c: Customer) => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback
+                              style={{ backgroundColor: (member.color || "#3b82f6") + "22", color: member.color || "#3b82f6" }}
+                              className="text-xs font-bold"
+                            >
+                              {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{member.name}</p>
+                            <p className="text-xs text-muted-foreground">{member.role}</p>
+                          </div>
+                          {specificStaffId === member.id && (
+                            <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                          )}
+                        </button>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Date & Time ({tzAbbr})</Label>
-                <Input
-                  type="datetime-local"
-                  value={dateTime}
-                  onChange={(e) => setDateTime(e.target.value)}
-                  data-testid="input-booking-datetime"
-                />
-                <p className="text-xs text-muted-foreground">Store timezone: {timezone}</p>
+                {!selectedCustomer && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Client</Label>
+                    <Select onValueChange={(val) => {
+                      const cust = customers?.find((c: Customer) => c.id === Number(val));
+                      if (cust) setSelectedCustomer(cust);
+                    }}>
+                      <SelectTrigger data-testid="select-details-customer">
+                        <SelectValue placeholder="Select Client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers?.map((c: Customer) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Notes</Label>
+                  <Input
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any special requests?"
+                    data-testid="input-booking-notes"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 border-b bg-card flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-semibold">
+                    {selectedDate
+                      ? selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+                      : "Select a date"}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="no-default-active-elevate text-xs">
+                  {tzAbbr} &middot; {timezone}
+                </Badge>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Notes</Label>
-                <Input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any special requests?"
-                  data-testid="input-booking-notes"
-                />
+              <div className="p-6">
+                {!selectedDate ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center">
+                    <CalendarDays className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">Pick a date to see available time slots</p>
+                  </div>
+                ) : staffMode === "specific" && !specificStaffId ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center">
+                    <User className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">Select a staff member to see their availability</p>
+                  </div>
+                ) : slotsLoading ? (
+                  <div className="flex items-center justify-center h-48">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !slots || slots.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center">
+                    <Clock className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">No available time slots for this date</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try a different date or staff preference</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      {slots.length} available slot{slots.length !== 1 ? "s" : ""} &middot; {totalDuration} min per booking
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                      {slots.map((slot) => {
+                        const timeLabel = formatInTz(slot.time, timezone, "h:mm a");
+                        const isSelected = selectedSlot?.time === slot.time;
+
+                        return (
+                          <button
+                            key={slot.time}
+                            onClick={() => {
+                              setSelectedSlot(slot);
+                              setSelectedStaff(staffList?.find((s: Staff) => s.id === slot.staffId) || null);
+                            }}
+                            className={cn(
+                              "flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-md border text-sm transition-colors",
+                              isSelected
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "hover-elevate"
+                            )}
+                            data-testid={`button-slot-${slot.time}`}
+                          >
+                            <span className="font-semibold">{timeLabel}</span>
+                            <span className={cn(
+                              "text-[10px] truncate max-w-full",
+                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                            )}>
+                              {slot.staffName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -439,12 +586,20 @@ export default function NewBooking() {
             onRemoveAddon={handleRemoveAddon}
             footerContent={
               <div className="space-y-2">
+                {selectedSlot && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>
+                      {formatInTz(selectedSlot.time, timezone, "h:mm a")} &middot; {selectedSlot.staffName}
+                    </span>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     className="flex-1 h-12"
                     onClick={handleRequestBooking}
-                    disabled={!selectedService || !selectedStaff || !selectedCustomer || !dateTime || createAppointment.isPending}
+                    disabled={!selectedService || !selectedSlot || !selectedCustomer || createAppointment.isPending}
                     data-testid="button-save-changes"
                   >
                     <span className="flex flex-col items-center leading-tight">
@@ -457,7 +612,7 @@ export default function NewBooking() {
                   <Button
                     className="flex-1 bg-pink-500 text-white h-12"
                     onClick={handleRequestBooking}
-                    disabled={!selectedService || !selectedStaff || !selectedCustomer || !dateTime || createAppointment.isPending}
+                    disabled={!selectedService || !selectedSlot || !selectedCustomer || createAppointment.isPending}
                     data-testid="button-checkout"
                   >
                     <span className="flex flex-col items-center leading-tight">

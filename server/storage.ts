@@ -1,6 +1,6 @@
 import { 
   stores, services, staff, customers, appointments, products,
-  serviceCategories, addons, serviceAddons, appointmentAddons,
+  serviceCategories, addons, serviceAddons, appointmentAddons, staffServices,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -8,12 +8,13 @@ import {
   type ServiceAddon, type InsertServiceAddon,
   type AppointmentAddon, type InsertAppointmentAddon,
   type Staff, type InsertStaff,
+  type StaffService, type InsertStaffService,
   type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type AppointmentWithDetails,
   type Product, type InsertProduct
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
 
 export interface IStorage {
   getStores(): Promise<Store[]>;
@@ -50,6 +51,10 @@ export interface IStorage {
   createStaff(staffMember: InsertStaff): Promise<Staff>;
   updateStaff(id: number, staffMember: Partial<InsertStaff>): Promise<Staff | undefined>;
   deleteStaff(id: number): Promise<void>;
+
+  getStaffServices(staffId?: number, serviceId?: number): Promise<StaffService[]>;
+  getStaffForService(serviceId: number): Promise<Staff[]>;
+  setStaffServices(staffId: number, serviceIds: number[]): Promise<void>;
 
   getCustomers(storeId?: number): Promise<Customer[]>;
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -201,7 +206,35 @@ export class DatabaseStorage implements IStorage {
     return staffMember;
   }
   async deleteStaff(id: number): Promise<void> {
+    await db.delete(staffServices).where(eq(staffServices.staffId, id));
     await db.delete(staff).where(eq(staff.id, id));
+  }
+
+  // Staff Services
+  async getStaffServices(staffId?: number, serviceId?: number): Promise<StaffService[]> {
+    const conditions = [];
+    if (staffId) conditions.push(eq(staffServices.staffId, staffId));
+    if (serviceId) conditions.push(eq(staffServices.serviceId, serviceId));
+    return await db.select().from(staffServices).where(
+      conditions.length > 0 ? and(...conditions) : undefined
+    );
+  }
+
+  async getStaffForService(serviceId: number): Promise<Staff[]> {
+    const result = await db.query.staffServices.findMany({
+      where: eq(staffServices.serviceId, serviceId),
+      with: { staff: true },
+    });
+    return result.map((ss: any) => ss.staff);
+  }
+
+  async setStaffServices(staffId: number, serviceIds: number[]): Promise<void> {
+    await db.delete(staffServices).where(eq(staffServices.staffId, staffId));
+    if (serviceIds.length > 0) {
+      await db.insert(staffServices).values(
+        serviceIds.map(serviceId => ({ staffId, serviceId }))
+      );
+    }
   }
 
   // Customers

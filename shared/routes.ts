@@ -6,7 +6,8 @@ import {
   insertAddonSchema,
   insertServiceAddonSchema,
   insertAppointmentAddonSchema,
-  insertStaffSchema, 
+  insertStaffSchema,
+  insertStaffServiceSchema,
   insertCustomerSchema, 
   insertAppointmentSchema, 
   insertProductSchema,
@@ -16,6 +17,7 @@ import {
   addons,
   serviceAddons,
   appointmentAddons,
+  staffServices,
   staff,
   customers,
   appointments,
@@ -224,6 +226,43 @@ export const api = {
         200: z.object({ success: z.boolean() }),
         400: errorSchemas.validation,
         409: z.object({ message: z.string(), availableMinutes: z.number().optional() }),
+      },
+    },
+  },
+  staffServices: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/staff-services' as const,
+      responses: {
+        200: z.array(z.custom<typeof staffServices.$inferSelect>()),
+      },
+    },
+    forService: {
+      method: 'GET' as const,
+      path: '/api/services/:id/staff' as const,
+      responses: {
+        200: z.array(z.custom<typeof staff.$inferSelect>()),
+      },
+    },
+    set: {
+      method: 'POST' as const,
+      path: '/api/staff/:id/services' as const,
+      input: z.object({ serviceIds: z.array(z.number()) }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
+  },
+  availability: {
+    slots: {
+      method: 'GET' as const,
+      path: '/api/availability/slots' as const,
+      responses: {
+        200: z.array(z.object({
+          time: z.string(),
+          staffId: z.number(),
+          staffName: z.string(),
+        })),
       },
     },
   },

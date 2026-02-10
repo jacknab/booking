@@ -68,6 +68,12 @@ export const staff = pgTable("staff", {
   storeId: integer("store_id").references(() => stores.id),
 });
 
+export const staffServices = pgTable("staff_services", {
+  id: serial("id").primaryKey(),
+  staffId: integer("staff_id").references(() => staff.id).notNull(),
+  serviceId: integer("service_id").references(() => services.id).notNull(),
+});
+
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -120,6 +126,7 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
   store: one(stores, { fields: [services.storeId], references: [stores.id] }),
   serviceCategory: one(serviceCategories, { fields: [services.categoryId], references: [serviceCategories.id] }),
   serviceAddons: many(serviceAddons),
+  staffServices: many(staffServices),
 }));
 
 export const addonsRelations = relations(addons, ({ one, many }) => ({
@@ -136,6 +143,16 @@ export const serviceAddonsRelations = relations(serviceAddons, ({ one }) => ({
 export const appointmentAddonsRelations = relations(appointmentAddons, ({ one }) => ({
   appointment: one(appointments, { fields: [appointmentAddons.appointmentId], references: [appointments.id] }),
   addon: one(addons, { fields: [appointmentAddons.addonId], references: [addons.id] }),
+}));
+
+export const staffRelations = relations(staff, ({ one, many }) => ({
+  store: one(stores, { fields: [staff.storeId], references: [stores.id] }),
+  staffServices: many(staffServices),
+}));
+
+export const staffServicesRelations = relations(staffServices, ({ one }) => ({
+  staff: one(staff, { fields: [staffServices.staffId], references: [staff.id] }),
+  service: one(services, { fields: [staffServices.serviceId], references: [services.id] }),
 }));
 
 export const appointmentsRelations = relations(appointments, ({ one, many }) => ({
@@ -167,6 +184,7 @@ export const insertAddonSchema = createInsertSchema(addons).omit({ id: true });
 export const insertServiceAddonSchema = createInsertSchema(serviceAddons).omit({ id: true });
 export const insertAppointmentAddonSchema = createInsertSchema(appointmentAddons).omit({ id: true });
 export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
+export const insertStaffServiceSchema = createInsertSchema(staffServices).omit({ id: true });
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
@@ -193,6 +211,9 @@ export type InsertAppointmentAddon = z.infer<typeof insertAppointmentAddonSchema
 
 export type Staff = typeof staff.$inferSelect;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
+
+export type StaffService = typeof staffServices.$inferSelect;
+export type InsertStaffService = z.infer<typeof insertStaffServiceSchema>;
 
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
