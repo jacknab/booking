@@ -1,7 +1,7 @@
 import { 
   stores, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
-  calendarSettings, cashDrawerSessions, drawerActions,
+  calendarSettings, cashDrawerSessions, drawerActions, businessHours,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -11,6 +11,7 @@ import {
   type Staff, type InsertStaff,
   type StaffService, type InsertStaffService,
   type StaffAvailability, type InsertStaffAvailability,
+  type BusinessHours, type InsertBusinessHours,
   type CalendarSettings, type InsertCalendarSettings,
   type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type AppointmentWithDetails,
@@ -25,6 +26,10 @@ export interface IStorage {
   getStores(): Promise<Store[]>;
   getStore(id: number): Promise<Store | undefined>;
   createStore(store: InsertStore): Promise<Store>;
+  updateStore(id: number, store: Partial<InsertStore>): Promise<Store | undefined>;
+
+  getBusinessHours(storeId: number): Promise<BusinessHours[]>;
+  setBusinessHours(storeId: number, hours: InsertBusinessHours[]): Promise<BusinessHours[]>;
 
   getServiceCategories(storeId?: number): Promise<ServiceCategory[]>;
   createServiceCategory(cat: InsertServiceCategory): Promise<ServiceCategory>;
@@ -108,6 +113,20 @@ export class DatabaseStorage implements IStorage {
   async createStore(insertStore: InsertStore): Promise<Store> {
     const [store] = await db.insert(stores).values(insertStore).returning();
     return store;
+  }
+  async updateStore(id: number, data: Partial<InsertStore>): Promise<Store | undefined> {
+    const [store] = await db.update(stores).set(data).where(eq(stores.id, id)).returning();
+    return store;
+  }
+
+  async getBusinessHours(storeId: number): Promise<BusinessHours[]> {
+    return await db.select().from(businessHours).where(eq(businessHours.storeId, storeId));
+  }
+  async setBusinessHours(storeId: number, hours: InsertBusinessHours[]): Promise<BusinessHours[]> {
+    await db.delete(businessHours).where(eq(businessHours.storeId, storeId));
+    if (hours.length === 0) return [];
+    const result = await db.insert(businessHours).values(hours).returning();
+    return result;
   }
 
   // Service Categories

@@ -53,6 +53,52 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/stores/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const input = insertStoreSchema.partial().parse(req.body);
+      const store = await storage.updateStore(id, input);
+      if (!store) return res.status(404).json({ message: "Store not found" });
+      res.json(store);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  // === BUSINESS HOURS ===
+  app.get(api.businessHours.get.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    if (!storeId) return res.status(400).json({ message: "storeId required" });
+    const hours = await storage.getBusinessHours(storeId);
+    res.json(hours);
+  });
+
+  app.put(api.businessHours.set.path, async (req, res) => {
+    try {
+      const input = z.object({
+        storeId: z.number(),
+        hours: z.array(z.object({
+          dayOfWeek: z.number().min(0).max(6),
+          openTime: z.string(),
+          closeTime: z.string(),
+          isClosed: z.boolean(),
+        })),
+      }).parse(req.body);
+      const hoursData = input.hours.map(h => ({
+        ...h,
+        storeId: input.storeId,
+      }));
+      const result = await storage.setBusinessHours(input.storeId, hoursData);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(400).json({ message: "Invalid input" });
+      }
+    }
+  });
+
   // === SERVICE CATEGORIES ===
   app.get(api.serviceCategories.list.path, async (req, res) => {
     const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;

@@ -8,7 +8,8 @@ import {
   LogOut,
   UserCircle,
   Banknote,
-  Settings
+  Settings,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
+  { href: "/business-settings", label: "Business Settings", icon: Building2 },
   { href: "/calendar-settings", label: "Calendar Settings", icon: Settings },
 ];
 

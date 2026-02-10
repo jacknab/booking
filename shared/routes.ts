@@ -9,6 +9,7 @@ import {
   insertStaffSchema,
   insertStaffServiceSchema,
   insertStaffAvailabilitySchema,
+  insertBusinessHoursSchema,
   insertCalendarSettingsSchema,
   insertCustomerSchema, 
   insertAppointmentSchema, 
@@ -23,6 +24,7 @@ import {
   appointmentAddons,
   staffServices,
   staffAvailability,
+  businessHours,
   calendarSettings,
   staff,
   customers,
@@ -68,6 +70,42 @@ export const api = {
       input: insertStoreSchema,
       responses: {
         201: z.custom<typeof stores.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/stores/:id' as const,
+      input: insertStoreSchema.partial(),
+      responses: {
+        200: z.custom<typeof stores.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  businessHours: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/business-hours' as const,
+      responses: {
+        200: z.array(z.custom<typeof businessHours.$inferSelect>()),
+      },
+    },
+    set: {
+      method: 'PUT' as const,
+      path: '/api/business-hours' as const,
+      input: z.object({
+        storeId: z.number(),
+        hours: z.array(z.object({
+          dayOfWeek: z.number().min(0).max(6),
+          openTime: z.string(),
+          closeTime: z.string(),
+          isClosed: z.boolean(),
+        })),
+      }),
+      responses: {
+        200: z.array(z.custom<typeof businessHours.$inferSelect>()),
         400: errorSchemas.validation,
       },
     },
