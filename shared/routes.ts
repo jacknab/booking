@@ -1,13 +1,21 @@
 import { z } from 'zod';
 import { 
   insertStoreSchema,
+  insertServiceCategorySchema,
   insertServiceSchema, 
+  insertAddonSchema,
+  insertServiceAddonSchema,
+  insertAppointmentAddonSchema,
   insertStaffSchema, 
   insertCustomerSchema, 
   insertAppointmentSchema, 
   insertProductSchema,
   stores,
+  serviceCategories,
   services,
+  addons,
+  serviceAddons,
+  appointmentAddons,
   staff,
   customers,
   appointments,
@@ -54,6 +62,41 @@ export const api = {
       },
     },
   },
+  serviceCategories: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/service-categories' as const,
+      responses: {
+        200: z.array(z.custom<typeof serviceCategories.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/service-categories' as const,
+      input: insertServiceCategorySchema,
+      responses: {
+        201: z.custom<typeof serviceCategories.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/service-categories/:id' as const,
+      input: insertServiceCategorySchema.partial(),
+      responses: {
+        200: z.custom<typeof serviceCategories.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/service-categories/:id' as const,
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
   services: {
     list: {
       method: 'GET' as const,
@@ -95,6 +138,92 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  addons: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/addons' as const,
+      responses: {
+        200: z.array(z.custom<typeof addons.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/addons' as const,
+      input: insertAddonSchema,
+      responses: {
+        201: z.custom<typeof addons.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/addons/:id' as const,
+      input: insertAddonSchema.partial(),
+      responses: {
+        200: z.custom<typeof addons.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/addons/:id' as const,
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  serviceAddons: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/service-addons' as const,
+      responses: {
+        200: z.array(z.custom<typeof serviceAddons.$inferSelect & { addon: typeof addons.$inferSelect }>()),
+      },
+    },
+    forService: {
+      method: 'GET' as const,
+      path: '/api/services/:id/addons' as const,
+      responses: {
+        200: z.array(z.custom<typeof addons.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/service-addons' as const,
+      input: insertServiceAddonSchema,
+      responses: {
+        201: z.custom<typeof serviceAddons.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/service-addons/:id' as const,
+      responses: {
+        204: z.void(),
+      },
+    },
+  },
+  appointmentAddons: {
+    forAppointment: {
+      method: 'GET' as const,
+      path: '/api/appointments/:id/addons' as const,
+      responses: {
+        200: z.array(z.custom<typeof addons.$inferSelect>()),
+      },
+    },
+    set: {
+      method: 'POST' as const,
+      path: '/api/appointments/:id/addons' as const,
+      input: z.object({ addonIds: z.array(z.number()) }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+        409: z.object({ message: z.string(), availableMinutes: z.number().optional() }),
       },
     },
   },

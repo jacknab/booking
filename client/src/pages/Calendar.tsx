@@ -327,6 +327,10 @@ export default function Calendar() {
                             const statusColor = apt.status === "cancelled" ? "#fecaca" : apt.status === "confirmed" ? "#dcfce7" : "#dbeafe";
                             const borderColor = apt.status === "cancelled" ? "#ef4444" : apt.status === "confirmed" ? "#22c55e" : "#3b82f6";
 
+                            const aptAddons = apt.appointmentAddons?.map((aa: any) => aa.addon).filter(Boolean) || [];
+                            const addonTotal = aptAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
+                            const serviceTotal = Number(apt.service?.price || 0) + addonTotal;
+
                             return (
                               <div
                                 key={apt.id}
@@ -347,12 +351,15 @@ export default function Calendar() {
                                 <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                                   {apt.service?.name || "Service"}
                                 </div>
+                                {aptAddons.length > 0 && aptAddons.map((addon: any) => (
+                                  <div key={addon.id} className="text-[10px] text-gray-600 dark:text-gray-400 truncate" data-testid={`calendar-addon-${addon.id}`}>
+                                    + {addon.name}
+                                  </div>
+                                ))}
                                 <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
                                   #{apt.id} {apt.customer?.name ? `\u00B7 ${apt.customer.name}` : ""}
                                 </div>
-                                {apt.service?.price && (
-                                  <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">${apt.service.price}</div>
-                                )}
+                                <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">${serviceTotal.toFixed(2)}</div>
                               </div>
                             );
                           })}
@@ -409,6 +416,10 @@ function AppointmentDetailsPanel({
 
   const progressColor = appointment.status === "confirmed" ? "#22c55e" : appointment.status === "cancelled" ? "#ef4444" : "#3b82f6";
 
+  const aptAddons = appointment.appointmentAddons?.map(aa => aa.addon).filter(Boolean) || [];
+  const addonTotal = aptAddons.reduce((sum, a) => sum + Number(a!.price), 0);
+  const grandTotal = Number(appointment.service?.price || 0) + addonTotal;
+
   return (
     <div className="w-[340px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="appointment-details-panel">
       <div className="p-4 border-b flex items-center justify-between gap-2">
@@ -453,7 +464,7 @@ function AppointmentDetailsPanel({
             <div>
               <h4 className="font-semibold text-sm" data-testid="text-detail-service">{appointment.service?.name || "Service"}</h4>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted-foreground">{appointment.duration} min</span>
+                <span className="text-xs text-muted-foreground">{appointment.service?.duration || appointment.duration} min</span>
                 {appointment.staff && (
                   <>
                     <span className="text-xs text-muted-foreground">&middot;</span>
@@ -468,6 +479,23 @@ function AppointmentDetailsPanel({
               ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
             </span>
           </div>
+
+          {aptAddons.length > 0 && (
+            <div className="space-y-1.5 pl-3 border-l-2 border-muted" data-testid="detail-addons-list">
+              {aptAddons.map((addon: any) => (
+                <div key={addon.id} className="flex items-center justify-between gap-2" data-testid={`detail-addon-${addon.id}`}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">+</span>
+                    <span className="text-xs font-medium">{addon.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{addon.duration} min</span>
+                    <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {appointment.notes && (
@@ -481,13 +509,12 @@ function AppointmentDetailsPanel({
         <div className="flex items-center justify-between">
           <div>
             <span className="font-semibold">Total</span>
-            <p className="text-xs text-muted-foreground">Duration</p>
+            <p className="text-xs text-muted-foreground">{appointment.duration} min</p>
           </div>
           <div className="text-right">
             <span className="font-bold text-lg" data-testid="text-detail-total">
-              ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
+              ${grandTotal.toFixed(2)}
             </span>
-            <p className="text-xs text-muted-foreground">{appointment.duration} min</p>
           </div>
         </div>
 

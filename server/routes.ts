@@ -6,7 +6,10 @@ import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { z } from "zod";
 import { 
   insertStoreSchema,
+  insertServiceCategorySchema,
   insertServiceSchema, 
+  insertAddonSchema,
+  insertServiceAddonSchema,
   insertStaffSchema, 
   insertCustomerSchema, 
   insertAppointmentSchema, 
@@ -17,7 +20,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Auth Setup
   await setupAuth(app);
   registerAuthRoutes(app);
 
@@ -41,6 +43,39 @@ export async function registerRoutes(
     } catch (error) {
       res.status(400).json({ message: "Invalid input" });
     }
+  });
+
+  // === SERVICE CATEGORIES ===
+  app.get(api.serviceCategories.list.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    const cats = await storage.getServiceCategories(storeId);
+    res.json(cats);
+  });
+
+  app.post(api.serviceCategories.create.path, async (req, res) => {
+    try {
+      const input = insertServiceCategorySchema.parse(req.body);
+      const cat = await storage.createServiceCategory(input);
+      res.status(201).json(cat);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.patch(api.serviceCategories.update.path, async (req, res) => {
+    try {
+      const input = insertServiceCategorySchema.partial().parse(req.body);
+      const cat = await storage.updateServiceCategory(Number(req.params.id), input);
+      if (!cat) return res.status(404).json({ message: "Category not found" });
+      res.json(cat);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.delete(api.serviceCategories.delete.path, async (req, res) => {
+    await storage.deleteServiceCategory(Number(req.params.id));
+    res.status(204).end();
   });
 
   // === SERVICES ===
@@ -84,6 +119,132 @@ export async function registerRoutes(
   app.delete(api.services.delete.path, async (req, res) => {
     await storage.deleteService(Number(req.params.id));
     res.status(204).end();
+  });
+
+  // === ADDONS ===
+  app.get(api.addons.list.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    const result = await storage.getAddons(storeId);
+    res.json(result);
+  });
+
+  app.post(api.addons.create.path, async (req, res) => {
+    try {
+      const input = insertAddonSchema.parse(req.body);
+      const addon = await storage.createAddon(input);
+      res.status(201).json(addon);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.patch(api.addons.update.path, async (req, res) => {
+    try {
+      const input = insertAddonSchema.partial().parse(req.body);
+      const addon = await storage.updateAddon(Number(req.params.id), input);
+      if (!addon) return res.status(404).json({ message: "Addon not found" });
+      res.json(addon);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.delete(api.addons.delete.path, async (req, res) => {
+    await storage.deleteAddon(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // === SERVICE ADDONS (linking) ===
+  app.get(api.serviceAddons.list.path, async (req, res) => {
+    const serviceId = req.query.serviceId ? Number(req.query.serviceId) : undefined;
+    const result = await storage.getServiceAddons(serviceId);
+    res.json(result);
+  });
+
+  app.get(api.serviceAddons.forService.path, async (req, res) => {
+    const serviceId = Number(req.params.id);
+    const result = await storage.getAddonsForService(serviceId);
+    res.json(result);
+  });
+
+  app.post(api.serviceAddons.create.path, async (req, res) => {
+    try {
+      const input = insertServiceAddonSchema.parse(req.body);
+      const sa = await storage.createServiceAddon(input);
+      res.status(201).json(sa);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.delete(api.serviceAddons.delete.path, async (req, res) => {
+    await storage.deleteServiceAddon(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // === APPOINTMENT ADDONS ===
+  app.get(api.appointmentAddons.forAppointment.path, async (req, res) => {
+    const appointmentId = Number(req.params.id);
+    const result = await storage.getAppointmentAddons(appointmentId);
+    res.json(result.map(aa => aa.addon));
+  });
+
+  app.post(api.appointmentAddons.set.path, async (req, res) => {
+    try {
+      const appointmentId = Number(req.params.id);
+      const { addonIds } = z.object({ addonIds: z.array(z.number()) }).parse(req.body);
+
+      const appointment = await storage.getAppointment(appointmentId);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      if (appointment.staffId && appointment.status !== "cancelled" && appointment.status !== "completed") {
+        let addonDuration = 0;
+        for (const addonId of addonIds) {
+          const addon = await storage.getAddon(addonId);
+          if (addon) addonDuration += addon.duration;
+        }
+
+        const baseDuration = appointment.service?.duration || appointment.duration;
+        const totalDuration = baseDuration + addonDuration;
+
+        const appointmentStart = new Date(appointment.date);
+        const appointmentEnd = new Date(appointmentStart.getTime() + totalDuration * 60000);
+
+        const dayStart = new Date(appointmentStart);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const dayEnd = new Date(appointmentStart);
+        dayEnd.setUTCHours(23, 59, 59, 999);
+
+        const dayAppointments = await storage.getAppointments({
+          from: dayStart,
+          to: dayEnd,
+          staffId: appointment.staffId,
+          storeId: appointment.storeId || undefined,
+        });
+
+        for (const other of dayAppointments) {
+          if (other.id === appointmentId || other.status === "cancelled") continue;
+          const otherStart = new Date(other.date);
+          const otherEnd = new Date(otherStart.getTime() + other.duration * 60000);
+
+          if (appointmentStart < otherEnd && appointmentEnd > otherStart) {
+            const availableMinutes = Math.max(0, Math.floor((otherStart.getTime() - appointmentStart.getTime()) / 60000) - baseDuration);
+            return res.status(409).json({
+              message: `Staff member has another appointment at ${otherStart.toISOString()}. Not enough time for selected addons.`,
+              availableMinutes,
+            });
+          }
+        }
+
+        await storage.updateAppointment(appointmentId, { duration: totalDuration });
+      }
+
+      await storage.setAppointmentAddons(appointmentId, addonIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ message: "Invalid input" });
+    }
   });
 
   // === STAFF ===
@@ -240,7 +401,7 @@ export async function registerRoutes(
 async function seedDatabase() {
   const existingStores = await storage.getStores();
   if (existingStores.length === 0) {
-    console.log("Seeding database with stores...");
+    console.log("Seeding database...");
     
     // Stores
     const store1 = await storage.createStore({
@@ -254,326 +415,245 @@ async function seedDatabase() {
       address: "456 West Blvd, Los Angeles, CA",
     });
 
+    // Categories - Store 1
+    const catHair1 = await storage.createServiceCategory({ name: "Hair", storeId: store1.id });
+    const catNails1 = await storage.createServiceCategory({ name: "Nails", storeId: store1.id });
+    const catSkin1 = await storage.createServiceCategory({ name: "Skin Care", storeId: store1.id });
+    const catWaxing1 = await storage.createServiceCategory({ name: "Waxing", storeId: store1.id });
+
+    // Categories - Store 2
+    const catHair2 = await storage.createServiceCategory({ name: "Hair", storeId: store2.id });
+    const catMassage2 = await storage.createServiceCategory({ name: "Massage", storeId: store2.id });
+    const catSkin2 = await storage.createServiceCategory({ name: "Skin Care", storeId: store2.id });
+
     // Services - Store 1 (Main Street Salon)
-    const service1 = await storage.createService({
-      name: "Haircut - Women",
-      description: "Wash, cut and blow dry",
-      duration: 60,
-      price: "65.00",
-      category: "Hair",
-      storeId: store1.id,
+    const svcHaircutW = await storage.createService({
+      name: "Haircut - Women", description: "Wash, cut and blow dry", duration: 60, price: "65.00",
+      category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Haircut - Men",
-      description: "Classic men's cut",
-      duration: 30,
-      price: "35.00",
-      category: "Hair",
-      storeId: store1.id,
+      name: "Haircut - Men", description: "Classic men's cut", duration: 30, price: "35.00",
+      category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Blow Dry & Style",
-      description: "Professional blow dry and styling",
-      duration: 45,
-      price: "45.00",
-      category: "Hair",
-      storeId: store1.id,
+      name: "Blow Dry & Style", description: "Professional blow dry and styling", duration: 45, price: "45.00",
+      category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Color - Full",
-      description: "Full head color application",
-      duration: 120,
-      price: "150.00",
-      category: "Hair",
-      storeId: store1.id,
+      name: "Color - Full", description: "Full head color application", duration: 120, price: "150.00",
+      category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Highlights",
-      description: "Partial or full highlights",
-      duration: 90,
-      price: "120.00",
-      category: "Hair",
-      storeId: store1.id,
+      name: "Highlights", description: "Partial or full highlights", duration: 90, price: "120.00",
+      category: "Hair", categoryId: catHair1.id, storeId: store1.id,
     });
 
-    const service3 = await storage.createService({
-      name: "Classic Manicure",
-      description: "File, shape, cuticle care and polish",
-      duration: 30,
-      price: "25.00",
-      category: "Nails",
-      storeId: store1.id,
+    const svcManicure = await storage.createService({
+      name: "Classic Manicure", description: "File, shape, cuticle care and polish", duration: 30, price: "25.00",
+      category: "Nails", categoryId: catNails1.id, storeId: store1.id,
+    });
+    const svcGelMani = await storage.createService({
+      name: "Gel Manicure", description: "Long-lasting gel polish manicure", duration: 45, price: "40.00",
+      category: "Nails", categoryId: catNails1.id, storeId: store1.id,
+    });
+    const svcPedi = await storage.createService({
+      name: "Deluxe Pedicure", description: "Soak, scrub, massage and polish", duration: 60, price: "55.00",
+      category: "Nails", categoryId: catNails1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Gel Manicure",
-      description: "Long-lasting gel polish manicure",
-      duration: 45,
-      price: "40.00",
-      category: "Nails",
-      storeId: store1.id,
-    });
-    await storage.createService({
-      name: "Deluxe Pedicure",
-      description: "Soak, scrub, massage and polish",
-      duration: 60,
-      price: "55.00",
-      category: "Nails",
-      storeId: store1.id,
-    });
-    await storage.createService({
-      name: "Spa Pedicure",
-      description: "Premium pedicure with paraffin wax",
-      duration: 75,
-      price: "70.00",
-      category: "Nails",
-      storeId: store1.id,
+      name: "Spa Pedicure", description: "Premium pedicure with paraffin wax", duration: 75, price: "70.00",
+      category: "Nails", categoryId: catNails1.id, storeId: store1.id,
     });
 
     await storage.createService({
-      name: "Classic Facial",
-      description: "Deep cleanse and hydration",
-      duration: 60,
-      price: "85.00",
-      category: "Skin Care",
-      storeId: store1.id,
+      name: "Classic Facial", description: "Deep cleanse and hydration", duration: 60, price: "85.00",
+      category: "Skin Care", categoryId: catSkin1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Anti-Aging Facial",
-      description: "Targeted anti-aging treatment",
-      duration: 75,
-      price: "110.00",
-      category: "Skin Care",
-      storeId: store1.id,
+      name: "Anti-Aging Facial", description: "Targeted anti-aging treatment", duration: 75, price: "110.00",
+      category: "Skin Care", categoryId: catSkin1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Eyebrow Wax",
-      description: "Precision eyebrow shaping",
-      duration: 15,
-      price: "18.00",
-      category: "Waxing",
-      storeId: store1.id,
+      name: "Eyebrow Wax", description: "Precision eyebrow shaping", duration: 15, price: "18.00",
+      category: "Waxing", categoryId: catWaxing1.id, storeId: store1.id,
     });
     await storage.createService({
-      name: "Full Leg Wax",
-      description: "Complete leg waxing",
-      duration: 45,
-      price: "65.00",
-      category: "Waxing",
-      storeId: store1.id,
+      name: "Full Leg Wax", description: "Complete leg waxing", duration: 45, price: "65.00",
+      category: "Waxing", categoryId: catWaxing1.id, storeId: store1.id,
     });
 
     // Services - Store 2 (West Side Spa)
-    const service2 = await storage.createService({
-      name: "Haircut - Men",
-      description: "Wash and cut",
-      duration: 30,
-      price: "35.00",
-      category: "Hair",
-      storeId: store2.id,
+    const svcBarberCut = await storage.createService({
+      name: "Haircut - Men", description: "Wash and cut", duration: 30, price: "35.00",
+      category: "Hair", categoryId: catHair2.id, storeId: store2.id,
     });
     await storage.createService({
-      name: "Beard Trim",
-      description: "Shape and trim beard",
-      duration: 20,
-      price: "20.00",
-      category: "Hair",
-      storeId: store2.id,
+      name: "Beard Trim", description: "Shape and trim beard", duration: 20, price: "20.00",
+      category: "Hair", categoryId: catHair2.id, storeId: store2.id,
     });
     await storage.createService({
-      name: "Hot Towel Shave",
-      description: "Traditional straight razor shave",
-      duration: 30,
-      price: "40.00",
-      category: "Hair",
-      storeId: store2.id,
+      name: "Hot Towel Shave", description: "Traditional straight razor shave", duration: 30, price: "40.00",
+      category: "Hair", categoryId: catHair2.id, storeId: store2.id,
     });
 
-    const service4 = await storage.createService({
-      name: "Deep Tissue Massage",
-      description: "60 min therapeutic massage",
-      duration: 60,
-      price: "95.00",
-      category: "Massage",
-      storeId: store2.id,
+    const svcDeepTissue = await storage.createService({
+      name: "Deep Tissue Massage", description: "60 min therapeutic massage", duration: 60, price: "95.00",
+      category: "Massage", categoryId: catMassage2.id, storeId: store2.id,
     });
     await storage.createService({
-      name: "Swedish Massage",
-      description: "Relaxation full body massage",
-      duration: 60,
-      price: "85.00",
-      category: "Massage",
-      storeId: store2.id,
+      name: "Swedish Massage", description: "Relaxation full body massage", duration: 60, price: "85.00",
+      category: "Massage", categoryId: catMassage2.id, storeId: store2.id,
     });
     await storage.createService({
-      name: "Hot Stone Massage",
-      description: "Heated stone therapy massage",
-      duration: 75,
-      price: "110.00",
-      category: "Massage",
-      storeId: store2.id,
+      name: "Hot Stone Massage", description: "Heated stone therapy massage", duration: 75, price: "110.00",
+      category: "Massage", categoryId: catMassage2.id, storeId: store2.id,
     });
     await storage.createService({
-      name: "Aromatherapy Facial",
-      description: "Essential oil infused facial",
-      duration: 60,
-      price: "90.00",
-      category: "Skin Care",
-      storeId: store2.id,
+      name: "Aromatherapy Facial", description: "Essential oil infused facial", duration: 60, price: "90.00",
+      category: "Skin Care", categoryId: catSkin2.id, storeId: store2.id,
     });
     await storage.createService({
-      name: "Body Scrub",
-      description: "Full body exfoliation treatment",
-      duration: 45,
-      price: "75.00",
-      category: "Skin Care",
-      storeId: store2.id,
+      name: "Body Scrub", description: "Full body exfoliation treatment", duration: 45, price: "75.00",
+      category: "Skin Care", categoryId: catSkin2.id, storeId: store2.id,
     });
+
+    // Addons - Store 1 (linked to nail services)
+    const addonFrenchTips = await storage.createAddon({
+      name: "French Tips", description: "Classic white tips", price: "5.00", duration: 10, storeId: store1.id,
+    });
+    const addonNailArt = await storage.createAddon({
+      name: "Nail Art - Advanced", description: "Detailed or multi-nail art", price: "15.00", duration: 25, storeId: store1.id,
+    });
+    const addonGelRemoval = await storage.createAddon({
+      name: "Gel Removal", description: "Safe gel polish removal", price: "5.00", duration: 15, storeId: store1.id,
+    });
+    const addonParaffin = await storage.createAddon({
+      name: "Paraffin Wax Treatment", description: "Hydrating wax treatment", price: "8.00", duration: 15, storeId: store1.id,
+    });
+    const addonHotOil = await storage.createAddon({
+      name: "Hot Oil Cuticle Treatment", description: "Nourishing oil massage", price: "7.00", duration: 15, storeId: store1.id,
+    });
+    const addonExtraMassage = await storage.createAddon({
+      name: "Extra Massage", description: "Additional massage time", price: "10.00", duration: 10, storeId: store1.id,
+    });
+    const addonNailArtSimple = await storage.createAddon({
+      name: "Nail Art - Simple", description: "Simple designs on 1-2 nails", price: "5.00", duration: 10, storeId: store1.id,
+    });
+    const addonPolishChange = await storage.createAddon({
+      name: "Polish Change", description: "Detailed or color", price: "5.00", duration: 5, storeId: store1.id,
+    });
+
+    // Addons - Store 1 (linked to hair services)
+    const addonDeepCondition = await storage.createAddon({
+      name: "Deep Conditioning", description: "Intensive moisture treatment", price: "15.00", duration: 15, storeId: store1.id,
+    });
+    const addonScalpMassage = await storage.createAddon({
+      name: "Scalp Massage", description: "Relaxing scalp treatment", price: "10.00", duration: 10, storeId: store1.id,
+    });
+
+    // Link addons to services - Classic Manicure
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonFrenchTips.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonNailArt.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonGelRemoval.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonParaffin.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonHotOil.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonExtraMassage.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonNailArtSimple.id });
+    await storage.createServiceAddon({ serviceId: svcManicure.id, addonId: addonPolishChange.id });
+
+    // Link addons to services - Gel Manicure
+    await storage.createServiceAddon({ serviceId: svcGelMani.id, addonId: addonFrenchTips.id });
+    await storage.createServiceAddon({ serviceId: svcGelMani.id, addonId: addonNailArt.id });
+    await storage.createServiceAddon({ serviceId: svcGelMani.id, addonId: addonGelRemoval.id });
+    await storage.createServiceAddon({ serviceId: svcGelMani.id, addonId: addonNailArtSimple.id });
+
+    // Link addons to services - Pedicure
+    await storage.createServiceAddon({ serviceId: svcPedi.id, addonId: addonFrenchTips.id });
+    await storage.createServiceAddon({ serviceId: svcPedi.id, addonId: addonParaffin.id });
+    await storage.createServiceAddon({ serviceId: svcPedi.id, addonId: addonExtraMassage.id });
+    await storage.createServiceAddon({ serviceId: svcPedi.id, addonId: addonPolishChange.id });
+
+    // Link addons to services - Haircut Women
+    await storage.createServiceAddon({ serviceId: svcHaircutW.id, addonId: addonDeepCondition.id });
+    await storage.createServiceAddon({ serviceId: svcHaircutW.id, addonId: addonScalpMassage.id });
 
     // Staff
     const staff1 = await storage.createStaff({
-      name: "Sarah Jenkins",
-      role: "Senior Stylist",
-      bio: "10 years experience.",
-      color: "#f472b6",
-      storeId: store1.id,
+      name: "Sarah Jenkins", role: "Senior Stylist", bio: "10 years experience.", color: "#f472b6", storeId: store1.id,
     });
     const staff3 = await storage.createStaff({
-      name: "Lisa Park",
-      role: "Nail Tech",
-      bio: "Nail art specialist.",
-      color: "#a78bfa",
-      storeId: store1.id,
+      name: "Lisa Park", role: "Nail Tech", bio: "Nail art specialist.", color: "#a78bfa", storeId: store1.id,
     });
     const staff2 = await storage.createStaff({
-      name: "Mike Chen",
-      role: "Barber",
-      bio: "Expert in fades.",
-      color: "#60a5fa",
-      storeId: store2.id,
+      name: "Mike Chen", role: "Barber", bio: "Expert in fades.", color: "#60a5fa", storeId: store2.id,
     });
     const staff4 = await storage.createStaff({
-      name: "Emma Rodriguez",
-      role: "Massage Therapist",
-      bio: "Certified LMT.",
-      color: "#34d399",
-      storeId: store2.id,
+      name: "Emma Rodriguez", role: "Massage Therapist", bio: "Certified LMT.", color: "#34d399", storeId: store2.id,
     });
 
     // Customers
     const cust1 = await storage.createCustomer({
-      name: "Alice Smith",
-      email: "alice@example.com",
-      phone: "555-0101",
-      notes: "Prefers tea over coffee.",
-      storeId: store1.id,
+      name: "Alice Smith", email: "alice@example.com", phone: "555-0101", notes: "Prefers tea over coffee.", storeId: store1.id,
     });
     const cust2 = await storage.createCustomer({
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      phone: "555-0202",
-      storeId: store1.id,
+      name: "Bob Johnson", email: "bob@example.com", phone: "555-0202", storeId: store1.id,
     });
     const cust3 = await storage.createCustomer({
-      name: "Carol Williams",
-      email: "carol@example.com",
-      phone: "555-0303",
-      storeId: store2.id,
+      name: "Carol Williams", email: "carol@example.com", phone: "555-0303", storeId: store2.id,
     });
     const cust4 = await storage.createCustomer({
-      name: "David Lee",
-      email: "david@example.com",
-      phone: "555-0404",
-      storeId: store2.id,
+      name: "David Lee", email: "david@example.com", phone: "555-0404", storeId: store2.id,
     });
 
-    // Appointments - today in each store's timezone
-    // Store 1 (New York, ET) - create appointments at known UTC offsets
+    // Appointments
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // NY appointments: 10am ET = 15:00 UTC (EST) or 14:00 UTC (EDT)
     const ny10am = new Date(today);
     ny10am.setUTCHours(15, 0, 0, 0);
-    await storage.createAppointment({
-      date: ny10am,
-      duration: 60,
-      status: "confirmed",
-      notes: "Regular client",
-      serviceId: service1.id,
-      staffId: staff1.id,
-      customerId: cust1.id,
-      storeId: store1.id,
+    const apt1 = await storage.createAppointment({
+      date: ny10am, duration: 60, status: "confirmed", notes: "Regular client",
+      serviceId: svcHaircutW.id, staffId: staff1.id, customerId: cust1.id, storeId: store1.id,
     });
 
     const ny1130am = new Date(today);
     ny1130am.setUTCHours(16, 30, 0, 0);
-    await storage.createAppointment({
-      date: ny1130am,
-      duration: 45,
-      status: "pending",
-      notes: "",
-      serviceId: service3.id,
-      staffId: staff3.id,
-      customerId: cust2.id,
-      storeId: store1.id,
+    const apt2 = await storage.createAppointment({
+      date: ny1130am, duration: 55, status: "pending", notes: "",
+      serviceId: svcManicure.id, staffId: staff3.id, customerId: cust2.id, storeId: store1.id,
     });
+    // Add addons to the manicure appointment
+    await storage.setAppointmentAddons(apt2.id, [addonFrenchTips.id, addonHotOil.id]);
 
     const ny2pm = new Date(today);
     ny2pm.setUTCHours(19, 0, 0, 0);
     await storage.createAppointment({
-      date: ny2pm,
-      duration: 60,
-      status: "confirmed",
-      serviceId: service1.id,
-      staffId: staff1.id,
-      customerId: cust2.id,
-      storeId: store1.id,
+      date: ny2pm, duration: 60, status: "confirmed",
+      serviceId: svcHaircutW.id, staffId: staff1.id, customerId: cust2.id, storeId: store1.id,
     });
 
-    // LA appointments: 10am PT = 18:00 UTC (PST) or 17:00 UTC (PDT)
     const la10am = new Date(today);
     la10am.setUTCHours(18, 0, 0, 0);
     await storage.createAppointment({
-      date: la10am,
-      duration: 30,
-      status: "confirmed",
-      notes: "Beard trim too",
-      serviceId: service2.id,
-      staffId: staff2.id,
-      customerId: cust3.id,
-      storeId: store2.id,
+      date: la10am, duration: 30, status: "confirmed", notes: "Beard trim too",
+      serviceId: svcBarberCut.id, staffId: staff2.id, customerId: cust3.id, storeId: store2.id,
     });
 
     const la1pm = new Date(today);
     la1pm.setUTCHours(21, 0, 0, 0);
     await storage.createAppointment({
-      date: la1pm,
-      duration: 60,
-      status: "pending",
-      serviceId: service4.id,
-      staffId: staff4.id,
-      customerId: cust4.id,
-      storeId: store2.id,
+      date: la1pm, duration: 60, status: "pending",
+      serviceId: svcDeepTissue.id, staffId: staff4.id, customerId: cust4.id, storeId: store2.id,
     });
 
     // Products
     await storage.createProduct({
-      name: "Moroccan Oil Treatment",
-      brand: "Moroccanoil",
-      price: "48.00",
-      stock: 15,
-      category: "Hair Care",
-      storeId: store1.id,
+      name: "Moroccan Oil Treatment", brand: "Moroccanoil", price: "48.00", stock: 15, category: "Hair Care", storeId: store1.id,
     });
     await storage.createProduct({
-      name: "Beard Oil",
-      brand: "Viking Revolution",
-      price: "14.99",
-      stock: 20,
-      category: "Grooming",
-      storeId: store2.id,
+      name: "Beard Oil", brand: "Viking Revolution", price: "14.99", stock: 20, category: "Grooming", storeId: store2.id,
     });
 
-    console.log("Database seeded with stores, staff, services, customers, and appointments!");
+    console.log("Database seeded with stores, categories, services, addons, staff, customers, and appointments!");
   }
 }
