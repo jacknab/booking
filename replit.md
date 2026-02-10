@@ -36,7 +36,7 @@ Preferred communication style: Simple, everyday language.
 - **Connection**: `node-postgres` (pg) Pool via `DATABASE_URL` environment variable
 
 ### Database Tables
-- `stores` — Multi-store support (name, timezone, address, phone)
+- `stores` — Multi-store support (name, timezone, address, phone, userId for ownership)
 - `services` — Salon services (name, duration, price, category, linked to store)
 - `staff` — Team members (name, role, color for calendar, linked to store)
 - `customers` — Client records (name, contact info, notes, linked to store)

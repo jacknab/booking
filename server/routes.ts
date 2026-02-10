@@ -36,8 +36,9 @@ export async function registerRoutes(
   });
 
   // === STORES ===
-  app.get(api.stores.list.path, async (_req, res) => {
-    const stores = await storage.getStores();
+  app.get(api.stores.list.path, async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    const stores = await storage.getStores(userId);
     res.json(stores);
   });
 
@@ -49,8 +50,10 @@ export async function registerRoutes(
 
   app.post(api.stores.create.path, async (req, res) => {
     try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const input = insertStoreSchema.parse(req.body);
-      const store = await storage.createStore(input);
+      const store = await storage.createStore({ ...input, userId });
       res.status(201).json(store);
     } catch (error) {
       res.status(400).json({ message: "Invalid input" });
@@ -246,6 +249,47 @@ export async function registerRoutes(
   app.delete(api.serviceAddons.delete.path, async (req, res) => {
     await storage.deleteServiceAddon(Number(req.params.id));
     res.status(204).end();
+  });
+
+  app.get("/api/service-addon-mappings", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStores = await storage.getStores(userId);
+      const storeIds = userStores.map(s => s.id);
+      const allMappings = await storage.getAllServiceAddonMappings();
+      const userAddons = await Promise.all(storeIds.map(sid => storage.getAddons(sid)));
+      const userAddonIds = new Set(userAddons.flat().map(a => a.id));
+      const filtered = allMappings.filter(m => userAddonIds.has(m.addonId));
+      res.json(filtered);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch mappings" });
+    }
+  });
+
+  app.post("/api/addons/:id/services", async (req, res) => {
+    try {
+      const addonId = Number(req.params.id);
+      const bodySchema = z.object({
+        serviceIds: z.array(z.number()),
+      });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+      }
+      const addon = await storage.getAddon(addonId);
+      if (!addon) return res.status(404).json({ message: "Addon not found" });
+      const userId = (req.session as any)?.userId;
+      if (addon.storeId) {
+        const store = await storage.getStore(addon.storeId);
+        if (store?.userId !== userId) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+      }
+      await storage.setAddonServices(addonId, parsed.data.serviceIds);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update addon services" });
+    }
   });
 
   // === APPOINTMENT ADDONS ===
@@ -927,6 +971,7 @@ export async function registerRoutes(
       const store = await storage.createStore({
         name: businessName,
         timezone: timezone,
+        userId: userId,
       });
 
       const addonCache: Record<string, number> = {};

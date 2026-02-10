@@ -23,7 +23,7 @@ import { db } from "./db";
 import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getStores(): Promise<Store[]>;
+  getStores(userId?: string): Promise<Store[]>;
   getStore(id: number): Promise<Store | undefined>;
   createStore(store: InsertStore): Promise<Store>;
   updateStore(id: number, store: Partial<InsertStore>): Promise<Store | undefined>;
@@ -49,7 +49,10 @@ export interface IStorage {
   deleteAddon(id: number): Promise<void>;
 
   getServiceAddons(serviceId?: number): Promise<(ServiceAddon & { addon: Addon })[]>;
+  getAllServiceAddonMappings(): Promise<ServiceAddon[]>;
   getAddonsForService(serviceId: number): Promise<Addon[]>;
+  getServicesForAddon(addonId: number): Promise<ServiceAddon[]>;
+  setAddonServices(addonId: number, serviceIds: number[]): Promise<void>;
   createServiceAddon(sa: InsertServiceAddon): Promise<ServiceAddon>;
   deleteServiceAddon(id: number): Promise<void>;
 
@@ -103,7 +106,10 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Stores
-  async getStores(): Promise<Store[]> {
+  async getStores(userId?: string): Promise<Store[]> {
+    if (userId) {
+      return await db.select().from(stores).where(eq(stores.userId, userId));
+    }
     return await db.select().from(stores);
   }
   async getStore(id: number): Promise<Store | undefined> {
@@ -196,12 +202,26 @@ export class DatabaseStorage implements IStorage {
     });
     return result as any;
   }
+  async getAllServiceAddonMappings(): Promise<ServiceAddon[]> {
+    return await db.select().from(serviceAddons);
+  }
   async getAddonsForService(serviceId: number): Promise<Addon[]> {
     const result = await db.query.serviceAddons.findMany({
       where: eq(serviceAddons.serviceId, serviceId),
       with: { addon: true },
     });
     return result.map((sa: any) => sa.addon);
+  }
+  async getServicesForAddon(addonId: number): Promise<ServiceAddon[]> {
+    return await db.select().from(serviceAddons).where(eq(serviceAddons.addonId, addonId));
+  }
+  async setAddonServices(addonId: number, serviceIds: number[]): Promise<void> {
+    await db.delete(serviceAddons).where(eq(serviceAddons.addonId, addonId));
+    if (serviceIds.length > 0) {
+      await db.insert(serviceAddons).values(
+        serviceIds.map(serviceId => ({ serviceId, addonId }))
+      );
+    }
   }
   async createServiceAddon(sa: InsertServiceAddon): Promise<ServiceAddon> {
     const [result] = await db.insert(serviceAddons).values(sa).returning();

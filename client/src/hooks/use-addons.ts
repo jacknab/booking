@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import type { Addon, InsertAddon } from "@shared/schema";
+import type { Addon, InsertAddon, ServiceAddon } from "@shared/schema";
 import { useSelectedStore } from "@/hooks/use-store";
 
 export function useAddons() {
@@ -108,6 +108,36 @@ export function useDeleteAddon() {
       if (!res.ok) throw new Error("Failed to delete addon");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.addons.list.path, selectedStore?.id] }),
+  });
+}
+
+export function useServiceAddonMappings() {
+  return useQuery({
+    queryKey: ["/api/service-addon-mappings"],
+    queryFn: async () => {
+      const res = await fetch("/api/service-addon-mappings", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch mappings");
+      return res.json() as Promise<ServiceAddon[]>;
+    },
+  });
+}
+
+export function useSetAddonServices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ addonId, serviceIds }: { addonId: number; serviceIds: number[] }) => {
+      const res = await fetch(`/api/addons/${addonId}/services`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceIds }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update addon services");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-addon-mappings"] });
+    },
   });
 }
 

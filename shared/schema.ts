@@ -19,6 +19,7 @@ export const stores = pgTable("stores", {
   city: text("city"),
   postcode: text("postcode"),
   commissionPayoutFrequency: text("commission_payout_frequency").default("monthly"),
+  userId: text("user_id").references(() => users.id),
 });
 
 export const businessHours = pgTable("business_hours", {

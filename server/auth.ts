@@ -120,8 +120,8 @@ export function setupAuth(app: Express) {
       }
 
       if (!user.onboardingCompleted) {
-        const existingStores = await db.select().from(stores);
-        if (existingStores.length > 0) {
+        const userStores = await db.select().from(stores).where(eq(stores.userId, userId));
+        if (userStores.length > 0) {
           await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, userId));
           [user] = await db.select().from(users).where(eq(users.id, userId));
         }
