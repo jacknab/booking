@@ -158,3 +158,65 @@ export function useServiceCategories() {
     enabled: !!storeId,
   });
 }
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+  const storeId = selectedStore?.id;
+
+  return useMutation({
+    mutationFn: async (data: { name: string }) => {
+      if (!storeId) throw new Error("No store selected");
+      const payload = { ...data, storeId };
+      const res = await fetch(api.serviceCategories.create.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to create category");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.serviceCategories.list.path, storeId] }),
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: number; name?: string }) => {
+      const url = buildUrl(api.serviceCategories.update.path, { id });
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update category");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.serviceCategories.list.path, selectedStore?.id] });
+      queryClient.invalidateQueries({ queryKey: [api.services.list.path, selectedStore?.id] });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.serviceCategories.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete category");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.serviceCategories.list.path, selectedStore?.id] });
+      queryClient.invalidateQueries({ queryKey: [api.services.list.path, selectedStore?.id] });
+    },
+  });
+}

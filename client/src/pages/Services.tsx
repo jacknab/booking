@@ -7,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useServices, useCreateService, useUpdateService, useDeleteService } from "@/hooks/use-services";
-import { useServiceCategories } from "@/hooks/use-addons";
-import { Plus, Pencil, Search, Save, X, Trash2 } from "lucide-react";
+import { useServiceCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-addons";
+import { useSelectedStore } from "@/hooks/use-store";
+import { Plus, Pencil, Search, Save, X, Trash2, FolderOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertServiceSchema } from "@shared/schema";
@@ -25,6 +26,7 @@ export default function Services() {
   const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editedRows, setEditedRows] = useState<Record<number, Partial<Service>>>({});
+  const [showCategories, setShowCategories] = useState(false);
   const { mutate: updateService, isPending: isUpdating } = useUpdateService();
   const { mutate: deleteService } = useDeleteService();
   const { toast } = useToast();
@@ -134,6 +136,21 @@ export default function Services() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowCategories(!showCategories)}
+          className="text-muted-foreground"
+          data-testid="button-toggle-categories"
+        >
+          <FolderOpen className="w-4 h-4 mr-2" />
+          Manage Categories ({categories.length})
+          {showCategories ? <ChevronUp className="w-4 h-4 ml-2" /> : <ChevronDown className="w-4 h-4 ml-2" />}
+        </Button>
+        {showCategories && <CategoryManager categories={categories} />}
       </div>
 
       {isLoading ? (
@@ -253,6 +270,116 @@ export default function Services() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+function CategoryManager({ categories }: { categories: any[] }) {
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
+  const { mutate: updateCategory } = useUpdateCategory();
+  const { mutate: deleteCategory } = useDeleteCategory();
+  const { selectedStore } = useSelectedStore();
+  const { toast } = useToast();
+
+  const startEdit = (cat: any) => {
+    setEditingId(cat.id);
+    setEditName(cat.name);
+  };
+
+  const saveEdit = () => {
+    if (!editingId || !editName.trim()) return;
+    updateCategory({ id: editingId, name: editName.trim() }, {
+      onSuccess: () => {
+        toast({ title: "Category updated" });
+        setEditingId(null);
+        setEditName("");
+      },
+      onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+    });
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm("Delete this category? Services in this category will keep their current category text.")) {
+      deleteCategory(id, {
+        onSuccess: () => toast({ title: "Category deleted" }),
+        onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+      });
+    }
+  };
+
+  const handleCreate = () => {
+    if (!newCategoryName.trim()) return;
+    createCategory({ name: newCategoryName.trim() }, {
+      onSuccess: () => {
+        toast({ title: "Category created" });
+        setNewCategoryName("");
+      },
+      onError: () => toast({ title: "Failed to create", variant: "destructive" }),
+    });
+  };
+
+  return (
+    <div className="mt-3 border rounded-md p-4 space-y-3" data-testid="category-manager">
+      <div className="flex items-center gap-2">
+        <Input
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          placeholder="New category name..."
+          className="max-w-[240px]"
+          onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+          data-testid="input-new-category"
+        />
+        <Button
+          size="sm"
+          onClick={handleCreate}
+          disabled={isCreating || !newCategoryName.trim() || !selectedStore}
+          data-testid="button-create-category"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Add
+        </Button>
+      </div>
+      {categories.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-2">No categories yet. Add one above.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat: any) => (
+            <div key={cat.id} className="flex items-center gap-1.5 border rounded-md px-3 py-1.5 bg-muted/30" data-testid={`category-item-${cat.id}`}>
+              {editingId === cat.id ? (
+                <>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-7 w-[140px] text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                    autoFocus
+                    data-testid={`input-edit-category-${cat.id}`}
+                  />
+                  <Button size="icon" variant="ghost" onClick={saveEdit} className="h-7 w-7" data-testid={`button-save-category-${cat.id}`}>
+                    <Save className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-7 w-7" data-testid={`button-cancel-category-${cat.id}`}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm font-medium" data-testid={`text-category-name-${cat.id}`}>{cat.name}</span>
+                  <Button size="icon" variant="ghost" onClick={() => startEdit(cat)} className="h-7 w-7" data-testid={`button-edit-category-${cat.id}`}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(cat.id)} className="h-7 w-7" data-testid={`button-delete-category-${cat.id}`}>
+                    <Trash2 className="w-3 h-3 text-destructive" />
+                  </Button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

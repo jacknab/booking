@@ -409,7 +409,7 @@ function BusinessHoursEditor({ store }: { store: Store }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-sm">Business Hours</span>
                       <Button
-                        variant="link"
+                        variant="ghost"
                         size="sm"
                         onClick={() => setEditingDay(editingDay !== null ? null : 0)}
                         data-testid="button-edit-hours"
