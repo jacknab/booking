@@ -3,14 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useAppointments, useUpdateAppointment } from "@/hooks/use-appointments";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
 const HOUR_HEIGHT = 80;
@@ -66,6 +68,7 @@ export default function Calendar() {
   const [selectedStaffId, setSelectedStaffId] = useState<number | "all">("all");
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
   const [showCancelFlow, setShowCancelFlow] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone);
@@ -75,6 +78,7 @@ export default function Calendar() {
     setCurrentDate(getNowInTimezone(timezone));
     setSelectedStaffId("all");
     setSelectedAppointment(null);
+    setShowCheckout(false);
   }, [selectedStore?.id, timezone]);
 
   useEffect(() => {
@@ -171,10 +175,24 @@ export default function Calendar() {
   };
 
   const handleCheckout = (apt: AppointmentWithDetails) => {
+    setShowCheckout(true);
+  };
+
+  const handleFinalizePayment = (apt: AppointmentWithDetails, paymentData: { paymentMethod: string; tip: number; discount: number; totalPaid: number }) => {
     updateAppointment.mutate(
-      { id: apt.id, status: "completed" } as any,
       {
-        onSuccess: () => setSelectedAppointment(null),
+        id: apt.id,
+        status: "completed",
+        paymentMethod: paymentData.paymentMethod,
+        tipAmount: String(paymentData.tip),
+        discountAmount: String(paymentData.discount),
+        totalPaid: String(paymentData.totalPaid),
+      } as any,
+      {
+        onSuccess: () => {
+          setSelectedAppointment(null);
+          setShowCheckout(false);
+        },
       }
     );
   };
@@ -366,7 +384,7 @@ export default function Calendar() {
                                   borderBottom: `1px solid ${borderColor}33`,
                                   ...(isSelected ? { boxShadow: `0 0 0 2px ${borderColor}` } : {}),
                                 }}
-                                onClick={() => setSelectedAppointment(apt)}
+                                onClick={() => { setSelectedAppointment(apt); setShowCheckout(false); setShowCancelFlow(false); }}
                                 data-testid={`appointment-block-${apt.id}`}
                               >
                                 <div className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{timeRange}</div>
@@ -395,7 +413,7 @@ export default function Calendar() {
           </div>
         </div>
 
-        {selectedAppointment && !showCancelFlow && (
+        {selectedAppointment && !showCancelFlow && !showCheckout && (
           <AppointmentDetailsPanel
             appointment={selectedAppointment}
             timezone={timezone}
@@ -414,6 +432,16 @@ export default function Calendar() {
             timezone={timezone}
             onClose={() => setShowCancelFlow(false)}
             onConfirmCancel={(reason) => handleConfirmCancel(selectedAppointment, reason)}
+            isUpdating={updateAppointment.isPending}
+          />
+        )}
+
+        {selectedAppointment && showCheckout && (
+          <CheckoutPOSPanel
+            appointment={selectedAppointment}
+            timezone={timezone}
+            onClose={() => { setShowCheckout(false); }}
+            onFinalize={(paymentData) => handleFinalizePayment(selectedAppointment, paymentData)}
             isUpdating={updateAppointment.isPending}
           />
         )}
@@ -699,6 +727,369 @@ function CancelAppointmentPanel({
           data-testid="button-confirm-cancel"
         >
           {isUpdating ? "Cancelling..." : "Cancel Appointment"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const TAX_RATE = 0.07;
+
+const PAYMENT_METHODS = [
+  { id: "cash", label: "Cash", icon: Banknote },
+  { id: "card", label: "Card", icon: CreditCard },
+  { id: "mobile", label: "Mobile", icon: Smartphone },
+] as const;
+
+const TIP_PRESETS = [
+  { label: "No Tip", value: 0 },
+  { label: "15%", percent: 0.15 },
+  { label: "18%", percent: 0.18 },
+  { label: "20%", percent: 0.20 },
+  { label: "25%", percent: 0.25 },
+];
+
+function CheckoutPOSPanel({
+  appointment,
+  timezone,
+  onClose,
+  onFinalize,
+  isUpdating,
+}: {
+  appointment: AppointmentWithDetails;
+  timezone: string;
+  onClose: () => void;
+  onFinalize: (data: { paymentMethod: string; tip: number; discount: number; totalPaid: number }) => void;
+  isUpdating: boolean;
+}) {
+  const [paymentMethod, setPaymentMethod] = useState<string>("card");
+  const [tipMode, setTipMode] = useState<"preset" | "custom">("preset");
+  const [selectedTipIndex, setSelectedTipIndex] = useState(0);
+  const [customTip, setCustomTip] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountType, setDiscountType] = useState<"dollar" | "percent">("dollar");
+  const [showReceipt, setShowReceipt] = useState(false);
+
+  const aptAddons = appointment.appointmentAddons?.map(aa => aa.addon).filter(Boolean) || [];
+  const servicePrice = Number(appointment.service?.price || 0);
+  const addonTotal = aptAddons.reduce((sum, a) => sum + Number(a!.price), 0);
+  const subtotal = servicePrice + addonTotal;
+
+  const discountNum = Number(discountValue) || 0;
+  const discount = discountType === "percent" ? subtotal * (discountNum / 100) : discountNum;
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+
+  const tax = discountedSubtotal * TAX_RATE;
+  const preTotal = discountedSubtotal + tax;
+
+  const tip = tipMode === "custom"
+    ? (Number(customTip) || 0)
+    : (TIP_PRESETS[selectedTipIndex]?.percent
+        ? preTotal * TIP_PRESETS[selectedTipIndex].percent!
+        : TIP_PRESETS[selectedTipIndex]?.value || 0);
+
+  const grandTotal = preTotal + tip;
+
+  const endTime = addMinutes(new Date(appointment.date), appointment.duration);
+  const dateStr = formatInTz(appointment.date, timezone, "EEE, MMM d");
+  const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
+
+  const handleFinalize = () => {
+    onFinalize({
+      paymentMethod,
+      tip: Math.round(tip * 100) / 100,
+      discount: Math.round(discount * 100) / 100,
+      totalPaid: Math.round(grandTotal * 100) / 100,
+    });
+  };
+
+  if (showReceipt) {
+    return (
+      <div className="w-[400px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-receipt-panel">
+        <div className="p-4 border-b flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-muted-foreground" />
+            <h2 className="font-semibold text-lg">Payment Summary</h2>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-receipt">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-9 h-9">
+              <AvatarFallback className="text-xs font-bold bg-muted">
+                {appointment.customer?.name?.[0]?.toUpperCase() || "W"}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium text-sm">{appointment.customer?.name || "Walk-In"}</p>
+              <p className="text-xs text-muted-foreground">{dateStr} &middot; {timeStr}</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span>{appointment.service?.name}</span>
+              <span className="font-medium">${servicePrice.toFixed(2)}</span>
+            </div>
+            {aptAddons.map((addon: any) => (
+              <div key={addon.id} className="flex items-center justify-between text-sm pl-3">
+                <span className="text-muted-foreground">+ {addon.name}</span>
+                <span>${Number(addon.price).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t pt-3 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount</span>
+                <span>-${discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
+              <span>${tax.toFixed(2)}</span>
+            </div>
+            {tip > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tip</span>
+                <span>${tip.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-base pt-2 border-t">
+              <span>Total Paid</span>
+              <span>${grandTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-md p-3">
+            {PAYMENT_METHODS.find(m => m.id === paymentMethod)?.icon && (() => {
+              const Icon = PAYMENT_METHODS.find(m => m.id === paymentMethod)!.icon;
+              return <Icon className="w-4 h-4 text-muted-foreground" />;
+            })()}
+            <span className="capitalize">{paymentMethod}</span>
+          </div>
+        </div>
+
+        <div className="border-t p-4">
+          <Button
+            className="w-full bg-green-600 text-white h-12"
+            onClick={handleFinalize}
+            disabled={isUpdating}
+            data-testid="button-confirm-payment"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            {isUpdating ? "Processing..." : "Complete & Close"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-[400px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-pos-panel">
+      <div className="p-4 border-b flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-muted-foreground" />
+          <h2 className="font-semibold text-lg">Checkout</h2>
+          <Badge variant="outline" className="no-default-active-elevate text-[10px]">#{appointment.id}</Badge>
+        </div>
+        <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-checkout">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        <div className="flex items-center gap-3">
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="text-xs font-bold bg-muted">
+              {appointment.customer?.name?.[0]?.toUpperCase() || "W"}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium text-sm" data-testid="pos-customer-name">{appointment.customer?.name || "Walk-In"}</p>
+            <p className="text-xs text-muted-foreground">{dateStr} &middot; {timeStr}</p>
+          </div>
+          {appointment.staff && (
+            <Badge variant="outline" className="no-default-active-elevate text-[10px] ml-auto">{appointment.staff.name}</Badge>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Line Items</h3>
+          <div className="border rounded-md divide-y">
+            <div className="flex items-center justify-between p-3">
+              <div>
+                <p className="text-sm font-medium" data-testid="pos-service-name">{appointment.service?.name}</p>
+                <p className="text-xs text-muted-foreground">{appointment.service?.duration} min</p>
+              </div>
+              <span className="text-sm font-semibold" data-testid="pos-service-price">${servicePrice.toFixed(2)}</span>
+            </div>
+            {aptAddons.map((addon: any) => (
+              <div key={addon.id} className="flex items-center justify-between p-3" data-testid={`pos-addon-${addon.id}`}>
+                <div>
+                  <p className="text-sm font-medium">+ {addon.name}</p>
+                  <p className="text-xs text-muted-foreground">{addon.duration} min</p>
+                </div>
+                <span className="text-sm font-semibold">${Number(addon.price).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Discount</h3>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                className="pl-9"
+                data-testid="input-discount"
+              />
+            </div>
+            <div className="flex rounded-md border overflow-visible">
+              <button
+                className={cn(
+                  "px-3 py-2 text-sm transition-colors",
+                  discountType === "dollar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                )}
+                onClick={() => setDiscountType("dollar")}
+                data-testid="button-discount-dollar"
+              >
+                $
+              </button>
+              <button
+                className={cn(
+                  "px-3 py-2 text-sm transition-colors",
+                  discountType === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                )}
+                onClick={() => setDiscountType("percent")}
+                data-testid="button-discount-percent"
+              >
+                %
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Payment Method</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {PAYMENT_METHODS.map((method) => {
+              const Icon = method.icon;
+              return (
+                <Button
+                  key={method.id}
+                  variant="outline"
+                  className={cn(
+                    "h-auto py-3 flex flex-col items-center gap-1.5",
+                    paymentMethod === method.id && "border-primary bg-primary/5"
+                  )}
+                  onClick={() => setPaymentMethod(method.id)}
+                  data-testid={`button-payment-${method.id}`}
+                >
+                  <Icon className={cn("w-5 h-5", paymentMethod === method.id ? "text-primary" : "text-muted-foreground")} />
+                  <span className={cn("text-xs", paymentMethod === method.id && "text-primary font-medium")}>{method.label}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Tip</h3>
+          <div className="grid grid-cols-5 gap-1.5">
+            {TIP_PRESETS.map((preset, i) => (
+              <Button
+                key={preset.label}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "text-xs",
+                  tipMode === "preset" && selectedTipIndex === i && "border-primary bg-primary/5 text-primary"
+                )}
+                onClick={() => { setTipMode("preset"); setSelectedTipIndex(i); }}
+                data-testid={`button-tip-${preset.label.replace(/[^a-z0-9]/gi, "").toLowerCase()}`}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Custom:</span>
+            <div className="relative flex-1">
+              <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={customTip}
+                onChange={(e) => { setCustomTip(e.target.value); setTipMode("custom"); }}
+                onFocus={() => setTipMode("custom")}
+                className={cn("pl-8", tipMode === "custom" && "border-primary")}
+                data-testid="input-custom-tip"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t p-4 space-y-3 bg-card">
+        <div className="space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span data-testid="pos-subtotal">${subtotal.toFixed(2)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="flex justify-between text-green-600">
+              <span>Discount</span>
+              <span data-testid="pos-discount">-${discount.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
+            <span data-testid="pos-tax">${tax.toFixed(2)}</span>
+          </div>
+          {tip > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tip</span>
+              <span data-testid="pos-tip">${tip.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-lg pt-2 border-t">
+            <span>Total</span>
+            <span data-testid="pos-total">${grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <Button
+          className="w-full bg-green-600 text-white h-12"
+          onClick={() => setShowReceipt(true)}
+          data-testid="button-finalize-pay"
+        >
+          <Receipt className="w-4 h-4 mr-2" />
+          Finalize & Pay
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full text-muted-foreground"
+          onClick={onClose}
+          data-testid="button-abort-checkout"
+        >
+          Back to Appointment
         </Button>
       </div>
     </div>
