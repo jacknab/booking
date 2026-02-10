@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { useServices } from "@/hooks/use-services";
 import { useStaffList } from "@/hooks/use-staff";
@@ -49,6 +50,7 @@ export default function NewBooking() {
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [staffMode, setStaffMode] = useState<"any" | "specific">("any");
   const [specificStaffId, setSpecificStaffId] = useState<number | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(selectedService?.id || null);
 
@@ -168,10 +170,13 @@ export default function NewBooking() {
           if (selectedAddons.length > 0 && data?.id) {
             setAppointmentAddons.mutate(
               { appointmentId: data.id, addonIds: selectedAddons.map(a => a.id) },
-              { onSuccess: () => navigate("/calendar"), onError: () => navigate("/calendar") }
+              {
+                onSuccess: () => setShowConfirmation(true),
+                onError: () => setShowConfirmation(true),
+              }
             );
           } else {
-            navigate("/calendar");
+            setShowConfirmation(true);
           }
         },
       }
@@ -599,6 +604,51 @@ export default function NewBooking() {
           />
         </>
       )}
+
+      <Dialog open={showConfirmation} onOpenChange={(open) => { if (!open) navigate("/calendar"); }}>
+        <DialogContent className="sm:max-w-md" data-testid="booking-confirmation-dialog">
+          <h2 className="text-xl font-bold">Appointment Confirmation</h2>
+          <div className="space-y-4 mt-2">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Service</p>
+              <p className="font-semibold text-base mt-1" data-testid="confirm-service-name">{selectedService?.name}</p>
+            </div>
+            {selectedSlot && (
+              <div className="bg-muted/50 rounded-md p-3 space-y-1.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                  <span data-testid="confirm-date">{formatInTz(selectedSlot.time, timezone, "EEEE, MMM d, yyyy")}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span data-testid="confirm-time">{formatInTz(selectedSlot.time, timezone, "h:mm a")}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Customer</p>
+                <p className="font-medium text-sm mt-1" data-testid="confirm-customer">{selectedCustomer?.name || "Walk-In"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Staff</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="font-medium text-sm" data-testid="confirm-staff">{selectedSlot?.staffName}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-center mt-4">
+            <Button
+              className="px-8"
+              onClick={() => navigate("/calendar")}
+              data-testid="button-confirmation-ok"
+            >
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
