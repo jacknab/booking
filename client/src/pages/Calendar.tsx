@@ -10,7 +10,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -1379,11 +1379,20 @@ function ChooseClientPanel({
   const [phoneDigits, setPhoneDigits] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchDone, setSearchDone] = useState(false);
+  const [showNameEntry, setShowNameEntry] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [shiftActive, setShiftActive] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const { selectedStore } = useSelectedStore();
 
   const formatPhone = (digits: string): string => {
     if (digits.length <= 3) return `(${digits}`;
     if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const formatPhoneFull = (digits: string): string => {
+    if (digits.length !== 10) return digits;
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   };
 
@@ -1412,16 +1421,53 @@ function ChooseClientPanel({
           if (customer && customer.id) {
             onSelectClient(customer.id);
           } else {
-            onWalkIn();
+            setShowNameEntry(true);
           }
         })
         .catch(() => {
           setIsSearching(false);
           setSearchDone(true);
-          onWalkIn();
+          setShowNameEntry(true);
         });
     }
-  }, [phoneDigits, searchDone, selectedStore, onSelectClient, onWalkIn]);
+  }, [phoneDigits, searchDone, selectedStore, onSelectClient]);
+
+  const handleNameKey = useCallback((key: string) => {
+    const char = shiftActive ? key.toUpperCase() : key.toLowerCase();
+    setClientName(prev => prev + char);
+    if (shiftActive) setShiftActive(false);
+  }, [shiftActive]);
+
+  const handleNameBackspace = useCallback(() => {
+    setClientName(prev => prev.slice(0, -1));
+  }, []);
+
+  const handleNameDone = useCallback(async () => {
+    if (!clientName.trim() || !selectedStore) return;
+    setIsCreating(true);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: clientName.trim(),
+          phone: phoneDigits,
+          storeId: selectedStore.id,
+        }),
+      });
+      const newCustomer = await res.json();
+      if (newCustomer && newCustomer.id) {
+        onSelectClient(newCustomer.id);
+      }
+    } catch {
+      setIsCreating(false);
+    }
+  }, [clientName, phoneDigits, selectedStore, onSelectClient]);
+
+  const handleGuestDone = useCallback(() => {
+    onWalkIn();
+  }, [onWalkIn]);
 
   const numKeys = [
     ["1", "2", "3"],
@@ -1429,6 +1475,129 @@ function ChooseClientPanel({
     ["7", "8", "9"],
     ["walk-in", "0", "backspace"],
   ];
+
+  const kbRow1 = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"];
+  const kbRow2 = ["A", "S", "D", "F", "G", "H", "J", "K", "L"];
+  const kbRow3 = ["Z", "X", "C", "V", "B", "N", "M"];
+
+  if (showNameEntry) {
+    return (
+      <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="enter-name-panel">
+        <div className="p-4 border-b flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <span className="font-semibold text-sm">Enter Client Name</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-name-entry">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center px-4 pt-6">
+          <p className="text-3xl font-bold tracking-wide min-h-[44px]" data-testid="text-client-name-display">
+            {clientName || <span className="text-muted-foreground/40">Name</span>}
+          </p>
+          <p className="text-xs text-green-600 mt-2" data-testid="text-creating-for-phone">
+            Creating new client for {formatPhoneFull(phoneDigits)}
+          </p>
+
+          <div className="w-full mt-6 space-y-2">
+            <div className="flex justify-center gap-1">
+              {kbRow1.map((k) => (
+                <button
+                  key={k}
+                  onClick={() => handleNameKey(k)}
+                  className="w-[32px] h-[42px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2"
+                  data-testid={`kb-${k.toLowerCase()}`}
+                >
+                  {shiftActive ? k : k.toLowerCase()}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-center gap-1">
+              {kbRow2.map((k) => (
+                <button
+                  key={k}
+                  onClick={() => handleNameKey(k)}
+                  className="w-[34px] h-[42px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2"
+                  data-testid={`kb-${k.toLowerCase()}`}
+                >
+                  {shiftActive ? k : k.toLowerCase()}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-center gap-1">
+              <button
+                onClick={() => setShiftActive(prev => !prev)}
+                className={`w-[38px] h-[42px] rounded-md text-sm font-semibold flex items-center justify-center hover-elevate active-elevate-2 ${shiftActive ? "bg-foreground text-background" : "bg-muted text-foreground"}`}
+                data-testid="kb-shift"
+              >
+                <ArrowUp className="w-4 h-4" />
+              </button>
+              {kbRow3.map((k) => (
+                <button
+                  key={k}
+                  onClick={() => handleNameKey(k)}
+                  className="w-[34px] h-[42px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2"
+                  data-testid={`kb-${k.toLowerCase()}`}
+                >
+                  {shiftActive ? k : k.toLowerCase()}
+                </button>
+              ))}
+              <button
+                onClick={handleNameBackspace}
+                className="w-[38px] h-[42px] rounded-md bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                data-testid="kb-backspace"
+              >
+                <Delete className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex justify-center gap-1">
+              <button
+                onClick={handleGuestDone}
+                className="h-[42px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                data-testid="kb-guest"
+              >
+                Guest
+              </button>
+              <button
+                onClick={() => handleNameKey("@")}
+                className="h-[42px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                data-testid="kb-at"
+              >
+                @
+              </button>
+              <button
+                onClick={() => { handleNameKey(" "); setShiftActive(true); }}
+                className="flex-1 h-[42px] rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                data-testid="kb-space"
+              >
+                Spacebar
+              </button>
+              <button
+                onClick={handleNameDone}
+                className="h-[42px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                data-testid="kb-return"
+              >
+                Return
+              </button>
+            </div>
+          </div>
+
+          <Button
+            className="mt-4 w-40 bg-green-600 text-white"
+            onClick={handleNameDone}
+            disabled={!clientName.trim() || isCreating}
+            data-testid="button-name-done"
+          >
+            {isCreating ? "Creating..." : "Done"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="choose-client-panel">
