@@ -271,27 +271,17 @@ export default function NewBooking() {
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
             footerContent={
-              selectedService ? (
-                <Button
-                  className="w-full bg-pink-500 text-white h-12"
-                  onClick={handleContinueToAddons}
-                  data-testid="button-continue-addons"
-                >
-                  <span className="flex flex-col items-center leading-tight">
-                    <span className="font-semibold">Continue</span>
-                    <span className="text-[10px] opacity-80">
-                      {availableAddons && availableAddons.length > 0 ? "Select extras" : "Select staff & time"}
-                    </span>
-                  </span>
-                </Button>
-              ) : (
-                <Button className="w-full bg-pink-500 text-white h-12 opacity-50 cursor-not-allowed" disabled data-testid="button-request-booking-disabled">
-                  <span className="flex flex-col items-center leading-tight">
-                    <span className="font-semibold">Request Booking</span>
-                    <span className="text-[10px] opacity-80">0 min</span>
-                  </span>
-                </Button>
-              )
+              <Button
+                className="w-full bg-pink-500 text-white h-12"
+                onClick={handleContinueToAddons}
+                disabled={!selectedService}
+                data-testid="button-request-booking"
+              >
+                <span className="flex flex-col items-center leading-tight">
+                  <span className="font-semibold">Request Booking</span>
+                  <span className="text-[10px] opacity-80">{totalDuration} min</span>
+                </span>
+              </Button>
             }
           />
         </>
@@ -371,11 +361,11 @@ export default function NewBooking() {
               <Button
                 className="w-full bg-pink-500 text-white h-12"
                 onClick={handleContinueToDetails}
-                data-testid="button-continue-details"
+                data-testid="button-request-booking-addons"
               >
                 <span className="flex flex-col items-center leading-tight">
-                  <span className="font-semibold">Continue</span>
-                  <span className="text-[10px] opacity-80">Select staff & time</span>
+                  <span className="font-semibold">Request Booking</span>
+                  <span className="text-[10px] opacity-80">{totalDuration} min</span>
                 </span>
               </Button>
             }
