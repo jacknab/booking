@@ -63,7 +63,7 @@ export interface IStorage {
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<void>;
 
-  getAppointments(filters?: { from?: Date; to?: Date; staffId?: number; storeId?: number }): Promise<AppointmentWithDetails[]>;
+  getAppointments(filters?: { from?: Date; to?: Date; staffId?: number; storeId?: number; customerId?: number }): Promise<AppointmentWithDetails[]>;
   getAppointment(id: number): Promise<AppointmentWithDetails | undefined>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
@@ -266,12 +266,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Appointments
-  async getAppointments(filters?: { from?: Date; to?: Date; staffId?: number; storeId?: number }): Promise<AppointmentWithDetails[]> {
+  async getAppointments(filters?: { from?: Date; to?: Date; staffId?: number; storeId?: number; customerId?: number }): Promise<AppointmentWithDetails[]> {
     const conditions = [];
     if (filters?.from) conditions.push(gte(appointments.date, filters.from));
     if (filters?.to) conditions.push(lte(appointments.date, filters.to));
     if (filters?.staffId) conditions.push(eq(appointments.staffId, filters.staffId));
     if (filters?.storeId) conditions.push(eq(appointments.storeId, filters.storeId));
+    if (filters?.customerId) conditions.push(eq(appointments.customerId, filters.customerId));
 
     const result = await db.query.appointments.findMany({
       where: conditions.length > 0 ? and(...conditions) : undefined,

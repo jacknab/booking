@@ -14,6 +14,7 @@ import Products from "@/pages/Products";
 import NewBooking from "@/pages/NewBooking";
 import ClientLookup from "@/pages/ClientLookup";
 import POSInterface from "@/pages/POSInterface";
+import ClientProfile from "@/pages/ClientProfile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/booking/new" component={NewBooking} />
       <Route path="/client-lookup" component={ClientLookup} />
       <Route path="/pos" component={POSInterface} />
+      <Route path="/client/:id" component={ClientProfile} />
       <Route path="/products" component={Products} />
       <Route component={NotFound} />
     </Switch>

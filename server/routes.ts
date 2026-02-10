@@ -457,6 +457,12 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/customers/:id", async (req, res) => {
+    const customer = await storage.getCustomer(Number(req.params.id));
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.json(customer);
+  });
+
   app.patch(api.customers.update.path, async (req, res) => {
     try {
       const input = insertCustomerSchema.partial().parse(req.body);
@@ -475,6 +481,7 @@ export async function registerRoutes(
       to: req.query.to ? new Date(req.query.to as string) : undefined,
       staffId: req.query.staffId ? Number(req.query.staffId) : undefined,
       storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
+      customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
     };
     const appointments = await storage.getAppointments(filters);
     res.json(appointments);

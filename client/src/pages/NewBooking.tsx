@@ -16,7 +16,7 @@ import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
 import { getTimezoneAbbr, formatInTz } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
@@ -666,7 +666,13 @@ function BookingSummaryPanel({
         <div className="flex-1">
           {selectedCustomer ? (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium" data-testid="text-selected-customer">{selectedCustomer.name}</span>
+              <Link
+                href={`/client/${selectedCustomer.id}`}
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline cursor-pointer"
+                data-testid="link-client-profile"
+              >
+                {selectedCustomer.name}
+              </Link>
               <button onClick={() => onSetCustomer(null)} className="text-muted-foreground">
                 <X className="w-3 h-3" />
               </button>
