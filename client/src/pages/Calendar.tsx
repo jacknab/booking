@@ -348,7 +348,16 @@ export default function Calendar() {
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 overflow-hidden">
           <div ref={scrollContainerRef} className="h-full overflow-auto">
-            <div className="flex min-w-[600px]">
+            <div className="flex min-w-[600px] relative">
+              {isToday && timeLinePosition !== null && (
+                <div
+                  className="absolute left-0 right-0 z-30 pointer-events-none"
+                  style={{ top: `${timeLinePosition + 60}px` }}
+                  data-testid="current-time-line-full"
+                >
+                  <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
+                </div>
+              )}
               <div className="w-[72px] flex-shrink-0 border-r bg-card z-10 sticky left-0">
                 <div className="h-[60px] border-b" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
@@ -369,11 +378,11 @@ export default function Calendar() {
 
                   {isToday && timeLinePosition !== null && (
                     <div
-                      className="absolute left-0 right-0 flex items-center justify-end pr-2 -translate-y-1/2 z-20"
+                      className="absolute left-0 right-0 flex items-center -translate-y-1/2 z-20"
                       style={{ top: `${timeLinePosition}px` }}
                       data-testid="current-time-label"
                     >
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1 rounded">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm" style={{ color: "#fff", backgroundColor: "#2563eb" }}>
                         {timeLineLabel}
                       </span>
                     </div>
@@ -382,15 +391,6 @@ export default function Calendar() {
               </div>
 
               <div className="flex flex-1 relative">
-                {isToday && timeLinePosition !== null && (
-                  <div
-                    className="absolute left-0 right-0 z-20 pointer-events-none"
-                    style={{ top: `${timeLinePosition + 60}px` }}
-                    data-testid="current-time-line"
-                  >
-                    <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
-                  </div>
-                )}
 
                 {filteredStaff.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
