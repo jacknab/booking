@@ -6,16 +6,10 @@ import {
   Scissors, 
   ShoppingBag, 
   LogOut,
-  UserCircle,
-  Store,
-  Globe,
-  ChevronDown
+  UserCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useSelectedStore } from "@/hooks/use-store";
-import { getTimezoneAbbr } from "@/lib/timezone";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,10 +23,6 @@ const navItems = [
 export function Sidebar() {
   const [location] = useLocation();
   const { logout, user } = useAuth();
-  const { selectedStore, setSelectedStoreId, stores } = useSelectedStore();
-
-  const timezone = selectedStore?.timezone || "UTC";
-  const tzAbbr = getTimezoneAbbr(timezone);
 
   return (
     <aside className="hidden md:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-card z-20">
@@ -46,38 +36,6 @@ export function Sidebar() {
           </div>
         </Link>
       </div>
-
-      {stores.length > 0 && (
-        <div className="px-4 py-3 border-b">
-          <Select
-            value={selectedStore ? String(selectedStore.id) : undefined}
-            onValueChange={(val) => setSelectedStoreId(Number(val))}
-          >
-            <SelectTrigger className="w-full" data-testid="select-store-switcher">
-              <div className="flex items-center gap-2 truncate">
-                <Store className="w-4 h-4 text-primary flex-shrink-0" />
-                <SelectValue placeholder="Select Store" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              {stores.map((s) => (
-                <SelectItem key={s.id} value={String(s.id)}>
-                  <div className="flex flex-col">
-                    <span>{s.name}</span>
-                    <span className="text-xs text-muted-foreground">{s.timezone}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-1.5 mt-2 px-1">
-            <Globe className="w-3 h-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground" data-testid="text-store-timezone">
-              {timezone} ({tzAbbr})
-            </span>
-          </div>
-        </div>
-      )}
 
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
         {navItems.map((item) => {
