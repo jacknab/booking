@@ -65,6 +65,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(storeNow);
   const [selectedStaffId, setSelectedStaffId] = useState<number | "all">("all");
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
+  const [showCancelFlow, setShowCancelFlow] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone);
@@ -143,10 +144,17 @@ export default function Calendar() {
   const isToday = isSameDay(currentDate, storeNow);
 
   const handleCancelAppointment = (apt: AppointmentWithDetails) => {
+    setShowCancelFlow(true);
+  };
+
+  const handleConfirmCancel = (apt: AppointmentWithDetails, reason: string) => {
     updateAppointment.mutate(
-      { id: apt.id, status: "cancelled" } as any,
+      { id: apt.id, status: "cancelled", cancellationReason: reason } as any,
       {
-        onSuccess: () => setSelectedAppointment(null),
+        onSuccess: () => {
+          setSelectedAppointment(null);
+          setShowCancelFlow(false);
+        },
       }
     );
   };
@@ -387,7 +395,7 @@ export default function Calendar() {
           </div>
         </div>
 
-        {selectedAppointment && (
+        {selectedAppointment && !showCancelFlow && (
           <AppointmentDetailsPanel
             appointment={selectedAppointment}
             timezone={timezone}
@@ -396,6 +404,16 @@ export default function Calendar() {
             onStart={() => handleStartService(selectedAppointment)}
             onCheckout={() => handleCheckout(selectedAppointment)}
             onEdit={() => navigate("/booking/new")}
+            isUpdating={updateAppointment.isPending}
+          />
+        )}
+
+        {selectedAppointment && showCancelFlow && (
+          <CancelAppointmentPanel
+            appointment={selectedAppointment}
+            timezone={timezone}
+            onClose={() => setShowCancelFlow(false)}
+            onConfirmCancel={(reason) => handleConfirmCancel(selectedAppointment, reason)}
             isUpdating={updateAppointment.isPending}
           />
         )}
@@ -592,6 +610,96 @@ function AppointmentDetailsPanel({
             )}
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+const CANCEL_REASONS = [
+  "Client Canceled/Rescheduled",
+  "Duplicated Booking",
+  "No Show",
+  "Other",
+];
+
+function CancelAppointmentPanel({
+  appointment,
+  timezone,
+  onClose,
+  onConfirmCancel,
+  isUpdating,
+}: {
+  appointment: AppointmentWithDetails;
+  timezone: string;
+  onClose: () => void;
+  onConfirmCancel: (reason: string) => void;
+  isUpdating: boolean;
+}) {
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+
+  const endTime = addMinutes(new Date(appointment.date), appointment.duration);
+  const dateStr = formatInTz(appointment.date, timezone, "MM/dd/yyyy, h:mm a");
+  const grandTotal = Number(appointment.service?.price || 0) +
+    (appointment.appointmentAddons?.reduce((sum, aa) => sum + Number(aa.addon?.price || 0), 0) || 0);
+
+  return (
+    <div className="w-[340px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="cancel-appointment-panel">
+      <div className="p-4 border-b flex items-center justify-between gap-2">
+        <h2 className="font-semibold text-lg">Cancel Appointment</h2>
+        <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-cancel">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">Following services will be cancelled:</p>
+          <div className="border rounded-md p-3 space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <span className="font-semibold text-sm">{appointment.service?.name || "Service"}</span>
+                {appointment.staff && (
+                  <span className="text-sm text-muted-foreground"> ( {appointment.staff.name} )</span>
+                )}
+              </div>
+              <span className="font-semibold text-sm" data-testid="cancel-service-price">
+                ${Number(appointment.service?.price || 0).toFixed(2)}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground" data-testid="cancel-service-date">{dateStr}</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm">Cancellation Reason</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {CANCEL_REASONS.map((reason) => (
+              <Button
+                key={reason}
+                variant="outline"
+                className={cn(
+                  "h-auto py-3 text-sm justify-center",
+                  selectedReason === reason && "border-primary bg-primary/5 text-primary"
+                )}
+                onClick={() => setSelectedReason(reason)}
+                data-testid={`cancel-reason-${reason.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+              >
+                {reason}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t p-4">
+        <Button
+          className="w-full bg-pink-400 text-white h-12"
+          onClick={() => selectedReason && onConfirmCancel(selectedReason)}
+          disabled={!selectedReason || isUpdating}
+          data-testid="button-confirm-cancel"
+        >
+          {isUpdating ? "Cancelling..." : "Cancel Appointment"}
+        </Button>
       </div>
     </div>
   );

@@ -89,6 +89,7 @@ export const appointments = pgTable("appointments", {
   duration: integer("duration").notNull(),
   status: text("status").default("pending"),
   notes: text("notes"),
+  cancellationReason: text("cancellation_reason"),
   serviceId: integer("service_id").references(() => services.id),
   staffId: integer("staff_id").references(() => staff.id),
   customerId: integer("customer_id").references(() => customers.id),
