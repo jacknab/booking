@@ -59,6 +59,58 @@ export function useSetAppointmentAddons() {
   });
 }
 
+export function useCreateAddon() {
+  const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+
+  return useMutation({
+    mutationFn: async (data: InsertAddon) => {
+      const payload = { ...data, storeId: selectedStore?.id ?? null };
+      const res = await fetch(api.addons.create.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to create addon");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.addons.list.path, selectedStore?.id] }),
+  });
+}
+
+export function useUpdateAddon() {
+  const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertAddon>) => {
+      const url = buildUrl(api.addons.update.path, { id });
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update addon");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.addons.list.path, selectedStore?.id] }),
+  });
+}
+
+export function useDeleteAddon() {
+  const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.addons.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete addon");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.addons.list.path, selectedStore?.id] }),
+  });
+}
+
 export function useServiceCategories() {
   const { selectedStore } = useSelectedStore();
   const storeId = selectedStore?.id;

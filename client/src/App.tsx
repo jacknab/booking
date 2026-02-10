@@ -19,6 +19,8 @@ import StaffDetail from "@/pages/StaffDetail";
 import CalendarSettingsPage from "@/pages/CalendarSettings";
 import BusinessSettings from "@/pages/BusinessSettings";
 import CashDrawer from "@/pages/CashDrawer";
+import AddonsPage from "@/pages/Addons";
+import CommissionReport from "@/pages/CommissionReport";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import NotFound from "@/pages/not-found";
@@ -41,6 +43,8 @@ function Router() {
       <Route path="/pos" component={POSInterface} />
       <Route path="/client/:id" component={ClientProfile} />
       <Route path="/products" component={Products} />
+      <Route path="/addons" component={AddonsPage} />
+      <Route path="/commission-report" component={CommissionReport} />
       <Route path="/calendar-settings" component={CalendarSettingsPage} />
       <Route path="/business-settings" component={BusinessSettings} />
       <Route path="/cash-drawer" component={CashDrawer} />

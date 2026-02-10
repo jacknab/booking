@@ -9,7 +9,9 @@ import {
   UserCircle,
   Banknote,
   Settings,
-  Building2
+  Building2,
+  Puzzle,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,10 +20,12 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/services", label: "Services", icon: Scissors },
+  { href: "/addons", label: "Add-Ons", icon: Puzzle },
   { href: "/staff", label: "Staff", icon: UserCircle },
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
+  { href: "/commission-report", label: "Commissions", icon: BarChart3 },
   { href: "/business-settings", label: "Business Settings", icon: Building2 },
   { href: "/calendar-settings", label: "Calendar Settings", icon: Settings },
 ];

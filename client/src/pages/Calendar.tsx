@@ -308,7 +308,7 @@ export default function Calendar() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 overflow-hidden">
           <div ref={scrollContainerRef} className="h-full overflow-auto">
             <div className="flex min-w-[600px]">
@@ -534,7 +534,7 @@ function AppointmentDetailsPanel({
   const grandTotal = Number(appointment.service?.price || 0) + addonTotal;
 
   return (
-    <div className="w-[340px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="appointment-details-panel">
+    <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="appointment-details-panel">
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Avatar className="w-8 h-8">
@@ -713,7 +713,7 @@ function CancelAppointmentPanel({
     (appointment.appointmentAddons?.reduce((sum, aa) => sum + Number(aa.addon?.price || 0), 0) || 0);
 
   return (
-    <div className="w-[340px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="cancel-appointment-panel">
+    <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="cancel-appointment-panel">
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <h2 className="font-semibold text-lg">Cancel Appointment</h2>
         <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-cancel">
@@ -911,7 +911,7 @@ function CheckoutPOSPanel({
 
   if (phase === "cart") {
     return (
-      <div className="w-[400px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-pos-panel">
+      <div className="w-[420px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="checkout-pos-panel">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-muted-foreground" />
@@ -1090,7 +1090,7 @@ function CheckoutPOSPanel({
   }
 
   return (
-    <div className="w-[680px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="checkout-payment-panel">
+    <div className="w-[680px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="checkout-payment-panel">
       <div className="p-3 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-muted-foreground" />

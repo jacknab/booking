@@ -18,6 +18,7 @@ export const stores = pgTable("stores", {
   category: text("category"),
   city: text("city"),
   postcode: text("postcode"),
+  commissionPayoutFrequency: text("commission_payout_frequency").default("monthly"),
 });
 
 export const businessHours = pgTable("business_hours", {
@@ -78,6 +79,8 @@ export const staff = pgTable("staff", {
   bio: text("bio"),
   color: text("color").default("#3b82f6"),
   avatarUrl: text("avatar_url"),
+  commissionEnabled: boolean("commission_enabled").default(false),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default("0"),
   storeId: integer("store_id").references(() => stores.id),
 });
 

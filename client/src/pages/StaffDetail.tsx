@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   useStaffMember, useUpdateStaff, useDeleteStaff,
@@ -22,7 +23,7 @@ import type { Staff, Service, StaffAvailability } from "@shared/schema";
 import { z } from "zod";
 import {
   ArrowLeft, Save, Trash2, User, Clock, Scissors,
-  Plus
+  Plus, DollarSign
 } from "lucide-react";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -117,6 +118,9 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
   const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
   const { toast } = useToast();
 
+  const [commissionEnabled, setCommissionEnabled] = useState(staff.commissionEnabled ?? false);
+  const [commissionRate, setCommissionRate] = useState(String(staff.commissionRate || "0"));
+
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof insertStaffSchema>>({
     resolver: zodResolver(insertStaffSchema),
     defaultValues: {
@@ -130,7 +134,12 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
   });
 
   const onSubmit = (data: z.infer<typeof insertStaffSchema>) => {
-    updateStaff({ id: staff.id, ...data }, {
+    updateStaff({
+      id: staff.id,
+      ...data,
+      commissionEnabled,
+      commissionRate,
+    }, {
       onSuccess: () => {
         toast({ title: "Staff member updated" });
       },
@@ -141,69 +150,110 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Edit Profile</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" {...register("name")} data-testid="input-staff-name" />
-            {errors.name && <span className="text-xs text-destructive">{errors.name.message}</span>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" {...register("email")} data-testid="input-staff-email" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" {...register("phone")} data-testid="input-staff-phone" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Input id="role" {...register("role")} data-testid="input-staff-role" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Input id="bio" {...register("bio")} data-testid="input-staff-bio" />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="color">Calendar Color</Label>
-            <div className="flex items-center gap-3">
-              <input type="color" {...register("color")} className="w-10 h-9 rounded-md cursor-pointer border" data-testid="input-staff-color" />
-              <Input {...register("color")} className="w-32" data-testid="input-staff-color-text" />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Edit Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" {...register("name")} data-testid="input-staff-name" />
+              {errors.name && <span className="text-xs text-destructive">{errors.name.message}</span>}
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 pt-4">
-            <Button type="submit" disabled={isUpdating} data-testid="button-save-profile">
-              <Save className="w-4 h-4 mr-2" />
-              {isUpdating ? "Saving..." : "Save Changes"}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={isDeleting}
-              data-testid="button-delete-staff"
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this staff member?")) {
-                  deleteStaff(staff.id, { onSuccess: onDelete });
-                }
-              }}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? "Deleting..." : "Delete Staff"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" {...register("email")} data-testid="input-staff-email" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" {...register("phone")} data-testid="input-staff-phone" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Input id="role" {...register("role")} data-testid="input-staff-role" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Input id="bio" {...register("bio")} data-testid="input-staff-bio" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="color">Calendar Color</Label>
+              <div className="flex items-center gap-3">
+                <input type="color" {...register("color")} className="w-10 h-9 rounded-md cursor-pointer border" data-testid="input-staff-color" />
+                <Input {...register("color")} className="w-32" data-testid="input-staff-color-text" />
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Commission Settings</h3>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Enable Commission</Label>
+                    <p className="text-xs text-muted-foreground">Track commission earnings for this staff member</p>
+                  </div>
+                  <Switch
+                    checked={commissionEnabled}
+                    onCheckedChange={setCommissionEnabled}
+                    data-testid="switch-commission-enabled"
+                  />
+                </div>
+                {commissionEnabled && (
+                  <div className="space-y-2">
+                    <Label htmlFor="commissionRate">Commission Rate (%)</Label>
+                    <Input
+                      id="commissionRate"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="100"
+                      value={commissionRate}
+                      onChange={(e) => setCommissionRate(e.target.value)}
+                      className="w-32"
+                      data-testid="input-commission-rate"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Percentage of service revenue earned as commission
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-4">
+              <Button type="submit" disabled={isUpdating} data-testid="button-save-profile">
+                <Save className="w-4 h-4 mr-2" />
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isDeleting}
+                data-testid="button-delete-staff"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this staff member?")) {
+                    deleteStaff(staff.id, { onSuccess: onDelete });
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {isDeleting ? "Deleting..." : "Delete Staff"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
