@@ -3,13 +3,177 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { useServices } from "@/hooks/use-services";
 import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
+import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation } from "wouter";
-import { ArrowLeft, User, X, Sparkles, Loader2, Check, Plus } from "lucide-react";
+import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Service, Addon, Customer } from "@shared/schema";
+import type { Service, Addon, Customer, Staff } from "@shared/schema";
+
+type TicketItem = { service: Service; addons: Addon[]; staffId: number | null };
+
+function TipScreen({
+  amountDue,
+  staffMember,
+  onAddTip,
+  onCancel,
+}: {
+  amountDue: number;
+  staffMember: Staff | null;
+  onAddTip: (tipAmount: number) => void;
+  onCancel: () => void;
+}) {
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState("");
+  const [isPercentMode, setIsPercentMode] = useState(false);
+
+  const presets = [
+    { label: "10%", pct: 0.1 },
+    { label: "15%", pct: 0.15 },
+    { label: "20%", pct: 0.2 },
+  ];
+
+  const handlePresetClick = (index: number) => {
+    setSelectedPreset(index);
+    setCustomAmount("");
+  };
+
+  const getTipAmount = (): number => {
+    if (customAmount && customAmount !== "0") {
+      const val = parseFloat(customAmount);
+      if (isNaN(val)) return 0;
+      return isPercentMode ? (amountDue * val) / 100 : val;
+    }
+    if (selectedPreset !== null) {
+      return amountDue * presets[selectedPreset].pct;
+    }
+    return 0;
+  };
+
+  const tipAmount = getTipAmount();
+
+  const staffInitials = staffMember
+    ? staffMember.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+      <Card className="w-full max-w-md mx-4 p-0 overflow-hidden">
+        <div className="flex items-center gap-3 p-4 border-b">
+          <Button variant="ghost" size="icon" onClick={onCancel} data-testid="button-tip-back">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h2 className="font-bold text-lg">Add tip</h2>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="text-center">
+            <p className="text-4xl font-bold" data-testid="text-tip-amount-due">
+              $ {amountDue.toFixed(2)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">Amount Due</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {presets.map((preset, i) => (
+              <Card
+                key={i}
+                className={cn(
+                  "p-4 text-center cursor-pointer transition-all",
+                  selectedPreset === i && !customAmount
+                    ? "ring-2 ring-primary"
+                    : "hover-elevate"
+                )}
+                onClick={() => handlePresetClick(i)}
+                data-testid={`button-tip-preset-${preset.label}`}
+              >
+                <p className="font-semibold text-sm">{preset.label}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  $ {(amountDue * preset.pct).toFixed(2)}
+                </p>
+              </Card>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-center">Custom amount</p>
+            <div className="flex items-center justify-center gap-3">
+              <span className={cn("text-sm font-medium", isPercentMode && "text-muted-foreground")}>%</span>
+              <Switch
+                checked={!isPercentMode}
+                onCheckedChange={(checked) => setIsPercentMode(!checked)}
+                data-testid="switch-tip-mode"
+              />
+              <span className={cn("text-sm font-medium", !isPercentMode && "text-muted-foreground")}>$</span>
+              <div className="relative w-[140px]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {isPercentMode ? "%" : "$"}
+                </span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={customAmount}
+                  onChange={(e) => {
+                    setCustomAmount(e.target.value);
+                    setSelectedPreset(null);
+                  }}
+                  className="pl-7"
+                  placeholder="0.00"
+                  data-testid="input-tip-custom"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Received By</Label>
+            <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/30">
+              <Avatar className="w-9 h-9">
+                {staffMember?.avatarUrl && (
+                  <AvatarImage src={staffMember.avatarUrl} alt={staffMember.name} />
+                )}
+                <AvatarFallback className="text-xs">{staffInitials || "?"}</AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-sm" data-testid="text-tip-staff-name">
+                {staffMember?.name || "No staff assigned"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 p-4 border-t">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={onCancel}
+            data-testid="button-tip-cancel"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => onAddTip(tipAmount)}
+            data-testid="button-tip-confirm"
+          >
+            Add tip
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 export default function POSInterface() {
   const [, navigate] = useLocation();
@@ -17,14 +181,17 @@ export default function POSInterface() {
 
   const params = new URLSearchParams(window.location.search);
   const clientIdParam = params.get("clientId");
+  const staffIdParam = params.get("staffId");
 
-  type TicketItem = { service: Service; addons: Addon[] };
   const [ticketItems, setTicketItems] = useState<TicketItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
+  const [showTipScreen, setShowTipScreen] = useState(false);
+  const [tipAmount, setTipAmount] = useState(0);
 
   const { data: services, isLoading: servicesLoading } = useServices();
   const { data: categories } = useServiceCategories();
+  const { data: staffList } = useStaffList();
 
   const activeServiceId = activeItemIndex !== null && ticketItems[activeItemIndex]
     ? ticketItems[activeItemIndex].service.id
@@ -42,6 +209,14 @@ export default function POSInterface() {
     },
     enabled: !!clientIdParam && !!selectedStore?.id,
   });
+
+  const defaultStaffId = staffIdParam ? Number(staffIdParam) : (staffList && staffList.length > 0 ? staffList[0].id : null);
+
+  const primaryStaffId = ticketItems.length > 0
+    ? ticketItems[0].staffId || defaultStaffId
+    : defaultStaffId;
+
+  const primaryStaff = staffList?.find((s: Staff) => s.id === primaryStaffId) || null;
 
   const categoryNames = useMemo(() => {
     if (categories && categories.length > 0) {
@@ -63,7 +238,7 @@ export default function POSInterface() {
 
   const handleAddService = (service: Service) => {
     const newIndex = ticketItems.length;
-    setTicketItems(prev => [...prev, { service, addons: [] }]);
+    setTicketItems(prev => [...prev, { service, addons: [], staffId: defaultStaffId }]);
     setActiveItemIndex(newIndex);
   };
 
@@ -99,9 +274,24 @@ export default function POSInterface() {
     const addonDur = item.addons.reduce((s, a) => s + a.duration, 0);
     return sum + item.service.duration + addonDur;
   }, 0);
+  const grandTotal = ticketTotal + tipAmount;
+
+  const handleAddTip = (amount: number) => {
+    setTipAmount(amount);
+    setShowTipScreen(false);
+  };
 
   return (
     <div className="h-screen w-screen flex bg-background">
+      {showTipScreen && (
+        <TipScreen
+          amountDue={ticketTotal}
+          staffMember={primaryStaff}
+          onAddTip={handleAddTip}
+          onCancel={() => setShowTipScreen(false)}
+        />
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         <div className="w-[180px] flex-shrink-0 border-r bg-card flex flex-col">
           <div className="p-4 border-b flex items-center gap-2">
@@ -248,6 +438,19 @@ export default function POSInterface() {
           </Button>
         </div>
 
+        {primaryStaff && (
+          <div className="px-4 py-2 border-b flex items-center gap-2">
+            <Avatar className="w-6 h-6">
+              {primaryStaff.avatarUrl && <AvatarImage src={primaryStaff.avatarUrl} alt={primaryStaff.name} />}
+              <AvatarFallback className="text-[10px]">
+                {primaryStaff.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground">with</span>
+            <span className="text-xs font-medium" data-testid="pos-staff-name">{primaryStaff.name}</span>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-4">
           {ticketItems.length > 0 ? (
             <div className="space-y-3">
@@ -290,24 +493,42 @@ export default function POSInterface() {
         </div>
 
         <div className="border-t p-4 space-y-3">
+          {tipAmount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Tip</span>
+              <span className="font-medium" data-testid="pos-tip-amount">${tipAmount.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <span className="font-semibold">Total</span>
               {ticketDuration > 0 && <p className="text-xs text-muted-foreground">{ticketDuration} min</p>}
             </div>
-            <span className="font-bold text-lg" data-testid="pos-ticket-total">${ticketTotal.toFixed(2)}</span>
+            <span className="font-bold text-lg" data-testid="pos-ticket-total">${grandTotal.toFixed(2)}</span>
           </div>
-          <Button
-            className="w-full bg-pink-500 text-white"
-            size="lg"
-            disabled={ticketItems.length === 0}
-            onClick={() => {
-              navigate("/calendar");
-            }}
-            data-testid="button-pos-checkout"
-          >
-            Checkout - ${ticketTotal.toFixed(2)}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-shrink-0"
+              disabled={ticketItems.length === 0}
+              onClick={() => setShowTipScreen(true)}
+              data-testid="button-pos-tip"
+            >
+              <Heart className="w-4 h-4 mr-1" />
+              Tip
+            </Button>
+            <Button
+              className="flex-1"
+              size="lg"
+              disabled={ticketItems.length === 0}
+              onClick={() => {
+                navigate("/calendar");
+              }}
+              data-testid="button-pos-checkout"
+            >
+              Checkout - ${grandTotal.toFixed(2)}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
