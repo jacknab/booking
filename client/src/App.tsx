@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { StoreProvider } from "@/components/StoreProvider";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
@@ -21,7 +22,7 @@ function Router() {
       <Route path="/staff" component={Staff} />
       <Route path="/customers" component={Customers} />
       <Route path="/calendar" component={Calendar} />
-      <Route path="/appointments" component={Calendar} /> {/* Shared view for now */}
+      <Route path="/appointments" component={Calendar} />
       <Route path="/products" component={Products} />
       <Route component={NotFound} />
     </Switch>
@@ -32,8 +33,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <StoreProvider>
+          <Toaster />
+          <Router />
+        </StoreProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

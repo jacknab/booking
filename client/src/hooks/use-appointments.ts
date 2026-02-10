@@ -1,54 +1,62 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type InsertAppointment } from "@shared/routes";
-import { z } from "zod";
+import { api, buildUrl } from "@shared/routes";
+import type { InsertAppointment } from "@shared/schema";
+import { useSelectedStore } from "@/hooks/use-store";
+import { storeLocalToUtc } from "@/lib/timezone";
 
-type AppointmentFilters = z.infer<typeof api.appointments.list.input>;
+type AppointmentFilters = {
+  from?: string;
+  to?: string;
+  staffId?: number;
+};
 
 export function useAppointments(filters?: AppointmentFilters) {
-  const queryKey = [api.appointments.list.path, filters];
+  const { selectedStore } = useSelectedStore();
+  const storeId = selectedStore?.id;
+
+  const queryKey = [api.appointments.list.path, storeId, filters];
   return useQuery({
     queryKey,
     queryFn: async () => {
-      let url = api.appointments.list.path;
-      if (filters) {
-        const params = new URLSearchParams();
-        if (filters.from) params.append("from", filters.from);
-        if (filters.to) params.append("to", filters.to);
-        if (filters.staffId) params.append("staffId", String(filters.staffId));
-        url += `?${params.toString()}`;
-      }
-      
+      const params = new URLSearchParams();
+      if (storeId) params.append("storeId", String(storeId));
+      if (filters?.from) params.append("from", filters.from);
+      if (filters?.to) params.append("to", filters.to);
+      if (filters?.staffId) params.append("staffId", String(filters.staffId));
+      const url = `${api.appointments.list.path}?${params.toString()}`;
+
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch appointments");
-      return api.appointments.list.responses[200].parse(await res.json());
+      return res.json();
     },
+    enabled: !!storeId,
   });
 }
 
 export function useCreateAppointment() {
   const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+
   return useMutation({
-    mutationFn: async (data: InsertAppointment) => {
-      // Ensure date is properly serialized or handled
+    mutationFn: async (data: Partial<InsertAppointment> & { date: string; serviceId: number; staffId: number; customerId: number; duration: number }) => {
+      const timezone = selectedStore?.timezone || "UTC";
+      const utcDate = storeLocalToUtc(data.date, timezone);
+
       const payload = {
         ...data,
-        date: new Date(data.date).toISOString() // Ensure ISO string for JSON
+        storeId: selectedStore?.id ?? null,
+        date: utcDate.toISOString(),
       };
-      
+
       const res = await fetch(api.appointments.create.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         credentials: "include",
       });
-      
+
       if (!res.ok) throw new Error("Failed to create appointment");
-      // Note: Backend returns Date object after Zod parse, but JSON response has string
-      const raw = await res.json();
-      return api.appointments.create.responses[201].parse({
-        ...raw,
-        date: new Date(raw.date)
-      });
+      return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.appointments.list.path] }),
   });
@@ -56,12 +64,16 @@ export function useCreateAppointment() {
 
 export function useUpdateAppointment() {
   const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertAppointment>) => {
       const url = buildUrl(api.appointments.update.path, { id });
       const payload = { ...updates };
       if (payload.date) {
-        payload.date = new Date(payload.date).toISOString() as any;
+        const timezone = selectedStore?.timezone || "UTC";
+        const utcDate = storeLocalToUtc(String(payload.date), timezone);
+        payload.date = utcDate.toISOString() as any;
       }
 
       const res = await fetch(url, {
@@ -71,11 +83,7 @@ export function useUpdateAppointment() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update appointment");
-      const raw = await res.json();
-      return api.appointments.update.responses[200].parse({
-        ...raw,
-        date: new Date(raw.date)
-      });
+      return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.appointments.list.path] }),
   });

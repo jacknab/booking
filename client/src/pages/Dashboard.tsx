@@ -2,8 +2,11 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppointments } from "@/hooks/use-appointments";
 import { useAuth } from "@/hooks/use-auth";
-import { format } from "date-fns";
-import { Users, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { useSelectedStore } from "@/hooks/use-store";
+import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
+import { isSameDay } from "date-fns";
+import { Users, Calendar, DollarSign, TrendingUp, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { 
   BarChart, 
   Bar, 
@@ -26,23 +29,33 @@ const mockData = [
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const today = new Date().toISOString();
-  
-  // In a real app, we would have specific endpoints for stats
-  // Here we just fetch list and filter client-side for demo
+  const { selectedStore } = useSelectedStore();
+  const timezone = selectedStore?.timezone || "UTC";
+  const tzAbbr = getTimezoneAbbr(timezone);
+  const storeNow = getNowInTimezone(timezone);
+
   const { data: appointments } = useAppointments();
 
-  const todayAppointments = appointments?.filter(apt => 
-    new Date(apt.date).toDateString() === new Date().toDateString()
-  ) || [];
+  const todayAppointments = appointments?.filter((apt: any) => {
+    const localDate = toStoreLocal(apt.date, timezone);
+    return isSameDay(localDate, storeNow);
+  }) || [];
 
   return (
     <AppLayout>
       <div className="flex flex-col gap-2 mb-8">
-        <h1 className="text-3xl font-display font-bold text-foreground">
-          Welcome back, {user?.firstName}!
-        </h1>
-        <p className="text-muted-foreground">Here's what's happening in your salon today.</p>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-foreground">
+              Welcome back, {user?.firstName}!
+            </h1>
+            <p className="text-muted-foreground">Here's what's happening at {selectedStore?.name || "your salon"} today.</p>
+          </div>
+          <Badge variant="secondary" className="no-default-active-elevate gap-1.5 text-xs" data-testid="badge-dashboard-timezone">
+            <Globe className="w-3 h-3" />
+            {formatInTz(storeNow, timezone, "h:mm a")} {tzAbbr}
+          </Badge>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -103,26 +116,27 @@ export default function Dashboard() {
 
         {/* Upcoming Appointments List */}
         <Card className="shadow-sm border-border/50">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>Upcoming Today</CardTitle>
+            <span className="text-xs text-muted-foreground">{tzAbbr}</span>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
               {todayAppointments.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No appointments scheduled for today.</p>
+                <p className="text-muted-foreground text-sm" data-testid="text-no-appointments">No appointments scheduled for today.</p>
               ) : (
-                todayAppointments.slice(0, 5).map((apt) => (
-                  <div key={apt.id} className="flex items-start gap-4 pb-4 border-b last:border-0 last:pb-0">
+                todayAppointments.slice(0, 5).map((apt: any) => (
+                  <div key={apt.id} className="flex items-start gap-4 pb-4 border-b last:border-0 last:pb-0" data-testid={`dashboard-appointment-${apt.id}`}>
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center text-primary shrink-0">
-                      <span className="text-xs font-bold uppercase">{format(new Date(apt.date), 'MMM')}</span>
-                      <span className="text-lg font-bold leading-none">{format(new Date(apt.date), 'd')}</span>
+                      <span className="text-xs font-bold uppercase">{formatInTz(apt.date, timezone, 'MMM')}</span>
+                      <span className="text-lg font-bold leading-none">{formatInTz(apt.date, timezone, 'd')}</span>
                     </div>
                     <div className="space-y-1">
                       <p className="font-semibold text-sm">{apt.service?.name || "Service"}</p>
                       <p className="text-xs text-muted-foreground">with {apt.staff?.name}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
-                          {format(new Date(apt.date), 'h:mm a')}
+                          {formatInTz(apt.date, timezone, 'h:mm a')}
                         </span>
                       </div>
                     </div>
@@ -141,7 +155,7 @@ function StatCard({ title, value, icon: Icon, trend, color }: any) {
   return (
     <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-1 mb-4">
           <span className="text-sm font-medium text-muted-foreground">{title}</span>
           <div className={`p-2 rounded-lg bg-background ${color} bg-opacity-10`}>
             <Icon className={`w-5 h-5 ${color}`} />

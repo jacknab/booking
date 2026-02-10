@@ -272,12 +272,36 @@ async function seedDatabase() {
       storeId: store2.id,
     });
 
+    const service3 = await storage.createService({
+      name: "Manicure",
+      description: "Classic manicure with polish",
+      duration: 45,
+      price: "40.00",
+      category: "Nails",
+      storeId: store1.id,
+    });
+    const service4 = await storage.createService({
+      name: "Deep Tissue Massage",
+      description: "60 min therapeutic massage",
+      duration: 60,
+      price: "95.00",
+      category: "Massage",
+      storeId: store2.id,
+    });
+
     // Staff
     const staff1 = await storage.createStaff({
       name: "Sarah Jenkins",
       role: "Senior Stylist",
       bio: "10 years experience.",
       color: "#f472b6",
+      storeId: store1.id,
+    });
+    const staff3 = await storage.createStaff({
+      name: "Lisa Park",
+      role: "Nail Tech",
+      bio: "Nail art specialist.",
+      color: "#a78bfa",
       storeId: store1.id,
     });
     const staff2 = await storage.createStaff({
@@ -287,7 +311,129 @@ async function seedDatabase() {
       color: "#60a5fa",
       storeId: store2.id,
     });
+    const staff4 = await storage.createStaff({
+      name: "Emma Rodriguez",
+      role: "Massage Therapist",
+      bio: "Certified LMT.",
+      color: "#34d399",
+      storeId: store2.id,
+    });
 
-    console.log("Database seeded with stores!");
+    // Customers
+    const cust1 = await storage.createCustomer({
+      name: "Alice Smith",
+      email: "alice@example.com",
+      phone: "555-0101",
+      notes: "Prefers tea over coffee.",
+      storeId: store1.id,
+    });
+    const cust2 = await storage.createCustomer({
+      name: "Bob Johnson",
+      email: "bob@example.com",
+      phone: "555-0202",
+      storeId: store1.id,
+    });
+    const cust3 = await storage.createCustomer({
+      name: "Carol Williams",
+      email: "carol@example.com",
+      phone: "555-0303",
+      storeId: store2.id,
+    });
+    const cust4 = await storage.createCustomer({
+      name: "David Lee",
+      email: "david@example.com",
+      phone: "555-0404",
+      storeId: store2.id,
+    });
+
+    // Appointments - today in each store's timezone
+    // Store 1 (New York, ET) - create appointments at known UTC offsets
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // NY appointments: 10am ET = 15:00 UTC (EST) or 14:00 UTC (EDT)
+    const ny10am = new Date(today);
+    ny10am.setUTCHours(15, 0, 0, 0);
+    await storage.createAppointment({
+      date: ny10am,
+      duration: 60,
+      status: "confirmed",
+      notes: "Regular client",
+      serviceId: service1.id,
+      staffId: staff1.id,
+      customerId: cust1.id,
+      storeId: store1.id,
+    });
+
+    const ny1130am = new Date(today);
+    ny1130am.setUTCHours(16, 30, 0, 0);
+    await storage.createAppointment({
+      date: ny1130am,
+      duration: 45,
+      status: "pending",
+      notes: "",
+      serviceId: service3.id,
+      staffId: staff3.id,
+      customerId: cust2.id,
+      storeId: store1.id,
+    });
+
+    const ny2pm = new Date(today);
+    ny2pm.setUTCHours(19, 0, 0, 0);
+    await storage.createAppointment({
+      date: ny2pm,
+      duration: 60,
+      status: "confirmed",
+      serviceId: service1.id,
+      staffId: staff1.id,
+      customerId: cust2.id,
+      storeId: store1.id,
+    });
+
+    // LA appointments: 10am PT = 18:00 UTC (PST) or 17:00 UTC (PDT)
+    const la10am = new Date(today);
+    la10am.setUTCHours(18, 0, 0, 0);
+    await storage.createAppointment({
+      date: la10am,
+      duration: 30,
+      status: "confirmed",
+      notes: "Beard trim too",
+      serviceId: service2.id,
+      staffId: staff2.id,
+      customerId: cust3.id,
+      storeId: store2.id,
+    });
+
+    const la1pm = new Date(today);
+    la1pm.setUTCHours(21, 0, 0, 0);
+    await storage.createAppointment({
+      date: la1pm,
+      duration: 60,
+      status: "pending",
+      serviceId: service4.id,
+      staffId: staff4.id,
+      customerId: cust4.id,
+      storeId: store2.id,
+    });
+
+    // Products
+    await storage.createProduct({
+      name: "Moroccan Oil Treatment",
+      brand: "Moroccanoil",
+      price: "48.00",
+      stock: 15,
+      category: "Hair Care",
+      storeId: store1.id,
+    });
+    await storage.createProduct({
+      name: "Beard Oil",
+      brand: "Viking Revolution",
+      price: "14.99",
+      stock: 20,
+      category: "Grooming",
+      storeId: store2.id,
+    });
+
+    console.log("Database seeded with stores, staff, services, customers, and appointments!");
   }
 }

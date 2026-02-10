@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -6,8 +6,10 @@ import { useAppointments, useCreateAppointment } from "@/hooks/use-appointments"
 import { useServices } from "@/hooks/use-services";
 import { useStaffList } from "@/hooks/use-staff";
 import { useCustomers } from "@/hooks/use-customers";
-import { format, addDays, subDays, isSameDay, startOfDay, addMinutes } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users } from "lucide-react";
+import { useSelectedStore } from "@/hooks/use-store";
+import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
+import { addDays, subDays, isSameDay, addMinutes } from "date-fns";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAppointmentSchema } from "@shared/schema";
@@ -17,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 const HOUR_HEIGHT = 80;
 const START_HOUR = 8;
@@ -24,24 +27,28 @@ const END_HOUR = 20;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 
 export default function Calendar() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const { selectedStore } = useSelectedStore();
+  const timezone = selectedStore?.timezone || "UTC";
+  const tzAbbr = getTimezoneAbbr(timezone);
+
+  const storeNow = getNowInTimezone(timezone);
+  const [currentDate, setCurrentDate] = useState(storeNow);
   const [selectedStaffId, setSelectedStaffId] = useState<number | "all">("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const dayStart = startOfDay(currentDate);
-  const dayEnd = addDays(dayStart, 1);
+  useEffect(() => {
+    setCurrentDate(getNowInTimezone(timezone));
+    setSelectedStaffId("all");
+  }, [selectedStore?.id, timezone]);
 
-  const { data: appointments, isLoading: aptsLoading } = useAppointments({
-    from: dayStart.toISOString(),
-    to: dayEnd.toISOString(),
-  });
+  const { data: appointments, isLoading: aptsLoading } = useAppointments();
   const { data: staffList } = useStaffList();
   const { data: services } = useServices();
 
   const filteredStaff = useMemo(() => {
     if (!staffList) return [];
     if (selectedStaffId === "all") return staffList;
-    return staffList.filter(s => s.id === selectedStaffId);
+    return staffList.filter((s: any) => s.id === selectedStaffId);
   }, [staffList, selectedStaffId]);
 
   const timeSlots = useMemo(() => {
@@ -56,16 +63,16 @@ export default function Calendar() {
 
   const getAppointmentsForStaff = (staffId: number) => {
     if (!appointments) return [];
-    return appointments.filter(apt => {
-      const aptDate = new Date(apt.date);
-      return apt.staffId === staffId && isSameDay(aptDate, currentDate);
+    return appointments.filter((apt: any) => {
+      const localDate = toStoreLocal(apt.date, timezone);
+      return apt.staffId === staffId && isSameDay(localDate, currentDate);
     });
   };
 
   const getAppointmentStyle = (apt: any) => {
-    const aptDate = new Date(apt.date);
-    const hours = aptDate.getHours();
-    const minutes = aptDate.getMinutes();
+    const localDate = toStoreLocal(apt.date, timezone);
+    const hours = localDate.getHours();
+    const minutes = localDate.getMinutes();
     const topOffset = (hours - START_HOUR + minutes / 60) * HOUR_HEIGHT;
     const height = (apt.duration / 60) * HOUR_HEIGHT;
     return {
@@ -79,14 +86,15 @@ export default function Calendar() {
   };
 
   const weekDayLabels = useMemo(() => {
-    const start = subDays(currentDate, currentDate.getDay());
+    const dayOfWeek = currentDate.getDay();
+    const start = subDays(currentDate, dayOfWeek);
     return Array.from({ length: 7 }).map((_, i) => {
       const d = addDays(start, i);
-      return { date: d, label: format(d, "EEE"), isToday: isSameDay(d, new Date()) };
+      return { date: d, label: formatInTz(d, timezone, "EEE"), isToday: isSameDay(d, storeNow) };
     });
-  }, [currentDate]);
+  }, [currentDate, timezone, storeNow]);
 
-  const goToday = () => setCurrentDate(new Date());
+  const goToday = () => setCurrentDate(getNowInTimezone(timezone));
   const goPrev = () => setCurrentDate(subDays(currentDate, 1));
   const goNext = () => setCurrentDate(addDays(currentDate, 1));
 
@@ -107,11 +115,15 @@ export default function Calendar() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Staff</SelectItem>
-                {staffList?.map(s => (
+                {staffList?.map((s: any) => (
                   <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <Badge variant="secondary" className="no-default-active-elevate gap-1" data-testid="badge-timezone">
+              <Globe className="w-3 h-3" />
+              {tzAbbr}
+            </Badge>
           </div>
 
           {/* Center: Date navigation */}
@@ -120,22 +132,21 @@ export default function Calendar() {
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-base font-semibold px-3 min-w-[200px] text-center" data-testid="text-current-date">
-              {format(currentDate, "EEE d MMM, yyyy")}
+              {formatInTz(currentDate, timezone, "EEE d MMM, yyyy")}
             </span>
             <Button
               variant="secondary"
               size="sm"
               onClick={goToday}
-              className={isSameDay(currentDate, new Date()) ? "bg-primary text-primary-foreground" : ""}
+              className={isSameDay(currentDate, storeNow) ? "bg-primary text-primary-foreground" : ""}
               data-testid="button-today"
             >
               Today
             </Button>
-            {/* Weekday quick nav */}
             <div className="hidden lg:flex items-center gap-0.5 ml-2">
               {weekDayLabels.map((wd) => (
                 <Button
-                  key={wd.label}
+                  key={wd.label + wd.date.toISOString()}
                   variant="ghost"
                   size="sm"
                   className={`px-2 text-xs ${isSameDay(wd.date, currentDate) ? "bg-muted font-bold" : ""}`}
@@ -162,7 +173,7 @@ export default function Calendar() {
               <DialogHeader>
                 <DialogTitle>New Appointment</DialogTitle>
               </DialogHeader>
-              <CreateAppointmentForm onSuccess={() => setIsCreateOpen(false)} />
+              <CreateAppointmentForm onSuccess={() => setIsCreateOpen(false)} timezone={timezone} />
             </DialogContent>
           </Dialog>
         </div>
@@ -173,9 +184,7 @@ export default function Calendar() {
             <div className="flex min-w-[600px]">
               {/* Time axis */}
               <div className="w-[72px] flex-shrink-0 border-r bg-card z-10">
-                {/* Header spacer */}
                 <div className="h-[60px] border-b" />
-                {/* Time labels */}
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
                   {timeSlots.map((slot, i) => (
                     <div
@@ -193,10 +202,10 @@ export default function Calendar() {
               <div className="flex flex-1">
                 {filteredStaff.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
-                    No staff members found. Add staff to see the calendar.
+                    No staff members found for this store.
                   </div>
                 ) : (
-                  filteredStaff.map((member) => {
+                  filteredStaff.map((member: any) => {
                     const staffApts = getAppointmentsForStaff(member.id);
                     const color = getStaffColor(member);
 
@@ -205,14 +214,13 @@ export default function Calendar() {
                         key={member.id}
                         className="flex-1 min-w-[180px] border-r last:border-r-0"
                       >
-                        {/* Staff header */}
                         <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2">
                           <Avatar className="w-7 h-7">
                             <AvatarFallback
                               style={{ backgroundColor: color + "22", color }}
                               className="text-xs font-bold"
                             >
-                              {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                              {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
@@ -220,12 +228,10 @@ export default function Calendar() {
                           </span>
                         </div>
 
-                        {/* Time grid for this staff member */}
                         <div
                           className="relative"
                           style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
                         >
-                          {/* Hour grid lines + striped empty background */}
                           {timeSlots.map((slot, i) => (
                             <div
                               key={slot.hour}
@@ -238,12 +244,9 @@ export default function Calendar() {
                             />
                           ))}
 
-                          {/* Appointment blocks */}
-                          {staffApts.map((apt) => {
+                          {staffApts.map((apt: any) => {
                             const style = getAppointmentStyle(apt);
-                            const aptDate = new Date(apt.date);
-                            const endDate = addMinutes(aptDate, apt.duration);
-                            const timeRange = `${format(aptDate, "h:mm")} - ${format(endDate, "h:mm a")}`;
+                            const timeRange = `${formatInTz(apt.date, timezone, "h:mm")} - ${formatInTz(addMinutes(new Date(apt.date), apt.duration), timezone, "h:mm a")}`;
 
                             return (
                               <div
@@ -286,11 +289,12 @@ export default function Calendar() {
   );
 }
 
-function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
+function CreateAppointmentForm({ onSuccess, timezone }: { onSuccess: () => void; timezone: string }) {
   const { mutate, isPending } = useCreateAppointment();
   const { data: services } = useServices();
   const { data: staffList } = useStaffList();
   const { data: customers } = useCustomers();
+  const tzAbbr = getTimezoneAbbr(timezone);
 
   const formSchema = insertAppointmentSchema.extend({
     serviceId: z.coerce.number(),
@@ -306,7 +310,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
 
   const handleServiceChange = (val: string) => {
     setValue("serviceId", Number(val));
-    const service = services?.find(s => s.id === Number(val));
+    const service = services?.find((s: any) => s.id === Number(val));
     if (service) {
       setValue("duration", service.duration);
     }
@@ -321,7 +325,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
             <SelectValue placeholder="Select Client" />
           </SelectTrigger>
           <SelectContent>
-            {customers?.map(c => (
+            {customers?.map((c: any) => (
               <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
             ))}
           </SelectContent>
@@ -337,7 +341,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
               <SelectValue placeholder="Select Service" />
             </SelectTrigger>
             <SelectContent>
-              {services?.map(s => (
+              {services?.map((s: any) => (
                 <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.duration}m)</SelectItem>
               ))}
             </SelectContent>
@@ -352,7 +356,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
               <SelectValue placeholder="Select Staff" />
             </SelectTrigger>
             <SelectContent>
-              {staffList?.map(s => (
+              {staffList?.map((s: any) => (
                 <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
               ))}
             </SelectContent>
@@ -362,13 +366,14 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="date">Date & Time</Label>
+        <Label htmlFor="date">Date & Time ({tzAbbr})</Label>
         <Input
           id="date"
           type="datetime-local"
           {...register("date")}
           data-testid="input-date"
         />
+        <p className="text-xs text-muted-foreground">Times are in the store's timezone: {timezone}</p>
         {errors.date && <span className="text-xs text-destructive">Date is required</span>}
       </div>
 

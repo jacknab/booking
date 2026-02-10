@@ -5,17 +5,21 @@ import {
   Users, 
   Scissors, 
   ShoppingBag, 
-  Settings, 
   LogOut,
-  UserCircle
+  UserCircle,
+  Store,
+  Globe,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useSelectedStore } from "@/hooks/use-store";
+import { getTimezoneAbbr } from "@/lib/timezone";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/appointments", label: "Appointments", icon: Users }, // Shared view
   { href: "/services", label: "Services", icon: Scissors },
   { href: "/staff", label: "Staff", icon: UserCircle },
   { href: "/products", label: "Products", icon: ShoppingBag },
@@ -25,6 +29,10 @@ const navItems = [
 export function Sidebar() {
   const [location] = useLocation();
   const { logout, user } = useAuth();
+  const { selectedStore, setSelectedStoreId, stores } = useSelectedStore();
+
+  const timezone = selectedStore?.timezone || "UTC";
+  const tzAbbr = getTimezoneAbbr(timezone);
 
   return (
     <aside className="hidden md:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-card z-20">
@@ -39,6 +47,38 @@ export function Sidebar() {
         </Link>
       </div>
 
+      {stores.length > 0 && (
+        <div className="px-4 py-3 border-b">
+          <Select
+            value={selectedStore ? String(selectedStore.id) : undefined}
+            onValueChange={(val) => setSelectedStoreId(Number(val))}
+          >
+            <SelectTrigger className="w-full" data-testid="select-store-switcher">
+              <div className="flex items-center gap-2 truncate">
+                <Store className="w-4 h-4 text-primary flex-shrink-0" />
+                <SelectValue placeholder="Select Store" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {stores.map((s) => (
+                <SelectItem key={s.id} value={String(s.id)}>
+                  <div className="flex flex-col">
+                    <span>{s.name}</span>
+                    <span className="text-xs text-muted-foreground">{s.timezone}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1.5 mt-2 px-1">
+            <Globe className="w-3 h-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground" data-testid="text-store-timezone">
+              {timezone} ({tzAbbr})
+            </span>
+          </div>
+        </div>
+      )}
+
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
         {navItems.map((item) => {
           const isActive = location === item.href;
@@ -51,6 +91,7 @@ export function Sidebar() {
                     ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
+                data-testid={`nav-${item.label.toLowerCase()}`}
               >
                 <item.icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                 {item.label}
@@ -73,6 +114,7 @@ export function Sidebar() {
         <button
           onClick={() => logout()}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted text-sm font-medium transition-colors"
+          data-testid="button-logout"
         >
           <LogOut className="w-4 h-4" />
           Sign Out

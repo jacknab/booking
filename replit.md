@@ -76,11 +76,21 @@ migrations/       — Drizzle migration files
 script/build.ts   — Production build script (Vite + esbuild)
 ```
 
+### Multi-Timezone Architecture
+- Each store has a `timezone` field (IANA timezone string, e.g. "America/New_York")
+- All dates are stored in UTC in the database
+- Frontend converts UTC to store-local time for display using `date-fns-tz` (formatInTimeZone, toZonedTime)
+- Appointment creation converts store-local input to UTC using `fromZonedTime` before sending to the API
+- `StoreProvider` context manages the currently selected store; all data hooks filter by `selectedStore.id`
+- Sidebar shows a store switcher dropdown and timezone indicator
+- Calendar and Dashboard display times in the selected store's timezone
+- Switching stores resets calendar date to "today" in the new store's timezone
+
 ### Key Design Patterns
 1. **Shared Schema**: Database schema in `shared/schema.ts` is used by both server (for DB operations) and client (for form validation via `drizzle-zod`)
 2. **Shared Route Contracts**: `shared/routes.ts` defines API contracts with Zod schemas, ensuring type safety across the stack
 3. **Storage Interface**: `server/storage.ts` defines an `IStorage` interface, abstracting database operations for potential swapping
-4. **Custom Hooks Pattern**: Each data domain (appointments, services, staff, etc.) has its own hook file with CRUD mutations and queries
+4. **Custom Hooks Pattern**: Each data domain (appointments, services, staff, etc.) has its own hook file with CRUD mutations and queries. All hooks use `useSelectedStore()` to scope queries by store.
 5. **Dev/Prod Split**: In dev, Vite middleware serves the frontend with HMR. In production, pre-built static files are served from `dist/public`
 
 ### Build & Run

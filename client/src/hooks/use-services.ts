@@ -1,14 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type InsertService } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
+import type { InsertService } from "@shared/schema";
+import { useSelectedStore } from "@/hooks/use-store";
 
 export function useServices() {
+  const { selectedStore } = useSelectedStore();
+  const storeId = selectedStore?.id;
+
   return useQuery({
-    queryKey: [api.services.list.path],
+    queryKey: [api.services.list.path, storeId],
     queryFn: async () => {
-      const res = await fetch(api.services.list.path, { credentials: "include" });
+      const url = storeId
+        ? `${api.services.list.path}?storeId=${storeId}`
+        : api.services.list.path;
+      const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch services");
-      return api.services.list.responses[200].parse(await res.json());
+      return res.json();
     },
+    enabled: !!storeId,
   });
 }
 
@@ -20,7 +29,7 @@ export function useService(id: number) {
       const res = await fetch(url, { credentials: "include" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch service");
-      return api.services.get.responses[200].parse(await res.json());
+      return res.json();
     },
     enabled: !!id,
   });
@@ -28,16 +37,19 @@ export function useService(id: number) {
 
 export function useCreateService() {
   const queryClient = useQueryClient();
+  const { selectedStore } = useSelectedStore();
+
   return useMutation({
     mutationFn: async (data: InsertService) => {
+      const payload = { ...data, storeId: selectedStore?.id ?? null };
       const res = await fetch(api.services.create.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create service");
-      return api.services.create.responses[201].parse(await res.json());
+      return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.services.list.path] }),
   });
@@ -55,7 +67,7 @@ export function useUpdateService() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update service");
-      return api.services.update.responses[200].parse(await res.json());
+      return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.services.list.path] }),
   });
