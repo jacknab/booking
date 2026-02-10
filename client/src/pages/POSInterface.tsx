@@ -206,10 +206,16 @@ export default function POSInterface() {
     queryKey: ["/api/customers", clientIdParam],
     queryFn: async () => {
       if (!clientIdParam || !selectedStore?.id) return null;
-      const res = await fetch(`/api/customers?storeId=${selectedStore.id}`, { credentials: "include" });
-      if (!res.ok) return null;
-      const custs: Customer[] = await res.json();
-      return custs.find(c => c.id === Number(clientIdParam)) || null;
+      try {
+        const res = await fetch(`/api/customers?storeId=${selectedStore.id}`, { credentials: "include" });
+        if (!res.ok) return null;
+        const custs: Customer[] = await res.json();
+        const found = custs.find(c => String(c.id) === String(clientIdParam)) || null;
+        return found;
+      } catch (err) {
+        console.error("Error fetching client for POS:", err);
+        return null;
+      }
     },
     enabled: !!clientIdParam && !!selectedStore?.id,
   });

@@ -93,7 +93,7 @@ export default function NewBooking() {
 
   useEffect(() => {
     if (paramClientId && customers && !clientInitialized) {
-      const client = customers.find((c: Customer) => c.id === paramClientId);
+      const client = customers.find((c: Customer) => String(c.id) === String(paramClientId));
       if (client) {
         setSelectedCustomer(client);
         setClientInitialized(true);
