@@ -252,6 +252,10 @@ export default function POSInterface() {
     setActiveItemIndex(newIndex);
   };
 
+  const handleDismissAddons = () => {
+    setActiveItemIndex(null);
+  };
+
   const handleRemoveItem = (index: number) => {
     setTicketItems(prev => prev.filter((_, i) => i !== index));
     if (activeItemIndex === index) {
@@ -292,6 +296,7 @@ export default function POSInterface() {
   };
 
   const handleCheckout = () => {
+    const now = new Date();
     const data: ReceiptData = {
       store: selectedStore,
       client: client || null,
@@ -302,6 +307,8 @@ export default function POSInterface() {
       grandTotal,
       paymentMethod: "Card",
       transactionId: Math.random().toString(36).substring(2, 10).toUpperCase(),
+      dateStr: now.toLocaleDateString(),
+      timeStr: now.toLocaleTimeString(),
     };
     setReceiptData(data);
     setCheckoutComplete(true);
@@ -417,7 +424,7 @@ export default function POSInterface() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setActiveItemIndex(null)}
+                  onClick={handleDismissAddons}
                   data-testid="button-done-addons"
                 >
                   Done
@@ -464,20 +471,8 @@ export default function POSInterface() {
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : activeItemIndex !== null && addonsLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
           ) : (
             <>
-              {activeItemIndex !== null && (!availableAddons || availableAddons.length === 0) && (
-                <div className="mb-4 p-3 rounded-md bg-muted/50 text-sm text-muted-foreground flex items-center justify-between gap-2">
-                  <span>No add-ons available for {ticketItems[activeItemIndex]?.service.name}</span>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveItemIndex(null)} data-testid="button-dismiss-no-addons">
-                    Continue
-                  </Button>
-                </div>
-              )}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filteredServices.map((service: Service) => (
                   <Card
