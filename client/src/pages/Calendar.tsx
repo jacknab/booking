@@ -289,35 +289,43 @@ export default function Calendar() {
           </Badge>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={goPrev} data-testid="button-prev-day">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-base font-semibold px-3 min-w-[200px] text-center" data-testid="text-current-date">
+          <span className="text-base font-semibold whitespace-nowrap" data-testid="text-current-date">
             {formatInTz(currentDate, timezone, "EEE d MMM, yyyy")}
           </span>
+          <div className="hidden lg:flex items-center bg-muted rounded-full p-0.5 ml-1">
+            {weekDayLabels.map((wd) => {
+              const isSelected = isSameDay(wd.date, currentDate);
+              const wdIsToday = isSameDay(wd.date, storeNow);
+              return (
+                <button
+                  key={wd.label + wd.date.toISOString()}
+                  className={cn(
+                    "px-3 py-1 text-sm font-medium rounded-full transition-colors",
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover-elevate"
+                  )}
+                  onClick={() => setCurrentDate(wd.date)}
+                  data-testid={`button-weekday-${wd.label.toLowerCase()}`}
+                >
+                  {wdIsToday && isSelected ? "Today" : wd.label}
+                </button>
+              );
+            })}
+          </div>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="sm"
             onClick={goToday}
-            className={isToday ? "bg-primary text-primary-foreground" : ""}
+            className="lg:hidden"
             data-testid="button-today"
           >
             Today
           </Button>
-          <div className="hidden lg:flex items-center gap-0.5 ml-2">
-            {weekDayLabels.map((wd) => (
-              <Button
-                key={wd.label + wd.date.toISOString()}
-                variant="ghost"
-                size="sm"
-                className={`px-2 text-xs ${isSameDay(wd.date, currentDate) ? "bg-muted font-bold" : ""}`}
-                onClick={() => setCurrentDate(wd.date)}
-              >
-                {wd.label}
-              </Button>
-            ))}
-          </div>
           <Button variant="ghost" size="icon" onClick={goNext} data-testid="button-next-day">
             <ChevronRight className="w-4 h-4" />
           </Button>
