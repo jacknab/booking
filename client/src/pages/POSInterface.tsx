@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useServices } from "@/hooks/use-services";
-import { useServiceCategories } from "@/hooks/use-addons";
+import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation } from "wouter";
-import { ArrowLeft, User, X, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, User, X, Sparkles, Loader2, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Service, Customer } from "@shared/schema";
+import type { Service, Addon, Customer } from "@shared/schema";
 
 export default function POSInterface() {
   const [, navigate] = useLocation();
@@ -18,11 +18,18 @@ export default function POSInterface() {
   const params = new URLSearchParams(window.location.search);
   const clientIdParam = params.get("clientId");
 
-  const [ticketServices, setTicketServices] = useState<Service[]>([]);
+  type TicketItem = { service: Service; addons: Addon[] };
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
 
   const { data: services, isLoading: servicesLoading } = useServices();
   const { data: categories } = useServiceCategories();
+
+  const activeServiceId = activeItemIndex !== null && ticketItems[activeItemIndex]
+    ? ticketItems[activeItemIndex].service.id
+    : null;
+  const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(activeServiceId);
 
   const { data: client } = useQuery<Customer | null>({
     queryKey: ["/api/customers", clientIdParam],
@@ -55,15 +62,43 @@ export default function POSInterface() {
   }, [services, activeCategory]);
 
   const handleAddService = (service: Service) => {
-    setTicketServices(prev => [...prev, service]);
+    const newIndex = ticketItems.length;
+    setTicketItems(prev => [...prev, { service, addons: [] }]);
+    setActiveItemIndex(newIndex);
   };
 
-  const handleRemoveService = (index: number) => {
-    setTicketServices(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveItem = (index: number) => {
+    setTicketItems(prev => prev.filter((_, i) => i !== index));
+    if (activeItemIndex === index) {
+      setActiveItemIndex(null);
+    } else if (activeItemIndex !== null && activeItemIndex > index) {
+      setActiveItemIndex(activeItemIndex - 1);
+    }
   };
 
-  const ticketTotal = ticketServices.reduce((sum, s) => sum + Number(s.price), 0);
-  const ticketDuration = ticketServices.reduce((sum, s) => sum + s.duration, 0);
+  const handleToggleAddon = (addon: Addon) => {
+    if (activeItemIndex === null) return;
+    setTicketItems(prev => prev.map((item, i) => {
+      if (i !== activeItemIndex) return item;
+      const exists = item.addons.find(a => a.id === addon.id);
+      return {
+        ...item,
+        addons: exists
+          ? item.addons.filter(a => a.id !== addon.id)
+          : [...item.addons, addon],
+      };
+    }));
+  };
+
+  const ticketTotal = ticketItems.reduce((sum, item) => {
+    const svcPrice = Number(item.service.price);
+    const addonPrice = item.addons.reduce((s, a) => s + Number(a.price), 0);
+    return sum + svcPrice + addonPrice;
+  }, 0);
+  const ticketDuration = ticketItems.reduce((sum, item) => {
+    const addonDur = item.addons.reduce((s, a) => s + a.duration, 0);
+    return sum + item.service.duration + addonDur;
+  }, 0);
 
   return (
     <div className="h-screen w-screen flex bg-background">
@@ -95,31 +130,100 @@ export default function POSInterface() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {servicesLoading ? (
+          {activeItemIndex !== null && availableAddons && availableAddons.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    Add-ons for {ticketItems[activeItemIndex]?.service.name}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Select optional extras</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveItemIndex(null)}
+                  data-testid="button-done-addons"
+                >
+                  Done
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {availableAddons.map((addon: Addon) => {
+                  const isSelected = ticketItems[activeItemIndex]?.addons.some(a => a.id === addon.id) || false;
+                  return (
+                    <Card
+                      key={addon.id}
+                      className={cn(
+                        "p-4 cursor-pointer transition-all",
+                        isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
+                      )}
+                      onClick={() => handleToggleAddon(addon)}
+                      data-testid={`pos-addon-${addon.id}`}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-sm leading-tight">{addon.name}</h3>
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 text-primary-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        {addon.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{addon.description}</p>
+                        )}
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                          <span className="font-bold text-sm">+${Number(addon.price).toFixed(2)}</span>
+                          <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
+                            +{addon.duration}m
+                          </Badge>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ) : servicesLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : activeItemIndex !== null && addonsLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredServices.map((service: Service) => (
-                <Card
-                  key={service.id}
-                  className="p-4 cursor-pointer hover-elevate"
-                  onClick={() => handleAddService(service)}
-                  data-testid={`pos-service-${service.id}`}
-                >
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-semibold text-sm leading-tight">{service.name}</h3>
-                    <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-                      <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
-                      <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
-                        {service.duration}m
-                      </Badge>
+            <>
+              {activeItemIndex !== null && (!availableAddons || availableAddons.length === 0) && (
+                <div className="mb-4 p-3 rounded-md bg-muted/50 text-sm text-muted-foreground flex items-center justify-between gap-2">
+                  <span>No add-ons available for {ticketItems[activeItemIndex]?.service.name}</span>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveItemIndex(null)} data-testid="button-dismiss-no-addons">
+                    Continue
+                  </Button>
+                </div>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredServices.map((service: Service) => (
+                  <Card
+                    key={service.id}
+                    className="p-4 cursor-pointer hover-elevate"
+                    onClick={() => handleAddService(service)}
+                    data-testid={`pos-service-${service.id}`}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <h3 className="font-semibold text-sm leading-tight">{service.name}</h3>
+                      <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                        <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
+                        <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
+                          {service.duration}m
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -145,20 +249,35 @@ export default function POSInterface() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {ticketServices.length > 0 ? (
+          {ticketItems.length > 0 ? (
             <div className="space-y-3">
-              {ticketServices.map((svc, index) => (
-                <div key={index} className="flex items-start justify-between gap-2" data-testid={`pos-ticket-item-${index}`}>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm">{svc.name}</h4>
-                    <p className="text-xs text-muted-foreground">{svc.duration} min</p>
+              {ticketItems.map((item, index) => (
+                <div key={index} data-testid={`pos-ticket-item-${index}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 cursor-pointer" onClick={() => setActiveItemIndex(index)}>
+                      <h4 className={cn("font-semibold text-sm", activeItemIndex === index && "text-primary")}>{item.service.name}</h4>
+                      <p className="text-xs text-muted-foreground">{item.service.duration} min</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">${Number(item.service.price).toFixed(2)}</span>
+                      <button onClick={() => handleRemoveItem(index)} className="text-muted-foreground">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">${Number(svc.price).toFixed(2)}</span>
-                    <button onClick={() => handleRemoveService(index)} className="text-muted-foreground">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
+                  {item.addons.length > 0 && (
+                    <div className="space-y-1 pl-3 mt-1 border-l-2 border-muted">
+                      {item.addons.map((addon) => (
+                        <div key={addon.id} className="flex items-center justify-between gap-2" data-testid={`pos-ticket-addon-${addon.id}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">+</span>
+                            <span className="text-xs font-medium">{addon.name}</span>
+                          </div>
+                          <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -181,7 +300,7 @@ export default function POSInterface() {
           <Button
             className="w-full bg-pink-500 text-white"
             size="lg"
-            disabled={ticketServices.length === 0}
+            disabled={ticketItems.length === 0}
             onClick={() => {
               navigate("/calendar");
             }}

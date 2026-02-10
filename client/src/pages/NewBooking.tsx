@@ -557,12 +557,14 @@ export default function NewBooking() {
                             data-testid={`button-slot-${slot.time}`}
                           >
                             <span className="font-semibold">{timeLabel}</span>
-                            <span className={cn(
-                              "text-[10px] truncate max-w-full",
-                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
-                            )}>
-                              {slot.staffName}
-                            </span>
+                            {staffMode === "specific" && (
+                              <span className={cn(
+                                "text-[10px] truncate max-w-full",
+                                isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                              )}>
+                                {slot.staffName}
+                              </span>
+                            )}
                           </button>
                         );
                       })}
