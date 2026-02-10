@@ -132,6 +132,16 @@ export const cashDrawerSessions = pgTable("cash_drawer_sessions", {
   notes: text("notes"),
 });
 
+export const calendarSettings = pgTable("calendar_settings", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  startOfWeek: text("start_of_week").notNull().default("monday"),
+  timeSlotInterval: integer("time_slot_interval").notNull().default(15),
+  nonWorkingHoursDisplay: integer("non_working_hours_display").notNull().default(1),
+  allowBookingOutsideHours: boolean("allow_booking_outside_hours").notNull().default(true),
+  autoCompleteAppointments: boolean("auto_complete_appointments").notNull().default(true),
+});
+
 export const drawerActions = pgTable("drawer_actions", {
   id: serial("id").primaryKey(),
   sessionId: integer("session_id").references(() => cashDrawerSessions.id).notNull(),
@@ -153,6 +163,11 @@ export const storesRelations = relations(stores, ({ many }) => ({
   serviceCategories: many(serviceCategories),
   addons: many(addons),
   cashDrawerSessions: many(cashDrawerSessions),
+  calendarSettings: many(calendarSettings),
+}));
+
+export const calendarSettingsRelations = relations(calendarSettings, ({ one }) => ({
+  store: one(stores, { fields: [calendarSettings.storeId], references: [stores.id] }),
 }));
 
 export const cashDrawerSessionsRelations = relations(cashDrawerSessions, ({ one, many }) => ({
@@ -241,6 +256,7 @@ export const insertStaffAvailabilitySchema = createInsertSchema(staffAvailabilit
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
+export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings).omit({ id: true });
 export const insertCashDrawerSessionSchema = createInsertSchema(cashDrawerSessions).omit({ id: true });
 export const insertDrawerActionSchema = createInsertSchema(drawerActions).omit({ id: true });
 
@@ -281,6 +297,9 @@ export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
+
+export type CalendarSettings = typeof calendarSettings.$inferSelect;
+export type InsertCalendarSettings = z.infer<typeof insertCalendarSettingsSchema>;
 
 export type CashDrawerSession = typeof cashDrawerSessions.$inferSelect;
 export type InsertCashDrawerSession = z.infer<typeof insertCashDrawerSessionSchema>;

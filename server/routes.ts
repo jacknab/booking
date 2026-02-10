@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth, isAuthenticated } from "./auth";
 import { z } from "zod";
-import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { 
   insertStoreSchema,
   insertServiceCategorySchema,
@@ -17,6 +17,7 @@ import {
   type Staff,
   insertProductSchema,
   insertCashDrawerSessionSchema,
+  insertCalendarSettingsSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(
@@ -377,9 +378,11 @@ export async function registerRoutes(
 
       const tz = store.timezone || "UTC";
 
-      const businessStartHour = 9;
-      const businessEndHour = 21;
-      const slotInterval = 30;
+      const calSettings = await storage.getCalendarSettings(storeId);
+      const allowOutside = calSettings?.allowBookingOutsideHours ?? true;
+      const businessStartHour = allowOutside ? 7 : 9;
+      const businessEndHour = allowOutside ? 22 : 18;
+      const slotInterval = calSettings?.timeSlotInterval || 15;
 
       const dayStartLocal = fromZonedTime(new Date(`${date}T00:00:00`), tz);
       const dayEndLocal = fromZonedTime(new Date(`${date}T23:59:59.999`), tz);
@@ -523,6 +526,23 @@ export async function registerRoutes(
       customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
     };
     const appointments = await storage.getAppointments(filters);
+
+    if (filters.storeId) {
+      const calSettings = await storage.getCalendarSettings(filters.storeId);
+      if (calSettings?.autoCompleteAppointments) {
+        const now = new Date();
+        for (const apt of appointments) {
+          if (apt.status === "confirmed" || apt.status === "started" || apt.status === "pending") {
+            const aptEnd = new Date(new Date(apt.date).getTime() + apt.duration * 60000);
+            if (aptEnd < now) {
+              await storage.updateAppointment(apt.id, { status: "completed" });
+              apt.status = "completed";
+            }
+          }
+        }
+      }
+    }
+
     res.json(appointments);
   });
 
@@ -532,6 +552,22 @@ export async function registerRoutes(
         ...req.body,
         date: new Date(req.body.date),
       });
+
+      if (input.storeId) {
+        const calSettings = await storage.getCalendarSettings(input.storeId);
+        if (calSettings && !calSettings.allowBookingOutsideHours) {
+          const store = await storage.getStore(input.storeId);
+          const tz = store?.timezone || "UTC";
+          const localStart = toZonedTime(input.date, tz);
+          const localStartHour = localStart.getHours() + localStart.getMinutes() / 60;
+          const durationHours = (input.duration || 30) / 60;
+          const localEndHour = localStartHour + durationHours;
+          if (localStartHour < 9 || localEndHour > 18) {
+            return res.status(400).json({ message: "Booking outside opening hours is not allowed" });
+          }
+        }
+      }
+
       const appointment = await storage.createAppointment(input);
       res.status(201).json(appointment);
     } catch (error) {
@@ -590,6 +626,34 @@ export async function registerRoutes(
   app.delete(api.products.delete.path, async (req, res) => {
     await storage.deleteProduct(Number(req.params.id));
     res.status(204).end();
+  });
+
+  // === CALENDAR SETTINGS ===
+  app.get(api.calendarSettings.get.path, async (req, res) => {
+    const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
+    if (!storeId) return res.status(400).json({ message: "storeId required" });
+    const settings = await storage.getCalendarSettings(storeId);
+    res.json(settings || null);
+  });
+
+  app.put(api.calendarSettings.upsert.path, async (req, res) => {
+    try {
+      const storeId = req.body.storeId ? Number(req.body.storeId) : undefined;
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+      const validatedInput = insertCalendarSettingsSchema.omit({ storeId: true }).partial().extend({
+        startOfWeek: z.enum(["monday", "sunday", "saturday"]).optional(),
+        timeSlotInterval: z.union([z.literal(5), z.literal(10), z.literal(15), z.literal(20), z.literal(30), z.literal(60)]).optional(),
+        nonWorkingHoursDisplay: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional(),
+      }).parse(req.body);
+      const settings = await storage.upsertCalendarSettings(storeId, validatedInput);
+      res.json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(400).json({ message: "Invalid input" });
+      }
+    }
   });
 
   // === CASH DRAWER ===

@@ -9,6 +9,7 @@ import {
   insertStaffSchema,
   insertStaffServiceSchema,
   insertStaffAvailabilitySchema,
+  insertCalendarSettingsSchema,
   insertCustomerSchema, 
   insertAppointmentSchema, 
   insertProductSchema,
@@ -22,6 +23,7 @@ import {
   appointmentAddons,
   staffServices,
   staffAvailability,
+  calendarSettings,
   staff,
   customers,
   appointments,
@@ -455,6 +457,31 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  calendarSettings: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/calendar-settings' as const,
+      responses: {
+        200: z.custom<typeof calendarSettings.$inferSelect>().nullable(),
+      },
+    },
+    upsert: {
+      method: 'PUT' as const,
+      path: '/api/calendar-settings' as const,
+      input: z.object({
+        storeId: z.number(),
+        startOfWeek: z.string().optional(),
+        timeSlotInterval: z.number().optional(),
+        nonWorkingHoursDisplay: z.number().optional(),
+        allowBookingOutsideHours: z.boolean().optional(),
+        autoCompleteAppointments: z.boolean().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof calendarSettings.$inferSelect>(),
+        400: errorSchemas.validation,
       },
     },
   },

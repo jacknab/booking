@@ -7,7 +7,8 @@ import {
   ShoppingBag, 
   LogOut,
   UserCircle,
-  Banknote
+  Banknote,
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
+  { href: "/calendar-settings", label: "Calendar Settings", icon: Settings },
 ];
 
 export function Sidebar() {

@@ -1,7 +1,7 @@
 import { 
   stores, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
-  cashDrawerSessions, drawerActions,
+  calendarSettings, cashDrawerSessions, drawerActions,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -11,6 +11,7 @@ import {
   type Staff, type InsertStaff,
   type StaffService, type InsertStaffService,
   type StaffAvailability, type InsertStaffAvailability,
+  type CalendarSettings, type InsertCalendarSettings,
   type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type AppointmentWithDetails,
   type Product, type InsertProduct,
@@ -82,6 +83,9 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: number): Promise<void>;
+
+  getCalendarSettings(storeId: number): Promise<CalendarSettings | undefined>;
+  upsertCalendarSettings(storeId: number, settings: Partial<InsertCalendarSettings>): Promise<CalendarSettings>;
 
   getCashDrawerSessions(storeId: number): Promise<CashDrawerSessionWithActions[]>;
   getCashDrawerSession(id: number): Promise<CashDrawerSessionWithActions | undefined>;
@@ -377,6 +381,23 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  // Calendar Settings
+  async getCalendarSettings(storeId: number): Promise<CalendarSettings | undefined> {
+    const [settings] = await db.select().from(calendarSettings).where(eq(calendarSettings.storeId, storeId));
+    return settings;
+  }
+
+  async upsertCalendarSettings(storeId: number, settings: Partial<InsertCalendarSettings>): Promise<CalendarSettings> {
+    const existing = await this.getCalendarSettings(storeId);
+    if (existing) {
+      const [updated] = await db.update(calendarSettings).set(settings).where(eq(calendarSettings.id, existing.id)).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(calendarSettings).values({ ...settings, storeId }).returning();
+      return created;
+    }
   }
 
   // Cash Drawer Sessions

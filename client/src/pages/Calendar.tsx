@@ -7,20 +7,20 @@ import { Input } from "@/components/ui/input";
 import { useAppointments, useUpdateAppointment } from "@/hooks/use-appointments";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
+import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
 const HOUR_HEIGHT = 80;
-const START_HOUR = 8;
-const END_HOUR = 20;
-const TOTAL_HOURS = END_HOUR - START_HOUR;
+const DEFAULT_BUSINESS_START = 9;
+const DEFAULT_BUSINESS_END = 18;
 
-function useCurrentTimeLine(timezone: string) {
+function useCurrentTimeLine(timezone: string, startHour: number, endHour: number) {
   const [position, setPosition] = useState<number | null>(null);
   const [timeLabel, setTimeLabel] = useState("");
 
@@ -29,8 +29,8 @@ function useCurrentTimeLine(timezone: string) {
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const totalMinutes = hours * 60 + minutes;
-    const startMinutes = START_HOUR * 60;
-    const endMinutes = END_HOUR * 60;
+    const startMinutes = startHour * 60;
+    const endMinutes = endHour * 60;
 
     if (totalMinutes < startMinutes || totalMinutes > endMinutes) {
       setPosition(null);
@@ -45,7 +45,7 @@ function useCurrentTimeLine(timezone: string) {
     const m = String(minutes).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
     setTimeLabel(`${h}:${m} ${ampm}`);
-  }, [timezone]);
+  }, [timezone, startHour, endHour]);
 
   useEffect(() => {
     updatePosition();
@@ -62,6 +62,19 @@ export default function Calendar() {
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const tzAbbr = getTimezoneAbbr(timezone);
+  const { data: calSettings } = useCalendarSettings();
+
+  const settings = {
+    startOfWeek: calSettings?.startOfWeek || DEFAULT_CALENDAR_SETTINGS.startOfWeek,
+    timeSlotInterval: calSettings?.timeSlotInterval || DEFAULT_CALENDAR_SETTINGS.timeSlotInterval,
+    nonWorkingHoursDisplay: calSettings?.nonWorkingHoursDisplay ?? DEFAULT_CALENDAR_SETTINGS.nonWorkingHoursDisplay,
+    allowBookingOutsideHours: calSettings?.allowBookingOutsideHours ?? DEFAULT_CALENDAR_SETTINGS.allowBookingOutsideHours,
+    autoCompleteAppointments: calSettings?.autoCompleteAppointments ?? DEFAULT_CALENDAR_SETTINGS.autoCompleteAppointments,
+  };
+
+  const START_HOUR = Math.max(0, DEFAULT_BUSINESS_START - settings.nonWorkingHoursDisplay);
+  const END_HOUR = Math.min(24, DEFAULT_BUSINESS_END + settings.nonWorkingHoursDisplay);
+  const TOTAL_HOURS = END_HOUR - START_HOUR;
 
   const storeNow = getNowInTimezone(timezone);
   const [currentDate, setCurrentDate] = useState(storeNow);
@@ -71,7 +84,7 @@ export default function Calendar() {
   const [showCheckout, setShowCheckout] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone);
+  const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
   const updateAppointment = useUpdateAppointment();
 
   useEffect(() => {
@@ -99,14 +112,25 @@ export default function Calendar() {
   }, [staffList, selectedStaffId]);
 
   const timeSlots = useMemo(() => {
-    return Array.from({ length: TOTAL_HOURS + 1 }).map((_, i) => {
-      const hour = START_HOUR + i;
-      return {
-        hour,
-        label: hour === 0 ? "12 AM" : hour === 12 ? "12 PM" : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`,
-      };
-    });
-  }, []);
+    const slots: { hour: number; minute: number; label: string; isHour: boolean }[] = [];
+    const interval = settings.timeSlotInterval;
+    for (let h = START_HOUR; h <= END_HOUR; h++) {
+      for (let m = 0; m < 60; m += interval) {
+        if (h === END_HOUR && m > 0) break;
+        const isHour = m === 0;
+        let label = "";
+        if (isHour) {
+          label = h === 0 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
+        } else {
+          const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+          const ampm = h >= 12 ? "PM" : "AM";
+          label = `${displayH}:${String(m).padStart(2, "0")} ${ampm}`;
+        }
+        slots.push({ hour: h, minute: m, label, isHour });
+      }
+    }
+    return slots;
+  }, [START_HOUR, END_HOUR, settings.timeSlotInterval]);
 
   const getAppointmentsForStaff = (staffId: number) => {
     if (!appointments) return [];
@@ -134,12 +158,14 @@ export default function Calendar() {
 
   const weekDayLabels = useMemo(() => {
     const dayOfWeek = currentDate.getDay();
-    const start = subDays(currentDate, dayOfWeek);
+    const weekStartDay = settings.startOfWeek === "sunday" ? 0 : settings.startOfWeek === "saturday" ? 6 : 1;
+    const diff = (dayOfWeek - weekStartDay + 7) % 7;
+    const start = subDays(currentDate, diff);
     return Array.from({ length: 7 }).map((_, i) => {
       const d = addDays(start, i);
       return { date: d, label: formatInTz(d, timezone, "EEE"), isToday: isSameDay(d, storeNow) };
     });
-  }, [currentDate, timezone, storeNow]);
+  }, [currentDate, timezone, storeNow, settings.startOfWeek]);
 
   const goToday = () => setCurrentDate(getNowInTimezone(timezone));
   const goPrev = () => setCurrentDate(subDays(currentDate, 1));
@@ -269,10 +295,17 @@ export default function Calendar() {
           </Button>
         </div>
 
-        <Button onClick={() => navigate("/booking/new")} data-testid="button-new-appointment">
-          <CalendarPlus className="w-4 h-4 mr-2" />
-          New Appointment
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/calendar-settings">
+            <Button variant="ghost" size="icon" data-testid="button-calendar-settings">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Button onClick={() => navigate("/booking/new")} data-testid="button-new-appointment">
+            <CalendarPlus className="w-4 h-4 mr-2" />
+            New Appointment
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -282,15 +315,20 @@ export default function Calendar() {
               <div className="w-[72px] flex-shrink-0 border-r bg-card z-10 sticky left-0">
                 <div className="h-[60px] border-b" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
-                  {timeSlots.map((slot, i) => (
-                    <div
-                      key={slot.hour}
-                      className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
-                      style={{ top: `${i * HOUR_HEIGHT}px` }}
-                    >
-                      <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
-                    </div>
-                  ))}
+                  {timeSlots.map((slot) => {
+                    const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
+                    return (
+                      <div
+                        key={`${slot.hour}-${slot.minute}`}
+                        className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
+                        style={{ top: `${topPx}px` }}
+                      >
+                        <span className={cn("text-xs", slot.isHour ? "font-medium text-muted-foreground" : "text-muted-foreground/60 text-[10px]")}>
+                          {slot.label}
+                        </span>
+                      </div>
+                    );
+                  })}
 
                   {isToday && timeLinePosition !== null && (
                     <div
@@ -349,16 +387,20 @@ export default function Calendar() {
                           className="relative"
                           style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
                         >
-                          {timeSlots.map((slot, i) => (
-                            <div
-                              key={slot.hour}
-                              className="absolute left-0 right-0 border-b border-border/40"
-                              style={{
-                                top: `${i * HOUR_HEIGHT}px`,
-                                height: `${HOUR_HEIGHT}px`,
-                              }}
-                            />
-                          ))}
+                          {timeSlots.map((slot) => {
+                            const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
+                            const slotHeight = (settings.timeSlotInterval / 60) * HOUR_HEIGHT;
+                            return (
+                              <div
+                                key={`${slot.hour}-${slot.minute}`}
+                                className={cn("absolute left-0 right-0 border-b", slot.isHour ? "border-border/40" : "border-border/20")}
+                                style={{
+                                  top: `${topPx}px`,
+                                  height: `${slotHeight}px`,
+                                }}
+                              />
+                            );
+                          })}
 
                           {staffApts.map((apt: any) => {
                             const style = getAppointmentStyle(apt);

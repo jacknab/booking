@@ -16,6 +16,7 @@ import ClientLookup from "@/pages/ClientLookup";
 import POSInterface from "@/pages/POSInterface";
 import ClientProfile from "@/pages/ClientProfile";
 import StaffDetail from "@/pages/StaffDetail";
+import CalendarSettingsPage from "@/pages/CalendarSettings";
 import CashDrawer from "@/pages/CashDrawer";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/pos" component={POSInterface} />
       <Route path="/client/:id" component={ClientProfile} />
       <Route path="/products" component={Products} />
+      <Route path="/calendar-settings" component={CalendarSettingsPage} />
       <Route path="/cash-drawer" component={CashDrawer} />
       <Route component={NotFound} />
     </Switch>
