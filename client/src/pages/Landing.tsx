@@ -25,11 +25,11 @@ export default function Landing() {
               <span className="font-display font-bold text-xl tracking-tight">Zolmi Clone</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/api/login">
-                <Button variant="ghost" className="font-medium">Log in</Button>
+              <Link href="/auth">
+                <Button variant="ghost" className="font-medium" data-testid="link-login">Log in</Button>
               </Link>
-              <Link href="/api/login">
-                <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5">
+              <Link href="/auth">
+                <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5" data-testid="link-get-started">
                   Get Started
                 </Button>
               </Link>
@@ -65,8 +65,8 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-              <Link href="/api/login">
-                <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/25">
+              <Link href="/auth">
+                <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/25" data-testid="link-free-trial">
                   Start Free Trial
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>

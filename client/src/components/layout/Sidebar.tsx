@@ -23,8 +23,15 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const [location] = useLocation();
-  const { logout, user } = useAuth();
+  const [location, navigate] = useLocation();
+  const { logoutAsync, user } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logoutAsync();
+    } catch {}
+    navigate("/auth");
+  };
 
   return (
     <aside className="hidden md:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-card z-20">
@@ -72,7 +79,7 @@ export function Sidebar() {
           </div>
         </div>
         <button
-          onClick={() => logout()}
+          onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted text-sm font-medium transition-colors"
           data-testid="button-logout"
         >

@@ -16,12 +16,14 @@ import ClientLookup from "@/pages/ClientLookup";
 import POSInterface from "@/pages/POSInterface";
 import ClientProfile from "@/pages/ClientProfile";
 import CashDrawer from "@/pages/CashDrawer";
+import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/auth" component={Auth} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/services" component={Services} />
       <Route path="/staff" component={Staff} />

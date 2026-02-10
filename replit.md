@@ -44,15 +44,16 @@ Preferred communication style: Simple, everyday language.
 - `products` — Retail inventory (name, price, stock, linked to store)
 - `cashDrawerSessions` — Cash drawer shift sessions (storeId, openedAt, closedAt, openingBalance, closingBalance, status, openedBy, closedBy, notes)
 - `drawerActions` — Actions within a drawer session (sessionId, type [open_drawer/close_drawer/cash_in/cash_out], amount, reason, performedBy, performedAt)
-- `users` — Auth users (managed by Replit Auth)
+- `users` — Auth users (email/password)
 - `sessions` — Session storage for authentication
 
 ### Authentication
-- **Method**: Replit Auth (OpenID Connect)
+- **Method**: Simple email/password authentication
+- **Password Hashing**: bcryptjs
 - **Session Store**: PostgreSQL via `connect-pg-simple`
-- **Session Management**: `express-session` with Passport.js
-- **Auth Files**: Located in `server/replit_integrations/auth/`
-- The `users` and `sessions` tables are mandatory for Replit Auth — do not drop them
+- **Session Management**: `express-session`
+- **Auth File**: `server/auth.ts` — register, login, logout routes + isAuthenticated middleware
+- **Frontend**: `/auth` page with login/register toggle, `useAuth()` hook in `client/src/hooks/use-auth.ts`
 
 ### Project Structure
 ```
@@ -69,7 +70,7 @@ server/           — Express backend
   db.ts           — Database connection setup
   static.ts       — Production static file serving
   vite.ts         — Dev server Vite middleware
-  replit_integrations/auth/ — Replit Auth integration
+  auth.ts         — Email/password authentication
 shared/           — Code shared between client and server
   schema.ts       — Drizzle database schema + Zod insert schemas
   routes.ts       — API route contracts (paths, methods, input/output schemas)
@@ -104,6 +105,6 @@ script/build.ts   — Production build script (Vite + esbuild)
 ## External Dependencies
 
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable
-- **Replit Auth (OIDC)**: Authentication provider. Uses `ISSUER_URL`, `REPL_ID`, and `SESSION_SECRET` environment variables
+- **Session Secret**: Uses `SESSION_SECRET` environment variable for express-session
 - **Google Fonts**: Outfit, DM Sans, Fira Code, Geist Mono (loaded via CDN in index.html and CSS imports)
 - **Replit Vite Plugins**: `@replit/vite-plugin-runtime-error-modal`, `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner` (dev only)
