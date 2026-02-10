@@ -26,12 +26,14 @@ import SmsSettings from "@/pages/SmsSettings";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import PublicBooking from "@/pages/PublicBooking";
+import Pricing from "@/pages/Pricing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/book/:slug" component={PublicBooking} />
       <Route path="/auth" component={Auth} />
       <Route path="/onboarding" component={Onboarding} />

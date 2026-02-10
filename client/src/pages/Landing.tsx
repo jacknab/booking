@@ -28,6 +28,9 @@ export default function Landing() {
               <span className="font-display font-bold text-xl tracking-tight">Zolmi Clone</span>
             </div>
             <div className="flex items-center gap-4">
+              <Link href="/pricing">
+                <Button variant="ghost" className="font-medium" data-testid="link-pricing">Pricing</Button>
+              </Link>
               <Link href="/auth">
                 <Button variant="ghost" className="font-medium" data-testid="link-login">Log in</Button>
               </Link>
