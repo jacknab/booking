@@ -44,6 +44,8 @@ Preferred communication style: Simple, everyday language.
 - `products` — Retail inventory (name, price, stock, linked to store)
 - `cashDrawerSessions` — Cash drawer shift sessions (storeId, openedAt, closedAt, openingBalance, closingBalance, status, openedBy, closedBy, notes)
 - `drawerActions` — Actions within a drawer session (sessionId, type [open_drawer/close_drawer/cash_in/cash_out], amount, reason, performedBy, performedAt)
+- `smsSettings` — Per-store Twilio SMS configuration (credentials, enabled flags for confirmation/reminder/review, message templates, Google review URL)
+- `smsLog` — SMS message log (storeId, appointmentId, phone, messageType, status, twilioSid, sentAt)
 - `users` — Auth users (email/password, onboardingCompleted flag)
 - `sessions` — Session storage for authentication
 
@@ -72,6 +74,7 @@ server/           — Express backend
   static.ts       — Production static file serving
   vite.ts         — Dev server Vite middleware
   auth.ts         — Email/password authentication
+  sms.ts          — Twilio SMS service (booking confirmations, reminders, review requests, scheduler)
 shared/           — Code shared between client and server
   schema.ts       — Drizzle database schema + Zod insert schemas
   routes.ts       — API route contracts (paths, methods, input/output schemas)
@@ -103,9 +106,18 @@ script/build.ts   — Production build script (Vite + esbuild)
 - **Production**: `npm start` — runs the bundled `dist/index.cjs`
 - **DB Push**: `npm run db:push` — pushes schema changes to PostgreSQL
 
+### SMS Notifications (Twilio)
+- **Service File**: `server/sms.ts` — Twilio integration for sending SMS
+- **Configuration**: Per-store via `sms_settings` table (Twilio credentials, message templates, toggle per type)
+- **Message Types**: booking_confirmation (on new booking), reminder (24h before appointment), review_request (30min after completion)
+- **Scheduler**: Runs every 5 minutes checking for appointments needing reminders. Deduplicates via `sms_log` table.
+- **Admin Page**: `/sms-settings` — Configure Twilio creds, enable/disable message types, customize templates, send test SMS, view log
+- **Template Variables**: `{customerName}`, `{storeName}`, `{appointmentDate}`, `{appointmentTime}`, `{serviceName}`, `{reviewUrl}`
+
 ## External Dependencies
 
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable
 - **Session Secret**: Uses `SESSION_SECRET` environment variable for express-session
+- **Twilio**: Optional. Per-store SMS credentials configured in admin SMS Settings page
 - **Google Fonts**: Outfit, DM Sans, Fira Code, Geist Mono (loaded via CDN in index.html and CSS imports)
 - **Vite**: Build tool with React plugin for frontend bundling

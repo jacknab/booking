@@ -12,7 +12,8 @@ import {
   Building2,
   Puzzle,
   BarChart3,
-  Globe
+  Globe,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
   { href: "/commission-report", label: "Commissions", icon: BarChart3 },
   { href: "/online-booking", label: "Online Booking", icon: Globe },
+  { href: "/sms-settings", label: "SMS Notifications", icon: MessageSquare },
   { href: "/business-settings", label: "Business Settings", icon: Building2 },
   { href: "/calendar-settings", label: "Calendar Settings", icon: Settings },
 ];

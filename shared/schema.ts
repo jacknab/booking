@@ -120,6 +120,7 @@ export const appointments = pgTable("appointments", {
   tipAmount: decimal("tip_amount", { precision: 10, scale: 2 }),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }),
   totalPaid: decimal("total_paid", { precision: 10, scale: 2 }),
+  completedAt: timestamp("completed_at"),
   serviceId: integer("service_id").references(() => services.id),
   staffId: integer("staff_id").references(() => staff.id),
   customerId: integer("customer_id").references(() => customers.id),
@@ -170,6 +171,36 @@ export const drawerActions = pgTable("drawer_actions", {
   performedAt: timestamp("performed_at").notNull(),
 });
 
+export const smsSettings = pgTable("sms_settings", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  twilioAccountSid: text("twilio_account_sid"),
+  twilioAuthToken: text("twilio_auth_token"),
+  twilioPhoneNumber: text("twilio_phone_number"),
+  bookingConfirmationEnabled: boolean("booking_confirmation_enabled").notNull().default(false),
+  reminderEnabled: boolean("reminder_enabled").notNull().default(false),
+  reminderHoursBefore: integer("reminder_hours_before").notNull().default(24),
+  reviewRequestEnabled: boolean("review_request_enabled").notNull().default(false),
+  googleReviewUrl: text("google_review_url"),
+  confirmationTemplate: text("confirmation_template").default("Hi {customerName}, your appointment at {storeName} is confirmed for {appointmentDate} at {appointmentTime}. See you then!"),
+  reminderTemplate: text("reminder_template").default("Hi {customerName}, this is a reminder of your appointment at {storeName} tomorrow at {appointmentTime}. Reply STOP to opt out."),
+  reviewTemplate: text("review_template").default("Hi {customerName}, thank you for visiting {storeName}! We'd love your feedback. Leave us a review: {reviewUrl}"),
+});
+
+export const smsLog = pgTable("sms_log", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  phone: text("phone").notNull(),
+  messageType: text("message_type").notNull(),
+  messageBody: text("message_body").notNull(),
+  status: text("status").notNull().default("pending"),
+  twilioSid: text("twilio_sid"),
+  errorMessage: text("error_message"),
+  sentAt: timestamp("sent_at").notNull(),
+});
+
 // === RELATIONS ===
 
 export const storesRelations = relations(stores, ({ many }) => ({
@@ -183,6 +214,18 @@ export const storesRelations = relations(stores, ({ many }) => ({
   cashDrawerSessions: many(cashDrawerSessions),
   calendarSettings: many(calendarSettings),
   businessHours: many(businessHours),
+  smsSettings: many(smsSettings),
+  smsLogs: many(smsLog),
+}));
+
+export const smsSettingsRelations = relations(smsSettings, ({ one }) => ({
+  store: one(stores, { fields: [smsSettings.storeId], references: [stores.id] }),
+}));
+
+export const smsLogRelations = relations(smsLog, ({ one }) => ({
+  store: one(stores, { fields: [smsLog.storeId], references: [stores.id] }),
+  appointment: one(appointments, { fields: [smsLog.appointmentId], references: [appointments.id] }),
+  customer: one(customers, { fields: [smsLog.customerId], references: [customers.id] }),
 }));
 
 export const businessHoursRelations = relations(businessHours, ({ one }) => ({
@@ -283,6 +326,8 @@ export const insertBusinessHoursSchema = createInsertSchema(businessHours).omit(
 export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings).omit({ id: true });
 export const insertCashDrawerSessionSchema = createInsertSchema(cashDrawerSessions).omit({ id: true });
 export const insertDrawerActionSchema = createInsertSchema(drawerActions).omit({ id: true });
+export const insertSmsSettingsSchema = createInsertSchema(smsSettings).omit({ id: true });
+export const insertSmsLogSchema = createInsertSchema(smsLog).omit({ id: true });
 
 // === EXPLICIT API TYPES ===
 
@@ -333,6 +378,12 @@ export type InsertCashDrawerSession = z.infer<typeof insertCashDrawerSessionSche
 
 export type DrawerAction = typeof drawerActions.$inferSelect;
 export type InsertDrawerAction = z.infer<typeof insertDrawerActionSchema>;
+
+export type SmsSettings = typeof smsSettings.$inferSelect;
+export type InsertSmsSettings = z.infer<typeof insertSmsSettingsSchema>;
+
+export type SmsLogEntry = typeof smsLog.$inferSelect;
+export type InsertSmsLog = z.infer<typeof insertSmsLogSchema>;
 
 export type CashDrawerSessionWithActions = CashDrawerSession & {
   actions: DrawerAction[];

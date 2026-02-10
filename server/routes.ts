@@ -9,6 +9,7 @@ import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { sendBookingConfirmation, startReminderScheduler } from "./sms";
 import { 
   insertStoreSchema,
   insertServiceCategorySchema,
@@ -671,6 +672,12 @@ export async function registerRoutes(
       }
 
       const appointment = await storage.createAppointment(input);
+
+      const fullAppointment = await storage.getAppointment(appointment.id);
+      if (fullAppointment) {
+        sendBookingConfirmation(fullAppointment).catch(console.error);
+      }
+
       res.status(201).json(appointment);
     } catch (error) {
        console.error(error);
@@ -684,8 +691,12 @@ export async function registerRoutes(
         ...req.body,
         date: req.body.date ? new Date(req.body.date) : undefined,
       });
+      if (input.status === "completed" && !input.completedAt) {
+        input.completedAt = new Date();
+      }
       const appointment = await storage.updateAppointment(Number(req.params.id), input);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
       res.json(appointment);
     } catch (error) {
       res.status(400).json({ message: "Invalid input" });
@@ -1241,6 +1252,11 @@ export async function registerRoutes(
         totalPaid: null,
       });
 
+      const fullAppointment = await storage.getAppointment(appointment.id);
+      if (fullAppointment) {
+        sendBookingConfirmation(fullAppointment).catch(console.error);
+      }
+
       res.status(201).json(appointment);
     } catch (error) {
       console.error("Public booking error:", error);
@@ -1252,6 +1268,93 @@ export async function registerRoutes(
     const store = await storage.getStoreBySlug(req.params.slug);
     res.json({ available: !store });
   });
+
+  // === SMS SETTINGS ===
+  const validateStoreOwnership = async (req: any, res: any): Promise<boolean> => {
+    const userId = (req.session as any)?.userId;
+    const storeId = Number(req.params.storeId);
+    const store = await storage.getStore(storeId);
+    if (!store || store.userId !== userId) {
+      res.status(403).json({ message: "Unauthorized" });
+      return false;
+    }
+    return true;
+  };
+
+  app.get("/api/sms-settings/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    const settings = await storage.getSmsSettings(Number(req.params.storeId));
+    if (settings) {
+      const { twilioAuthToken, ...safe } = settings;
+      res.json({ ...safe, twilioAuthToken: twilioAuthToken ? "••••••••" : null });
+    } else {
+      res.json(null);
+    }
+  });
+
+  app.put("/api/sms-settings/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    try {
+      const storeId = Number(req.params.storeId);
+      const smsSettingsInput = z.object({
+        twilioAccountSid: z.string().optional().nullable(),
+        twilioAuthToken: z.string().optional().nullable(),
+        twilioPhoneNumber: z.string().optional().nullable(),
+        bookingConfirmationEnabled: z.boolean().optional(),
+        reminderEnabled: z.boolean().optional(),
+        reminderHoursBefore: z.number().min(1).max(72).optional(),
+        reviewRequestEnabled: z.boolean().optional(),
+        googleReviewUrl: z.string().optional().nullable(),
+        confirmationTemplate: z.string().optional().nullable(),
+        reminderTemplate: z.string().optional().nullable(),
+        reviewTemplate: z.string().optional().nullable(),
+      }).parse(req.body);
+
+      if (smsSettingsInput.twilioAuthToken === "••••••••") {
+        delete smsSettingsInput.twilioAuthToken;
+      }
+      const settings = await storage.upsertSmsSettings(storeId, { ...smsSettingsInput, storeId });
+      const { twilioAuthToken, ...safe } = settings;
+      res.json({ ...safe, twilioAuthToken: twilioAuthToken ? "••••••••" : null });
+    } catch (error) {
+      console.error("SMS settings update error:", error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.post("/api/sms-settings/:storeId/test", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    try {
+      const storeId = Number(req.params.storeId);
+      const { phone } = req.body;
+      if (!phone) return res.status(400).json({ message: "Phone number required" });
+
+      const { sendSms } = await import("./sms");
+      const result = await sendSms(
+        storeId,
+        phone,
+        "This is a test message from your salon booking system. SMS is working!",
+        "test"
+      );
+
+      if (result.success) {
+        res.json({ success: true, sid: result.sid });
+      } else {
+        res.status(400).json({ success: false, error: result.error });
+      }
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get("/api/sms-log/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    const logs = await storage.getSmsLogs(Number(req.params.storeId), 100);
+    res.json(logs);
+  });
+
+  // Start the reminder scheduler
+  startReminderScheduler();
 
   return httpServer;
 }

@@ -2,6 +2,7 @@ import {
   stores, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
   calendarSettings, cashDrawerSessions, drawerActions, businessHours,
+  smsSettings, smsLog,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -17,10 +18,12 @@ import {
   type Appointment, type InsertAppointment, type AppointmentWithDetails,
   type Product, type InsertProduct,
   type CashDrawerSession, type InsertCashDrawerSession, type CashDrawerSessionWithActions,
-  type DrawerAction, type InsertDrawerAction
+  type DrawerAction, type InsertDrawerAction,
+  type SmsSettings, type InsertSmsSettings,
+  type SmsLogEntry, type InsertSmsLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, desc, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   getStores(userId?: string): Promise<Store[]>;
@@ -103,6 +106,14 @@ export interface IStorage {
   updateCashDrawerSession(id: number, data: Partial<InsertCashDrawerSession>): Promise<CashDrawerSession | undefined>;
   createDrawerAction(action: InsertDrawerAction): Promise<DrawerAction>;
   getDrawerActions(sessionId: number): Promise<DrawerAction[]>;
+
+  getSmsSettings(storeId: number): Promise<SmsSettings | undefined>;
+  upsertSmsSettings(storeId: number, settings: Partial<InsertSmsSettings>): Promise<SmsSettings>;
+  createSmsLog(log: InsertSmsLog): Promise<SmsLogEntry>;
+  getSmsLogs(storeId: number, limit?: number): Promise<SmsLogEntry[]>;
+  getAppointmentsNeedingReminders(fromTime: Date, toTime: Date): Promise<AppointmentWithDetails[]>;
+  getRecentlyCompletedAppointments(fromTime: Date, toTime: Date): Promise<AppointmentWithDetails[]>;
+  getSmsLogByAppointmentAndType(appointmentId: number, messageType: string): Promise<SmsLogEntry | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -487,6 +498,77 @@ export class DatabaseStorage implements IStorage {
 
   async getDrawerActions(sessionId: number): Promise<DrawerAction[]> {
     return await db.select().from(drawerActions).where(eq(drawerActions.sessionId, sessionId));
+  }
+
+  async getSmsSettings(storeId: number): Promise<SmsSettings | undefined> {
+    const result = await db.select().from(smsSettings).where(eq(smsSettings.storeId, storeId));
+    return result[0];
+  }
+
+  async upsertSmsSettings(storeId: number, settings: Partial<InsertSmsSettings>): Promise<SmsSettings> {
+    const existing = await this.getSmsSettings(storeId);
+    if (existing) {
+      const [result] = await db.update(smsSettings).set(settings).where(eq(smsSettings.storeId, storeId)).returning();
+      return result;
+    }
+    const [result] = await db.insert(smsSettings).values({ ...settings, storeId }).returning();
+    return result;
+  }
+
+  async createSmsLog(log: InsertSmsLog): Promise<SmsLogEntry> {
+    const [result] = await db.insert(smsLog).values(log).returning();
+    return result;
+  }
+
+  async getSmsLogs(storeId: number, limit = 50): Promise<SmsLogEntry[]> {
+    return await db.select().from(smsLog)
+      .where(eq(smsLog.storeId, storeId))
+      .orderBy(desc(smsLog.sentAt))
+      .limit(limit);
+  }
+
+  async getAppointmentsNeedingReminders(fromTime: Date, toTime: Date): Promise<AppointmentWithDetails[]> {
+    const result = await db.query.appointments.findMany({
+      where: and(
+        gte(appointments.date, fromTime),
+        lte(appointments.date, toTime),
+      ),
+      with: {
+        service: true,
+        staff: true,
+        customer: true,
+        store: true,
+      },
+    });
+    const activeStatuses = ["pending", "confirmed"];
+    return (result as AppointmentWithDetails[]).filter(a => activeStatuses.includes(a.status || ""));
+  }
+
+  async getRecentlyCompletedAppointments(fromTime: Date, toTime: Date): Promise<AppointmentWithDetails[]> {
+    const result = await db.query.appointments.findMany({
+      where: and(
+        isNotNull(appointments.completedAt),
+        gte(appointments.completedAt, fromTime),
+        lte(appointments.completedAt, toTime),
+        eq(appointments.status, "completed")
+      ),
+      with: {
+        service: true,
+        staff: true,
+        customer: true,
+        store: true,
+      },
+    });
+    return result as AppointmentWithDetails[];
+  }
+
+  async getSmsLogByAppointmentAndType(appointmentId: number, messageType: string): Promise<SmsLogEntry | undefined> {
+    const result = await db.select().from(smsLog)
+      .where(and(
+        eq(smsLog.appointmentId, appointmentId),
+        eq(smsLog.messageType, messageType)
+      ));
+    return result[0];
   }
 }
 
