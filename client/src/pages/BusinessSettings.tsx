@@ -4,25 +4,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { Store, BusinessHours } from "@shared/schema";
+import { insertStoreSchema } from "@shared/schema";
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, addDays } from "date-fns";
 
-type BusinessProfileForm = {
-  name: string;
-  category: string;
-  email: string;
-  phone: string;
-  city: string;
-  address: string;
-  postcode: string;
-};
+const businessProfileSchema = insertStoreSchema.pick({
+  name: true,
+  category: true,
+  email: true,
+  phone: true,
+  city: true,
+  address: true,
+  postcode: true,
+}).extend({
+  name: z.string().min(1, "Business name is required"),
+  email: z.string().email("Please enter a valid email").or(z.literal("")),
+  category: z.string().optional().default(""),
+  phone: z.string().optional().default(""),
+  city: z.string().optional().default(""),
+  address: z.string().optional().default(""),
+  postcode: z.string().optional().default(""),
+});
+
+type BusinessProfileForm = z.infer<typeof businessProfileSchema>;
 
 type DayHours = {
   dayOfWeek: number;
@@ -67,7 +82,8 @@ function computeWeeklyHours(hours: DayHours[]): string {
     if (h.isClosed) continue;
     const [oh, om] = h.openTime.split(":").map(Number);
     const [ch, cm] = h.closeTime.split(":").map(Number);
-    total += (ch * 60 + cm) - (oh * 60 + om);
+    const diff = (ch * 60 + cm) - (oh * 60 + om);
+    if (diff > 0) total += diff;
   }
   const hrs = Math.floor(total / 60);
   const mins = total % 60;
@@ -77,7 +93,8 @@ function computeWeeklyHours(hours: DayHours[]): string {
 function BusinessProfile({ store }: { store: Store }) {
   const { toast } = useToast();
 
-  const { control, handleSubmit, reset } = useForm<BusinessProfileForm>({
+  const form = useForm<BusinessProfileForm>({
+    resolver: zodResolver(businessProfileSchema),
     defaultValues: {
       name: store.name || "",
       category: store.category || "",
@@ -90,7 +107,7 @@ function BusinessProfile({ store }: { store: Store }) {
   });
 
   useEffect(() => {
-    reset({
+    form.reset({
       name: store.name || "",
       category: store.category || "",
       email: store.email || "",
@@ -99,7 +116,7 @@ function BusinessProfile({ store }: { store: Store }) {
       address: store.address || "",
       postcode: store.postcode || "",
     });
-  }, [store, reset]);
+  }, [store, form]);
 
   const updateStore = useMutation({
     mutationFn: async (data: BusinessProfileForm) => {
@@ -120,113 +137,136 @@ function BusinessProfile({ store }: { store: Store }) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h2 className="text-lg font-semibold" data-testid="text-business-profile-title">Business Profile</h2>
-        <Button type="submit" size="sm" disabled={updateStore.isPending} data-testid="button-save-profile">
-          <Save className="w-4 h-4 mr-2" />
-          {updateStore.isPending ? "Saving..." : "Save"}
-        </Button>
-      </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <h2 className="text-lg font-semibold" data-testid="text-business-profile-title">Business Profile</h2>
+          <Button type="submit" size="sm" disabled={updateStore.isPending} data-testid="button-save-profile">
+            <Save className="w-4 h-4 mr-2" />
+            {updateStore.isPending ? "Saving..." : "Save"}
+          </Button>
+        </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-6">
-          <h3 className="text-base font-semibold">Location Details</h3>
+        <Card>
+          <CardContent className="p-6 space-y-6">
+            <h3 className="text-base font-semibold">Location Details</h3>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Title</Label>
-            <Controller
+            <FormField
+              control={form.control}
               name="name"
-              control={control}
               render={({ field }) => (
-                <Input id="name" {...field} data-testid="input-store-name" />
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-store-name" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Controller
+            <FormField
+              control={form.control}
               name="category"
-              control={control}
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger data-testid="select-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Business email</Label>
-            <Controller
+            <FormField
+              control={form.control}
               name="email"
-              control={control}
               render={({ field }) => (
-                <Input id="email" type="email" {...field} data-testid="input-email" />
+                <FormItem>
+                  <FormLabel>Business email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} data-testid="input-email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Telephone</Label>
-            <Controller
+            <FormField
+              control={form.control}
               name="phone"
-              control={control}
               render={({ field }) => (
-                <Input id="phone" type="tel" {...field} data-testid="input-phone" />
+                <FormItem>
+                  <FormLabel>Telephone</FormLabel>
+                  <FormControl>
+                    <Input type="tel" {...field} data-testid="input-phone" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-          </div>
 
-          <div className="border-t pt-4">
-            <h3 className="text-base font-semibold mb-4">Address</h3>
+            <div className="border-t pt-4">
+              <h3 className="text-base font-semibold mb-4">Address</h3>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City or Town</Label>
-                <Controller
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
                   name="city"
-                  control={control}
                   render={({ field }) => (
-                    <Input id="city" {...field} data-testid="input-city" />
+                    <FormItem>
+                      <FormLabel>City or Town</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-city" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Controller
+                <FormField
+                  control={form.control}
                   name="address"
-                  control={control}
                   render={({ field }) => (
-                    <Input id="address" {...field} data-testid="input-address" />
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-address" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="postcode">Postcode</Label>
-                <Controller
+                <FormField
+                  control={form.control}
                   name="postcode"
-                  control={control}
                   render={({ field }) => (
-                    <Input id="postcode" {...field} data-testid="input-postcode" />
+                    <FormItem>
+                      <FormLabel>Postcode</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-postcode" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </form>
+          </CardContent>
+        </Card>
+      </form>
+    </Form>
   );
 }
 
@@ -239,10 +279,11 @@ function BusinessHoursEditor({ store }: { store: Store }) {
   const weekStart = startOfWeek(weekDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(weekDate, { weekStartsOn: 1 });
 
-  const { data: savedHours, isLoading } = useQuery<BusinessHours[]>({
+  const { data: savedHours } = useQuery<BusinessHours[]>({
     queryKey: ["/api/business-hours", store.id],
     queryFn: async () => {
-      const res = await fetch(`/api/business-hours?storeId=${store.id}`);
+      const res = await fetch(`/api/business-hours?storeId=${store.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch business hours");
       return res.json();
     },
     enabled: !!store.id,
@@ -277,15 +318,24 @@ function BusinessHoursEditor({ store }: { store: Store }) {
     },
   });
 
-  const handleEditDay = (dayIdx: number) => {
-    setEditingDay(editingDay === dayIdx ? null : dayIdx);
-  };
-
   const updateDayHours = (dayIdx: number, field: keyof DayHours, value: string | boolean) => {
     setHours(prev => prev.map((h, i) => i === dayIdx ? { ...h, [field]: value } : h));
   };
 
   const handleSaveAll = () => {
+    for (const h of hours) {
+      if (h.isClosed) continue;
+      const [oh, om] = h.openTime.split(":").map(Number);
+      const [ch, cm] = h.closeTime.split(":").map(Number);
+      if ((ch * 60 + cm) <= (oh * 60 + om)) {
+        toast({
+          title: "Invalid hours",
+          description: `${DAY_NAMES[h.dayOfWeek]}: Close time must be after open time.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     saveHours.mutate(hours);
   };
 
@@ -358,15 +408,16 @@ function BusinessHoursEditor({ store }: { store: Store }) {
                   <td className="p-3 border-b">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-sm">Business Hours</span>
-                      <button
+                      <Button
+                        variant="link"
+                        size="sm"
                         onClick={() => setEditingDay(editingDay !== null ? null : 0)}
-                        className="text-primary text-sm font-medium"
                         data-testid="button-edit-hours"
                       >
                         Edit
-                      </button>
+                      </Button>
                     </div>
-                    <div className="text-xs text-primary mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       Week: {weeklyTotal}
                     </div>
                   </td>
@@ -394,16 +445,14 @@ function BusinessHoursEditor({ store }: { store: Store }) {
                 {hours.map((h, i) => (
                   <div key={i} className="flex flex-wrap items-center gap-4 p-3 rounded-md bg-muted/30" data-testid={`edit-hours-day-${i}`}>
                     <span className="font-medium text-sm w-24">{DAY_NAMES[i]}</span>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center gap-2">
+                      <Checkbox
                         checked={h.isClosed}
-                        onChange={(e) => updateDayHours(i, "isClosed", e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={(checked) => updateDayHours(i, "isClosed", !!checked)}
                         data-testid={`checkbox-closed-day-${i}`}
                       />
-                      Closed
-                    </label>
+                      <Label className="text-sm">Closed</Label>
+                    </div>
                     {!h.isClosed && (
                       <>
                         <Select
@@ -451,10 +500,6 @@ export default function BusinessSettings() {
 
   const { data: store, isLoading } = useQuery<Store>({
     queryKey: ["/api/stores", selectedStore?.id],
-    queryFn: async () => {
-      const res = await fetch(`/api/stores/${selectedStore?.id}`);
-      return res.json();
-    },
     enabled: !!selectedStore?.id,
   });
 

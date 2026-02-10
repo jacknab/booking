@@ -79,11 +79,19 @@ export async function registerRoutes(
         storeId: z.number(),
         hours: z.array(z.object({
           dayOfWeek: z.number().min(0).max(6),
-          openTime: z.string(),
-          closeTime: z.string(),
+          openTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
+          closeTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
           isClosed: z.boolean(),
         })),
       }).parse(req.body);
+      for (const h of input.hours) {
+        if (h.isClosed) continue;
+        const [oh, om] = h.openTime.split(":").map(Number);
+        const [ch, cm] = h.closeTime.split(":").map(Number);
+        if ((ch * 60 + cm) <= (oh * 60 + om)) {
+          return res.status(400).json({ message: `Day ${h.dayOfWeek}: close time must be after open time` });
+        }
+      }
       const hoursData = input.hours.map(h => ({
         ...h,
         storeId: input.storeId,
