@@ -965,6 +965,18 @@ export async function registerRoutes(
         businessType: z.enum(["Hair Salon", "Nail Salon", "Spa", "Barbershop"]),
         businessName: z.string().min(1).max(100),
         timezone: z.string().min(1).default("America/New_York"),
+        address: z.string().optional(),
+        phone: z.string().optional(),
+        businessHours: z.array(z.object({
+          dayOfWeek: z.number().min(0).max(6),
+          openTime: z.string(),
+          closeTime: z.string(),
+          isClosed: z.boolean(),
+        })).optional(),
+        staff: z.array(z.object({
+          name: z.string().min(1),
+          color: z.string().optional(),
+        })).min(1).optional(),
       });
 
       const parsed = onboardingSchema.safeParse(req.body);
@@ -972,7 +984,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
       }
 
-      const { businessType, businessName, timezone } = parsed.data;
+      const { businessType, businessName, timezone, address, phone, businessHours: hoursData, staff: staffData } = parsed.data;
 
       const template = businessTemplates[businessType];
       if (!template) {
@@ -982,10 +994,23 @@ export async function registerRoutes(
       const store = await storage.createStore({
         name: businessName,
         timezone: timezone,
+        address: address || null,
+        phone: phone || null,
         userId: userId,
       });
 
+      if (hoursData && hoursData.length > 0) {
+        await storage.setBusinessHours(store.id, hoursData.map(h => ({
+          storeId: store.id,
+          dayOfWeek: h.dayOfWeek,
+          openTime: h.openTime,
+          closeTime: h.closeTime,
+          isClosed: h.isClosed,
+        })));
+      }
+
       const addonCache: Record<string, number> = {};
+      const allServiceIds: number[] = [];
 
       for (const cat of template.categories) {
         const category = await storage.createServiceCategory({
@@ -1003,6 +1028,8 @@ export async function registerRoutes(
             categoryId: category.id,
             storeId: store.id,
           });
+
+          allServiceIds.push(service.id);
 
           if (svc.addons) {
             for (const addonData of svc.addons) {
@@ -1026,6 +1053,33 @@ export async function registerRoutes(
                 addonId: addonId,
               });
             }
+          }
+        }
+      }
+
+      const staffMembers = staffData || [{ name: "Owner", color: "#f472b6" }];
+      for (const s of staffMembers) {
+        const newStaff = await storage.createStaff({
+          name: s.name,
+          color: s.color || "#3b82f6",
+          storeId: store.id,
+        });
+
+        if (allServiceIds.length > 0) {
+          await storage.setStaffServices(newStaff.id, allServiceIds);
+        }
+
+        if (hoursData && hoursData.length > 0) {
+          const availabilityRules = hoursData
+            .filter(h => !h.isClosed)
+            .map(h => ({
+              staffId: newStaff.id,
+              dayOfWeek: h.dayOfWeek,
+              startTime: h.openTime,
+              endTime: h.closeTime,
+            }));
+          if (availabilityRules.length > 0) {
+            await storage.setStaffAvailability(newStaff.id, availabilityRules);
           }
         }
       }

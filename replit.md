@@ -56,7 +56,11 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: `express-session`
 - **Auth File**: `server/auth.ts` — register, login, logout routes + isAuthenticated middleware
 - **Frontend**: `/auth` page with login/register toggle, `useAuth()` hook in `client/src/hooks/use-auth.ts`
-- **Onboarding**: After registration, new users are directed to `/onboarding` where they select a business type (Hair Salon, Nail Salon, Spa, Barbershop). This auto-creates the store with categories, services, and addons from templates defined in `server/onboarding-data.ts`. The `onboardingCompleted` flag on the user controls redirect logic. Existing users with stores are auto-marked as onboarding completed.
+- **Onboarding**: 4-step wizard: (1) Business type selection, (2) Business info (name, address, phone, auto-detected timezone), (3) Business hours setup with per-day toggles, (4) Staff count with name inputs. Creates store, business hours, template services/categories/addons, staff with availability matching business hours, and auto-assigns all services to staff. Templates in `server/onboarding-data.ts` are production-ready with comprehensive categories:
+  - **Nail Salon**: Manicures (5 services), Pedicures (5), Nail Enhancements (4), Spa Services (6), Kids Services (3), Nail Repair (5) — with 15+ addons mapped to applicable services
+  - **Hair Salon**: Haircuts (6), Color (7), Treatments (5), Styling (5), Texture (2) — with addons like Olaplex, Deep Conditioning, Toner
+  - **Spa**: Massage (9), Facials (7), Body Treatments (4), Waxing (12), Packages (3) — with addons like Aromatherapy, LED, Cupping
+  - **Barbershop**: Haircuts (7), Beard & Shave (4), Combos (3), Grooming (6) — with addons like Hot Towel, Beard Oil, Design/Line Up
 
 ### Project Structure
 ```
