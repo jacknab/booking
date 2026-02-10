@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAppointments, useCreateAppointment } from "@/hooks/use-appointments";
 import { useServices } from "@/hooks/use-services";
 import { useStaffList } from "@/hooks/use-staff";
 import { useCustomers } from "@/hooks/use-customers";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
-import { Plus, ChevronLeft, ChevronRight, Clock, User } from "lucide-react";
+import { format, addDays, subDays, isSameDay, startOfDay, addMinutes } from "date-fns";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertAppointmentSchema } from "@shared/schema";
@@ -16,41 +15,146 @@ import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const HOUR_HEIGHT = 80;
+const START_HOUR = 8;
+const END_HOUR = 20;
+const TOTAL_HOURS = END_HOUR - START_HOUR;
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { data: appointments } = useAppointments();
+  const [selectedStaffId, setSelectedStaffId] = useState<number | "all">("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const startDate = startOfWeek(currentDate);
-  const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(startDate, i));
+  const dayStart = startOfDay(currentDate);
+  const dayEnd = addDays(dayStart, 1);
 
-  // Time slots from 9 AM to 6 PM
-  const timeSlots = Array.from({ length: 10 }).map((_, i) => 9 + i);
+  const { data: appointments, isLoading: aptsLoading } = useAppointments({
+    from: dayStart.toISOString(),
+    to: dayEnd.toISOString(),
+  });
+  const { data: staffList } = useStaffList();
+  const { data: services } = useServices();
+
+  const filteredStaff = useMemo(() => {
+    if (!staffList) return [];
+    if (selectedStaffId === "all") return staffList;
+    return staffList.filter(s => s.id === selectedStaffId);
+  }, [staffList, selectedStaffId]);
+
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: TOTAL_HOURS + 1 }).map((_, i) => {
+      const hour = START_HOUR + i;
+      return {
+        hour,
+        label: hour === 0 ? "12 AM" : hour === 12 ? "12 PM" : hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`,
+      };
+    });
+  }, []);
+
+  const getAppointmentsForStaff = (staffId: number) => {
+    if (!appointments) return [];
+    return appointments.filter(apt => {
+      const aptDate = new Date(apt.date);
+      return apt.staffId === staffId && isSameDay(aptDate, currentDate);
+    });
+  };
+
+  const getAppointmentStyle = (apt: any) => {
+    const aptDate = new Date(apt.date);
+    const hours = aptDate.getHours();
+    const minutes = aptDate.getMinutes();
+    const topOffset = (hours - START_HOUR + minutes / 60) * HOUR_HEIGHT;
+    const height = (apt.duration / 60) * HOUR_HEIGHT;
+    return {
+      top: `${topOffset}px`,
+      height: `${Math.max(height, 30)}px`,
+    };
+  };
+
+  const getStaffColor = (staffMember: any) => {
+    return staffMember?.color || "#22c55e";
+  };
+
+  const weekDayLabels = useMemo(() => {
+    const start = subDays(currentDate, currentDate.getDay());
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = addDays(start, i);
+      return { date: d, label: format(d, "EEE"), isToday: isSameDay(d, new Date()) };
+    });
+  }, [currentDate]);
+
+  const goToday = () => setCurrentDate(new Date());
+  const goPrev = () => setCurrentDate(subDays(currentDate, 1));
+  const goNext = () => setCurrentDate(addDays(currentDate, 1));
 
   return (
     <AppLayout>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold">Calendar</h1>
-          <p className="text-muted-foreground">Manage your schedule and appointments.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center bg-card rounded-lg border shadow-sm p-1">
-            <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, -7))}>
+      <div className="flex flex-col h-[calc(100vh-2rem)]">
+        {/* Calendar Header Bar */}
+        <div className="flex items-center justify-between gap-2 flex-wrap py-3 px-1 border-b bg-card rounded-t-lg">
+          {/* Left: Staff filter */}
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
+              onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
+            >
+              <SelectTrigger className="w-[160px]" data-testid="select-staff-filter">
+                <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="All Staff" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Staff</SelectItem>
+                {staffList?.map(s => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Center: Date navigation */}
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={goPrev} data-testid="button-prev-day">
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="px-4 font-medium text-sm w-32 text-center">
-              {format(currentDate, "MMMM yyyy")}
+            <span className="text-base font-semibold px-3 min-w-[200px] text-center" data-testid="text-current-date">
+              {format(currentDate, "EEE d MMM, yyyy")}
             </span>
-            <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addDays(currentDate, 7))}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={goToday}
+              className={isSameDay(currentDate, new Date()) ? "bg-primary text-primary-foreground" : ""}
+              data-testid="button-today"
+            >
+              Today
+            </Button>
+            {/* Weekday quick nav */}
+            <div className="hidden lg:flex items-center gap-0.5 ml-2">
+              {weekDayLabels.map((wd) => (
+                <Button
+                  key={wd.label}
+                  variant="ghost"
+                  size="sm"
+                  className={`px-2 text-xs ${isSameDay(wd.date, currentDate) ? "bg-muted font-bold" : ""}`}
+                  onClick={() => setCurrentDate(wd.date)}
+                >
+                  {wd.label}
+                </Button>
+              ))}
+            </div>
+            <Button variant="ghost" size="icon" onClick={goNext} data-testid="button-next-day">
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Right: New Appointment */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button data-testid="button-new-appointment">
+                <CalendarPlus className="w-4 h-4 mr-2" />
                 New Appointment
               </Button>
             </DialogTrigger>
@@ -62,56 +166,122 @@ export default function Calendar() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
 
-      <Card className="overflow-hidden border shadow-sm">
-        <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            {/* Header Row */}
-            <div className="grid grid-cols-8 border-b bg-muted/20">
-              <div className="p-4 border-r font-medium text-sm text-muted-foreground text-center">Time</div>
-              {weekDays.map((day) => (
-                <div key={day.toString()} className={`p-4 border-r text-center ${isSameDay(day, new Date()) ? 'bg-primary/5' : ''}`}>
-                  <div className="font-bold text-lg">{format(day, "d")}</div>
-                  <div className="text-xs text-muted-foreground uppercase">{format(day, "EEE")}</div>
+        {/* Calendar Grid */}
+        <div className="flex-1 overflow-hidden bg-card rounded-b-lg border border-t-0">
+          <ScrollArea className="h-full">
+            <div className="flex min-w-[600px]">
+              {/* Time axis */}
+              <div className="w-[72px] flex-shrink-0 border-r bg-card z-10">
+                {/* Header spacer */}
+                <div className="h-[60px] border-b" />
+                {/* Time labels */}
+                <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
+                  {timeSlots.map((slot, i) => (
+                    <div
+                      key={slot.hour}
+                      className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
+                      style={{ top: `${i * HOUR_HEIGHT}px` }}
+                    >
+                      <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
 
-            {/* Time Grid */}
-            <div className="bg-card">
-              {timeSlots.map((hour) => (
-                <div key={hour} className="grid grid-cols-8 border-b last:border-0 h-24">
-                  <div className="p-2 border-r text-xs text-muted-foreground text-center font-medium">
-                    {hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`}
+              {/* Staff columns */}
+              <div className="flex flex-1">
+                {filteredStaff.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
+                    No staff members found. Add staff to see the calendar.
                   </div>
-                  {weekDays.map((day) => {
-                    // Find appointments for this day and hour
-                    const dayApts = appointments?.filter(apt => {
-                      const aptDate = new Date(apt.date);
-                      return isSameDay(aptDate, day) && aptDate.getHours() === hour;
-                    }) || [];
+                ) : (
+                  filteredStaff.map((member) => {
+                    const staffApts = getAppointmentsForStaff(member.id);
+                    const color = getStaffColor(member);
 
                     return (
-                      <div key={day.toString()} className="border-r relative p-1 transition-colors hover:bg-muted/10">
-                        {dayApts.map(apt => (
-                          <div 
-                            key={apt.id} 
-                            className="text-xs p-2 rounded-md bg-primary/10 text-primary border border-primary/20 shadow-sm cursor-pointer hover:bg-primary/20 transition-colors mb-1 truncate"
-                          >
-                            <span className="font-bold block truncate">{apt.customer?.name || "Client"}</span>
-                            <span className="opacity-80 truncate">{apt.service?.name}</span>
-                          </div>
-                        ))}
+                      <div
+                        key={member.id}
+                        className="flex-1 min-w-[180px] border-r last:border-r-0"
+                      >
+                        {/* Staff header */}
+                        <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2">
+                          <Avatar className="w-7 h-7">
+                            <AvatarFallback
+                              style={{ backgroundColor: color + "22", color }}
+                              className="text-xs font-bold"
+                            >
+                              {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
+                            {member.name}
+                          </span>
+                        </div>
+
+                        {/* Time grid for this staff member */}
+                        <div
+                          className="relative"
+                          style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
+                        >
+                          {/* Hour grid lines + striped empty background */}
+                          {timeSlots.map((slot, i) => (
+                            <div
+                              key={slot.hour}
+                              className="absolute left-0 right-0 border-b"
+                              style={{
+                                top: `${i * HOUR_HEIGHT}px`,
+                                height: `${HOUR_HEIGHT}px`,
+                                background: "repeating-linear-gradient(135deg, transparent, transparent 5px, hsl(var(--muted) / 0.3) 5px, hsl(var(--muted) / 0.3) 6px)",
+                              }}
+                            />
+                          ))}
+
+                          {/* Appointment blocks */}
+                          {staffApts.map((apt) => {
+                            const style = getAppointmentStyle(apt);
+                            const aptDate = new Date(apt.date);
+                            const endDate = addMinutes(aptDate, apt.duration);
+                            const timeRange = `${format(aptDate, "h:mm")} - ${format(endDate, "h:mm a")}`;
+
+                            return (
+                              <div
+                                key={apt.id}
+                                className="absolute left-1 right-1 rounded-md border-l-[3px] px-2 py-1 overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md"
+                                style={{
+                                  ...style,
+                                  backgroundColor: "#dcfce7",
+                                  borderLeftColor: "#22c55e",
+                                  borderTop: "1px solid #bbf7d0",
+                                  borderRight: "1px solid #bbf7d0",
+                                  borderBottom: "1px solid #bbf7d0",
+                                }}
+                                data-testid={`appointment-block-${apt.id}`}
+                              >
+                                <div className="text-[10px] font-semibold text-gray-700">{timeRange}</div>
+                                <div className="text-xs font-bold text-gray-900 truncate">
+                                  {apt.service?.name || "Service"}
+                                </div>
+                                <div className="text-[10px] text-gray-600 truncate">
+                                  #{apt.id} {apt.customer?.name ? `- ${apt.customer.name}` : ""}
+                                </div>
+                                {apt.service?.price && (
+                                  <div className="text-[10px] font-medium text-gray-700">${apt.service.price}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
-                  })}
-                </div>
-              ))}
+                  })
+                )}
+              </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
-      </Card>
+      </div>
     </AppLayout>
   );
 }
@@ -126,7 +296,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
     serviceId: z.coerce.number(),
     staffId: z.coerce.number(),
     customerId: z.coerce.number(),
-    date: z.string(), // HTML datetime-local input returns string
+    date: z.string(),
     duration: z.coerce.number(),
   });
 
@@ -134,9 +304,6 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
     resolver: zodResolver(formSchema),
   });
 
-  const selectedServiceId = watch("serviceId");
-  
-  // Auto-set duration when service changes
   const handleServiceChange = (val: string) => {
     setValue("serviceId", Number(val));
     const service = services?.find(s => s.id === Number(val));
@@ -150,7 +317,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="space-y-2">
         <Label>Client</Label>
         <Select onValueChange={(val) => setValue("customerId", Number(val))}>
-          <SelectTrigger>
+          <SelectTrigger data-testid="select-customer">
             <SelectValue placeholder="Select Client" />
           </SelectTrigger>
           <SelectContent>
@@ -166,7 +333,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="space-y-2">
           <Label>Service</Label>
           <Select onValueChange={handleServiceChange}>
-            <SelectTrigger>
+            <SelectTrigger data-testid="select-service">
               <SelectValue placeholder="Select Service" />
             </SelectTrigger>
             <SelectContent>
@@ -181,7 +348,7 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="space-y-2">
           <Label>Staff</Label>
           <Select onValueChange={(val) => setValue("staffId", Number(val))}>
-            <SelectTrigger>
+            <SelectTrigger data-testid="select-staff">
               <SelectValue placeholder="Select Staff" />
             </SelectTrigger>
             <SelectContent>
@@ -196,24 +363,24 @@ function CreateAppointmentForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div className="space-y-2">
         <Label htmlFor="date">Date & Time</Label>
-        <Input 
-          id="date" 
-          type="datetime-local" 
-          {...register("date")} 
+        <Input
+          id="date"
+          type="datetime-local"
+          {...register("date")}
+          data-testid="input-date"
         />
         {errors.date && <span className="text-xs text-destructive">Date is required</span>}
       </div>
-      
-      {/* Hidden duration field, managed by service selection */}
+
       <input type="hidden" {...register("duration")} />
 
       <div className="space-y-2">
         <Label htmlFor="notes">Notes</Label>
-        <Input id="notes" {...register("notes")} placeholder="Any special requests?" />
+        <Input id="notes" {...register("notes")} placeholder="Any special requests?" data-testid="input-notes" />
       </div>
 
       <div className="flex justify-end pt-4">
-        <Button type="submit" disabled={isPending} className="bg-primary hover:bg-primary/90">
+        <Button type="submit" disabled={isPending} data-testid="button-submit-appointment">
           {isPending ? "Booking..." : "Book Appointment"}
         </Button>
       </div>
