@@ -15,6 +15,7 @@ import NewBooking from "@/pages/NewBooking";
 import ClientLookup from "@/pages/ClientLookup";
 import POSInterface from "@/pages/POSInterface";
 import ClientProfile from "@/pages/ClientProfile";
+import StaffDetail from "@/pages/StaffDetail";
 import CashDrawer from "@/pages/CashDrawer";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/services" component={Services} />
       <Route path="/staff" component={Staff} />
+      <Route path="/staff/:id" component={StaffDetail} />
       <Route path="/customers" component={Customers} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/appointments" component={Calendar} />

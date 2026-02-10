@@ -1,6 +1,6 @@
 import { 
   stores, services, staff, customers, appointments, products,
-  serviceCategories, addons, serviceAddons, appointmentAddons, staffServices,
+  serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
   cashDrawerSessions, drawerActions,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
@@ -10,6 +10,7 @@ import {
   type AppointmentAddon, type InsertAppointmentAddon,
   type Staff, type InsertStaff,
   type StaffService, type InsertStaffService,
+  type StaffAvailability, type InsertStaffAvailability,
   type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type AppointmentWithDetails,
   type Product, type InsertProduct,
@@ -58,6 +59,10 @@ export interface IStorage {
   getStaffServices(staffId?: number, serviceId?: number): Promise<StaffService[]>;
   getStaffForService(serviceId: number): Promise<Staff[]>;
   setStaffServices(staffId: number, serviceIds: number[]): Promise<void>;
+
+  getStaffAvailability(staffId: number): Promise<StaffAvailability[]>;
+  setStaffAvailability(staffId: number, rules: InsertStaffAvailability[]): Promise<StaffAvailability[]>;
+  deleteStaffAvailabilityRule(id: number): Promise<void>;
 
   getCustomers(storeId?: number): Promise<Customer[]>;
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -247,6 +252,26 @@ export class DatabaseStorage implements IStorage {
         serviceIds.map(serviceId => ({ staffId, serviceId }))
       );
     }
+  }
+
+  // Staff Availability
+  async getStaffAvailability(staffId: number): Promise<StaffAvailability[]> {
+    return await db.select().from(staffAvailability).where(eq(staffAvailability.staffId, staffId));
+  }
+
+  async setStaffAvailability(staffId: number, rules: InsertStaffAvailability[]): Promise<StaffAvailability[]> {
+    await db.delete(staffAvailability).where(eq(staffAvailability.staffId, staffId));
+    if (rules.length > 0) {
+      const result = await db.insert(staffAvailability).values(
+        rules.map(r => ({ ...r, staffId }))
+      ).returning();
+      return result;
+    }
+    return [];
+  }
+
+  async deleteStaffAvailabilityRule(id: number): Promise<void> {
+    await db.delete(staffAvailability).where(eq(staffAvailability.id, id));
   }
 
   // Customers

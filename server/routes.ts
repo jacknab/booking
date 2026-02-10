@@ -318,7 +318,36 @@ export async function registerRoutes(
     }
   });
 
-  // === AVAILABILITY ===
+  // === STAFF AVAILABILITY ===
+  app.get(api.staffAvailability.get.path, async (req, res) => {
+    const staffId = Number(req.params.id);
+    const rules = await storage.getStaffAvailability(staffId);
+    res.json(rules);
+  });
+
+  app.post(api.staffAvailability.set.path, async (req, res) => {
+    try {
+      const staffId = Number(req.params.id);
+      const { rules } = z.object({
+        rules: z.array(z.object({
+          dayOfWeek: z.number(),
+          startTime: z.string(),
+          endTime: z.string(),
+        }))
+      }).parse(req.body);
+      const result = await storage.setStaffAvailability(staffId, rules.map(r => ({ ...r, staffId })));
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  app.delete(api.staffAvailability.deleteRule.path, async (req, res) => {
+    await storage.deleteStaffAvailabilityRule(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // === AVAILABILITY SLOTS ===
   app.get(api.availability.slots.path, async (req, res) => {
     try {
       const serviceId = Number(req.query.serviceId);

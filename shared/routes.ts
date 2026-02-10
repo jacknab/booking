@@ -8,6 +8,7 @@ import {
   insertAppointmentAddonSchema,
   insertStaffSchema,
   insertStaffServiceSchema,
+  insertStaffAvailabilitySchema,
   insertCustomerSchema, 
   insertAppointmentSchema, 
   insertProductSchema,
@@ -20,6 +21,7 @@ import {
   serviceAddons,
   appointmentAddons,
   staffServices,
+  staffAvailability,
   staff,
   customers,
   appointments,
@@ -254,6 +256,30 @@ export const api = {
       input: z.object({ serviceIds: z.array(z.number()) }),
       responses: {
         200: z.object({ success: z.boolean() }),
+      },
+    },
+  },
+  staffAvailability: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/staff/:id/availability' as const,
+      responses: {
+        200: z.array(z.custom<typeof staffAvailability.$inferSelect>()),
+      },
+    },
+    set: {
+      method: 'POST' as const,
+      path: '/api/staff/:id/availability' as const,
+      input: z.object({ rules: z.array(insertStaffAvailabilitySchema.omit({ staffId: true })) }),
+      responses: {
+        200: z.array(z.custom<typeof staffAvailability.$inferSelect>()),
+      },
+    },
+    deleteRule: {
+      method: 'DELETE' as const,
+      path: '/api/staff-availability/:id' as const,
+      responses: {
+        204: z.void(),
       },
     },
   },

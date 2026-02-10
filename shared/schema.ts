@@ -74,6 +74,14 @@ export const staffServices = pgTable("staff_services", {
   serviceId: integer("service_id").references(() => services.id).notNull(),
 });
 
+export const staffAvailability = pgTable("staff_availability", {
+  id: serial("id").primaryKey(),
+  staffId: integer("staff_id").references(() => staff.id).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+});
+
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -187,6 +195,11 @@ export const appointmentAddonsRelations = relations(appointmentAddons, ({ one })
 export const staffRelations = relations(staff, ({ one, many }) => ({
   store: one(stores, { fields: [staff.storeId], references: [stores.id] }),
   staffServices: many(staffServices),
+  availability: many(staffAvailability),
+}));
+
+export const staffAvailabilityRelations = relations(staffAvailability, ({ one }) => ({
+  staff: one(staff, { fields: [staffAvailability.staffId], references: [staff.id] }),
 }));
 
 export const staffServicesRelations = relations(staffServices, ({ one }) => ({
@@ -224,6 +237,7 @@ export const insertServiceAddonSchema = createInsertSchema(serviceAddons).omit({
 export const insertAppointmentAddonSchema = createInsertSchema(appointmentAddons).omit({ id: true });
 export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
 export const insertStaffServiceSchema = createInsertSchema(staffServices).omit({ id: true });
+export const insertStaffAvailabilitySchema = createInsertSchema(staffAvailability).omit({ id: true });
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
@@ -255,6 +269,9 @@ export type InsertStaff = z.infer<typeof insertStaffSchema>;
 
 export type StaffService = typeof staffServices.$inferSelect;
 export type InsertStaffService = z.infer<typeof insertStaffServiceSchema>;
+
+export type StaffAvailability = typeof staffAvailability.$inferSelect;
+export type InsertStaffAvailability = z.infer<typeof insertStaffAvailabilitySchema>;
 
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
