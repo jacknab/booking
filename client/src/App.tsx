@@ -11,6 +11,7 @@ import Staff from "@/pages/Staff";
 import Customers from "@/pages/Customers";
 import Calendar from "@/pages/Calendar";
 import Products from "@/pages/Products";
+import NewBooking from "@/pages/NewBooking";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/customers" component={Customers} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/appointments" component={Calendar} />
+      <Route path="/booking/new" component={NewBooking} />
       <Route path="/products" component={Products} />
       <Route component={NotFound} />
     </Switch>

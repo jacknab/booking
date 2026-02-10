@@ -1,26 +1,17 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useAppointments, useCreateAppointment } from "@/hooks/use-appointments";
-import { useServices } from "@/hooks/use-services";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAppointments, useUpdateAppointment } from "@/hooks/use-appointments";
 import { useStaffList } from "@/hooks/use-staff";
-import { useCustomers } from "@/hooks/use-customers";
 import { useSelectedStore } from "@/hooks/use-store";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
-import { addDays, subDays, isSameDay, addMinutes } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertAppointmentSchema } from "@shared/schema";
-import { z } from "zod";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, X, Clock, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import type { AppointmentWithDetails } from "@shared/schema";
 
 const HOUR_HEIGHT = 80;
 const START_HOUR = 8;
@@ -64,7 +55,8 @@ function useCurrentTimeLine(timezone: string) {
 }
 
 export default function Calendar() {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const tzAbbr = getTimezoneAbbr(timezone);
@@ -72,14 +64,16 @@ export default function Calendar() {
   const storeNow = getNowInTimezone(timezone);
   const [currentDate, setCurrentDate] = useState(storeNow);
   const [selectedStaffId, setSelectedStaffId] = useState<number | "all">("all");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone);
+  const updateAppointment = useUpdateAppointment();
 
   useEffect(() => {
     setCurrentDate(getNowInTimezone(timezone));
     setSelectedStaffId("all");
+    setSelectedAppointment(null);
   }, [selectedStore?.id, timezone]);
 
   useEffect(() => {
@@ -90,9 +84,8 @@ export default function Calendar() {
     }
   }, [selectedStore?.id]);
 
-  const { data: appointments, isLoading: aptsLoading } = useAppointments();
+  const { data: appointments } = useAppointments();
   const { data: staffList } = useStaffList();
-  const { data: services } = useServices();
 
   const filteredStaff = useMemo(() => {
     if (!staffList) return [];
@@ -149,7 +142,22 @@ export default function Calendar() {
 
   const isToday = isSameDay(currentDate, storeNow);
 
-  if (isLoading) {
+  const handleCancelAppointment = (apt: AppointmentWithDetails) => {
+    updateAppointment.mutate(
+      { id: apt.id, status: "cancelled" } as any,
+      {
+        onSuccess: () => setSelectedAppointment(null),
+      }
+    );
+  };
+
+  const handleStartService = (apt: AppointmentWithDetails) => {
+    updateAppointment.mutate(
+      { id: apt.id, status: "confirmed" } as any,
+    );
+  };
+
+  if (authLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -221,250 +229,303 @@ export default function Calendar() {
           </Button>
         </div>
 
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-new-appointment">
-              <CalendarPlus className="w-4 h-4 mr-2" />
-              New Appointment
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Appointment</DialogTitle>
-            </DialogHeader>
-            <CreateAppointmentForm onSuccess={() => setIsCreateOpen(false)} timezone={timezone} />
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate("/booking/new")} data-testid="button-new-appointment">
+          <CalendarPlus className="w-4 h-4 mr-2" />
+          New Appointment
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div ref={scrollContainerRef} className="h-full overflow-auto">
-          <div className="flex min-w-[600px]">
-            <div className="w-[72px] flex-shrink-0 border-r bg-card z-10 sticky left-0">
-              <div className="h-[60px] border-b" />
-              <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
-                {timeSlots.map((slot, i) => (
-                  <div
-                    key={slot.hour}
-                    className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
-                    style={{ top: `${i * HOUR_HEIGHT}px` }}
-                  >
-                    <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
-                  </div>
-                ))}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-hidden">
+          <div ref={scrollContainerRef} className="h-full overflow-auto">
+            <div className="flex min-w-[600px]">
+              <div className="w-[72px] flex-shrink-0 border-r bg-card z-10 sticky left-0">
+                <div className="h-[60px] border-b" />
+                <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
+                  {timeSlots.map((slot, i) => (
+                    <div
+                      key={slot.hour}
+                      className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
+                      style={{ top: `${i * HOUR_HEIGHT}px` }}
+                    >
+                      <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
+                    </div>
+                  ))}
 
+                  {isToday && timeLinePosition !== null && (
+                    <div
+                      className="absolute left-0 right-0 flex items-center justify-end pr-2 -translate-y-1/2 z-20"
+                      style={{ top: `${timeLinePosition}px` }}
+                      data-testid="current-time-label"
+                    >
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1 rounded">
+                        {timeLineLabel}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-1 relative">
                 {isToday && timeLinePosition !== null && (
                   <div
-                    className="absolute left-0 right-0 flex items-center justify-end pr-2 -translate-y-1/2 z-20"
-                    style={{ top: `${timeLinePosition}px` }}
-                    data-testid="current-time-label"
+                    className="absolute left-0 right-0 z-20 pointer-events-none"
+                    style={{ top: `${timeLinePosition + 60}px` }}
+                    data-testid="current-time-line"
                   >
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1 rounded">
-                      {timeLineLabel}
-                    </span>
+                    <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
                   </div>
+                )}
+
+                {filteredStaff.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
+                    No staff members found for this store.
+                  </div>
+                ) : (
+                  filteredStaff.map((member: any) => {
+                    const staffApts = getAppointmentsForStaff(member.id);
+                    const color = getStaffColor(member);
+
+                    return (
+                      <div
+                        key={member.id}
+                        className="flex-1 min-w-[180px] border-r last:border-r-0"
+                      >
+                        <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2">
+                          <Avatar className="w-7 h-7">
+                            <AvatarFallback
+                              style={{ backgroundColor: color + "22", color }}
+                              className="text-xs font-bold"
+                            >
+                              {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
+                            {member.name}
+                          </span>
+                        </div>
+
+                        <div
+                          className="relative"
+                          style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
+                        >
+                          {timeSlots.map((slot, i) => (
+                            <div
+                              key={slot.hour}
+                              className="absolute left-0 right-0 border-b border-border/40"
+                              style={{
+                                top: `${i * HOUR_HEIGHT}px`,
+                                height: `${HOUR_HEIGHT}px`,
+                              }}
+                            />
+                          ))}
+
+                          {staffApts.map((apt: any) => {
+                            const style = getAppointmentStyle(apt);
+                            const timeRange = `${formatInTz(apt.date, timezone, "h:mm")} - ${formatInTz(addMinutes(new Date(apt.date), apt.duration), timezone, "h:mm a")}`;
+                            const isSelected = selectedAppointment?.id === apt.id;
+                            const statusColor = apt.status === "cancelled" ? "#fecaca" : apt.status === "confirmed" ? "#dcfce7" : "#dbeafe";
+                            const borderColor = apt.status === "cancelled" ? "#ef4444" : apt.status === "confirmed" ? "#22c55e" : "#3b82f6";
+
+                            return (
+                              <div
+                                key={apt.id}
+                                className="absolute left-1 right-1 rounded-md border-l-[3px] px-2 py-1 overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md"
+                                style={{
+                                  ...style,
+                                  backgroundColor: statusColor,
+                                  borderLeftColor: borderColor,
+                                  borderTop: `1px solid ${borderColor}33`,
+                                  borderRight: `1px solid ${borderColor}33`,
+                                  borderBottom: `1px solid ${borderColor}33`,
+                                  ...(isSelected ? { boxShadow: `0 0 0 2px ${borderColor}` } : {}),
+                                }}
+                                onClick={() => setSelectedAppointment(apt)}
+                                data-testid={`appointment-block-${apt.id}`}
+                              >
+                                <div className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{timeRange}</div>
+                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
+                                  {apt.service?.name || "Service"}
+                                </div>
+                                <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
+                                  #{apt.id} {apt.customer?.name ? `\u00B7 ${apt.customer.name}` : ""}
+                                </div>
+                                {apt.service?.price && (
+                                  <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">${apt.service.price}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
-
-            <div className="flex flex-1 relative">
-              {isToday && timeLinePosition !== null && (
-                <div
-                  className="absolute left-0 right-0 z-20 pointer-events-none"
-                  style={{ top: `${timeLinePosition + 60}px` }}
-                  data-testid="current-time-line"
-                >
-                  <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
-                </div>
-              )}
-
-              {filteredStaff.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
-                  No staff members found for this store.
-                </div>
-              ) : (
-                filteredStaff.map((member: any) => {
-                  const staffApts = getAppointmentsForStaff(member.id);
-                  const color = getStaffColor(member);
-
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex-1 min-w-[180px] border-r last:border-r-0"
-                    >
-                      <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2">
-                        <Avatar className="w-7 h-7">
-                          <AvatarFallback
-                            style={{ backgroundColor: color + "22", color }}
-                            className="text-xs font-bold"
-                          >
-                            {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
-                          {member.name}
-                        </span>
-                      </div>
-
-                      <div
-                        className="relative"
-                        style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
-                      >
-                        {timeSlots.map((slot, i) => (
-                          <div
-                            key={slot.hour}
-                            className="absolute left-0 right-0 border-b border-border/40"
-                            style={{
-                              top: `${i * HOUR_HEIGHT}px`,
-                              height: `${HOUR_HEIGHT}px`,
-                            }}
-                          />
-                        ))}
-
-                        {staffApts.map((apt: any) => {
-                          const style = getAppointmentStyle(apt);
-                          const timeRange = `${formatInTz(apt.date, timezone, "h:mm")} - ${formatInTz(addMinutes(new Date(apt.date), apt.duration), timezone, "h:mm a")}`;
-
-                          return (
-                            <div
-                              key={apt.id}
-                              className="absolute left-1 right-1 rounded-md border-l-[3px] px-2 py-1 overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md"
-                              style={{
-                                ...style,
-                                backgroundColor: "#dcfce7",
-                                borderLeftColor: "#22c55e",
-                                borderTop: "1px solid #bbf7d0",
-                                borderRight: "1px solid #bbf7d0",
-                                borderBottom: "1px solid #bbf7d0",
-                              }}
-                              data-testid={`appointment-block-${apt.id}`}
-                            >
-                              <div className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{timeRange}</div>
-                              <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
-                                {apt.service?.name || "Service"}
-                              </div>
-                              <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
-                                #{apt.id} {apt.customer?.name ? `- ${apt.customer.name}` : ""}
-                              </div>
-                              {apt.service?.price && (
-                                <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">${apt.service.price}</div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
           </div>
         </div>
+
+        {selectedAppointment && (
+          <AppointmentDetailsPanel
+            appointment={selectedAppointment}
+            timezone={timezone}
+            onClose={() => setSelectedAppointment(null)}
+            onCancel={() => handleCancelAppointment(selectedAppointment)}
+            onStart={() => handleStartService(selectedAppointment)}
+            onEdit={() => navigate("/booking/new")}
+            isCancelling={updateAppointment.isPending}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function CreateAppointmentForm({ onSuccess, timezone }: { onSuccess: () => void; timezone: string }) {
-  const { mutate, isPending } = useCreateAppointment();
-  const { data: services } = useServices();
-  const { data: staffList } = useStaffList();
-  const { data: customers } = useCustomers();
-  const tzAbbr = getTimezoneAbbr(timezone);
+function AppointmentDetailsPanel({
+  appointment,
+  timezone,
+  onClose,
+  onCancel,
+  onStart,
+  onEdit,
+  isCancelling,
+}: {
+  appointment: AppointmentWithDetails;
+  timezone: string;
+  onClose: () => void;
+  onCancel: () => void;
+  onStart: () => void;
+  onEdit: () => void;
+  isCancelling: boolean;
+}) {
+  const localDate = toStoreLocal(appointment.date, timezone);
+  const endTime = addMinutes(new Date(appointment.date), appointment.duration);
+  const dateStr = formatInTz(appointment.date, timezone, "EEEE, d MMM yyyy");
+  const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
 
-  const formSchema = insertAppointmentSchema.extend({
-    serviceId: z.coerce.number(),
-    staffId: z.coerce.number(),
-    customerId: z.coerce.number(),
-    date: z.string(),
-    duration: z.coerce.number(),
-  });
+  const statusLabel = appointment.status === "confirmed" ? "Confirmed" : appointment.status === "cancelled" ? "Cancelled" : appointment.status === "completed" ? "Completed" : "Booked";
+  const statusVariant = appointment.status === "cancelled" ? "destructive" as const : "secondary" as const;
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-  });
-
-  const handleServiceChange = (val: string) => {
-    setValue("serviceId", Number(val));
-    const service = services?.find((s: any) => s.id === Number(val));
-    if (service) {
-      setValue("duration", service.duration);
-    }
-  };
+  const progressColor = appointment.status === "confirmed" ? "#22c55e" : appointment.status === "cancelled" ? "#ef4444" : "#3b82f6";
 
   return (
-    <form onSubmit={handleSubmit((data) => mutate(data as any, { onSuccess }))} className="space-y-4">
-      <div className="space-y-2">
-        <Label>Client</Label>
-        <Select onValueChange={(val) => setValue("customerId", Number(val))}>
-          <SelectTrigger data-testid="select-customer">
-            <SelectValue placeholder="Select Client" />
-          </SelectTrigger>
-          <SelectContent>
-            {customers?.map((c: any) => (
-              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.customerId && <span className="text-xs text-destructive">Client is required</span>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Service</Label>
-          <Select onValueChange={handleServiceChange}>
-            <SelectTrigger data-testid="select-service">
-              <SelectValue placeholder="Select Service" />
-            </SelectTrigger>
-            <SelectContent>
-              {services?.map((s: any) => (
-                <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.duration}m)</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.serviceId && <span className="text-xs text-destructive">Service is required</span>}
+    <div className="w-[340px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="appointment-details-panel">
+      <div className="p-4 border-b flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="text-xs font-bold bg-muted">
+              {appointment.customer?.name?.[0]?.toUpperCase() || "W"}
+            </AvatarFallback>
+          </Avatar>
+          <span className="font-medium text-sm" data-testid="text-detail-customer">
+            {appointment.customer?.name || "Walk-In"}
+          </span>
         </div>
-
-        <div className="space-y-2">
-          <Label>Staff</Label>
-          <Select onValueChange={(val) => setValue("staffId", Number(val))}>
-            <SelectTrigger data-testid="select-staff">
-              <SelectValue placeholder="Select Staff" />
-            </SelectTrigger>
-            <SelectContent>
-              {staffList?.map((s: any) => (
-                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.staffId && <span className="text-xs text-destructive">Staff is required</span>}
+        <div className="flex items-center gap-2">
+          <Badge variant={statusVariant} className="no-default-active-elevate text-[10px]" data-testid="badge-detail-status">
+            {statusLabel}
+          </Badge>
+          <Badge variant="outline" className="no-default-active-elevate text-[10px]" data-testid="badge-detail-id">
+            #{appointment.id}
+          </Badge>
+          <button onClick={onClose} className="text-muted-foreground ml-1" data-testid="button-close-details">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="date">Date & Time ({tzAbbr})</Label>
-        <Input
-          id="date"
-          type="datetime-local"
-          {...register("date")}
-          data-testid="input-date"
-        />
-        <p className="text-xs text-muted-foreground">Times are in the store's timezone: {timezone}</p>
-        {errors.date && <span className="text-xs text-destructive">Date is required</span>}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div>
+          <p className="text-sm font-medium" data-testid="text-detail-date">{dateStr}</p>
+          <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="text-xs" data-testid="text-detail-time">{timeStr}</span>
+          </div>
+        </div>
+
+        <div className="w-full h-1 rounded-full bg-muted overflow-hidden">
+          <div className="h-full rounded-full" style={{ width: "100%", backgroundColor: progressColor }} />
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="font-semibold text-sm" data-testid="text-detail-service">{appointment.service?.name || "Service"}</h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground">{appointment.duration} min</span>
+                {appointment.staff && (
+                  <>
+                    <span className="text-xs text-muted-foreground">&middot;</span>
+                    <Badge variant="outline" className="no-default-active-elevate text-[10px] px-1.5" data-testid="badge-detail-staff">
+                      {appointment.staff.name}
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </div>
+            <span className="font-semibold text-sm" data-testid="text-detail-price">
+              ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
+            </span>
+          </div>
+        </div>
+
+        {appointment.notes && (
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground">{appointment.notes}</p>
+          </div>
+        )}
       </div>
 
-      <input type="hidden" {...register("duration")} />
+      <div className="border-t p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="font-semibold">Total</span>
+            <p className="text-xs text-muted-foreground">Duration</p>
+          </div>
+          <div className="text-right">
+            <span className="font-bold text-lg" data-testid="text-detail-total">
+              ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
+            </span>
+            <p className="text-xs text-muted-foreground">{appointment.duration} min</p>
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Input id="notes" {...register("notes")} placeholder="Any special requests?" data-testid="input-notes" />
-      </div>
+        {appointment.status !== "cancelled" && appointment.status !== "completed" && (
+          <>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={onEdit}
+                data-testid="button-edit-appointment"
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 text-destructive border-destructive/30"
+                onClick={onCancel}
+                disabled={isCancelling}
+                data-testid="button-cancel-appointment"
+              >
+                {isCancelling ? "Cancelling..." : "Cancel Appointment"}
+              </Button>
+            </div>
 
-      <div className="flex justify-end pt-4">
-        <Button type="submit" disabled={isPending} data-testid="button-submit-appointment">
-          {isPending ? "Booking..." : "Book Appointment"}
-        </Button>
+            <Button
+              className="w-full bg-blue-600 text-white hover:bg-blue-700 h-12"
+              onClick={onStart}
+              data-testid="button-start-service"
+            >
+              <span className="flex flex-col items-center leading-tight">
+                <span className="font-semibold">Start</span>
+                <span className="text-[10px] opacity-80">Begin Service</span>
+              </span>
+            </Button>
+          </>
+        )}
       </div>
-    </form>
+    </div>
   );
 }

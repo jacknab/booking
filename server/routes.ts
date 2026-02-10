@@ -254,7 +254,7 @@ async function seedDatabase() {
       address: "456 West Blvd, Los Angeles, CA",
     });
 
-    // Services
+    // Services - Store 1 (Main Street Salon)
     const service1 = await storage.createService({
       name: "Haircut - Women",
       description: "Wash, cut and blow dry",
@@ -263,6 +263,106 @@ async function seedDatabase() {
       category: "Hair",
       storeId: store1.id,
     });
+    await storage.createService({
+      name: "Haircut - Men",
+      description: "Classic men's cut",
+      duration: 30,
+      price: "35.00",
+      category: "Hair",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Blow Dry & Style",
+      description: "Professional blow dry and styling",
+      duration: 45,
+      price: "45.00",
+      category: "Hair",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Color - Full",
+      description: "Full head color application",
+      duration: 120,
+      price: "150.00",
+      category: "Hair",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Highlights",
+      description: "Partial or full highlights",
+      duration: 90,
+      price: "120.00",
+      category: "Hair",
+      storeId: store1.id,
+    });
+
+    const service3 = await storage.createService({
+      name: "Classic Manicure",
+      description: "File, shape, cuticle care and polish",
+      duration: 30,
+      price: "25.00",
+      category: "Nails",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Gel Manicure",
+      description: "Long-lasting gel polish manicure",
+      duration: 45,
+      price: "40.00",
+      category: "Nails",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Deluxe Pedicure",
+      description: "Soak, scrub, massage and polish",
+      duration: 60,
+      price: "55.00",
+      category: "Nails",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Spa Pedicure",
+      description: "Premium pedicure with paraffin wax",
+      duration: 75,
+      price: "70.00",
+      category: "Nails",
+      storeId: store1.id,
+    });
+
+    await storage.createService({
+      name: "Classic Facial",
+      description: "Deep cleanse and hydration",
+      duration: 60,
+      price: "85.00",
+      category: "Skin Care",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Anti-Aging Facial",
+      description: "Targeted anti-aging treatment",
+      duration: 75,
+      price: "110.00",
+      category: "Skin Care",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Eyebrow Wax",
+      description: "Precision eyebrow shaping",
+      duration: 15,
+      price: "18.00",
+      category: "Waxing",
+      storeId: store1.id,
+    });
+    await storage.createService({
+      name: "Full Leg Wax",
+      description: "Complete leg waxing",
+      duration: 45,
+      price: "65.00",
+      category: "Waxing",
+      storeId: store1.id,
+    });
+
+    // Services - Store 2 (West Side Spa)
     const service2 = await storage.createService({
       name: "Haircut - Men",
       description: "Wash and cut",
@@ -271,21 +371,61 @@ async function seedDatabase() {
       category: "Hair",
       storeId: store2.id,
     });
-
-    const service3 = await storage.createService({
-      name: "Manicure",
-      description: "Classic manicure with polish",
-      duration: 45,
-      price: "40.00",
-      category: "Nails",
-      storeId: store1.id,
+    await storage.createService({
+      name: "Beard Trim",
+      description: "Shape and trim beard",
+      duration: 20,
+      price: "20.00",
+      category: "Hair",
+      storeId: store2.id,
     });
+    await storage.createService({
+      name: "Hot Towel Shave",
+      description: "Traditional straight razor shave",
+      duration: 30,
+      price: "40.00",
+      category: "Hair",
+      storeId: store2.id,
+    });
+
     const service4 = await storage.createService({
       name: "Deep Tissue Massage",
       description: "60 min therapeutic massage",
       duration: 60,
       price: "95.00",
       category: "Massage",
+      storeId: store2.id,
+    });
+    await storage.createService({
+      name: "Swedish Massage",
+      description: "Relaxation full body massage",
+      duration: 60,
+      price: "85.00",
+      category: "Massage",
+      storeId: store2.id,
+    });
+    await storage.createService({
+      name: "Hot Stone Massage",
+      description: "Heated stone therapy massage",
+      duration: 75,
+      price: "110.00",
+      category: "Massage",
+      storeId: store2.id,
+    });
+    await storage.createService({
+      name: "Aromatherapy Facial",
+      description: "Essential oil infused facial",
+      duration: 60,
+      price: "90.00",
+      category: "Skin Care",
+      storeId: store2.id,
+    });
+    await storage.createService({
+      name: "Body Scrub",
+      description: "Full body exfoliation treatment",
+      duration: 45,
+      price: "75.00",
+      category: "Skin Care",
       storeId: store2.id,
     });
 
