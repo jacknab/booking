@@ -360,8 +360,8 @@ export default function Calendar() {
                   <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
                 </div>
               )}
-              <div className="w-[72px] flex-shrink-0 border-r bg-card z-10 sticky left-0">
-                <div className="h-[60px] border-b" />
+              <div className="w-[72px] flex-shrink-0 border-r bg-card z-30 sticky left-0">
+                <div className="h-[60px] border-b sticky top-0 bg-card z-40" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
                   {timeSlots.map((slot) => {
                     const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
