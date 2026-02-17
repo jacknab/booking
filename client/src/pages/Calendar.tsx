@@ -408,19 +408,19 @@ export default function Calendar() {
                         key={member.id}
                         className="flex-1 min-w-[180px] border-r last:border-r-0"
                       >
-                        <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2">
-                          <Avatar className="w-7 h-7">
-                            <AvatarFallback
-                              style={{ backgroundColor: color + "22", color }}
-                              className="text-xs font-bold"
-                            >
-                              {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
-                            {member.name}
-                          </span>
-                        </div>
+                          <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
+                            <Avatar className="w-7 h-7">
+                              <AvatarFallback
+                                style={{ backgroundColor: color + "22", color }}
+                                className="text-xs font-bold"
+                              >
+                                {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
+                              {member.name}
+                            </span>
+                          </div>
 
                         <div
                           className="relative"
