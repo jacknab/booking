@@ -499,23 +499,24 @@ export default function POSInterface() {
       </div>
 
       <div className="w-[320px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="pos-ticket-panel">
-        <div className="p-4 border-b flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-            <User className="w-4 h-4 text-muted-foreground" />
+        <div 
+          className="p-4 border-b flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors" 
+          onClick={() => navigate("/client-lookup")}
+          data-testid="pos-client-selector"
+        >
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+            {client?.avatarUrl ? (
+              <AvatarImage src={client.avatarUrl} alt={client.name} />
+            ) : (
+              <User className="w-4 h-4 text-muted-foreground" />
+            )}
           </div>
           <div className="flex-1">
             <span className="text-sm font-semibold uppercase" data-testid="pos-client-name">
               {client ? client.name : "GUEST"}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/client-lookup")}
-            data-testid="button-change-client"
-          >
-            <User className="w-4 h-4" />
-          </Button>
+          <User className="w-4 h-4 text-muted-foreground" />
         </div>
 
         {primaryStaff && (
