@@ -505,11 +505,7 @@ export default function POSInterface() {
           data-testid="pos-client-selector"
         >
           <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-            {client?.avatarUrl ? (
-              <AvatarImage src={client.avatarUrl} alt={client.name} />
-            ) : (
-              <User className="w-4 h-4 text-muted-foreground" />
-            )}
+            <User className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
             <span className="text-sm font-semibold uppercase" data-testid="pos-client-name">
