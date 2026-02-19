@@ -98,10 +98,11 @@ export default function Calendar() {
   useEffect(() => {
     if (timeLinePosition !== null && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
+      // Center the time line in the view, or at least show it clearly
       const scrollTarget = Math.max(0, timeLinePosition - container.clientHeight / 3);
       container.scrollTop = scrollTarget;
     }
-  }, [selectedStore?.id]);
+  }, [timeLinePosition, selectedStore?.id]);
 
   const { data: appointments } = useAppointments();
   const { data: staffList, isLoading: staffLoading } = useStaffList();
