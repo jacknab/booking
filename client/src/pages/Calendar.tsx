@@ -16,7 +16,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
-const HOUR_HEIGHT = 80;
+const HOUR_HEIGHT = 120;
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
 
