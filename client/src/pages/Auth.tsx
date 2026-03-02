@@ -13,22 +13,30 @@ export default function Auth() {
   const [, navigate] = useLocation();
   const { isAuthenticated, user, login, register, isLoggingIn, isRegistering } = useAuth();
   const { toast } = useToast();
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/staff-dashboard");
+      if (user?.role === "admin" || user?.role === "owner") {
+        navigate("/dashboard");
+      } else {
+        navigate("/staff-dashboard");
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login({ email, password, type: "staff" });
-      navigate("/staff-dashboard");
+      if (mode === "login") {
+        await login({ email, password });
+      } else {
+        await register({ email, password });
+      }
     } catch (error: any) {
-      const message = error?.message || "Login failed";
+      const message = error?.message || (mode === "login" ? "Login failed" : "Registration failed");
       let description = message;
       try {
         const parsed = JSON.parse(message.replace(/^\d+:\s*/, ""));
@@ -55,46 +63,52 @@ export default function Auth() {
         </div>
 
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-center text-lg">
-              Staff Portal Login
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  data-testid="input-email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="staff@example.com"
-                  required
-                />
-              </div>
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "register")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
+              <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
+            </TabsList>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-center text-lg">
+                {mode === "login" ? "Welcome Back" : "Create an Account"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    data-testid="input-email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  data-testid="input-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  minLength={6}
-                />
-              </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    data-testid="input-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    minLength={6}
+                  />
+                </div>
 
-              <Button type="submit" className="w-full" disabled={isPending} data-testid="button-submit-auth">
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Log in
-              </Button>
-            </form>
-          </CardContent>
+                <Button type="submit" className="w-full" disabled={isPending} data-testid="button-submit-auth">
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {mode === "login" ? "Log in" : "Sign up"}
+                </Button>
+              </form>
+            </CardContent>
+          </Tabs>
         </Card>
       </div>
     </div>
