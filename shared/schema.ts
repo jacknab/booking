@@ -76,6 +76,7 @@ export const staff = pgTable("staff", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email"),
+  password: text("password"),
   phone: text("phone"),
   role: text("role").default("stylist"),
   bio: text("bio"),
