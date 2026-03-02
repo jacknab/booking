@@ -81,8 +81,9 @@ export async function registerRoutes(
 
   app.use("/api", (req, res, next) => {
     if (req.path.startsWith("/auth/")) return next();
+    const userId = (req.session as any)?.userId;
     const staffId = (req.session as any)?.staffId;
-    if (!staffId) {
+    if (!userId && !staffId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     next();
