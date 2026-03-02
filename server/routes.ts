@@ -33,7 +33,11 @@ export async function registerRoutes(
 
   app.use("/api", (req, res, next) => {
     if (req.path.startsWith("/auth/")) return next();
-    isAuthenticated(req, res, next);
+    const staffId = (req.session as any)?.staffId;
+    if (!staffId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    next();
   });
 
   // === STORES ===

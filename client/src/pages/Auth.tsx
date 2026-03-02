@@ -13,44 +13,22 @@ export default function Auth() {
   const [, navigate] = useLocation();
   const { isAuthenticated, user, login, register, isLoggingIn, isRegistering } = useAuth();
   const { toast } = useToast();
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [loginType, setLoginType] = useState<"admin" | "staff">("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (user?.isStaff) {
-        navigate("/staff-dashboard");
-      } else if (user && !user.onboardingCompleted) {
-        navigate("/onboarding");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate("/staff-dashboard");
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      let result: any;
-      if (mode === "login") {
-        result = await login({ email, password, type: loginType });
-      } else {
-        result = await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
-      }
-
-      if (result?.isStaff) {
-        navigate("/staff-dashboard");
-      } else if (result && !result.onboardingCompleted) {
-        navigate("/onboarding");
-      } else {
-        navigate("/dashboard");
-      }
+      await login({ email, password, type: "staff" });
+      navigate("/staff-dashboard");
     } catch (error: any) {
-      const message = error?.message || (mode === "login" ? "Login failed" : "Registration failed");
+      const message = error?.message || "Login failed";
       let description = message;
       try {
         const parsed = JSON.parse(message.replace(/^\d+:\s*/, ""));
@@ -79,51 +57,11 @@ export default function Auth() {
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-center text-lg">
-              {mode === "login" ? "Welcome back" : "Create an account"}
+              Staff Portal Login
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {mode === "login" && (
-              <Tabs defaultValue="admin" onValueChange={(v) => setLoginType(v as any)} className="mb-6">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="admin" className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Admin
-                  </TabsTrigger>
-                  <TabsTrigger value="staff" className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4" />
-                    Staff
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "register" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="firstName">First name</Label>
-                    <Input
-                      id="firstName"
-                      data-testid="input-first-name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Jane"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="lastName">Last name</Label>
-                    <Input
-                      id="lastName"
-                      data-testid="input-last-name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Doe"
-                    />
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -132,7 +70,7 @@ export default function Auth() {
                   data-testid="input-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="staff@example.com"
                   required
                 />
               </div>
@@ -145,7 +83,7 @@ export default function Auth() {
                   data-testid="input-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="Enter your password"
                   required
                   minLength={6}
                 />
@@ -153,37 +91,9 @@ export default function Auth() {
 
               <Button type="submit" className="w-full" disabled={isPending} data-testid="button-submit-auth">
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "login" ? "Log in" : "Create account"}
+                Log in
               </Button>
             </form>
-
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              {mode === "login" ? (
-                <>
-                  Don&apos;t have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setMode("register")}
-                    className="text-primary underline-offset-4 hover:underline font-medium"
-                    data-testid="link-switch-to-register"
-                  >
-                    Sign up
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setMode("login")}
-                    className="text-primary underline-offset-4 hover:underline font-medium"
-                    data-testid="link-switch-to-login"
-                  >
-                    Log in
-                  </button>
-                </>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>

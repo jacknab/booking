@@ -3,7 +3,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
-import { users, staff } from "@shared/schema";
+import { staff } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export function setupAuth(app: Express) {
@@ -34,41 +34,25 @@ export function setupAuth(app: Express) {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, type } = req.body;
+      const { email, password } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      if (type === "staff") {
-        const [member] = await db.select().from(staff).where(eq(staff.email, email));
-        if (!member || !member.password) {
-          return res.status(401).json({ message: "Invalid email or password" });
-        }
-
-        const valid = await bcrypt.compare(password, member.password);
-        if (!valid) {
-          return res.status(401).json({ message: "Invalid email or password" });
-        }
-
-        (req.session as any).staffId = member.id;
-        const { password: _, ...safeStaff } = member;
-        return res.json({ ...safeStaff, isStaff: true });
-      }
-
-      const [user] = await db.select().from(users).where(eq(users.email, email));
-      if (!user) {
+      const [member] = await db.select().from(staff).where(eq(staff.email, email));
+      if (!member || !member.password) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      const valid = await bcrypt.compare(password, user.password);
+      const valid = await bcrypt.compare(password, member.password);
       if (!valid) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      (req.session as any).userId = user.id;
-      const { password: _, ...safeUser } = user;
-      res.json(safeUser);
+      (req.session as any).staffId = member.id;
+      const { password: _, ...safeStaff } = member;
+      return res.json({ ...safeStaff, isStaff: true });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
@@ -86,36 +70,17 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/auth/user", async (req, res) => {
-    const userId = (req.session as any)?.userId;
     const staffId = (req.session as any)?.staffId;
 
-    if (!userId && !staffId) {
+    if (!staffId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     try {
-      if (staffId) {
-        const [member] = await db.select().from(staff).where(eq(staff.id, staffId));
-        if (!member) return res.status(401).json({ message: "Unauthorized" });
-        const { password: _, ...safeStaff } = member;
-        return res.json({ ...safeStaff, isStaff: true });
-      }
-
-      let [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (!user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      if (!user.onboardingCompleted) {
-        const userStores = await db.select().from(stores).where(eq(stores.userId, userId));
-        if (userStores.length > 0) {
-          await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, userId));
-          [user] = await db.select().from(users).where(eq(users.id, userId));
-        }
-      }
-
-      const { password: _, ...safeUser } = user;
-      res.json(safeUser);
+      const [member] = await db.select().from(staff).where(eq(staff.id, staffId));
+      if (!member) return res.status(401).json({ message: "Unauthorized" });
+      const { password: _, ...safeStaff } = member;
+      return res.json({ ...safeStaff, isStaff: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
     }
