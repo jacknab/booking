@@ -28,6 +28,7 @@ import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import PublicBooking from "@/pages/PublicBooking";
 import Pricing from "@/pages/Pricing";
+import StaffAuth from "@/pages/StaffAuth";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/book/:slug" component={PublicBooking} />
       <Route path="/auth" component={Auth} />
+      <Route path="/staff-auth" component={StaffAuth} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/services" component={Services} />

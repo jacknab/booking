@@ -186,7 +186,7 @@ export default function Landing() {
               <span className="font-display font-bold text-xl">Zolmi Clone</span>
             </div>
             <div className="flex flex-wrap justify-center items-center gap-8">
-              <Link href="/staff-dashboard">
+              <Link href="/staff-auth">
                 <Button variant="link" className="text-muted-foreground hover:text-primary p-0 h-auto font-medium" data-testid="link-staff-login">
                   Staff Login
                 </Button>
