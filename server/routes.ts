@@ -31,6 +31,53 @@ export async function registerRoutes(
 ): Promise<Server> {
   setupAuth(app);
 
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      const existingUser = await storage.getUserByUsername(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      const user = await storage.createUser({
+        username: email,
+        password: await bcrypt.hash(password, 10),
+      });
+
+      (req.session as any).userId = user.id;
+      return res.status(201).json(user);
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await storage.getUserByUsername(email);
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      (req.session as any).userId = user.id;
+      return res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.get("/api/auth/user", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    return res.json(user);
+  });
+
   app.use("/api", (req, res, next) => {
     if (req.path.startsWith("/auth/")) return next();
     const staffId = (req.session as any)?.staffId;

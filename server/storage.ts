@@ -1,3 +1,4 @@
+import { users, type User, type InsertUser } from "@shared/models/auth";
 import { 
   stores, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
@@ -26,6 +27,9 @@ import { db } from "./db";
 import { eq, and, gte, lte, inArray, desc, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   getStores(userId?: string): Promise<Store[]>;
   getStore(id: number): Promise<Store | undefined>;
   getStoreBySlug(slug: string): Promise<Store | undefined>;
@@ -117,6 +121,21 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
   // Stores
   async getStores(userId?: string): Promise<Store[]> {
     if (userId) {

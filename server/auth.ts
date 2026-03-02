@@ -13,7 +13,7 @@ export function setupAuth(app: Express) {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
@@ -28,36 +28,10 @@ export function setupAuth(app: Express) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: sessionTtl,
+        sameSite: "lax",
       },
     })
   );
-
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      const [member] = await db.select().from(staff).where(eq(staff.email, email));
-      if (!member || !member.password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      const valid = await bcrypt.compare(password, member.password);
-      if (!valid) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      (req.session as any).staffId = member.id;
-      const { password: _, ...safeStaff } = member;
-      return res.json({ ...safeStaff, isStaff: true });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Login failed" });
-    }
-  });
 
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
@@ -67,23 +41,6 @@ export function setupAuth(app: Express) {
       res.clearCookie("connect.sid");
       res.json({ message: "Logged out" });
     });
-  });
-
-  app.get("/api/auth/user", async (req, res) => {
-    const staffId = (req.session as any)?.staffId;
-
-    if (!staffId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const [member] = await db.select().from(staff).where(eq(staff.id, staffId));
-      if (!member) return res.status(401).json({ message: "Unauthorized" });
-      const { password: _, ...safeStaff } = member;
-      return res.json({ ...safeStaff, isStaff: true });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
   });
 }
 

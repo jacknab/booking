@@ -63,18 +63,19 @@ export default function Auth() {
         </div>
 
         <Card>
-          <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "register")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-              <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
-            </TabsList>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-center text-lg">
-                {mode === "login" ? "Welcome Back" : "Create an Account"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+          <CardHeader className="pb-4">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "register")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
+                <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <CardTitle className="text-center text-lg mt-4">
+              {mode === "login" ? "Welcome Back" : "Create an Account"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -108,7 +109,6 @@ export default function Auth() {
                 </Button>
               </form>
             </CardContent>
-          </Tabs>
         </Card>
       </div>
     </div>
