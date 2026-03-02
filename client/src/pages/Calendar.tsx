@@ -378,10 +378,10 @@ export default function Calendar() {
                     return (
                       <div
                         key={`${slot.hour}-${slot.minute}`}
-                        className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
-                        style={{ top: `${topPx}px` }}
+                        className="absolute left-0 right-0 flex items-center justify-end pr-3"
+                        style={{ top: `${topPx}px`, height: "1px" }}
                       >
-                        <span className={cn("text-xs", slot.isHour ? "font-bold text-foreground/70" : "text-muted-foreground/50 text-[10px]")}>
+                        <span className={cn("text-xs leading-none", slot.isHour ? "font-bold text-foreground/80" : "text-muted-foreground/60 text-[10px]")}>
                           {slot.label}
                         </span>
                       </div>
@@ -444,7 +444,7 @@ export default function Calendar() {
                                 key={`${slot.hour}-${slot.minute}`}
                                 className={cn(
                                   "absolute left-0 right-0 border-b cursor-pointer transition-colors hover:bg-primary/5",
-                                  slot.isHour ? "border-border/40" : "border-border/20"
+                                  slot.isHour ? "border-border/60" : "border-border/40"
                                 )}
                                 style={{
                                   top: `${topPx}px`,
