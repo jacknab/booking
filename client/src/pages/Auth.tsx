@@ -5,14 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Scissors, Loader2 } from "lucide-react";
+import { Scissors, Loader2, User, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Auth() {
   const [, navigate] = useLocation();
   const { isAuthenticated, user, login, register, isLoggingIn, isRegistering } = useAuth();
   const { toast } = useToast();
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [loginType, setLoginType] = useState<"admin" | "staff">("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -20,7 +22,9 @@ export default function Auth() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (user && !user.onboardingCompleted) {
+      if (user?.isStaff) {
+        navigate("/staff-dashboard");
+      } else if (user && !user.onboardingCompleted) {
         navigate("/onboarding");
       } else {
         navigate("/dashboard");
@@ -33,11 +37,14 @@ export default function Auth() {
     try {
       let result: any;
       if (mode === "login") {
-        result = await login({ email, password });
+        result = await login({ email, password, type: loginType });
       } else {
         result = await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
       }
-      if (result && !result.onboardingCompleted) {
+
+      if (result?.isStaff) {
+        navigate("/staff-dashboard");
+      } else if (result && !result.onboardingCompleted) {
         navigate("/onboarding");
       } else {
         navigate("/dashboard");
@@ -76,6 +83,21 @@ export default function Auth() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {mode === "login" && (
+              <Tabs defaultValue="admin" onValueChange={(v) => setLoginType(v as any)} className="mb-6">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="admin" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Admin
+                  </TabsTrigger>
+                  <TabsTrigger value="staff" className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    Staff
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === "register" && (
                 <div className="grid grid-cols-2 gap-3">
