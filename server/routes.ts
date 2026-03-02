@@ -44,7 +44,7 @@ export async function registerRoutes(
       }
 
       const user = await storage.createUser({
-        username: email,
+        email,
         password: await bcrypt.hash(password, 10),
       });
 
