@@ -177,16 +177,25 @@ export default function Landing() {
       </div>
 
       <footer className="bg-card border-t py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Scissors className="w-5 h-5 text-primary-foreground" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <Scissors className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display font-bold text-xl">Zolmi Clone</span>
             </div>
-            <span className="font-display font-bold text-xl">Zolmi Clone</span>
+            <div className="flex flex-wrap justify-center items-center gap-8">
+              <Link href="/staff-dashboard">
+                <Button variant="link" className="text-muted-foreground hover:text-primary p-0 h-auto font-medium" data-testid="link-staff-login">
+                  Staff Login
+                </Button>
+              </Link>
+              <p className="text-muted-foreground text-sm">
+                2025 Zolmi Clone. All rights reserved.
+              </p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-sm">
-            2025 Zolmi Clone. All rights reserved.
-          </p>
         </div>
       </footer>
     </div>
