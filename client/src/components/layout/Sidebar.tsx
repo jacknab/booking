@@ -37,6 +37,21 @@ const navItems = [
 export function Sidebar() {
   const [location, navigate] = useLocation();
   const { logoutAsync, user } = useAuth();
+  const isAdmin = user?.role === "admin" || !user?.role;
+
+  const filteredNavItems = navItems.filter(item => {
+    if (isAdmin) return true;
+    // Staff only see Dashboard and Calendar
+    return item.href === "/dashboard" || item.href === "/calendar";
+  }).map(item => {
+    if (!isAdmin && item.href === "/dashboard") {
+      return { ...item, href: "/staff-dashboard" };
+    }
+    if (!isAdmin && item.href === "/calendar") {
+      return { ...item, label: "My Calendar" };
+    }
+    return item;
+  });
 
   const handleLogout = async () => {
     try {
@@ -59,7 +74,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>

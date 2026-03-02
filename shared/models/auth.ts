@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, timestamp, varchar, integer } from "drizzle-orm/pg-core";
 
 export const sessions = pgTable(
   "sessions",
@@ -19,6 +19,8 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  role: varchar("role").default("admin"), // "admin" or "staff"
+  staffId: integer("staff_id"), // Link to staff table if role is staff
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

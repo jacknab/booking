@@ -621,10 +621,13 @@ export async function registerRoutes(
 
   // === APPOINTMENTS ===
   app.get(api.appointments.list.path, async (req, res) => {
+    const userId = (req.session as any).userId;
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+
     const filters = {
       from: req.query.from ? new Date(req.query.from as string) : undefined,
       to: req.query.to ? new Date(req.query.to as string) : undefined,
-      staffId: req.query.staffId ? Number(req.query.staffId) : undefined,
+      staffId: user?.role === "staff" ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
       storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
       customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
     };

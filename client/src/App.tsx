@@ -23,6 +23,7 @@ import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
 import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
+import StaffDashboard from "@/pages/StaffDashboard";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import PublicBooking from "@/pages/PublicBooking";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/business-settings" component={BusinessSettings} />
       <Route path="/online-booking" component={OnlineBooking} />
       <Route path="/sms-settings" component={SmsSettings} />
+      <Route path="/staff-dashboard" component={StaffDashboard} />
       <Route path="/cash-drawer" component={CashDrawer} />
       <Route component={NotFound} />
     </Switch>

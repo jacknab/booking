@@ -58,6 +58,7 @@ export function setupAuth(app: Express) {
           password: hashedPassword,
           firstName: firstName || null,
           lastName: lastName || null,
+          role: "admin", // Default for registration
         })
         .returning();
 
