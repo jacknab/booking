@@ -88,12 +88,19 @@ export default function Calendar() {
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
   const updateAppointment = useUpdateAppointment();
 
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || !user?.role;
+
   useEffect(() => {
     setCurrentDate(getNowInTimezone(timezone));
-    setSelectedStaffId("all");
+    if (isAdmin) {
+      setSelectedStaffId("all");
+    } else if (user?.staffId) {
+      setSelectedStaffId(user.staffId);
+    }
     setSelectedAppointment(null);
     setShowCheckout(false);
-  }, [selectedStore?.id, timezone]);
+  }, [selectedStore?.id, timezone, isAdmin, user?.staffId]);
 
   useEffect(() => {
     if (timeLinePosition !== null && scrollContainerRef.current) {
@@ -270,21 +277,23 @@ export default function Calendar() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
-          <Select
-            value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
-            onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
-          >
-            <SelectTrigger className="w-[160px]" data-testid="select-staff-filter">
-              <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="All Staff" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Staff</SelectItem>
-              {staffList?.map((s: any) => (
-                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isAdmin && (
+            <Select
+              value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
+              onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
+            >
+              <SelectTrigger className="w-[160px]" data-testid="select-staff-filter">
+                <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="All Staff" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Staff</SelectItem>
+                {staffList?.map((s: any) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Badge variant="secondary" className="no-default-active-elevate gap-1" data-testid="badge-timezone">
             <Globe className="w-3 h-3" />
             {tzAbbr}

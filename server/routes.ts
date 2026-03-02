@@ -627,7 +627,7 @@ export async function registerRoutes(
     const filters = {
       from: req.query.from ? new Date(req.query.from as string) : undefined,
       to: req.query.to ? new Date(req.query.to as string) : undefined,
-      staffId: user?.role === "staff" ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
+      staffId: user?.role === "staff" && user.staffId ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
       storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
       customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
     };

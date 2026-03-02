@@ -48,7 +48,7 @@ export function Sidebar() {
       return { ...item, href: "/staff-dashboard" };
     }
     if (!isAdmin && item.href === "/calendar") {
-      return { ...item, label: "My Calendar" };
+      return { ...item, label: "My Calendar", href: "/calendar" };
     }
     return item;
   });
