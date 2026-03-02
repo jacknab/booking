@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { sendBookingConfirmation, startReminderScheduler } from "./sms";
+import bcrypt from "bcryptjs";
 import { 
   insertStoreSchema,
   insertServiceCategorySchema,
