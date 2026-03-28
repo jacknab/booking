@@ -37,6 +37,7 @@ import BookingWidgetPage from "@/pages/BookingWidgetPage";
 import BookingConfirmation from "@/pages/public-booking/BookingConfirmation";
 import Pricing from "@/pages/Pricing";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import StaffCalendar from "@/pages/StaffCalendar";
 import NotFound from "@/pages/not-found";
 
 // List of authenticated routes that require StoreProvider
@@ -99,6 +100,7 @@ function AppRoutes() {
       <Route path="/staff-auth" element={<StaffAuth />} />
       <Route path="/staff-change-password" element={<StaffPasswordChange />} />
       <Route path="/staff-dashboard" element={<StaffDashboard />} />
+      <Route path="/staff-calendar" element={<StaffCalendar />} />
       <Route path="/isadmin/*" element={<AdminDashboard />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/dashboard" element={<Dashboard />} />

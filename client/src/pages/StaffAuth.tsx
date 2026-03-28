@@ -20,6 +20,8 @@ export default function StaffAuth() {
       // Staff users logged in via users table who haven't changed their temp password
       if (user?.role === "staff" && user.passwordChanged === false) {
         navigate("/staff-change-password");
+      } else if (user?.role === "staff") {
+        navigate("/staff-calendar");
       } else {
         navigate("/calendar");
       }
@@ -30,7 +32,7 @@ export default function StaffAuth() {
     e.preventDefault();
     try {
       await login({ email, password });
-      navigate("/calendar");
+      navigate("/staff-calendar");
     } catch (error: any) {
       toast({ 
         title: "Login failed", 

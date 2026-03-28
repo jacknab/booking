@@ -185,9 +185,12 @@ export default function Landing() {
               2025 Certxa. All rights reserved.
             </p>
           </div>
-          <div className="mt-6 pt-6 border-t">
+          <div className="mt-6 pt-6 border-t flex items-center gap-6">
             <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground transition">
               Privacy Policy
+            </Link>
+            <Link to="/staff-auth" className="text-sm text-muted-foreground hover:text-foreground transition">
+              Staff Login
             </Link>
           </div>
         </div>
