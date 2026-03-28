@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -42,3 +42,17 @@ waitForPort = 5000
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+PORT = "5000"
+NODE_ENV = "development"
+CORS_ALLOW_ALL = "true"
+TRIAL_PERIOD_DAYS = "60"
+MAILGUN_DOMAIN = "mg.mysalon.me"
+MAILGUN_SENDER_EMAIL = "noreply@mysalon.me"
+MAILGUN_FROM_EMAIL = "noreply@mysalon.me"
+MAILGUN_FROM_NAME = "Toby"
+CORS_ORIGINS = "https://dashboard.certxa.com,https://mysalon.me"
+GOOGLE_CLIENT_ID = "1085460104488-nhs437qp1on1tgshp577s6pjdl4ltqvk.apps.googleusercontent.com"
