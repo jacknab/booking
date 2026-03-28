@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const SCENE_DURATIONS = [3000, 3000, 2500, 2500];
+const SCENE_DURATIONS = [4000, 9000, 4000, 4000];
 
 export default function HeroVideo() {
   const [currentScene, setCurrentScene] = useState(0);
@@ -120,7 +120,7 @@ function Scene2() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFlashIndex(prev => (prev + 1) % flashes.length);
-    }, 650);
+    }, 2000);
     return () => clearInterval(interval);
   }, [flashes.length]);
 
@@ -138,7 +138,7 @@ function Scene2() {
           initial={{ opacity: 0, scale: 1.04 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.9 }}
           className="absolute inset-0"
         >
           <img
