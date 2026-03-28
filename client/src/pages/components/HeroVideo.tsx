@@ -69,7 +69,7 @@ function Scene1() {
       <img
         src="/images/salon-bg.png"
         alt=""
-        className="w-full h-full object-cover opacity-25 mix-blend-luminosity"
+        className="w-full h-full object-cover opacity-60"
       />
       {/* Geometric floating shapes */}
       <motion.div
@@ -143,7 +143,7 @@ function Scene2() {
         >
           <img
             src={flashes[flashIndex].img}
-            className="w-full h-full object-cover opacity-30 mix-blend-luminosity"
+            className="w-full h-full object-cover opacity-55"
             alt=""
           />
         </motion.div>

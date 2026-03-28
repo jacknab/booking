@@ -58,7 +58,7 @@ export default function Landing() {
         <div className="absolute inset-0 z-0">
           <HeroVideo />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/70 via-[#060E1A]/60 to-[#060E1A]/90 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/20 via-[#060E1A]/10 to-[#060E1A]/50 z-10" />
         
         <div className="relative z-20 text-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pointer-events-none">
           <motion.div
