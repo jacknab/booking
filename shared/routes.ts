@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { 
-  insertStoreSchema,
+  insertLocationSchema,
   insertServiceCategorySchema,
   insertServiceSchema, 
   insertAddonSchema,
@@ -16,7 +16,7 @@ import {
   insertProductSchema,
   insertCashDrawerSessionSchema,
   insertDrawerActionSchema,
-  stores,
+  locations,
   serviceCategories,
   services,
   addons,
@@ -53,32 +53,32 @@ export const api = {
       method: 'GET' as const,
       path: '/api/stores' as const,
       responses: {
-        200: z.array(z.custom<typeof stores.$inferSelect>()),
+        200: z.array(z.custom<typeof locations.$inferSelect>()),
       },
     },
     get: {
       method: 'GET' as const,
       path: '/api/stores/:id' as const,
       responses: {
-        200: z.custom<typeof stores.$inferSelect>(),
+        200: z.custom<typeof locations.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
     create: {
       method: 'POST' as const,
       path: '/api/stores' as const,
-      input: insertStoreSchema,
+      input: insertLocationSchema,
       responses: {
-        201: z.custom<typeof stores.$inferSelect>(),
+        201: z.custom<typeof locations.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     update: {
       method: 'PATCH' as const,
       path: '/api/stores/:id' as const,
-      input: insertStoreSchema.partial(),
+      input: insertLocationSchema.partial(),
       responses: {
-        200: z.custom<typeof stores.$inferSelect>(),
+        200: z.custom<typeof locations.$inferSelect>(),
         400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
@@ -142,6 +142,18 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+    reorder: {
+      method: 'POST' as const,
+      path: '/api/service-categories/reorder' as const,
+      input: z.object({
+        orderedIds: z.array(z.number()),
+        storeId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
       },
     },
   },
@@ -431,7 +443,7 @@ export const api = {
           service: typeof services.$inferSelect | null;
           staff: typeof staff.$inferSelect | null;
           customer: typeof customers.$inferSelect | null;
-          store: typeof stores.$inferSelect | null;
+          store: typeof locations.$inferSelect | null;
         }>()),
       },
     },

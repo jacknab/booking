@@ -3,11 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppointments } from "@/hooks/use-appointments";
 import { useCustomers } from "@/hooks/use-customers";
 import { useAuth } from "@/hooks/use-auth";
+import { useTrial } from "@/hooks/use-trial";
 import { useSelectedStore } from "@/hooks/use-store";
+import { TrialCountdownBanner } from "@/components/TrialCountdownBanner";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { isSameDay, subDays, startOfWeek, endOfWeek, isWithinInterval, format, startOfDay, subWeeks } from "date-fns";
-import { Users, Calendar, DollarSign, TrendingUp, Globe } from "lucide-react";
+import { Users, Calendar, DollarSign, TrendingUp, Globe, Printer, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useReceiptPrinter } from "@/components/Receipt";
 import { 
   BarChart, 
   Bar, 
@@ -21,17 +25,21 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const { selectedStore } = useSelectedStore();
+  const { daysRemaining, subscriptionStatus } = useTrial();
   const timezone = selectedStore?.timezone || "UTC";
   const tzAbbr = getTimezoneAbbr(timezone);
   const storeNow = getNowInTimezone(timezone);
 
   const { data: appointments } = useAppointments();
   const { data: customers } = useCustomers();
+  const { printReceipt } = useReceiptPrinter();
 
   const todayAppointments = appointments?.filter((apt: any) => {
     const localDate = toStoreLocal(apt.date, timezone);
     return isSameDay(localDate, storeNow);
   }) || [];
+
+  const todaysCompletedAppointments = todayAppointments.filter((apt: any) => apt.status === "completed");
 
   const yesterdayAppointments = appointments?.filter((apt: any) => {
     const localDate = toStoreLocal(apt.date, timezone);
@@ -55,7 +63,7 @@ export default function Dashboard() {
 
   const getRevenue = (appts: any[]) => {
     return appts.reduce((sum: number, apt: any) => {
-      const paid = parseFloat(apt.totalPaid || "0");
+      const paid = parseFloat(apt.total || "0");
       return sum + (isNaN(paid) ? 0 : paid);
     }, 0);
   };
@@ -76,23 +84,13 @@ export default function Dashboard() {
   })?.length || 0;
 
   const completedAppointments = appointments?.filter((apt: any) =>
-    apt.status === "completed" && parseFloat(apt.totalPaid || "0") > 0
+    apt.status === "completed"
   ) || [];
   const avgTicket = completedAppointments.length > 0
     ? getRevenue(completedAppointments) / completedAppointments.length
     : 0;
 
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const chartData = last7Days.map(day => {
-    const dayAppts = appointments?.filter((apt: any) => {
-      const localDate = toStoreLocal(apt.date, timezone);
-      return isSameDay(localDate, day);
-    }) || [];
-    return {
-      name: dayNames[day.getDay()],
-      revenue: getRevenue(dayAppts),
-    };
-  });
+
 
   const todayCount = todayAppointments.length;
   const yesterdayCount = yesterdayAppointments.length;
@@ -104,8 +102,38 @@ export default function Dashboard() {
     ? `${revenueChange >= 0 ? "+" : ""}${revenueChange}% from last week`
     : thisWeekRevenue > 0 ? `$${thisWeekRevenue.toFixed(0)} this week` : "No revenue yet";
 
+  const handlePrintReceipt = (apt: any) => {
+    if (!selectedStore || !apt) return;
+
+    const receiptData = {
+      store: selectedStore,
+      client: apt.customer,
+      staff: apt.staff,
+      items: [{
+        service: apt.service,
+        addons: apt.appointmentAddons.map((a: any) => a.addon),
+        staffId: apt.staffId,
+      }],
+      subtotal: parseFloat(apt.total) - parseFloat(apt.tipAmount || '0'),
+      tipAmount: parseFloat(apt.tipAmount || '0'),
+      grandTotal: parseFloat(apt.total),
+      paymentMethod: apt.paymentMethod || 'Card',
+      transactionId: String(apt.id),
+      dateStr: formatInTz(apt.date, timezone, 'MM/dd/yyyy'),
+      timeStr: formatInTz(apt.date, timezone, 'h:mm a'),
+    };
+
+    printReceipt(receiptData);
+  };
+
   return (
     <AppLayout>
+      {/* Trial Banner */}
+      <TrialCountdownBanner 
+        daysRemaining={daysRemaining}
+        subscriptionStatus={subscriptionStatus}
+      />
+      
       <div className="flex flex-col gap-2 mb-8">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
@@ -152,30 +180,8 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 shadow-sm border-border/50">
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} tickFormatter={(value) => `$${value}`} />
-                  <Tooltip 
-                    cursor={{fill: 'hsla(var(--foreground), 0.05)'}}
-                    contentStyle={{borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                    labelStyle={{color: 'hsl(var(--foreground))'}}
-                    itemStyle={{color: 'hsl(var(--foreground))'}}
-                  />
-                  <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-8">
+
 
         <Card className="shadow-sm border-border/50">
           <CardHeader className="flex flex-row items-center justify-between gap-2">
@@ -201,6 +207,43 @@ export default function Dashboard() {
                           {formatInTz(apt.date, timezone, 'h:mm a')}
                         </span>
                       </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle>Today's Completed Tickets</CardTitle>
+            <span className="text-xs text-muted-foreground">{todaysCompletedAppointments.length} Paid</span>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {todaysCompletedAppointments.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No completed tickets yet today.</p>
+              ) : (
+                todaysCompletedAppointments.slice(0, 5).map((apt: any) => (
+                  <div key={apt.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/80 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                        <Check className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-sm">{apt.service?.name || "Service"}</p>
+                        <p className="text-xs text-muted-foreground">with {apt.staff?.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-bold text-sm">${apt.total}</p>
+                        <p className="text-xs text-muted-foreground">{formatInTz(apt.date, timezone, 'h:mm a')}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handlePrintReceipt(apt)} className="text-muted-foreground">
+                        <Printer className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 ))

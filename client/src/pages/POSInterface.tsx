@@ -11,7 +11,7 @@ import { useServices } from "@/hooks/use-services";
 import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Addon, Customer, Staff } from "@shared/schema";
@@ -177,7 +177,7 @@ function TipScreen({
 }
 
 export default function POSInterface() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { selectedStore } = useSelectedStore();
 
   const params = new URLSearchParams(window.location.search);

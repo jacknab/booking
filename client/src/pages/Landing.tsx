@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ export default function Landing() {
   const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    window.location.href = "/dashboard";
+    window.location.href = "/calendar";
     return null;
   }
 
@@ -22,19 +22,17 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Scissors className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-display font-bold text-xl tracking-tight">Zolmi Clone</span>
+              <img src="/web-app.png" alt="Certxa" className="w-12 h-12 rounded-lg" />
+              <span className="font-display font-bold text-2xl tracking-tight">Certxa</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/pricing">
+              <Link to="/pricing">
                 <Button variant="ghost" className="font-medium" data-testid="link-pricing">Pricing</Button>
               </Link>
-              <Link href="/auth">
+              <Link to="/auth">
                 <Button variant="ghost" className="font-medium" data-testid="link-login">Log in</Button>
               </Link>
-              <Link href="/auth">
+              <Link to="/auth">
                 <Button data-testid="link-get-started">
                   Get Started
                 </Button>
@@ -70,7 +68,7 @@ export default function Landing() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-              <Link href="/auth">
+              <Link to="/auth">
                 <Button size="lg" className="rounded-full" data-testid="link-free-trial">
                   Start Free Trial
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -165,7 +163,7 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-display font-bold mb-6">Ready to transform your salon?</h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
-            Join thousands of beauty professionals who trust Zolmi Clone to manage their business, from scheduling to checkout.
+            Join thousands of beauty professionals who trust Certxa to manage their business, from scheduling to checkout.
           </p>
           <Link href="/auth">
             <Button size="lg" className="rounded-full" data-testid="link-cta-bottom">
@@ -177,16 +175,21 @@ export default function Landing() {
       </div>
 
       <footer className="bg-card border-t py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Scissors className="w-5 h-5 text-primary-foreground" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-2">
+              <img src="/web-app.png" alt="Certxa" className="w-12 h-12 rounded-lg" />
+              <span className="font-display font-bold text-2xl">Certxa</span>
             </div>
-            <span className="font-display font-bold text-xl">Zolmi Clone</span>
+            <p className="text-muted-foreground text-sm">
+              2025 Certxa. All rights reserved.
+            </p>
           </div>
-          <p className="text-muted-foreground text-sm">
-            2025 Zolmi Clone. All rights reserved.
-          </p>
+          <div className="mt-6 pt-6 border-t">
+            <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground transition">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

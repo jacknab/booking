@@ -17,7 +17,7 @@ import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
 import { getTimezoneAbbr, formatInTz, storeLocalToUtc, getNowInTimezone } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, Link } from "wouter";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
@@ -25,7 +25,7 @@ import type { Service, Staff, Customer, Addon } from "@shared/schema";
 type BookingStep = "services" | "addons" | "details";
 
 export default function NewBooking() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { isLoading: authLoading } = useAuth();
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
@@ -48,6 +48,8 @@ export default function NewBooking() {
   const setAppointmentAddons = useSetAppointmentAddons();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // Category order state (loaded from localStorage for display)
+  const [categoryOrder, setCategoryOrder] = useState<string[] | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
@@ -172,14 +174,27 @@ export default function NewBooking() {
   );
 
   const categoryNames = useMemo(() => {
+    let names: string[] = [];
     if (categories && categories.length > 0) {
-      return Array.from(new Set(categories.map((c: any) => c.name))).sort() as string[];
+      names = Array.from(new Set(categories.map((c: any) => c.name))) as string[];
+    } else if (services) {
+      const catSet = new Set<string>();
+      services.forEach((s: Service) => catSet.add(s.category));
+      names = Array.from(catSet);
     }
-    if (!services) return [];
-    const catSet = new Set<string>();
-    services.forEach((s: Service) => catSet.add(s.category));
-    return Array.from(catSet).sort();
-  }, [services, categories]);
+    // Use custom order if set
+    if (categoryOrder) {
+      // Keep only categories that exist
+      return categoryOrder.filter((c) => names.includes(c)).concat(names.filter((c) => !categoryOrder.includes(c)));
+    }
+    return names.sort();
+  }, [services, categories, categoryOrder]);
+
+  // Load category order from localStorage for display purposes only
+  useEffect(() => {
+    const stored = localStorage.getItem("categoryOrder");
+    if (stored) setCategoryOrder(JSON.parse(stored));
+  }, []);
 
   const filteredServices = useMemo(() => {
     if (!services) return [];
@@ -313,19 +328,20 @@ export default function NewBooking() {
               </div>
               <nav className="flex-1 overflow-y-auto py-2">
                 {categoryNames.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "w-full text-left px-5 py-3 text-sm font-medium transition-colors",
-                      activeCategory === cat
-                        ? "text-primary border-l-[3px] border-primary bg-primary/5"
-                        : "text-muted-foreground border-l-[3px] border-transparent"
-                    )}
-                    data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    {cat}
-                  </button>
+                  <div key={cat}>
+                    <button
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        "w-full text-left px-5 py-3 text-sm font-medium transition-colors flex items-center gap-2",
+                        activeCategory === cat
+                          ? "text-primary border-l-[3px] border-primary bg-primary/5"
+                          : "text-muted-foreground border-l-[3px] border-transparent"
+                      )}
+                      data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
+                    >
+                      {cat}
+                    </button>
+                  </div>
                 ))}
               </nav>
             </div>
@@ -344,23 +360,27 @@ export default function NewBooking() {
                         <Card
                           key={service.id}
                           className={cn(
-                            "p-4 cursor-pointer transition-all",
+                            "p-4 cursor-pointer transition-all h-40 flex flex-col",
                             isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
                           )}
                           onClick={() => handleSelectService(service)}
                           data-testid={`card-service-${service.id}`}
                         >
-                          <div className="flex flex-col gap-2">
-                            <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1">
-                              <Scissors className="w-8 h-8 text-muted-foreground/40" />
-                            </div>
-                            <h3 className="font-semibold text-sm leading-tight" data-testid={`text-service-name-${service.id}`}>{service.name}</h3>
-                            {service.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">{service.description}</p>
+                          <div className="flex flex-col gap-2 flex-1">
+                            {service.imageUrl && (
+                              <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1 overflow-hidden relative">
+                                <img 
+                                  src={service.imageUrl.replace(/_/g, '/').replace(/-/g, '+')} 
+                                  alt={service.name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
                             )}
+                            <h3 className="font-semibold text-base leading-tight" data-testid={`text-service-name-${service.id}`}>{service.name}</h3>
+
                             <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-                              <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
-                              <Badge variant="secondary" className="no-default-active-elevate text-[10px]">
+                              <span className="font-bold text-base">${Number(service.price).toFixed(2)}</span>
+                              <Badge variant="secondary" className="no-default-active-elevate text-xs">
                                 {service.duration}m
                               </Badge>
                             </div>
@@ -370,14 +390,7 @@ export default function NewBooking() {
                     })}
                   </div>
 
-                  {selectedService && (
-                    <InlineAddonsSection
-                      serviceId={selectedService.id}
-                      serviceName={selectedService.name}
-                      selectedAddons={selectedAddons}
-                      onToggleAddon={handleToggleAddon}
-                    />
-                  )}
+                  {/* Extras section removed as requested */}
                 </div>
               )}
             </div>
@@ -450,8 +463,22 @@ export default function NewBooking() {
                           </div>
                         )}
                         <div className="flex flex-col gap-2">
-                          <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1">
-                            <Sparkles className="w-8 h-8 text-muted-foreground/40" />
+                          <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1 overflow-hidden relative">
+                            {addon.imageUrl ? (
+                              <img 
+                                src={addon.imageUrl.replace(/_/g, '/').replace(/-/g, '+')} 
+                                alt={addon.name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                  if (fallback) fallback.classList.remove('hidden');
+                                }}
+                              />
+                            ) : null}
+                            <div className={`fallback-icon ${addon.imageUrl ? 'hidden' : ''} absolute inset-0 flex items-center justify-center`}>
+                              <Sparkles className="w-8 h-8 text-muted-foreground/40" />
+                            </div>
                           </div>
                           <h3 className="font-semibold text-sm leading-tight" data-testid={`text-addon-name-${addon.id}`}>{addon.name}</h3>
                           {addon.description && (
@@ -889,7 +916,7 @@ function BookingSummaryPanel({
           {selectedCustomer ? (
             <div className="flex items-center gap-2">
               <Link
-                href={`/client/${selectedCustomer.id}`}
+                to={`/client/${selectedCustomer.id}`}
                 className="text-sm font-medium text-primary underline-offset-4 hover:underline cursor-pointer"
                 data-testid="link-client-profile"
               >

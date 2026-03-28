@@ -1,0 +1,34 @@
+                                       Table "public.stores"
+           Column            |  Type   | Collation | Nullable |              Default               
+-----------------------------+---------+-----------+----------+------------------------------------
+ id                          | integer |           | not null | nextval('stores_id_seq'::regclass)
+ name                        | text    |           | not null | 
+ timezone                    | text    |           | not null | 'UTC'::text
+ address                     | text    |           |          | 
+ phone                       | text    |           |          | 
+ email                       | text    |           |          | 
+ category                    | text    |           |          | 
+ city                        | text    |           |          | 
+ postcode                    | text    |           |          | 
+ booking_slug                | text    |           |          | 
+ commission_payout_frequency | text    |           |          | 'monthly'::text
+ user_id                     | text    |           |          | 
+Indexes:
+    "stores_pkey" PRIMARY KEY, btree (id)
+    "stores_booking_slug_unique" UNIQUE CONSTRAINT, btree (booking_slug)
+Foreign-key constraints:
+    "stores_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id)
+Referenced by:
+    TABLE "addons" CONSTRAINT "addons_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "appointments" CONSTRAINT "appointments_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "business_hours" CONSTRAINT "business_hours_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "calendar_settings" CONSTRAINT "calendar_settings_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "cash_drawer_sessions" CONSTRAINT "cash_drawer_sessions_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "customers" CONSTRAINT "customers_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "products" CONSTRAINT "products_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "service_categories" CONSTRAINT "service_categories_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "services" CONSTRAINT "services_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "sms_log" CONSTRAINT "sms_log_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "sms_settings" CONSTRAINT "sms_settings_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+    TABLE "staff" CONSTRAINT "staff_store_id_stores_id_fk" FOREIGN KEY (store_id) REFERENCES stores(id)
+

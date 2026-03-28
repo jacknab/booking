@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSelectedStore } from "@/hooks/use-store";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { formatInTz } from "@/lib/timezone";
 import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,8 +15,8 @@ import type { Customer, AppointmentWithDetails } from "@shared/schema";
 type ProfileSection = "overview" | "next" | "past" | "deposits" | "notes" | "purchases";
 
 export default function ClientProfile() {
-  const [, navigate] = useLocation();
-  const params = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const params = useParams();
   const clientId = Number(params.id);
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
@@ -111,8 +112,7 @@ export default function ClientProfile() {
           <Badge
             variant="secondary"
             className={cn("no-default-active-elevate text-xs capitalize", statusColors[apt.status || "pending"])}
-            data-testid={`appointment-status-${apt.id}`}
-          >
+            data-testid={`appointment-status-${apt.id}`}>
             {apt.status || "Pending"}
           </Badge>
         </div>

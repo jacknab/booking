@@ -142,10 +142,11 @@ export default function AddonsPage() {
                 Add Add-On
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent aria-describedby="add-addon-desc">
               <DialogHeader>
                 <DialogTitle>Add New Add-On</DialogTitle>
               </DialogHeader>
+              <div id="add-addon-desc" className="sr-only">Fill out the form to add a new add-on service.</div>
               <CreateAddonForm services={services || []} onSuccess={() => setIsCreateOpen(false)} />
             </DialogContent>
           </Dialog>
@@ -361,11 +362,11 @@ function ServiceMappingDialog({
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-lg max-h-[80vh] flex flex-col" aria-describedby="map-services-desc">
         <DialogHeader>
           <DialogTitle>Map Services to "{addonName}"</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground mb-2">
+        <p id="map-services-desc" className="text-sm text-muted-foreground mb-2">
           Select which services this add-on can be attached to. Leave empty to make it available for all services.
         </p>
         <div className="flex items-center gap-2 mb-3">

@@ -1,27 +1,86 @@
+import "dotenv/config";
+import cors from "cors";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { setupAuth } from "./auth";
 import { serveStatic } from "./static";
+import { subdomainMiddleware } from "./middleware/subdomain";
 import { createServer } from "http";
+import compression from "compression";
+import passport from "./passport";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
+
+// Replace with your actual DB functions
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
 
+// --- CORS Setup ---
+const rawCorsOrigins =
+  process.env.CORS_ORIGINS ||
+  process.env.ALLOWED_ORIGINS ||
+  process.env.CORS_ORIGIN ||
+  "";
+const allowAllCorsOrigins = process.env.CORS_ALLOW_ALL === "true";
+const defaultCorsOrigins = ["https://dashboard.certxa.com"];
+if (process.env.NODE_ENV !== "production") {
+  defaultCorsOrigins.push("http://localhost:5173", "http://localhost:3000");
+}
+const allowedCorsOrigins = (rawCorsOrigins ? rawCorsOrigins.split(",") : defaultCorsOrigins)
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowAllCorsOrigins) return callback(null, true);
+      if (allowedCorsOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
+    user?: any; // passport user typing
   }
 }
 
+// --- Security Headers ---
+app.use((req, res, next) => {
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;"
+  );
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  next();
+});
+
+// --- Middleware ---
+app.use(compression());
+app.use(cookieParser());
 app.use(
   express.json({
+    limit: '10mb',
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(subdomainMiddleware);
 
-app.use(express.urlencoded({ extended: false }));
-
+// --- Logging Helper ---
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -29,7 +88,6 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
@@ -51,7 +109,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       log(logLine);
     }
   });
@@ -59,6 +116,47 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- Passport Google OAuth Setup ---
+// Moved to server/passport.ts
+
+setupAuth(app);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// --- Google Auth Routes ---
+app.get("/api/auth/google", (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).send("Google OAuth is not configured on the server. Please check environment variables.");
+  }
+  console.log("Google OAuth: Initiating authentication...");
+  passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+});
+
+app.get(
+  "/api/auth/google/callback",
+  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+  (req: Request, res: Response) => {
+    console.log("Google OAuth: Callback received, user:", req.user?.email);
+    // Manually log in the user using the existing session mechanism
+    if (req.user) {
+      (req.session as any).userId = req.user.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.redirect("/login");
+        }
+        console.log("Google OAuth: User logged in successfully, redirecting to /");
+        res.redirect("/");
+      });
+    } else {
+      console.error("Google OAuth: No user in request");
+      res.redirect("/login");
+    }
+  }
+);
+
+// --- Main Async Boot ---
 (async () => {
   await registerRoutes(httpServer, app);
 
@@ -75,9 +173,6 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -85,11 +180,7 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const port = parseInt(process.env.PORT || "5005", 10);
   httpServer.listen(
     {
       port,

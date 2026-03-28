@@ -30,7 +30,10 @@ export function useAppointments(filters?: AppointmentFilters) {
       return res.json();
     },
     enabled: !!storeId,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 5 * 60 * 1000, // Poll every 5 minutes for new bookings
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }
 
@@ -64,7 +67,13 @@ export function useCreateAppointment() {
       if (!res.ok) throw new Error("Failed to create appointment");
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.appointments.list.path] }),
+    onSuccess: () => {
+      // Invalidate all appointment queries for this store
+      queryClient.invalidateQueries({ 
+        queryKey: [api.appointments.list.path],
+        refetchType: 'active'
+      });
+    },
   });
 }
 
@@ -94,6 +103,12 @@ export function useUpdateAppointment() {
       if (!res.ok) throw new Error("Failed to update appointment");
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.appointments.list.path] }),
+    onSuccess: () => {
+      // Invalidate all appointment queries for this store
+      queryClient.invalidateQueries({ 
+        queryKey: [api.appointments.list.path],
+        refetchType: 'active'
+      });
+    },
   });
 }

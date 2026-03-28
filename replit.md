@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **salon/spa management application** (a Zolmi clone) — a full-stack web app for managing salon businesses. It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app features a landing page for unauthenticated users and a full management dashboard behind authentication.
+This is a **salon/spa management application** (a Certxa clone) — a full-stack web app for managing salon businesses. It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app features a landing page for unauthenticated users and a full management dashboard behind authentication.
 
 ## User Preferences
 

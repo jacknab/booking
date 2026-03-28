@@ -1,16 +1,28 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Scissors, Loader2 } from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
-  const [, navigate] = useLocation();
-  const { isAuthenticated, user, login, register, isLoggingIn, isRegistering } = useAuth();
+  const navigate = useNavigate();
+  const { 
+    isAuthenticated, 
+    user, 
+    login, 
+    register, 
+    isLoggingIn, 
+    isRegistering, 
+    isLoading, 
+    hasStoredSession, 
+    loginWithGoogle 
+  } = useAuth();
+  
   const { toast } = useToast();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -23,7 +35,7 @@ export default function Auth() {
       if (user && !user.onboardingCompleted) {
         navigate("/onboarding");
       } else {
-        navigate("/dashboard");
+        navigate("/calendar");
       }
     }
   }, [isAuthenticated, user, navigate]);
@@ -40,7 +52,7 @@ export default function Auth() {
       if (result && !result.onboardingCompleted) {
         navigate("/onboarding");
       } else {
-        navigate("/dashboard");
+        navigate("/calendar");
       }
     } catch (error: any) {
       const message = error?.message || (mode === "login" ? "Login failed" : "Registration failed");
@@ -59,23 +71,63 @@ export default function Auth() {
 
   const isPending = isLoggingIn || isRegistering;
 
+  if (isLoading && hasStoredSession) {
+    return (
+      <div className="min-h-screen bg-muted/40 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scissors className="w-5 h-5" />
+              Logging In
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Welcome back! Restoring your session...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4 font-sans">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Scissors className="w-6 h-6 text-primary-foreground" />
+        <div className="flex flex-col items-center justify-center gap-4 mb-8">
+          <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center shadow-lg">
+            <img src="/web-app.png" alt="Certxa" className="w-10 h-10" />
           </div>
-          <span className="font-display font-bold text-2xl tracking-tight">Zolmi Clone</span>
+          <h1 className="font-bold text-3xl tracking-tight text-foreground">Certxa</h1>
         </div>
 
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-center text-lg">
-              {mode === "login" ? "Welcome back" : "Create an account"}
-            </CardTitle>
+          <CardHeader>
+            <CardTitle>{mode === "login" ? "Login" : "Create an account"}</CardTitle>
+            <CardDescription>
+              {mode === "login" ? "Enter your email below to login to your account" : "Enter your email below to create your account"}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={loginWithGoogle}
+            >
+              <FaGoogle className="w-4 h-4" />
+              {mode === "login" ? "Sign in with Google" : "Sign up with Google"}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === "register" && (
                 <div className="grid grid-cols-2 gap-3">
@@ -110,7 +162,7 @@ export default function Auth() {
                   data-testid="input-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="m@example.com"
                   required
                 />
               </div>
@@ -135,14 +187,14 @@ export default function Auth() {
               </Button>
             </form>
 
-            <div className="mt-4 text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm">
               {mode === "login" ? (
                 <>
-                  Don&apos;t have an account?{" "}
+                  Don't have an account?{" "}
                   <button
                     type="button"
                     onClick={() => setMode("register")}
-                    className="text-primary underline-offset-4 hover:underline font-medium"
+                    className="text-primary underline hover:underline font-medium"
                     data-testid="link-switch-to-register"
                   >
                     Sign up
@@ -154,7 +206,7 @@ export default function Auth() {
                   <button
                     type="button"
                     onClick={() => setMode("login")}
-                    className="text-primary underline-offset-4 hover:underline font-medium"
+                    className="text-primary underline hover:underline font-medium"
                     data-testid="link-switch-to-login"
                   >
                     Log in

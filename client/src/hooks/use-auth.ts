@@ -2,31 +2,33 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
 import { apiRequest } from "@/lib/queryClient";
 
+const STORAGE_KEY = "booking_user_session";
+
 async function fetchUser(): Promise<User | null> {
   const response = await fetch("/api/auth/user", {
     credentials: "include",
   });
 
-  if (response.status === 401) {
-    return null;
-  }
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${response.statusText}`);
-  }
+  if (response.status === 401) return null;
+  if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
 
   return response.json();
 }
 
 export function useAuth() {
   const queryClient = useQueryClient();
+
+  const hasStoredSession = typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "true";
+
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     queryFn: fetchUser,
     retry: false,
     staleTime: 1000 * 60 * 5,
+    gcTime: Infinity,
   });
 
+  // --- Email/Password Mutations ---
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
       const res = await apiRequest("POST", "/api/auth/login", data);
@@ -34,6 +36,7 @@ export function useAuth() {
     },
     onSuccess: (user) => {
       queryClient.setQueryData(["/api/auth/user"], user);
+      if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY, "true");
     },
   });
 
@@ -44,6 +47,7 @@ export function useAuth() {
     },
     onSuccess: (user) => {
       queryClient.setQueryData(["/api/auth/user"], user);
+      if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY, "true");
     },
   });
 
@@ -53,13 +57,21 @@ export function useAuth() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
+      if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
     },
   });
+
+  // --- Google OAuth Login ---
+  const loginWithGoogle = () => {
+    // Redirects browser to backend Google OAuth endpoint
+    window.location.href = "/api/auth/google";
+  };
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
+    hasStoredSession,
     login: loginMutation.mutateAsync,
     loginError: loginMutation.error,
     isLoggingIn: loginMutation.isPending,
@@ -69,5 +81,6 @@ export function useAuth() {
     logout: logoutMutation.mutate,
     logoutAsync: logoutMutation.mutateAsync,
     isLoggingOut: logoutMutation.isPending,
+    loginWithGoogle, // NEW: Google login
   };
 }

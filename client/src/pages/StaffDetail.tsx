@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,9 +30,9 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 const DAY_SHORT = ["Sun", "M", "T", "W", "T", "F", "Sat"];
 
 export default function StaffDetail() {
-  const params = useParams<{ id: string }>();
+  const params = useParams();
   const staffId = Number(params.id);
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
 
   const { data: staffMember, isLoading } = useStaffMember(staffId);
 
@@ -113,6 +113,8 @@ export default function StaffDetail() {
   );
 }
 
+import { Camera } from "lucide-react";
+
 function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void }) {
   const { mutate: updateStaff, isPending: isUpdating } = useUpdateStaff();
   const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
@@ -120,8 +122,45 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
 
   const [commissionEnabled, setCommissionEnabled] = useState(staff.commissionEnabled ?? false);
   const [commissionRate, setCommissionRate] = useState(String(staff.commissionRate || "0"));
+  const [calendarAccess, setCalendarAccess] = useState(false); // Will be updated from API
 
-  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof insertStaffSchema>>({
+  // Fetch calendar access status on component load
+  useEffect(() => {
+    const fetchCalendarAccessStatus = async () => {
+      try {
+        const response = await fetch(`/api/staff/${staff.id}/calendar-access-status`);
+        if (response.ok) {
+          const data = await response.json();
+          setCalendarAccess(data.enabled);
+        }
+      } catch (error) {
+        console.error("Failed to fetch calendar access status:", error);
+      }
+    };
+
+    fetchCalendarAccessStatus();
+  }, [staff.id]);
+
+  const handleCalendarAccessChange = async (enabled: boolean) => {
+    try {
+      const response = await fetch(`/api/staff/${staff.id}/enable-calendar-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast({ title: enabled ? "Calendar access enabled" : "Calendar access disabled", description: enabled ? "An email with a temporary password has been sent to the staff member." : "Calendar access has been disabled." });
+        setCalendarAccess(enabled);
+      } else {
+        toast({ title: "Failed to update access", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "An error occurred", variant: "destructive" });
+    }
+  };
+
+
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof insertStaffSchema>>({
     resolver: zodResolver(insertStaffSchema),
     defaultValues: {
       name: staff.name,
@@ -130,8 +169,23 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
       role: staff.role || "stylist",
       bio: staff.bio || "",
       color: staff.color || "#3b82f6",
+      avatarUrl: staff.avatarUrl || "",
     },
   });
+  const avatarUrl = watch("avatarUrl");
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setValue("avatarUrl", reader.result as string);
+    };
+    reader.onerror = () => {
+      toast({ title: "Failed to read image", variant: "destructive" });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const onSubmit = (data: z.infer<typeof insertStaffSchema>) => {
     updateStaff({
@@ -169,6 +223,11 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" {...register("password")} placeholder="Leave blank to keep current password" data-testid="input-staff-password" />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
               <Input id="phone" {...register("phone")} data-testid="input-staff-phone" />
             </div>
@@ -178,6 +237,32 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
               <Input id="role" {...register("role")} data-testid="input-staff-role" />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="avatarUrl">Avatar</Label>
+              <div className="flex gap-4 items-center">
+                <div className="relative shrink-0">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Preview" className="w-16 h-16 rounded object-cover border" />
+                  ) : (
+                    <div className="w-16 h-16 rounded border bg-muted flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="staff-avatar-upload-edit"
+                    onChange={handleFileChange}
+                  />
+                  <label
+                    htmlFor="staff-avatar-upload-edit"
+                    className="absolute inset-0 cursor-pointer"
+                    title="Upload Avatar"
+                  />
+                </div>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
               <Input id="bio" {...register("bio")} data-testid="input-staff-bio" />
@@ -226,6 +311,28 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
                       Percentage of service revenue earned as commission
                     </p>
                   </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="font-semibold text-sm">Online Access</h3>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Enable Calendar Access</Label>
+                    <p className="text-xs text-muted-foreground">Allow staff to log in and view their calendar.</p>
+                  </div>
+                  <Switch
+                    checked={calendarAccess}
+                    onCheckedChange={handleCalendarAccessChange}
+                    disabled={!staff.email}
+                  />
+                </div>
+                {!staff.email && (
+                    <p className="text-xs text-destructive">An email address is required to enable calendar access.</p>
                 )}
               </div>
             </div>

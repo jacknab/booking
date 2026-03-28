@@ -10,13 +10,13 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, PlusCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
-const HOUR_HEIGHT = 80;
+const HOUR_HEIGHT = 120;
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
 
@@ -57,8 +57,9 @@ function useCurrentTimeLine(timezone: string, startHour: number, endHour: number
 }
 
 export default function Calendar() {
-  const { isLoading: authLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const { isLoading: authLoading, user } = useAuth();
+  const isStaffUser = user?.role === "staff" && !!user?.staffId;
+  const navigate = useNavigate();
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const tzAbbr = getTimezoneAbbr(timezone);
@@ -83,17 +84,31 @@ export default function Calendar() {
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showClientLookup, setShowClientLookup] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
   const updateAppointment = useUpdateAppointment();
 
+  // Auto-select the staff column for staff users once auth resolves
+  useEffect(() => {
+    if (isStaffUser && user?.staffId) {
+      setSelectedStaffId(user.staffId as number);
+    }
+  }, [isStaffUser, user?.staffId]);
+
   useEffect(() => {
     setCurrentDate(getNowInTimezone(timezone));
-    setSelectedStaffId("all");
+    // Staff users are locked to their own column — don't reset to "all"
+    setSelectedStaffId(isStaffUser && user?.staffId ? (user.staffId as number) : "all");
     setSelectedAppointment(null);
     setShowCheckout(false);
+    setSelectedSlot(null);
   }, [selectedStore?.id, timezone]);
+
+  useEffect(() => {
+    setSelectedSlot(null);
+  }, [currentDate]);
 
   useEffect(() => {
     if (timeLinePosition !== null && scrollContainerRef.current) {
@@ -198,6 +213,16 @@ export default function Calendar() {
   const handleSlotClick = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
     const availMins = getAvailableMinutesForSlot(staffId, slotHour, slotMinute);
     if (availMins <= 0) return;
+    setSelectedSlot(prev =>
+      prev?.staffId === staffId && prev?.hour === slotHour && prev?.minute === slotMinute
+        ? null
+        : { staffId, hour: slotHour, minute: slotMinute }
+    );
+  }, [getAvailableMinutesForSlot]);
+
+  const handleBookSlot = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
+    const availMins = getAvailableMinutesForSlot(staffId, slotHour, slotMinute);
+    if (availMins <= 0) return;
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
     const timeStr = `${String(slotHour).padStart(2, "0")}:${String(slotMinute).padStart(2, "0")}`;
     navigate(`/booking/new?staffId=${staffId}&date=${dateStr}&time=${timeStr}&availableMinutes=${availMins}`);
@@ -265,26 +290,28 @@ export default function Calendar() {
     <div className="h-screen w-screen flex flex-col bg-background">
       <div className="flex items-center justify-between gap-2 flex-wrap py-2 px-3 border-b bg-card" data-testid="calendar-header">
         <div className="flex items-center gap-2">
-          <Link href="/dashboard">
+          <Link to="/dashboard">
             <Button variant="ghost" size="icon" data-testid="button-back-dashboard">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
-          <Select
-            value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
-            onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
-          >
-            <SelectTrigger className="w-[160px]" data-testid="select-staff-filter">
-              <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="All Staff" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Staff</SelectItem>
-              {staffList?.map((s: any) => (
-                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isStaffUser && (
+            <Select
+              value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
+              onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
+            >
+              <SelectTrigger className="w-[160px]" data-testid="select-staff-filter">
+                <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="All Staff" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Staff</SelectItem>
+                {staffList?.map((s: any) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Badge variant="secondary" className="no-default-active-elevate gap-1" data-testid="badge-timezone">
             <Globe className="w-3 h-3" />
             {tzAbbr}
@@ -336,7 +363,7 @@ export default function Calendar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/calendar-settings">
+          <Link to="/calendar-settings">
             <Button variant="ghost" size="icon" data-testid="button-calendar-settings">
               <Settings className="w-4 h-4" />
             </Button>
@@ -354,7 +381,7 @@ export default function Calendar() {
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
                 <div
-                  className="absolute right-0 z-30 pointer-events-none"
+                  className="absolute right-0 z-[10] pointer-events-none"
                   style={{ top: `${timeLinePosition + 60}px`, left: "72px" }}
                   data-testid="current-time-line-full"
                 >
@@ -364,15 +391,16 @@ export default function Calendar() {
               <div className="w-[72px] flex-shrink-0 border-r bg-card z-30 sticky left-0">
                 <div className="h-[60px] border-b sticky top-0 bg-card z-40" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
-                  {timeSlots.map((slot) => {
-                    const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
+                  {timeSlots.filter(slot => slot.isHour).map((slot) => {
+                    // Position label at the center of the hour block (hour + 30 minutes)
+                    const topPx = ((slot.hour - START_HOUR) + 0.5) * HOUR_HEIGHT;
                     return (
                       <div
                         key={`${slot.hour}-${slot.minute}`}
-                        className="absolute left-0 right-0 flex items-start justify-end pr-3 -translate-y-1/2"
+                        className="absolute left-0 right-0 flex items-center justify-end pr-3"
                         style={{ top: `${topPx}px` }}
                       >
-                        <span className={cn("text-xs", slot.isHour ? "font-bold text-foreground/70" : "text-muted-foreground/50 text-[10px]")}>
+                        <span className="text-xs font-bold text-foreground/90">
                           {slot.label}
                         </span>
                       </div>
@@ -381,7 +409,7 @@ export default function Calendar() {
 
                   {isToday && timeLinePosition !== null && (
                     <div
-                      className="absolute left-0 right-0 flex items-center -translate-y-1/2 z-20"
+                      className="absolute left-0 right-0 flex items-center -translate-y-1/2 z-[9]"
                       style={{ top: `${timeLinePosition}px` }}
                       data-testid="current-time-label"
                     >
@@ -430,12 +458,23 @@ export default function Calendar() {
                           {timeSlots.map((slot) => {
                             const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
                             const slotHeight = (settings.timeSlotInterval / 60) * HOUR_HEIGHT;
+                            const isSlotSelected =
+                              selectedSlot?.staffId === member.id &&
+                              selectedSlot?.hour === slot.hour &&
+                              selectedSlot?.minute === slot.minute;
+                            const slotH = slot.hour > 12 ? slot.hour - 12 : slot.hour === 0 ? 12 : slot.hour;
+                            const slotM = String(slot.minute).padStart(2, "0");
+                            const slotAmpm = slot.hour >= 12 ? "PM" : "AM";
+                            const slotLabel = `${slotH}:${slotM} ${slotAmpm}`;
                             return (
                               <div
                                 key={`${slot.hour}-${slot.minute}`}
                                 className={cn(
-                                  "absolute left-0 right-0 border-b cursor-pointer transition-colors hover:bg-primary/5",
-                                  slot.isHour ? "border-border/40" : "border-border/20"
+                                  "absolute left-0 right-0 border-b cursor-pointer transition-colors",
+                                  slot.isHour ? "border-border/70" : "border-border/40",
+                                  isSlotSelected
+                                    ? "bg-blue-100 dark:bg-blue-950/60"
+                                    : "hover:bg-primary/5"
                                 )}
                                 style={{
                                   top: `${topPx}px`,
@@ -443,7 +482,26 @@ export default function Calendar() {
                                 }}
                                 onClick={() => handleSlotClick(member.id, slot.hour, slot.minute)}
                                 data-testid={`calendar-slot-${member.id}-${slot.hour}-${slot.minute}`}
-                              />
+                              >
+                                {isSlotSelected && (
+                                  <div className="flex items-center justify-between h-full px-2">
+                                    <span className="text-xs font-bold text-blue-700 dark:text-blue-300 select-none">
+                                      {slotLabel}
+                                    </span>
+                                    <button
+                                      className="flex items-center justify-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleBookSlot(member.id, slot.hour, slot.minute);
+                                      }}
+                                      data-testid={`book-slot-btn-${member.id}-${slot.hour}-${slot.minute}`}
+                                      title="Book this time slot"
+                                    >
+                                      <PlusCircle className="w-5 h-5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
 

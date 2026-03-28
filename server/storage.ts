@@ -1,8 +1,8 @@
 import { 
-  stores, services, staff, customers, appointments, products,
+  locations, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
   calendarSettings, cashDrawerSessions, drawerActions, businessHours,
-  smsSettings, smsLog,
+  smsSettings, smsLog, mailSettings,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -20,8 +20,10 @@ import {
   type CashDrawerSession, type InsertCashDrawerSession, type CashDrawerSessionWithActions,
   type DrawerAction, type InsertDrawerAction,
   type SmsSettings, type InsertSmsSettings,
-  type SmsLogEntry, type InsertSmsLog
+  type SmsLogEntry, type InsertSmsLog,
+  type MailSettings, type InsertMailSettings
 } from "@shared/schema";
+import { users, type User, type UpsertUser } from "@shared/models/auth";
 import { db } from "./db";
 import { eq, and, gte, lte, inArray, desc, isNotNull } from "drizzle-orm";
 
@@ -85,6 +87,7 @@ export interface IStorage {
   deleteCustomer(id: number): Promise<void>;
 
   getAppointments(filters?: { from?: Date; to?: Date; staffId?: number; storeId?: number; customerId?: number }): Promise<AppointmentWithDetails[]>;
+  getAppointmentsByCustomerPhone(phoneDigits: string, storeId?: number): Promise<AppointmentWithDetails[]>;
   getAppointment(id: number): Promise<AppointmentWithDetails | undefined>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
@@ -114,30 +117,40 @@ export interface IStorage {
   getAppointmentsNeedingReminders(fromTime: Date, toTime: Date): Promise<AppointmentWithDetails[]>;
   getRecentlyCompletedAppointments(fromTime: Date, toTime: Date): Promise<AppointmentWithDetails[]>;
   getSmsLogByAppointmentAndType(appointmentId: number, messageType: string): Promise<SmsLogEntry | undefined>;
+
+  getMailSettings(storeId: number): Promise<MailSettings | undefined>;
+  upsertMailSettings(storeId: number, settings: Partial<InsertMailSettings>): Promise<MailSettings>;
+
+  // User Auth
+  getUser(id: string): Promise<User | undefined>;
+  findUserByEmail(email: string): Promise<User | undefined>;
+  findUserByGoogleId(googleId: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
   // Stores
   async getStores(userId?: string): Promise<Store[]> {
     if (userId) {
-      return await db.select().from(stores).where(eq(stores.userId, userId));
+      return await db.select().from(locations).where(eq(locations.userId, userId));
     }
-    return await db.select().from(stores);
+    return await db.select().from(locations);
   }
   async getStore(id: number): Promise<Store | undefined> {
-    const [store] = await db.select().from(stores).where(eq(stores.id, id));
+    const [store] = await db.select().from(locations).where(eq(locations.id, id));
     return store;
   }
   async getStoreBySlug(slug: string): Promise<Store | undefined> {
-    const [store] = await db.select().from(stores).where(eq(stores.bookingSlug, slug));
+    const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, slug));
     return store;
   }
   async createStore(insertStore: InsertStore): Promise<Store> {
-    const [store] = await db.insert(stores).values(insertStore).returning();
+    const [store] = await db.insert(locations).values(insertStore).returning();
     return store;
   }
   async updateStore(id: number, data: Partial<InsertStore>): Promise<Store | undefined> {
-    const [store] = await db.update(stores).set(data).where(eq(stores.id, id)).returning();
+    const [store] = await db.update(locations).set(data).where(eq(locations.id, id)).returning();
     return store;
   }
 
@@ -153,8 +166,13 @@ export class DatabaseStorage implements IStorage {
 
   // Service Categories
   async getServiceCategories(storeId?: number): Promise<ServiceCategory[]> {
-    if (storeId) return await db.select().from(serviceCategories).where(eq(serviceCategories.storeId, storeId));
-    return await db.select().from(serviceCategories);
+    if (storeId) {
+      return await db.select().from(serviceCategories)
+        .where(eq(serviceCategories.storeId, storeId))
+        .orderBy(serviceCategories.sortOrder, serviceCategories.name);
+    }
+    return await db.select().from(serviceCategories)
+      .orderBy(serviceCategories.sortOrder, serviceCategories.name);
   }
   async createServiceCategory(cat: InsertServiceCategory): Promise<ServiceCategory> {
     const [result] = await db.insert(serviceCategories).values(cat).returning();
@@ -165,6 +183,12 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
   async deleteServiceCategory(id: number): Promise<void> {
+    // Unlink services from this category first
+    // This allows us to hard delete the category without violating FK constraints
+    await db.update(services)
+      .set({ categoryId: null, category: "Uncategorized" })
+      .where(eq(services.categoryId, id));
+    
     await db.delete(serviceCategories).where(eq(serviceCategories.id, id));
   }
 
@@ -186,6 +210,16 @@ export class DatabaseStorage implements IStorage {
     return service;
   }
   async deleteService(id: number): Promise<void> {
+    // Clean up dependencies first
+    await db.delete(serviceAddons).where(eq(serviceAddons.serviceId, id));
+    await db.delete(staffServices).where(eq(staffServices.serviceId, id));
+    
+    // For appointments, we want to keep the record but unlink the service
+    // This allows us to hard delete the service without violating FK constraints
+    await db.update(appointments)
+      .set({ serviceId: null })
+      .where(eq(appointments.serviceId, id));
+
     await db.delete(services).where(eq(services.id, id));
   }
 
@@ -207,6 +241,11 @@ export class DatabaseStorage implements IStorage {
     return addon;
   }
   async deleteAddon(id: number): Promise<void> {
+    // Clean up dependencies
+    await db.delete(serviceAddons).where(eq(serviceAddons.addonId, id));
+    await db.delete(appointmentAddons).where(eq(appointmentAddons.addonId, id));
+
+    // Now safe to delete the addon
     await db.delete(addons).where(eq(addons.id, id));
   }
 
@@ -343,10 +382,9 @@ export class DatabaseStorage implements IStorage {
     return customer;
   }
   async searchCustomerByPhone(phone: string, storeId: number): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(
-      and(eq(customers.phone, phone), eq(customers.storeId, storeId))
-    );
-    return customer;
+    const digits = phone.replace(/\D/g, "");
+    const storeCustomers = await db.select().from(customers).where(eq(customers.storeId, storeId));
+    return storeCustomers.find(c => (c.phone || "").replace(/\D/g, "") === digits);
   }
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
     const [customer] = await db.insert(customers).values(insertCustomer).returning();
@@ -405,6 +443,41 @@ export class DatabaseStorage implements IStorage {
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
     const [appointment] = await db.insert(appointments).values(insertAppointment).returning();
     return appointment;
+  }
+
+  async getAppointmentsByCustomerPhone(phoneDigits: string, storeId?: number): Promise<AppointmentWithDetails[]> {
+    const digits = phoneDigits.replace(/\D/g, "");
+    if (!digits) return [];
+
+    const storeCustomers = storeId
+      ? await db.select().from(customers).where(eq(customers.storeId, storeId))
+      : await db.select().from(customers);
+
+    const customerIds = storeCustomers
+      .filter(c => (c.phone || "").replace(/\D/g, "") === digits)
+      .map(c => c.id);
+
+    if (customerIds.length === 0) return [];
+
+    const where = storeId
+      ? and(inArray(appointments.customerId, customerIds), eq(appointments.storeId, storeId))
+      : inArray(appointments.customerId, customerIds);
+
+    const result = await db.query.appointments.findMany({
+      where,
+      with: {
+        service: true,
+        staff: true,
+        customer: true,
+        store: true,
+        appointmentAddons: {
+          with: { addon: true },
+        },
+      },
+      orderBy: (appointments, { desc }) => [desc(appointments.date)],
+    });
+
+    return result as AppointmentWithDetails[];
   }
 
   async updateAppointment(id: number, updateData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
@@ -515,6 +588,21 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getMailSettings(storeId: number): Promise<MailSettings | undefined> {
+    const result = await db.select().from(mailSettings).where(eq(mailSettings.storeId, storeId));
+    return result[0];
+  }
+
+  async upsertMailSettings(storeId: number, settings: Partial<InsertMailSettings>): Promise<MailSettings> {
+    const existing = await this.getMailSettings(storeId);
+    if (existing) {
+      const [result] = await db.update(mailSettings).set(settings).where(eq(mailSettings.storeId, storeId)).returning();
+      return result;
+    }
+    const [result] = await db.insert(mailSettings).values({ ...settings, storeId }).returning();
+    return result;
+  }
+
   async createSmsLog(log: InsertSmsLog): Promise<SmsLogEntry> {
     const [result] = await db.insert(smsLog).values(log).returning();
     return result;
@@ -569,6 +657,32 @@ export class DatabaseStorage implements IStorage {
         eq(smsLog.messageType, messageType)
       ));
     return result[0];
+  }
+
+  // User Auth
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async findUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async findUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+    return user;
+  }
+
+  async createUser(user: UpsertUser): Promise<User> {
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
+  async updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(user).where(eq(users.id, id)).returning();
+    return updated;
   }
 }
 

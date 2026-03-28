@@ -3,6 +3,21 @@ import { storage } from "./storage";
 import type { SmsSettings, AppointmentWithDetails } from "@shared/schema";
 import { formatInTimeZone } from "date-fns-tz";
 
+// Global Twilio client using company credentials
+function getGlobalTwilioClient() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  
+  if (!accountSid || !authToken || !fromNumber) {
+    return null;
+  }
+  return {
+    client: Twilio(accountSid, authToken),
+    fromNumber,
+  };
+}
+
 function getTwilioClient(settings: SmsSettings) {
   if (!settings.twilioAccountSid || !settings.twilioAuthToken) {
     return null;
@@ -29,21 +44,32 @@ export async function sendSms(
   appointmentId?: number,
   customerId?: number
 ): Promise<{ success: boolean; sid?: string; error?: string }> {
-  const settings = await storage.getSmsSettings(storeId);
-  if (!settings || !settings.twilioPhoneNumber) {
-    return { success: false, error: "SMS not configured for this store" };
+  // Check store has available tokens
+  const store = await storage.getStore(storeId);
+  if (!store) {
+    return { success: false, error: "Store not found" };
   }
 
-  const client = getTwilioClient(settings);
-  if (!client) {
-    return { success: false, error: "Twilio credentials missing" };
+  if ((store.smsTokens ?? 0) < 1) {
+    return { success: false, error: "Insufficient SMS tokens" };
+  }
+
+  // Get global Twilio credentials
+  const twilioConfig = getGlobalTwilioClient();
+  if (!twilioConfig) {
+    return { success: false, error: "SMS service not configured" };
   }
 
   try {
-    const message = await client.messages.create({
+    const message = await twilioConfig.client.messages.create({
       body,
-      from: settings.twilioPhoneNumber,
+      from: twilioConfig.fromNumber,
       to: phone,
+    });
+
+    // Deduct 1 token from store on successful send
+    await storage.updateStore(storeId, { 
+      smsTokens: Math.max(0, (store.smsTokens ?? 0) - 1)
     });
 
     await storage.createSmsLog({

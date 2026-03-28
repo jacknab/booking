@@ -16,15 +16,26 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Store, BusinessHours } from "@shared/schema";
-import { insertStoreSchema } from "@shared/schema";
+import { insertLocationSchema } from "@shared/schema";
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, addDays } from "date-fns";
 
-const businessProfileSchema = insertStoreSchema.pick({
+const businessProfileBaseSchema = insertLocationSchema.pick({
   name: true,
   category: true,
   email: true,
   phone: true,
   city: true,
+  state: true,
+  address: true,
+  postcode: true,
+});
+
+const businessProfileSchema = businessProfileBaseSchema.pick({
+  name: true,
+  email: true,
+  phone: true,
+  city: true,
+  state: true,
   address: true,
   postcode: true,
 }).extend({
@@ -33,6 +44,7 @@ const businessProfileSchema = insertStoreSchema.pick({
   category: z.string().optional().default(""),
   phone: z.string().optional().default(""),
   city: z.string().optional().default(""),
+  state: z.string().optional().default(""),
   address: z.string().optional().default(""),
   postcode: z.string().optional().default(""),
 });
@@ -101,6 +113,7 @@ function BusinessProfile({ store }: { store: Store }) {
       email: store.email || "",
       phone: store.phone || "",
       city: store.city || "",
+      state: store.state || "",
       address: store.address || "",
       postcode: store.postcode || "",
     },
@@ -113,6 +126,7 @@ function BusinessProfile({ store }: { store: Store }) {
       email: store.email || "",
       phone: store.phone || "",
       city: store.city || "",
+      state: store.state || "",
       address: store.address || "",
       postcode: store.postcode || "",
     });
@@ -125,6 +139,7 @@ function BusinessProfile({ store }: { store: Store }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stores", store.id] });
       toast({ title: "Profile saved", description: "Business profile has been updated." });
     },
     onError: () => {
@@ -228,6 +243,20 @@ function BusinessProfile({ store }: { store: Store }) {
                       <FormLabel>City or Town</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-city" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-state" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

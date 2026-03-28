@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCustomers, useCreateCustomer } from "@/hooks/use-customers";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { Plus, Search, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -81,7 +82,7 @@ export default function Customers() {
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                           {customer.name.slice(0, 2).toUpperCase()}
                         </div>
-                        <Link href={`/client/${customer.id}`} className="font-semibold text-primary underline-offset-4 hover:underline cursor-pointer" data-testid={`link-client-profile-${customer.id}`}>{customer.name}</Link>
+                        <Link to={`/client/${customer.id}`} className="text-black font-normal underline-offset-4 hover:underline cursor-pointer" data-testid={`link-client-profile-${customer.id}`}>{customer.name}</Link>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">{customer.email || "-"}</td>

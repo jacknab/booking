@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,28 +108,177 @@ function generateTimeOptions() {
 
 const timeOptions = generateTimeOptions();
 
+const usStates = [
+  { value: "AL", label: "Alabama" },
+  { value: "AK", label: "Alaska" },
+  { value: "AZ", label: "Arizona" },
+  { value: "AR", label: "Arkansas" },
+  { value: "CA", label: "California" },
+  { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" },
+  { value: "DE", label: "Delaware" },
+  { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" },
+  { value: "HI", label: "Hawaii" },
+  { value: "ID", label: "Idaho" },
+  { value: "IL", label: "Illinois" },
+  { value: "IN", label: "Indiana" },
+  { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" },
+  { value: "KY", label: "Kentucky" },
+  { value: "LA", label: "Louisiana" },
+  { value: "ME", label: "Maine" },
+  { value: "MD", label: "Maryland" },
+  { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" },
+  { value: "MN", label: "Minnesota" },
+  { value: "MS", label: "Mississippi" },
+  { value: "MO", label: "Missouri" },
+  { value: "MT", label: "Montana" },
+  { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" },
+  { value: "NH", label: "New Hampshire" },
+  { value: "NJ", label: "New Jersey" },
+  { value: "NM", label: "New Mexico" },
+  { value: "NY", label: "New York" },
+  { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" },
+  { value: "OH", label: "Ohio" },
+  { value: "OK", label: "Oklahoma" },
+  { value: "OR", label: "Oregon" },
+  { value: "PA", label: "Pennsylvania" },
+  { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" },
+  { value: "SD", label: "South Dakota" },
+  { value: "TN", label: "Tennessee" },
+  { value: "TX", label: "Texas" },
+  { value: "UT", label: "Utah" },
+  { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" },
+  { value: "WA", label: "Washington" },
+  { value: "WV", label: "West Virginia" },
+  { value: "WI", label: "Wisconsin" },
+  { value: "WY", label: "Wyoming" },
+];
+
 export default function Onboarding() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isLoading } = useAuth();
+  
+  // Show loading state while auth is loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Redirect if no user
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
+
   const [step, setStep] = useState(1);
   const totalSteps = 4;
 
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [addressError, setAddressError] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [postcode, setPostcode] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [postcodeError, setPostcodeError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [timezone, setTimezone] = useState(() => detectTimezone());
   const [hours, setHours] = useState(defaultHours);
   const [staffCount, setStaffCount] = useState(1);
   const [staffNames, setStaffNames] = useState<string[]>(["Owner"]);
 
+  // Initialize email from user account
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user?.email]);
+
+  // Validation functions
+  const validateEmail = (value: string): boolean => {
+    if (!value.trim()) return true; // Optional field
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  };
+
+  const validatePhone = (value: string): boolean => {
+    if (!value.trim()) return true; // Optional field
+    return /^\d{10}$/.test(value);
+  };
+
+  const validatePostcode = (value: string): boolean => {
+    if (!value.trim()) return true; // Optional field
+    return /^\d{5}$/.test(value);
+  };
+
+  const validateAddress = (value: string): boolean => {
+    if (!value.trim()) return true; // Optional field
+    if (/[;'"`]/.test(value)) return false;
+    if (/--|\/\*/.test(value)) return false;
+    return /^[a-zA-Z0-9\s.,#\-\/]*$/.test(value);
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (value.trim() && !validateEmail(value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "");
+    setPhone(digitsOnly);
+    if (digitsOnly.trim() && !validatePhone(digitsOnly)) {
+      setPhoneError("Please enter a valid phone number");
+    } else {
+      setPhoneError("");
+    }
+  };
+
+  const handlePostcodeChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "");
+    setPostcode(digitsOnly);
+    if (digitsOnly.trim() && !validatePostcode(digitsOnly)) {
+      setPostcodeError("Zip code must be 5 digits");
+    } else {
+      setPostcodeError("");
+    }
+  };
+
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    if (value.trim() && !validateAddress(value)) {
+      setAddressError("Address contains invalid characters");
+    } else {
+      setAddressError("");
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/auth");
     } else if (user?.onboardingCompleted) {
-      navigate("/dashboard");
+      navigate("/calendar");
     }
   }, [user, isLoading, navigate]);
 
@@ -193,8 +342,12 @@ export default function Onboarding() {
     onboardMutation.mutate({
       businessType: selectedType,
       businessName: businessName.trim(),
+      email: email.trim() || undefined,
       timezone,
       address: address.trim() || undefined,
+      city: city.trim() || undefined,
+      state: state.trim() || undefined,
+      postcode: postcode.trim() || undefined,
       phone: phone.trim() || undefined,
       businessHours: hours,
       staff: validStaff,
@@ -203,7 +356,24 @@ export default function Onboarding() {
 
   const canProceed = (s: number) => {
     if (s === 1) return !!selectedType;
-    if (s === 2) return businessName.trim().length > 0;
+    if (s === 2) {
+      const hasName = businessName.trim().length > 0;
+      const validEmail = !email.trim() || validateEmail(email);
+      const validPhone = !phone.trim() || validatePhone(phone);
+      const validPostcode = !postcode.trim() || validatePostcode(postcode);
+      const validAddress = !address.trim() || validateAddress(address);
+      return (
+        hasName &&
+        validEmail &&
+        validPhone &&
+        validPostcode &&
+        validAddress &&
+        !emailError &&
+        !phoneError &&
+        !postcodeError &&
+        !addressError
+      );
+    }
     if (s === 3) return true;
     if (s === 4) return staffNames.some(n => n.trim().length > 0);
     return false;
@@ -213,10 +383,8 @@ export default function Onboarding() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-xl">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Scissors className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="font-display font-bold text-2xl tracking-tight">Zolmi Clone</span>
+          <img src="/web-app.png" alt="Certxa" className="w-14 h-14 rounded-lg" />
+          <span className="font-display font-bold text-3xl tracking-tight">Certxa</span>
         </div>
 
         <div className="flex items-center justify-center gap-2 mb-8">
@@ -294,25 +462,97 @@ export default function Onboarding() {
                 </div>
 
                 <div className="space-y-1.5">
+                  <Label htmlFor="email">Business Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    data-testid="input-email"
+                    value={email}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    placeholder="e.g. info@bellashair.com"
+                    className={emailError ? "border-destructive" : ""}
+                  />
+                  {emailError && (
+                    <p className="text-xs text-destructive mt-1">{emailError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Used for booking confirmations and customer contact</p>
+                </div>
+
+                <div className="space-y-1.5">
                   <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
                     data-testid="input-address"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => handleAddressChange(e.target.value)}
                     placeholder="e.g. 123 Main St, New York, NY"
+                    className={addressError ? "border-destructive" : ""}
                   />
+                  {addressError && (
+                    <p className="text-xs text-destructive mt-1">{addressError}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      data-testid="input-city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g. New York"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="state">State</Label>
+                    <Select value={state} onValueChange={setState}>
+                      <SelectTrigger data-testid="select-state">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usStates.map((usState) => (
+                          <SelectItem key={usState.value} value={usState.value}>
+                            {usState.value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="postcode">Postcode</Label>
+                    <Input
+                      id="postcode"
+                      data-testid="input-postcode"
+                      value={postcode}
+                      onChange={(e) => handlePostcodeChange(e.target.value)}
+                      placeholder="e.g. 10001"
+                      inputMode="numeric"
+                      maxLength={5}
+                      className={postcodeError ? "border-destructive" : ""}
+                    />
+                    {postcodeError && (
+                      <p className="text-xs text-destructive mt-1">{postcodeError}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
+                    type="tel"
                     data-testid="input-phone"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
                     placeholder="e.g. (555) 123-4567"
+                    inputMode="numeric"
+                    maxLength={10}
+                    className={phoneError ? "border-destructive" : ""}
                   />
+                  {phoneError && (
+                    <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

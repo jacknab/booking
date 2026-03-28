@@ -1,10 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import compression from "vite-plugin-compression";
 
 export default defineConfig({
   plugins: [
     react(),
+    // Enable gzip and brotli compression
+    compression({
+      verbose: true,
+      disable: false,
+      threshold: 10240,
+      algorithm: 'gzip',
+      ext: '.gz',
+    }),
   ],
   resolve: {
     alias: {
@@ -17,6 +26,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Use esbuild for faster minification (Vite v3+ default)
+    minify: 'esbuild',
+    cssCodeSplit: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     fs: {
@@ -24,4 +38,21 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  define: {
+    'process.env.DEBUG': false,
+    'global': 'window',
+    // Define process for libraries that use it
+    'process': {
+      env: {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'production'),
+      },
+      // minimal process polyfill
+      cwd: () => '/',
+      platform: 'browser',
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
+  },
 });
+

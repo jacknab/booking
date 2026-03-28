@@ -3,6 +3,27 @@ import { api, buildUrl } from "@shared/routes";
 import type { Addon, InsertAddon, ServiceAddon } from "@shared/schema";
 import { useSelectedStore } from "@/hooks/use-store";
 
+export function useReorderServiceCategories() {
+  const { selectedStore } = useSelectedStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: number[]) => {
+      if (!selectedStore?.id) throw new Error("No store selected");
+      const res = await fetch("/api/service-categories/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds, storeId: selectedStore.id }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to reorder categories");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.serviceCategories.list.path, selectedStore?.id] });
+    },
+  });
+}
+
 export function useAddons() {
   const { selectedStore } = useSelectedStore();
   const storeId = selectedStore?.id;
@@ -165,7 +186,7 @@ export function useCreateCategory() {
   const storeId = selectedStore?.id;
 
   return useMutation({
-    mutationFn: async (data: { name: string }) => {
+    mutationFn: async (data: { name: string; imageUrl?: string | null | undefined }) => {
       if (!storeId) throw new Error("No store selected");
       const payload = { ...data, storeId };
       const res = await fetch(api.serviceCategories.create.path, {
@@ -186,7 +207,7 @@ export function useUpdateCategory() {
   const { selectedStore } = useSelectedStore();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: number; name?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: number; name?: string; imageUrl?: string | null | undefined }) => {
       const url = buildUrl(api.serviceCategories.update.path, { id });
       const res = await fetch(url, {
         method: "PATCH",

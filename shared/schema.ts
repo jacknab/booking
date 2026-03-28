@@ -1,14 +1,15 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, index, uniqueIndex, varchar, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
-
-export * from "./models/auth";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./models/auth";
+
+// Re-export users for use with db schema
+export { users };
 
 // === TABLE DEFINITIONS ===
 
-export const stores = pgTable("stores", {
+export const locations = pgTable("locations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   timezone: text("timezone").notNull().default("UTC"),
@@ -17,15 +18,19 @@ export const stores = pgTable("stores", {
   email: text("email"),
   category: text("category"),
   city: text("city"),
+  state: text("state"),
   postcode: text("postcode"),
   bookingSlug: text("booking_slug").unique(),
+  bookingTheme: text("booking_theme").default("simple"),
   commissionPayoutFrequency: text("commission_payout_frequency").default("monthly"),
+  smsTokens: integer("sms_tokens").notNull().default(0),
   userId: text("user_id").references(() => users.id),
+  accountStatus: text("account_status").default("Active"),
 });
 
 export const businessHours = pgTable("business_hours", {
   id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
   dayOfWeek: integer("day_of_week").notNull(),
   openTime: text("open_time").notNull().default("09:00"),
   closeTime: text("close_time").notNull().default("17:00"),
@@ -35,7 +40,9 @@ export const businessHours = pgTable("business_hours", {
 export const serviceCategories = pgTable("service_categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  storeId: integer("store_id").references(() => stores.id),
+  imageUrl: text("image_url"),
+  storeId: integer("store_id").references(() => locations.id),
+  sortOrder: integer("sort_order").default(0),
 });
 
 export const services = pgTable("services", {
@@ -47,7 +54,7 @@ export const services = pgTable("services", {
   category: text("category").notNull(),
   categoryId: integer("category_id").references(() => serviceCategories.id),
   imageUrl: text("image_url"),
-  storeId: integer("store_id").references(() => stores.id),
+  storeId: integer("store_id").references(() => locations.id),
 });
 
 export const addons = pgTable("addons", {
@@ -57,7 +64,7 @@ export const addons = pgTable("addons", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   duration: integer("duration").notNull(),
   imageUrl: text("image_url"),
-  storeId: integer("store_id").references(() => stores.id),
+  storeId: integer("store_id").references(() => locations.id),
 });
 
 export const serviceAddons = pgTable("service_addons", {
@@ -83,7 +90,8 @@ export const staff = pgTable("staff", {
   avatarUrl: text("avatar_url"),
   commissionEnabled: boolean("commission_enabled").default(false),
   commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default("0"),
-  storeId: integer("store_id").references(() => stores.id),
+  storeId: integer("store_id").references(() => locations.id),
+  password: text("password"),
 });
 
 export const staffServices = pgTable("staff_services", {
@@ -106,7 +114,7 @@ export const customers = pgTable("customers", {
   email: text("email"),
   phone: text("phone"),
   notes: text("notes"),
-  storeId: integer("store_id").references(() => stores.id),
+  storeId: integer("store_id").references(() => locations.id),
 });
 
 export const appointments = pgTable("appointments", {
@@ -124,7 +132,7 @@ export const appointments = pgTable("appointments", {
   serviceId: integer("service_id").references(() => services.id),
   staffId: integer("staff_id").references(() => staff.id),
   customerId: integer("customer_id").references(() => customers.id),
-  storeId: integer("store_id").references(() => stores.id),
+  storeId: integer("store_id").references(() => locations.id),
 });
 
 export const products = pgTable("products", {
@@ -134,12 +142,12 @@ export const products = pgTable("products", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").default(0),
   category: text("category"),
-  storeId: integer("store_id").references(() => stores.id),
+  storeId: integer("store_id").references(() => locations.id),
 });
 
 export const cashDrawerSessions = pgTable("cash_drawer_sessions", {
   id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
   openedAt: timestamp("opened_at").notNull(),
   closedAt: timestamp("closed_at"),
   openingBalance: decimal("opening_balance", { precision: 10, scale: 2 }).notNull().default("0.00"),
@@ -153,7 +161,7 @@ export const cashDrawerSessions = pgTable("cash_drawer_sessions", {
 
 export const calendarSettings = pgTable("calendar_settings", {
   id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
   startOfWeek: text("start_of_week").notNull().default("monday"),
   timeSlotInterval: integer("time_slot_interval").notNull().default(15),
   nonWorkingHoursDisplay: integer("non_working_hours_display").notNull().default(1),
@@ -173,7 +181,7 @@ export const drawerActions = pgTable("drawer_actions", {
 
 export const smsSettings = pgTable("sms_settings", {
   id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
   twilioAccountSid: text("twilio_account_sid"),
   twilioAuthToken: text("twilio_auth_token"),
   twilioPhoneNumber: text("twilio_phone_number"),
@@ -189,7 +197,7 @@ export const smsSettings = pgTable("sms_settings", {
 
 export const smsLog = pgTable("sms_log", {
   id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
   appointmentId: integer("appointment_id").references(() => appointments.id),
   customerId: integer("customer_id").references(() => customers.id),
   phone: text("phone").notNull(),
@@ -201,9 +209,164 @@ export const smsLog = pgTable("sms_log", {
   sentAt: timestamp("sent_at").notNull(),
 });
 
+export const mailSettings = pgTable("mail_settings", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  mailgunApiKey: text("mailgun_api_key"),
+  mailgunDomain: text("mailgun_domain"),
+  senderEmail: text("sender_email"),
+  bookingConfirmationEnabled: boolean("booking_confirmation_enabled").notNull().default(false),
+  reminderEnabled: boolean("reminder_enabled").notNull().default(false),
+  reminderHoursBefore: integer("reminder_hours_before").notNull().default(24),
+  reviewRequestEnabled: boolean("review_request_enabled").notNull().default(false),
+  googleReviewUrl: text("google_review_url"),
+  confirmationTemplate: text("confirmation_template").default(`<p>Hi {customerName},</p>
+<p>Your appointment at {storeName} is confirmed for {appointmentDate} at {appointmentTime}.</p>
+<p>See you then!</p>`),
+  reminderTemplate: text("reminder_template").default(`<p>Hi {customerName},</p>
+<p>This is a reminder of your appointment at {storeName} on {appointmentDate} at {appointmentTime}.</p>
+<p>Reply to this email to confirm or cancel.</p>`),
+  reviewTemplate: text("review_template").default(`<p>Hi {customerName},</p>
+<p>Thank you for visiting {storeName}! We'd love your feedback.</p>
+<p><a href="{reviewUrl}">Leave us a review</a></p>`),
+});
+
+
+
+// === PERMISSIONS (from osx) ===
+
+export const permissions = pgTable("permissions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").unique().notNull(),
+  description: text("description"),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  storeIdIdx: index("permissions_store_id_idx").on(table.storeId),
+}));
+
+// === ROLES (from osx) ===
+
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  storeIdIdx: index("roles_store_id_idx").on(table.storeId),
+  nameStoreIdx: index("roles_name_store_idx").on(table.name, table.storeId),
+}));
+
+// === APPS (from osx) ===
+
+export const apps = pgTable("app", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  appName: text("app_name").notNull(),
+  active: boolean("active").default(false),
+  activeDate: timestamp("active_date"),
+  userPin: text("user_pin"),
+  permissions: integer("permissions"),
+}, (table) => ({
+  storeIdIdx: index("app_store_id_idx").on(table.storeId),
+  storeAppUnique: index("app_store_app_unique_idx").on(table.storeId, table.appName),
+}));
+
+// === STAFF SETTINGS (from osx) ===
+
+export const staffSettings = pgTable("staff_settings", {
+  id: serial("id").primaryKey(),
+  staffId: integer("staff_id").references(() => staff.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  preferences: text("preferences").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  staffIdIdx: uniqueIndex("staff_settings_staff_id_uidx").on(table.staffId),
+  storeIdIdx: index("staff_settings_store_id_idx").on(table.storeId),
+}));
+
+// === STORE SETTINGS (from osx) ===
+
+export const storeSettings = pgTable("store_settings", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  preferences: text("preferences").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  storeIdIdx: uniqueIndex("store_settings_store_id_uidx").on(table.storeId),
+}));
+
+// === GOOGLE BUSINESS PROFILE INTEGRATION ===
+
+export const googleBusinessProfiles = pgTable("google_business_profiles", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  googleAccountEmail: text("google_account_email"),
+  businessName: text("business_name"),
+  businessAccountId: text("business_account_id"),
+  businessAccountResourceName: text("business_account_resource_name"),
+  locationId: text("location_id"),
+  locationResourceName: text("location_resource_name"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  isConnected: boolean("is_connected").default(false),
+  syncEnabled: boolean("sync_enabled").default(true),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  storeIdIdx: index("google_business_profiles_store_id_idx").on(table.storeId),
+  storeIdUnique: uniqueIndex("google_business_profiles_store_id_uidx").on(table.storeId),
+}));
+
+export const googleReviews = pgTable("google_reviews", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  googleReviewId: text("google_review_id").unique().notNull(),
+  googleLocationId: text("google_location_id"),
+  customerName: text("customer_name"),
+  customerPhoneNumber: text("customer_phone_number"),
+  rating: integer("rating").notNull(),
+  reviewText: text("review_text"),
+  reviewImageUrls: text("review_image_urls"), // JSON array stored as text
+  reviewCreateTime: timestamp("review_create_time"),
+  reviewUpdateTime: timestamp("review_update_time"),
+  reviewerLanguageCode: text("reviewer_language_code"),
+  reviewPublishingStatus: text("review_publishing_status").default("published"),
+  responseStatus: text("response_status").default("not_responded"),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  storeIdIdx: index("google_reviews_store_id_idx").on(table.storeId),
+  googleReviewIdIdx: index("google_reviews_google_review_id_idx").on(table.googleReviewId),
+  ratingIdx: index("google_reviews_rating_idx").on(table.rating),
+  responseStatusIdx: index("google_reviews_response_status_idx").on(table.responseStatus),
+}));
+
+export const googleReviewResponses = pgTable("google_review_responses", {
+  id: serial("id").primaryKey(),
+  googleReviewId: integer("google_review_id").references(() => googleReviews.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  responseText: text("response_text").notNull(),
+  responseStatus: text("response_status").notNull(), // "pending", "approved", "rejected"
+  staffId: integer("staff_id").references(() => staff.id),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  googleReviewIdIdx: index("google_review_responses_google_review_id_idx").on(table.googleReviewId),
+  storeIdIdx: index("google_review_responses_store_id_idx").on(table.storeId),
+  responseStatusIdx: index("google_review_responses_response_status_idx").on(table.responseStatus),
+}));
+
 // === RELATIONS ===
 
-export const storesRelations = relations(stores, ({ many }) => ({
+export const locationsRelations = relations(locations, ({ many }) => ({
   services: many(services),
   staff: many(staff),
   customers: many(customers),
@@ -216,28 +379,41 @@ export const storesRelations = relations(stores, ({ many }) => ({
   businessHours: many(businessHours),
   smsSettings: many(smsSettings),
   smsLogs: many(smsLog),
+  mailSettings: many(mailSettings),
+  permissions: many(permissions),
+  roles: many(roles),
+  apps: many(apps),
+  staffSettings: many(staffSettings),
+  storeSettings: many(storeSettings),
+  googleBusinessProfiles: many(googleBusinessProfiles),
+  googleReviews: many(googleReviews),
+  googleReviewResponses: many(googleReviewResponses),
 }));
 
 export const smsSettingsRelations = relations(smsSettings, ({ one }) => ({
-  store: one(stores, { fields: [smsSettings.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [smsSettings.storeId], references: [locations.id] }),
+}));
+
+export const mailSettingsRelations = relations(mailSettings, ({ one }) => ({
+  store: one(locations, { fields: [mailSettings.storeId], references: [locations.id] }),
 }));
 
 export const smsLogRelations = relations(smsLog, ({ one }) => ({
-  store: one(stores, { fields: [smsLog.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [smsLog.storeId], references: [locations.id] }),
   appointment: one(appointments, { fields: [smsLog.appointmentId], references: [appointments.id] }),
   customer: one(customers, { fields: [smsLog.customerId], references: [customers.id] }),
 }));
 
 export const businessHoursRelations = relations(businessHours, ({ one }) => ({
-  store: one(stores, { fields: [businessHours.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [businessHours.storeId], references: [locations.id] }),
 }));
 
 export const calendarSettingsRelations = relations(calendarSettings, ({ one }) => ({
-  store: one(stores, { fields: [calendarSettings.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [calendarSettings.storeId], references: [locations.id] }),
 }));
 
 export const cashDrawerSessionsRelations = relations(cashDrawerSessions, ({ one, many }) => ({
-  store: one(stores, { fields: [cashDrawerSessions.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [cashDrawerSessions.storeId], references: [locations.id] }),
   actions: many(drawerActions),
 }));
 
@@ -246,19 +422,19 @@ export const drawerActionsRelations = relations(drawerActions, ({ one }) => ({
 }));
 
 export const serviceCategoriesRelations = relations(serviceCategories, ({ one, many }) => ({
-  store: one(stores, { fields: [serviceCategories.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [serviceCategories.storeId], references: [locations.id] }),
   services: many(services),
 }));
 
 export const servicesRelations = relations(services, ({ one, many }) => ({
-  store: one(stores, { fields: [services.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [services.storeId], references: [locations.id] }),
   serviceCategory: one(serviceCategories, { fields: [services.categoryId], references: [serviceCategories.id] }),
   serviceAddons: many(serviceAddons),
   staffServices: many(staffServices),
 }));
 
 export const addonsRelations = relations(addons, ({ one, many }) => ({
-  store: one(stores, { fields: [addons.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [addons.storeId], references: [locations.id] }),
   serviceAddons: many(serviceAddons),
   appointmentAddons: many(appointmentAddons),
 }));
@@ -274,9 +450,10 @@ export const appointmentAddonsRelations = relations(appointmentAddons, ({ one })
 }));
 
 export const staffRelations = relations(staff, ({ one, many }) => ({
-  store: one(stores, { fields: [staff.storeId], references: [stores.id] }),
+  store: one(locations, { fields: [staff.storeId], references: [locations.id] }),
   staffServices: many(staffServices),
   availability: many(staffAvailability),
+  staffSettings: one(staffSettings),
 }));
 
 export const staffAvailabilityRelations = relations(staffAvailability, ({ one }) => ({
@@ -301,16 +478,61 @@ export const appointmentsRelations = relations(appointments, ({ one, many }) => 
     fields: [appointments.customerId],
     references: [customers.id],
   }),
-  store: one(stores, {
+  store: one(locations, {
     fields: [appointments.storeId],
-    references: [stores.id],
+    references: [locations.id],
   }),
   appointmentAddons: many(appointmentAddons),
 }));
 
+export const permissionsRelations = relations(permissions, ({ one }) => ({
+  store: one(locations, { fields: [permissions.storeId], references: [locations.id] }),
+}));
+
+export const rolesRelations = relations(roles, ({ one }) => ({
+  store: one(locations, { fields: [roles.storeId], references: [locations.id] }),
+}));
+
+export const appsRelations = relations(apps, ({ one }) => ({
+  store: one(locations, { fields: [apps.storeId], references: [locations.id] }),
+}));
+
+export const staffSettingsRelations = relations(staffSettings, ({ one }) => ({
+  staff: one(staff, { fields: [staffSettings.staffId], references: [staff.id] }),
+  store: one(locations, { fields: [staffSettings.storeId], references: [locations.id] }),
+}));
+
+export const storeSettingsRelations = relations(storeSettings, ({ one }) => ({
+  store: one(locations, { fields: [storeSettings.storeId], references: [locations.id] }),
+}));
+
+export const googleBusinessProfilesRelations = relations(googleBusinessProfiles, ({ one, many }) => ({
+  store: one(locations, { fields: [googleBusinessProfiles.storeId], references: [locations.id] }),
+  reviews: many(googleReviews),
+}));
+
+export const googleReviewsRelations = relations(googleReviews, ({ one, many }) => ({
+  store: one(locations, { fields: [googleReviews.storeId], references: [locations.id] }),
+  appointment: one(appointments, {
+    fields: [googleReviews.appointmentId],
+    references: [appointments.id],
+  }),
+  customer: one(customers, { fields: [googleReviews.customerId], references: [customers.id] }),
+  responses: many(googleReviewResponses),
+}));
+
+export const googleReviewResponsesRelations = relations(googleReviewResponses, ({ one }) => ({
+  review: one(googleReviews, {
+    fields: [googleReviewResponses.googleReviewId],
+    references: [googleReviews.id],
+  }),
+  store: one(locations, { fields: [googleReviewResponses.storeId], references: [locations.id] }),
+  staff: one(staff, { fields: [googleReviewResponses.staffId], references: [staff.id] }),
+}));
+
 // === SCHEMAS ===
 
-export const insertStoreSchema = createInsertSchema(stores).omit({ id: true });
+export const insertLocationSchema = createInsertSchema(locations).omit({ id: true });
 export const insertServiceCategorySchema = createInsertSchema(serviceCategories).omit({ id: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true });
 export const insertAddonSchema = createInsertSchema(addons).omit({ id: true });
@@ -328,11 +550,26 @@ export const insertCashDrawerSessionSchema = createInsertSchema(cashDrawerSessio
 export const insertDrawerActionSchema = createInsertSchema(drawerActions).omit({ id: true });
 export const insertSmsSettingsSchema = createInsertSchema(smsSettings).omit({ id: true });
 export const insertSmsLogSchema = createInsertSchema(smsLog).omit({ id: true });
+export const insertMailSettingsSchema = createInsertSchema(mailSettings).omit({ id: true });
+
+export const insertPermissionsSchema = createInsertSchema(permissions).omit({ id: true });
+export const insertRolesSchema = createInsertSchema(roles).omit({ id: true });
+export const insertAppsSchema = createInsertSchema(apps).omit({ id: true });
+export const insertStaffSettingsSchema = createInsertSchema(staffSettings).omit({ id: true });
+export const insertStoreSettingsSchema = createInsertSchema(storeSettings).omit({ id: true });
+
+export const insertGoogleBusinessProfileSchema = createInsertSchema(googleBusinessProfiles).omit({ id: true });
+export const insertGoogleReviewSchema = createInsertSchema(googleReviews).omit({ id: true });
+export const insertGoogleReviewResponseSchema = createInsertSchema(googleReviewResponses).omit({ id: true });
 
 // === EXPLICIT API TYPES ===
 
-export type Store = typeof stores.$inferSelect;
-export type InsertStore = z.infer<typeof insertStoreSchema>;
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+
+// Backwards compatibility aliases
+export type Store = Location;
+export type InsertStore = InsertLocation;
 
 export type ServiceCategory = typeof serviceCategories.$inferSelect;
 export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
@@ -364,6 +601,14 @@ export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 
+export type AppointmentWithDetails = Appointment & {
+  service: Service | null;
+  staff: Staff | null;
+  customer: Customer | null;
+  store: Store | null;
+  appointmentAddons?: Array<AppointmentAddon & { addon: Addon | null }>;
+};
+
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 
@@ -385,14 +630,33 @@ export type InsertSmsSettings = z.infer<typeof insertSmsSettingsSchema>;
 export type SmsLogEntry = typeof smsLog.$inferSelect;
 export type InsertSmsLog = z.infer<typeof insertSmsLogSchema>;
 
+export type MailSettings = typeof mailSettings.$inferSelect;
+export type InsertMailSettings = z.infer<typeof insertMailSettingsSchema>;
+
+export type Permissions = typeof permissions.$inferSelect;
+export type InsertPermissions = z.infer<typeof insertPermissionsSchema>;
+
+export type Roles = typeof roles.$inferSelect;
+export type InsertRoles = z.infer<typeof insertRolesSchema>;
+
+export type Apps = typeof apps.$inferSelect;
+export type InsertApps = z.infer<typeof insertAppsSchema>;
+
+export type StaffSettings = typeof staffSettings.$inferSelect;
+export type InsertStaffSettings = z.infer<typeof insertStaffSettingsSchema>;
+
+export type StoreSettings = typeof storeSettings.$inferSelect;
+export type InsertStoreSettings = z.infer<typeof insertStoreSettingsSchema>;
+
+export type GoogleBusinessProfile = typeof googleBusinessProfiles.$inferSelect;
+export type InsertGoogleBusinessProfile = z.infer<typeof insertGoogleBusinessProfileSchema>;
+
+export type GoogleReview = typeof googleReviews.$inferSelect;
+export type InsertGoogleReview = z.infer<typeof insertGoogleReviewSchema>;
+
+export type GoogleReviewResponse = typeof googleReviewResponses.$inferSelect;
+export type InsertGoogleReviewResponse = z.infer<typeof insertGoogleReviewResponseSchema>;
+
 export type CashDrawerSessionWithActions = CashDrawerSession & {
   actions: DrawerAction[];
-};
-
-export type AppointmentWithDetails = Appointment & {
-  service: Service | null;
-  staff: Staff | null;
-  customer: Customer | null;
-  store: Store | null;
-  appointmentAddons?: (AppointmentAddon & { addon: Addon | null })[];
 };

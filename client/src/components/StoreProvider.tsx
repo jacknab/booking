@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { StoreContext, useStores } from "@/hooks/use-store";
 import type { Store } from "@shared/schema";
 
-const STORE_KEY = "zolmi_selected_store_id";
+const STORE_KEY = "certxa_selected_store_id";
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { data: stores, isLoading } = useStores();

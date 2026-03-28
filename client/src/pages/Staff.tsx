@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStaffList, useCreateStaff } from "@/hooks/use-staff";
-import { Plus, Mail, Phone } from "lucide-react";
+import { Plus, Mail, Phone, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertStaffSchema } from "@shared/schema";
@@ -17,17 +17,23 @@ import { z } from "zod";
 export default function StaffPage() {
   const { data: staffList, isLoading } = useStaffList();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredStaff = staffList?.filter(s =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <AppLayout>
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-display font-bold">Staff Members</h1>
-          <p className="text-muted-foreground">Manage your team and their roles.</p>
+          <h1 className="text-3xl font-display font-bold">Staff</h1>
+          <p className="text-muted-foreground">View and manage your team members.</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-add-staff">
+            <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
               <Plus className="w-4 h-4 mr-2" />
               Add Staff
             </Button>
@@ -41,26 +47,65 @@ export default function StaffPage() {
         </Dialog>
       </div>
 
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {staffList?.map((staff: Staff) => (
-            <StaffCard key={staff.id} staff={staff} />
-          ))}
-          {staffList?.length === 0 && (
-            <div className="col-span-full text-center py-12 bg-card rounded-md border border-dashed">
-              <p className="text-muted-foreground">No staff members added yet.</p>
-            </div>
-          )}
+      <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+        <div className="p-4 border-b">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search staff..."
+              className="pl-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-      )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted/50 text-muted-foreground font-medium uppercase text-xs">
+              <tr>
+                <th className="px-6 py-4">Name</th>
+                <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Phone</th>
+                <th className="px-6 py-4">Role</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {isLoading ? (
+                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Loading...</td></tr>
+              ) : filteredStaff?.length === 0 ? (
+                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No staff found.</td></tr>
+              ) : (
+                filteredStaff?.map((staff) => (
+                  <tr key={staff.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {staff.avatarUrl ? (
+                            <img src={staff.avatarUrl} alt={staff.name} className="w-8 h-8 object-cover rounded-full" />
+                          ) : (
+                            staff.name.slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <Link to={`/staff/${staff.id}`} className="text-black font-normal underline-offset-4 hover:underline cursor-pointer" data-testid={`link-staff-profile-${staff.id}`}>{staff.name}</Link>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">{staff.email || "-"}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{staff.phone || "-"}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{staff.role || "-"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </AppLayout>
   );
 }
 
 function StaffCard({ staff }: { staff: Staff }) {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
 
   return (
     <Card
@@ -104,11 +149,27 @@ function StaffCard({ staff }: { staff: Staff }) {
   );
 }
 
+import { Camera } from "lucide-react";
+
 function CreateStaffForm({ onSuccess }: { onSuccess: () => void }) {
   const { mutate, isPending } = useCreateStaff();
-  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof insertStaffSchema>>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<z.infer<typeof insertStaffSchema>>({
     resolver: zodResolver(insertStaffSchema),
   });
+  const avatarUrl = watch("avatarUrl");
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setValue("avatarUrl", reader.result as string);
+    };
+    reader.onerror = () => {
+      // Optionally show a toast error
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <form onSubmit={handleSubmit((data) => mutate(data, { onSuccess }))} className="space-y-4">
@@ -124,6 +185,11 @@ function CreateStaffForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input id="password" type="password" {...register("password")} placeholder="******" data-testid="input-new-staff-password" />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="phone">Phone</Label>
         <Input id="phone" {...register("phone")} placeholder="(555) 123-4567" data-testid="input-new-staff-phone" />
       </div>
@@ -131,6 +197,33 @@ function CreateStaffForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="space-y-2">
         <Label htmlFor="role">Role</Label>
         <Input id="role" {...register("role")} placeholder="stylist" defaultValue="stylist" data-testid="input-new-staff-role" />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="avatarUrl">Avatar</Label>
+        <div className="flex gap-4 items-center">
+          <div className="relative shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Preview" className="w-16 h-16 rounded object-cover border" />
+            ) : (
+              <div className="w-16 h-16 rounded border bg-muted flex items-center justify-center">
+                <Camera className="w-6 h-6 text-muted-foreground" />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="staff-avatar-upload"
+              onChange={handleFileChange}
+            />
+            <label
+              htmlFor="staff-avatar-upload"
+              className="absolute inset-0 cursor-pointer"
+              title="Upload Avatar"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end pt-4">

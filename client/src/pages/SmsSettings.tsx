@@ -26,9 +26,6 @@ import { cn } from "@/lib/utils";
 interface SmsSettingsData {
   id?: number;
   storeId: number;
-  twilioAccountSid: string | null;
-  twilioAuthToken: string | null;
-  twilioPhoneNumber: string | null;
   bookingConfirmationEnabled: boolean;
   reminderEnabled: boolean;
   reminderHoursBefore: number;
@@ -60,9 +57,6 @@ export default function SmsSettings() {
   const [sendingTest, setSendingTest] = useState(false);
 
   const [form, setForm] = useState<Partial<SmsSettingsData>>({
-    twilioAccountSid: "",
-    twilioAuthToken: "",
-    twilioPhoneNumber: "",
     bookingConfirmationEnabled: false,
     reminderEnabled: false,
     reminderHoursBefore: 24,
@@ -105,9 +99,6 @@ export default function SmsSettings() {
   useEffect(() => {
     if (settings) {
       setForm({
-        twilioAccountSid: settings.twilioAccountSid || "",
-        twilioAuthToken: settings.twilioAuthToken || "",
-        twilioPhoneNumber: settings.twilioPhoneNumber || "",
         bookingConfirmationEnabled: settings.bookingConfirmationEnabled,
         reminderEnabled: settings.reminderEnabled,
         reminderHoursBefore: settings.reminderHoursBefore,
@@ -205,7 +196,7 @@ export default function SmsSettings() {
             SMS Notifications
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure Twilio SMS for booking confirmations, reminders, and
+            Configure SMS for booking confirmations, reminders, and
             review requests.
           </p>
         </div>
@@ -223,61 +214,23 @@ export default function SmsSettings() {
 
       <div className="max-w-3xl space-y-6">
         <Card className="p-6">
-          <h3
-            className="text-lg font-semibold mb-1"
-            data-testid="text-twilio-config-title"
-          >
-            Twilio Configuration
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Enter your Twilio credentials. You can find these in your Twilio
-            console.
-          </p>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Account SID
-              </label>
-              <Input
-                value={form.twilioAccountSid || ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, twilioAccountSid: e.target.value }))
-                }
-                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                data-testid="input-twilio-sid"
-              />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">
-                Auth Token
-              </label>
-              <Input
-                type="password"
-                value={form.twilioAuthToken || ""}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, twilioAuthToken: e.target.value }))
-                }
-                placeholder="Your Twilio Auth Token"
-                data-testid="input-twilio-token"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Phone Number (From)
-              </label>
-              <Input
-                value={form.twilioPhoneNumber || ""}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    twilioPhoneNumber: e.target.value,
-                  }))
-                }
-                placeholder="+1234567890"
-                data-testid="input-twilio-phone"
-              />
+              <h3 className="font-semibold">SMS Token Balance</h3>
+              <p className="text-sm text-muted-foreground">
+                Your available SMS tokens
+              </p>
             </div>
           </div>
+          <div className="text-3xl font-bold text-blue-600">
+            {selectedStore?.smsTokens ?? 0}
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            Each SMS message sent costs 1 token. Contact us to purchase more tokens.
+          </p>
         </Card>
 
         <Card className="p-6">

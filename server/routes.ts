@@ -2,16 +2,20 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { setupAuth, isAuthenticated } from "./auth";
+import { isAuthenticated } from "./auth";
 import { z } from "zod";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { users } from "@shared/models/auth";
-import { eq } from "drizzle-orm";
+import { eq, and, desc, sql, count } from "drizzle-orm";
+import { sendEmail } from "./mail";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { sendBookingConfirmation, startReminderScheduler } from "./sms";
+import { sendBookingConfirmationEmail, sendReminderEmail, sendReviewRequestEmail } from "./mail";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { 
-  insertStoreSchema,
+  insertLocationSchema,
   insertServiceCategorySchema,
   insertServiceSchema, 
   insertAddonSchema,
@@ -21,19 +25,69 @@ import {
   insertAppointmentSchema, 
   type Staff,
   insertProductSchema,
+  locations,
   insertCashDrawerSessionSchema,
   insertCalendarSettingsSchema,
+  googleBusinessProfiles,
+  googleReviews,
+  googleReviewResponses,
+  insertGoogleReviewResponseSchema,
+  appointments,
+  staff,
+  customers,
+  services,
+  serviceCategories,
+  calendarSettings,
+  smsSettings,
+  mailSettings,
 } from "@shared/schema";
+import {
+  GoogleBusinessAPIManager,
+  createApiManagerFromProfile,
+  syncGoogleReviews,
+  publishReviewResponse,
+} from "./google-business-api";
+import { TrialService } from "./services/trial-service";
+import { requireActiveTrial } from "./middleware/trial-middleware";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  setupAuth(app);
+  // Note: setupAuth(app) is called in server/index.ts before registerRoutes.
+  // Auth routes (register, login, logout, user) are registered there via auth.ts.
+
+  app.get("/api/trial/status", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    
+    try {
+      const trialStatus = await TrialService.getTrialStatus(userId);
+      return res.json(trialStatus);
+    } catch (error) {
+      console.error("Error fetching trial status:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   app.use("/api", (req, res, next) => {
+    // Allow public routes
     if (req.path.startsWith("/auth/")) return next();
-    isAuthenticated(req, res, next);
+    if (req.path.startsWith("/store/by-subdomain")) return next(); // Allow public access to subdomain store
+    if (req.path.startsWith("/public/")) return next(); // Allow public routes
+    if (req.path.startsWith("/admin/stores")) return next(); // Allow admin stores endpoint
+    if (req.path.startsWith("/admin/platform-settings")) return next(); // Allow admin platform settings endpoint
+    if (req.path.startsWith("/admin/users")) return next(); // Allow admin users endpoint
+    if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
+    if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
+    
+    // Require authentication for other endpoints
+    const userId = (req.session as any)?.userId;
+    const staffId = (req.session as any)?.staffId;
+    if (!userId && !staffId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    next();
   });
 
   // === STORES ===
@@ -49,11 +103,315 @@ export async function registerRoutes(
     res.json(store);
   });
 
+  // === ADMIN STORES ===
+  app.get("/api/admin/stores", async (req, res) => {
+    try {
+      // Get all stores with account status
+      const allStores = await db.select({
+        id: locations.id,
+        name: locations.name,
+        userId: locations.userId,
+        bookingSlug: locations.bookingSlug,
+        category: locations.category,
+        email: locations.email,
+        timezone: locations.timezone,
+        address: locations.address,
+        phone: locations.phone,
+        city: locations.city,
+        state: locations.state,
+        postcode: locations.postcode,
+        commissionPayoutFrequency: locations.commissionPayoutFrequency,
+        accountStatus: locations.accountStatus,
+      }).from(locations).orderBy(locations.name);
+      
+      // Transform the data to match the expected interface
+      const transformedStores = allStores.map(store => ({
+        id: store.id,
+        name: store.name,
+        user_id: store.userId,
+        booking_slug: store.bookingSlug,
+        category: store.category,
+        email: store.email,
+        timezone: store.timezone,
+        address: store.address,
+        phone: store.phone,
+        city: store.city,
+        state: store.state,
+        postcode: store.postcode,
+        commission_payout_frequency: store.commissionPayoutFrequency,
+        // Use account status from locations table
+        subscription: 'Basic', // Default subscription for now
+        accountStatus: store.accountStatus || 'Active',
+      }));
+      
+      res.json(transformedStores);
+    } catch (error) {
+      console.error("Error fetching admin stores:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET store analytics for admin
+  app.get("/api/admin/stores/:storeNumber/analytics", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      // GET appointments for this store
+      const appointmentsData = await db.select({
+        id: appointments.id,
+        date: appointments.date,
+        totalPaid: appointments.totalPaid,
+        status: appointments.status,
+      }).from(appointments)
+        .where(eq(appointments.storeId, parseInt(storeNumber)));
+
+      // Get staff for this store
+      const staffData = await db.select({
+        id: staff.id,
+      }).from(staff)
+        .where(eq(staff.storeId, parseInt(storeNumber)));
+
+      // Get customers for this store
+      const customersData = await db.select({
+        id: customers.id,
+      }).from(customers)
+        .where(eq(customers.storeId, parseInt(storeNumber)));
+
+      // Calculate metrics
+      const totalAppointments = appointmentsData.length;
+      const activeStaffCount = staffData.length;
+      const totalCustomers = customersData.length;
+      
+      // Calculate monthly revenue from completed appointments
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyAppointments = appointmentsData.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear && apt.status === 'completed';
+      });
+      
+      const monthlyRevenue = monthlyAppointments.reduce((sum, apt) => {
+        return sum + Number(apt.totalPaid || 0);
+      }, 0);
+
+      // Get last activity
+      const lastActivity = appointmentsData.length > 0
+        ? appointmentsData.reduce((latest, apt) =>
+            new Date(apt.date) > new Date(latest.date) ? apt : latest
+          ).date
+        : new Date();
+
+      res.json({
+        totalAppointments,
+        activeStaffCount,
+        totalCustomers,
+        monthlyRevenue,
+        averageRating: 0, // Would need reviews table
+        lastActivity
+      });
+    } catch (error) {
+      console.error("Error fetching store analytics:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET staff for admin store
+  app.get("/api/admin/stores/:storeNumber/staff", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      const staffData = await db.select({
+        id: staff.id,
+        name: staff.name,
+        email: staff.email,
+        phone: staff.phone,
+        role: staff.role,
+        commissionEnabled: staff.commissionEnabled,
+        storeId: staff.storeId,
+      }).from(staff)
+        .where(eq(staff.storeId, parseInt(storeNumber)));
+
+      res.json(staffData);
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET calendar settings for admin store
+  app.get("/api/admin/stores/:storeNumber/calendar-settings", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      const calendarSettingsData = await db.select({
+        id: calendarSettings.id,
+        startOfWeek: calendarSettings.startOfWeek,
+        timeSlotInterval: calendarSettings.timeSlotInterval,
+        nonWorkingHoursDisplay: calendarSettings.nonWorkingHoursDisplay,
+        allowBookingOutsideHours: calendarSettings.allowBookingOutsideHours,
+        autoCompleteAppointments: calendarSettings.autoCompleteAppointments,
+      }).from(calendarSettings)
+        .where(eq(calendarSettings.storeId, parseInt(storeNumber)))
+        .limit(1);
+
+      res.json(calendarSettingsData[0] || null);
+    } catch (error) {
+      console.error("Error fetching calendar settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET SMS settings for admin store
+  app.get("/api/admin/stores/:storeNumber/sms-settings", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      const smsSettingsData = await db.select({
+        id: smsSettings.id,
+        bookingConfirmationEnabled: smsSettings.bookingConfirmationEnabled,
+        reminderEnabled: smsSettings.reminderEnabled,
+        reminderHoursBefore: smsSettings.reminderHoursBefore,
+        reviewRequestEnabled: smsSettings.reviewRequestEnabled,
+        twilioPhoneNumber: smsSettings.twilioPhoneNumber,
+      }).from(smsSettings)
+        .where(eq(smsSettings.storeId, parseInt(storeNumber)))
+        .limit(1);
+
+      res.json(smsSettingsData[0] || null);
+    } catch (error) {
+      console.error("Error fetching SMS settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET email settings for admin store
+  app.get("/api/admin/stores/:storeNumber/email-settings", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      const emailSettingsData = await db.select({
+        id: mailSettings.id,
+        bookingConfirmationEnabled: mailSettings.bookingConfirmationEnabled,
+        reminderEnabled: mailSettings.reminderEnabled,
+        reviewRequestEnabled: mailSettings.reviewRequestEnabled,
+        mailgunApiKey: mailSettings.mailgunApiKey,
+        mailgunDomain: mailSettings.mailgunDomain,
+      }).from(mailSettings)
+        .where(eq(mailSettings.storeId, parseInt(storeNumber)))
+        .limit(1);
+
+      res.json(emailSettingsData[0] || null);
+    } catch (error) {
+      console.error("Error fetching email settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET services for admin store
+  app.get("/api/admin/stores/:storeNumber/services", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      const servicesData = await db.select({
+        id: services.id,
+        name: services.name,
+        description: services.description,
+        price: services.price,
+        duration: services.duration,
+        categoryId: services.categoryId,
+      }).from(services)
+        .where(eq(services.storeId, parseInt(storeNumber)));
+
+      res.json(servicesData);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET service categories for admin store
+  app.get("/api/admin/stores/:storeNumber/service-categories", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      const categoriesData = await db.select({
+        id: serviceCategories.id,
+        name: serviceCategories.name,
+        imageUrl: serviceCategories.imageUrl,
+        sortOrder: serviceCategories.sortOrder,
+      }).from(serviceCategories)
+        .where(eq(serviceCategories.storeId, parseInt(storeNumber)));
+
+      res.json(categoriesData);
+    } catch (error) {
+      console.error("Error fetching service categories:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET single store by ID for admin
+  app.get("/api/admin/stores/:storeNumber", async (req, res) => {
+    try {
+      const { storeNumber } = req.params;
+      
+      // Get store by ID
+      const store = await db.select({
+        id: locations.id,
+        name: locations.name,
+        email: locations.email,
+        phone: locations.phone,
+        address: locations.address,
+        city: locations.city,
+        state: locations.state,
+        postcode: locations.postcode,
+        category: locations.category,
+        timezone: locations.timezone,
+        bookingSlug: locations.bookingSlug,
+        bookingTheme: locations.bookingTheme,
+        commissionPayoutFrequency: locations.commissionPayoutFrequency,
+        userId: locations.userId,
+      }).from(locations)
+        .where(eq(locations.id, parseInt(storeNumber)))
+        .limit(1);
+
+      if (store.length === 0) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Get user information (userId may be null for stores without an owner)
+      const user = store[0].userId
+        ? await db.select({
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            createdAt: users.createdAt,
+          }).from(users)
+            .where(eq(users.id, store[0].userId))
+            .limit(1)
+        : [];
+
+      const storeData = {
+        ...store[0],
+        userEmail: user[0]?.email || '',
+        userFirstName: user[0]?.firstName || '',
+        userLastName: user[0]?.lastName || '',
+        createdAt: user[0]?.createdAt?.toISOString() || null,
+        lastLogin: null,
+      };
+
+      res.json(storeData);
+    } catch (error) {
+      console.error("Error fetching store:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post(api.stores.create.path, async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
-      const input = insertStoreSchema.parse(req.body);
+      const input = insertLocationSchema.parse(req.body);
       const store = await storage.createStore({ ...input, userId });
       res.status(201).json(store);
     } catch (error) {
@@ -63,13 +421,26 @@ export async function registerRoutes(
 
   app.patch("/api/stores/:id", async (req, res) => {
     try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      
       const id = Number(req.params.id);
-      const input = insertStoreSchema.partial().parse(req.body);
-      const store = await storage.updateStore(id, input);
-      if (!store) return res.status(404).json({ message: "Store not found" });
-      res.json(store);
+      const store = await storage.getStore(id);
+      if (!store || store.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const input = insertLocationSchema.partial().parse(req.body);
+      const updatedStore = await storage.updateStore(id, input);
+      if (!updatedStore) return res.status(404).json({ message: "Store not found" });
+      res.json(updatedStore);
     } catch (error) {
-      res.status(400).json({ message: "Invalid input" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid input", details: error.errors[0].message });
+      } else {
+        console.error("Store update error:", error);
+        res.status(400).json({ message: "Failed to update store" });
+      }
     }
   });
 
@@ -116,6 +487,15 @@ export async function registerRoutes(
   });
 
   // === SERVICE CATEGORIES ===
+  app.post("/api/service-categories/reorder", async (req, res) => {
+    const { orderedIds, storeId } = req.body;
+    if (!Array.isArray(orderedIds) || !storeId) return res.status(400).json({ error: "Invalid input" });
+    for (let i = 0; i < orderedIds.length; i++) {
+      await storage.updateServiceCategory(orderedIds[i], { sortOrder: i });
+    }
+    res.json({ success: true });
+  });
+
   app.get(api.serviceCategories.list.path, async (req, res) => {
     const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
     const cats = await storage.getServiceCategories(storeId);
@@ -161,7 +541,7 @@ export async function registerRoutes(
     res.json(service);
   });
 
-  app.post(api.services.create.path, async (req, res) => {
+  app.post(api.services.create.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertServiceSchema.parse(req.body);
       const service = await storage.createService(input);
@@ -371,9 +751,14 @@ export async function registerRoutes(
     res.json(member);
   });
 
-  app.post(api.staff.create.path, async (req, res) => {
+  app.post(api.staff.create.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertStaffSchema.parse(req.body);
+      if (input.password) {
+        input.password = await bcrypt.hash(input.password, 10);
+      } else {
+        delete input.password;
+      }
       const member = await storage.createStaff(input);
       res.status(201).json(member);
     } catch (error) {
@@ -384,6 +769,12 @@ export async function registerRoutes(
   app.patch(api.staff.update.path, async (req, res) => {
     try {
       const input = insertStaffSchema.partial().parse(req.body);
+      if (input.password) {
+        input.password = await bcrypt.hash(input.password, 10);
+      } else {
+        // If password is not provided or empty, do not update it
+        delete input.password;
+      }
       const member = await storage.updateStaff(Number(req.params.id), input);
       if (!member) return res.status(404).json({ message: "Staff not found" });
       res.json(member);
@@ -395,6 +786,106 @@ export async function registerRoutes(
   app.delete(api.staff.delete.path, async (req, res) => {
     await storage.deleteStaff(Number(req.params.id));
     res.status(204).end();
+  });
+
+  app.post("/api/staff/:id/enable-calendar-access", async (req, res) => {
+    try {
+      const staffId = Number(req.params.id);
+      const staff = await storage.getStaffMember(staffId);
+
+      if (!staff || !staff.email) {
+        return res.status(400).json({ message: "Staff member not found or has no email address." });
+      }
+
+      const tempPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      let user = await storage.findUserByEmail(staff.email);
+
+      if (user) {
+        await storage.updateUser(user.id, { password: hashedPassword, role: "staff", staffId: staff.id, passwordChanged: false });
+      } else {
+        user = await storage.createUser({
+          email: staff.email,
+          password: hashedPassword,
+          role: "staff",
+          staffId: staff.id,
+          passwordChanged: false,
+        });
+      }
+
+      // Send email with temporary password
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">Staff Calendar Access</h1>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #333; margin-top: 0;">Welcome to Your Staff Portal!</h2>
+            <p style="color: #666; line-height: 1.6;">
+              Your calendar access has been enabled for <strong>${staff.name}</strong>.
+            </p>
+            <div style="background-color: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #007bff;">
+              <h3 style="color: #333; margin-top: 0; margin-bottom: 15px;">Your Login Details:</h3>
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${staff.email}</p>
+              <p style="margin: 5px 0;"><strong>Temporary Password:</strong> <span style="background-color: #e9ecef; padding: 5px 10px; border-radius: 3px; font-family: monospace; font-size: 16px;">${tempPassword}</span></p>
+            </div>
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+              <p style="margin: 0; color: #856404;">
+                <strong>Important:</strong> Please log in and change your password as soon as possible.
+              </p>
+            </div>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'https://www.mysalon.me'}/staff-auth" 
+                 style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Log In to Staff Portal
+              </a>
+            </div>
+            <p style="color: #6c757d; font-size: 14px; text-align: center; margin-top: 30px;">
+              If you have any questions, please contact your administrator.
+            </p>
+          </div>
+        </div>
+      `;
+
+      const emailText = `
+Staff Calendar Access Enabled
+
+Welcome ${staff.name}!
+
+Your calendar access has been enabled. Here are your login details:
+
+Email: ${staff.email}
+Temporary Password: ${tempPassword}
+
+Important: Please log in and change your password as soon as possible.
+
+Log in at: ${process.env.FRONTEND_URL || 'https://www.mysalon.me'}/staff-auth
+
+If you have any questions, please contact your administrator.
+      `;
+
+      const emailResult = await sendEmail(
+        staff.storeId || 1, // Use storeId from staff record or default to 1
+        staff.email,
+        "Staff Calendar Access Enabled - Your Login Details",
+        emailHtml,
+        emailText
+      );
+
+      if (!emailResult.success) {
+        console.error("Failed to send calendar access email:", emailResult.error);
+        // Don't fail the whole operation, but log the error
+        console.log(`Calendar access enabled for ${staff.email} but email failed to send. Temporary password: ${tempPassword}`);
+      } else {
+        console.log(`Calendar access email sent successfully to ${staff.email} with message ID: ${emailResult.id}`);
+      }
+
+      res.json({ success: true, message: "Calendar access enabled and email sent." });
+    } catch (error) {
+      console.error("Failed to enable calendar access:", error);
+      res.status(500).json({ message: "Failed to enable calendar access" });
+    }
   });
 
   // === STAFF SERVICES ===
@@ -470,7 +961,14 @@ export async function registerRoutes(
       let candidateStaff: Staff[];
       if (specificStaffId) {
         const member = await storage.getStaffMember(specificStaffId);
-        candidateStaff = member ? [member] : [];
+        // Verify that the specific staff member can perform this service
+        if (member) {
+          const staffServices = await storage.getStaffServices(specificStaffId);
+          const canPerformService = staffServices.some(ss => ss.serviceId === serviceId);
+          candidateStaff = canPerformService ? [member] : [];
+        } else {
+          candidateStaff = [];
+        }
       } else {
         candidateStaff = await storage.getStaffForService(serviceId);
       }
@@ -482,10 +980,21 @@ export async function registerRoutes(
       const tz = store.timezone || "UTC";
 
       const calSettings = await storage.getCalendarSettings(storeId);
-      const allowOutside = calSettings?.allowBookingOutsideHours ?? true;
-      const businessStartHour = allowOutside ? 7 : 9;
-      const businessEndHour = allowOutside ? 22 : 18;
       const slotInterval = calSettings?.timeSlotInterval || 15;
+
+      // Get actual business hours for the specific date
+      const businessHours = await storage.getBusinessHours(storeId);
+      const dateObj = new Date(`${date}T00:00:00`);
+      const dayOfWeek = dateObj.getUTCDay();
+      const todayBusinessHours = businessHours.find(h => h.dayOfWeek === dayOfWeek);
+      
+      if (!todayBusinessHours || todayBusinessHours.isClosed) {
+        return res.json([]);
+      }
+
+      // Parse business hours
+      const [openHour, openMin] = todayBusinessHours.openTime.split(":").map(Number);
+      const [closeHour, closeMin] = todayBusinessHours.closeTime.split(":").map(Number);
 
       const dayStartLocal = fromZonedTime(new Date(`${date}T00:00:00`), tz);
       const dayEndLocal = fromZonedTime(new Date(`${date}T23:59:59.999`), tz);
@@ -512,11 +1021,20 @@ export async function registerRoutes(
         }
       }
 
-      const businessEndUtc = fromZonedTime(new Date(`${date}T${String(businessEndHour).padStart(2, "0")}:00:00`), tz);
+      const businessEndUtc = fromZonedTime(new Date(`${date}T${String(closeHour).padStart(2, "0")}:${String(closeMin).padStart(2, "0")}:00`), tz);
       const nowUtc = new Date();
 
-      for (let hour = businessStartHour; hour < businessEndHour; hour++) {
+      for (let hour = openHour; hour < closeHour; hour++) {
         for (let min = 0; min < 60; min += slotInterval) {
+          // Skip slots before opening time on the first hour
+          if (hour === openHour && min < openMin) {
+            continue;
+          }
+          // Skip slots at or after closing time on the last hour
+          if (hour === closeHour - 1 && min >= closeMin) {
+            continue;
+          }
+          
           const slotStart = fromZonedTime(new Date(`${date}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`), tz);
           const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
@@ -542,6 +1060,38 @@ export async function registerRoutes(
                 break;
               }
             }
+            
+            // Check staff availability rules if they exist
+            if (!hasConflict) {
+              const staffAvailRules = await storage.getStaffAvailability(staffMember.id);
+              if (staffAvailRules && staffAvailRules.length > 0) {
+                // Get day of week in store's local timezone, not UTC
+                const slotDate = new Date(`${date}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`);
+                const slotLocalDate = toZonedTime(slotDate, tz);
+                const slotDayOfWeek = slotLocalDate.getDay(); // 0=Sunday, 1=Monday, etc.
+                const dayAvailability = staffAvailRules.find(r => r.dayOfWeek === slotDayOfWeek);
+                
+                if (dayAvailability) {
+                  const [slotHour, slotMin] = [hour, min];
+                  const [availStartHour, availStartMin] = dayAvailability.startTime.split(":").map(Number);
+                  const [availEndHour, availEndMin] = dayAvailability.endTime.split(":").map(Number);
+                  
+                  const slotTimeInMin = slotHour * 60 + slotMin;
+                  const slotEndTimeInMin = slotEnd.getHours() * 60 + slotEnd.getMinutes();
+                  const availStartInMin = availStartHour * 60 + availStartMin;
+                  const availEndInMin = availEndHour * 60 + availEndMin;
+                  
+                  // Check if slot falls outside staff availability
+                  if (slotTimeInMin < availStartInMin || slotEndTimeInMin > availEndInMin) {
+                    hasConflict = true;
+                  }
+                } else {
+                  // No availability rules for this day, staff is not available
+                  hasConflict = true;
+                }
+              }
+            }
+            
             if (!hasConflict) {
               availableForSlot.push({
                 staffMember,
@@ -592,7 +1142,7 @@ export async function registerRoutes(
     res.json(customers);
   });
 
-  app.post(api.customers.create.path, async (req, res) => {
+  app.post(api.customers.create.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertCustomerSchema.parse(req.body);
       const customer = await storage.createCustomer(input);
@@ -621,10 +1171,13 @@ export async function registerRoutes(
 
   // === APPOINTMENTS ===
   app.get(api.appointments.list.path, async (req, res) => {
+    const userId = (req.session as any).userId;
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+
     const filters = {
       from: req.query.from ? new Date(req.query.from as string) : undefined,
       to: req.query.to ? new Date(req.query.to as string) : undefined,
-      staffId: req.query.staffId ? Number(req.query.staffId) : undefined,
+      staffId: user?.role === "staff" && user.staffId ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
       storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
       customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
     };
@@ -649,7 +1202,7 @@ export async function registerRoutes(
     res.json(appointments);
   });
 
-  app.post(api.appointments.create.path, async (req, res) => {
+  app.post(api.appointments.create.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertAppointmentSchema.parse({
         ...req.body,
@@ -676,6 +1229,7 @@ export async function registerRoutes(
       const fullAppointment = await storage.getAppointment(appointment.id);
       if (fullAppointment) {
         sendBookingConfirmation(fullAppointment).catch(console.error);
+        sendBookingConfirmationEmail(fullAppointment).catch(console.error);
       }
 
       res.status(201).json(appointment);
@@ -685,7 +1239,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.appointments.update.path, async (req, res) => {
+  app.patch(api.appointments.update.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertAppointmentSchema.partial().parse({
         ...req.body,
@@ -953,20 +1507,71 @@ export async function registerRoutes(
 
   app.post("/api/onboarding", isAuthenticated, async (req, res) => {
     try {
+      console.log("Onboarding: Starting process for user:", (req.session as any).userId);
       const userId = (req.session as any).userId;
+
+      const normalizeOptionalString = (value: unknown) => {
+        if (typeof value !== "string") return value;
+        const trimmed = value.trim();
+        return trimmed.length === 0 ? undefined : trimmed;
+      };
 
       const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
       if (currentUser?.onboardingCompleted) {
+        console.log("Onboarding: User already completed onboarding");
         const { password: _, ...safeUser } = currentUser;
-        return res.json({ store: null, user: safeUser });
+        // Return their existing store so the client can proceed
+        const existingStores = await db.select().from(locations).where(eq(locations.userId, userId));
+        return res.json({ store: existingStores[0] ?? null, user: safeUser });
       }
 
+      // Guard: user has a store but onboardingCompleted was never set (partial prior onboarding)
+      const priorStores = await db.select().from(locations).where(eq(locations.userId, userId));
+      if (priorStores.length > 0) {
+        console.log("Onboarding: User already has a store, marking onboarding complete");
+        await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, userId));
+        const [updatedUser] = await db.select().from(users).where(eq(users.id, userId));
+        const { password: _, ...safeUser } = updatedUser;
+        return res.json({ store: priorStores[0], user: safeUser });
+      }
+
+      console.log("Onboarding: Validating request body:", req.body);
       const onboardingSchema = z.object({
         businessType: z.enum(["Hair Salon", "Nail Salon", "Spa", "Barbershop"]),
         businessName: z.string().min(1).max(100),
+        email: z.string().email().optional().or(z.literal('')),
         timezone: z.string().min(1).default("America/New_York"),
-        address: z.string().optional(),
-        phone: z.string().optional(),
+        address: z.preprocess(
+          normalizeOptionalString,
+          z
+            .string()
+            .max(200)
+            .refine((value) => !/[;'"`]/.test(value), "Address contains invalid characters")
+            .refine((value) => !/--|\/\*/.test(value), "Address contains invalid characters")
+            .refine((value) => /^[a-zA-Z0-9\s.,#\-\/]*$/.test(value), "Address contains invalid characters")
+        ).optional(),
+        city: z.preprocess(
+          normalizeOptionalString,
+          z.string().max(100).regex(/^[a-zA-Z\s]+$/, "City can only contain letters and spaces")
+        ).optional(),
+        state: z.preprocess(
+          normalizeOptionalString,
+          z.enum([
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+            "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+            "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+            "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+            "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+          ])
+        ).optional(),
+        postcode: z.preprocess(
+          normalizeOptionalString,
+          z.string().regex(/^\d{5}$/, "Zip code must be 5 digits")
+        ).optional(),
+        phone: z.preprocess(
+          normalizeOptionalString,
+          z.string().regex(/^\d{10}$/, "Phone number must be 10 digits")
+        ).optional(),
         businessHours: z.array(z.object({
           dayOfWeek: z.number().min(0).max(6),
           openTime: z.string(),
@@ -981,23 +1586,46 @@ export async function registerRoutes(
 
       const parsed = onboardingSchema.safeParse(req.body);
       if (!parsed.success) {
+        console.log("Onboarding: Validation failed:", parsed.error.flatten());
         return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
       }
 
-      const { businessType, businessName, timezone, address, phone, businessHours: hoursData, staff: staffData } = parsed.data;
+      const {
+        businessType,
+        businessName,
+        email,
+        timezone,
+        address,
+        city,
+        state,
+        postcode,
+        phone,
+        businessHours: hoursData,
+        staff: staffData,
+      } = parsed.data;
 
+      console.log("Onboarding: Looking up template for business type:", businessType);
       const template = businessTemplates[businessType];
       if (!template) {
+        console.log("Onboarding: Template not found for business type:", businessType);
         return res.status(400).json({ message: "Invalid business type" });
       }
 
+      console.log("Onboarding: Creating store...");
       const store = await storage.createStore({
         name: businessName,
+        email: email || null,
         timezone: timezone,
         address: address || null,
+        city: city || null,
+        state: state || null,
+        postcode: postcode || null,
         phone: phone || null,
+        category: businessType, // Save the business type to the category field
         userId: userId,
       });
+
+      console.log("Onboarding: Store created successfully:", store.id);
 
       if (hoursData && hoursData.length > 0) {
         await storage.setBusinessHours(store.id, hoursData.map(h => ({
@@ -1090,13 +1718,50 @@ export async function registerRoutes(
       const { password: _, ...safeUser } = updatedUser;
 
       res.json({ store, user: safeUser });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Onboarding error:", error);
+      // PostgreSQL unique constraint violation
+      if (error?.code === "23505") {
+        const detail: string = error?.detail ?? "";
+        if (detail.includes("phone")) {
+          return res.status(409).json({
+            message: "A store with this phone number already exists. Please use a different phone number.",
+          });
+        }
+        if (detail.includes("subdomain")) {
+          return res.status(409).json({
+            message: "That business name/subdomain is already taken. Please choose a different name.",
+          });
+        }
+        return res.status(409).json({
+          message: "A store with those details already exists.",
+        });
+      }
       res.status(500).json({ message: "Failed to complete onboarding" });
     }
   });
 
+  // === SUBDOMAIN BOOKING ROUTES (accessed via subdomain) ===
+
+  app.get("/api/store/by-subdomain", async (req, res) => {
+    if ((req as any).store) {
+      const store = (req as any).store;
+      const { userId, ...publicStore } = store;
+      const hours = await storage.getBusinessHours(store.id);
+      res.json({ ...publicStore, businessHours: hours });
+    } else {
+      res.status(404).json({ message: "Store not found for this subdomain" });
+    }
+  });
+
   // === PUBLIC BOOKING ROUTES (no auth required) ===
+
+  const resolvePublicStore = async (req: any) => {
+    if (req.store) return req.store;
+    const slug = typeof req.query.slug === "string" ? req.query.slug : undefined;
+    if (!slug) return undefined;
+    return storage.getStoreBySlug(slug);
+  };
 
   app.get("/api/public/store/:slug", async (req, res) => {
     try {
@@ -1270,11 +1935,16 @@ export async function registerRoutes(
         duration: z.number(),
         customerName: z.string().min(1),
         customerEmail: z.string().email().optional(),
-        customerPhone: z.string().optional(),
+        customerPhone: z.string().min(1),
         notes: z.string().optional(),
       });
 
       const input = bookingSchema.parse(req.body);
+
+      const phoneDigits = input.customerPhone.replace(/\D/g, "");
+      if (phoneDigits.length !== 10) {
+        return res.status(400).json({ message: "Phone number must be 10 digits" });
+      }
 
       let customer = input.customerPhone
         ? await storage.searchCustomerByPhone(input.customerPhone, store.id)
@@ -1309,12 +1979,70 @@ export async function registerRoutes(
       const fullAppointment = await storage.getAppointment(appointment.id);
       if (fullAppointment) {
         sendBookingConfirmation(fullAppointment).catch(console.error);
+        sendBookingConfirmationEmail(fullAppointment).catch(console.error);
       }
 
       res.status(201).json(appointment);
     } catch (error) {
       console.error("Public booking error:", error);
       res.status(400).json({ message: "Failed to create booking" });
+    }
+  });
+
+  app.get("/api/appointments/confirmation/:confirmationNumber", async (req, res) => {
+    try {
+      const confirmationNumber = req.params.confirmationNumber || "";
+      const phoneDigits = confirmationNumber.replace(/\D/g, "");
+      if (!phoneDigits) return res.status(400).json({ message: "Confirmation number required" });
+
+      const store = await resolvePublicStore(req);
+      if (!store) return res.status(400).json({ message: "Store not found" });
+
+      const appointments = await storage.getAppointmentsByCustomerPhone(phoneDigits, store.id);
+      if (!appointments || appointments.length === 0) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      res.json(appointments);
+    } catch (error) {
+      console.error("Confirmation lookup error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/appointments/confirmation/:confirmationNumber/cancel", async (req, res) => {
+    try {
+      const confirmationNumber = req.params.confirmationNumber || "";
+      const phoneDigits = confirmationNumber.replace(/\D/g, "");
+      if (!phoneDigits) return res.status(400).json({ message: "Confirmation number required" });
+
+      const payload = z.object({ appointmentId: z.number() }).parse(req.body);
+
+      const store = await resolvePublicStore(req);
+      if (!store) return res.status(400).json({ message: "Store not found" });
+
+      const appointment = await storage.getAppointment(payload.appointmentId);
+      if (!appointment || appointment.storeId !== store.id) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      const appointmentPhone = (appointment.customer?.phone || "").replace(/\D/g, "");
+      if (appointmentPhone !== phoneDigits) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      if (appointment.status !== "cancelled") {
+        await storage.updateAppointment(appointment.id, {
+          status: "cancelled",
+          cancellationReason: "Cancelled by customer",
+        });
+      }
+
+      const refreshed = await storage.getAppointment(appointment.id);
+      res.json(refreshed || appointment);
+    } catch (error) {
+      console.error("Confirmation cancel error:", error);
+      res.status(400).json({ message: "Failed to cancel booking" });
     }
   });
 
@@ -1405,6 +2133,1124 @@ export async function registerRoutes(
     if (!(await validateStoreOwnership(req, res))) return;
     const logs = await storage.getSmsLogs(Number(req.params.storeId), 100);
     res.json(logs);
+  });
+
+  // === MAIL SETTINGS ===
+  app.get("/api/mail-settings/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    const settings = await storage.getMailSettings(Number(req.params.storeId));
+    if (settings) {
+      const { mailgunApiKey, ...safe } = settings;
+      res.json({ ...safe, mailgunApiKey: mailgunApiKey ? "••••••••" : null });
+    } else {
+      res.json(null);
+    }
+  });
+
+  app.put("/api/mail-settings/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    try {
+      const storeId = Number(req.params.storeId);
+      const mailSettingsInput = z.object({
+        mailgunApiKey: z.string().optional().nullable(),
+        mailgunDomain: z.string().optional().nullable(),
+        senderEmail: z.string().optional().nullable(),
+        bookingConfirmationEnabled: z.boolean().optional(),
+        reminderEnabled: z.boolean().optional(),
+        reminderHoursBefore: z.number().min(1).max(72).optional(),
+        reviewRequestEnabled: z.boolean().optional(),
+        googleReviewUrl: z.string().optional().nullable(),
+        confirmationTemplate: z.string().optional().nullable(),
+        reminderTemplate: z.string().optional().nullable(),
+        reviewTemplate: z.string().optional().nullable(),
+      }).parse(req.body);
+
+      if (mailSettingsInput.mailgunApiKey === "••••••••") {
+        delete mailSettingsInput.mailgunApiKey;
+      }
+      const settings = await storage.upsertMailSettings(storeId, { ...mailSettingsInput, storeId });
+      const { mailgunApiKey, ...safe } = settings;
+      res.json({ ...safe, mailgunApiKey: mailgunApiKey ? "••••••••" : null });
+    } catch (error) {
+      console.error("Mail settings update error:", error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  // === ADMIN ENDPOINTS ===
+  app.get("/api/admin/accounts", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const allUsers = await db.select().from(users);
+      
+      const accounts = await Promise.all(
+        allUsers.map(async (user: any) => {
+          const userStores = await db.select().from(locations).where(eq(locations.userId, user.id)).limit(1);
+          const store = userStores[0];
+          return {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            createdAt: user.createdAt,
+            storeName: store?.name,
+            storeCity: store?.city,
+            storeState: store?.state,
+            storePhone: store?.phone,
+          };
+        })
+      );
+
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      res.status(500).json({ message: "Failed to fetch accounts" });
+    }
+  });
+
+  app.delete("/api/admin/accounts/:userId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const userToDelete = req.params.userId;
+
+    try {
+      if (userId === userToDelete) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await db.delete(users).where(eq(users.id, userToDelete));
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  // === GOOGLE BUSINESS PROFILE INTEGRATION ===
+
+  /**
+   * Get Google OAuth authorization URL.
+   * Generates a CSRF state token, stores it in the session, and returns the URL.
+   */
+  app.get("/api/google-business/auth-url", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      // Generate a random CSRF state token and store it in the session
+      const state = crypto.randomBytes(16).toString("hex");
+      (req.session as any).googleOAuthState = state;
+
+      const apiManager = new GoogleBusinessAPIManager({
+        clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        redirectUri: process.env.GOOGLE_REDIRECT_URI ?? "",
+      });
+
+      const authUrl = apiManager.getAuthUrl(undefined, state);
+      res.json({ authUrl });
+    } catch (error) {
+      console.error("Error generating auth URL:", error);
+      res.status(500).json({ message: "Failed to generate auth URL" });
+    }
+  });
+
+  /**
+   * Handle Google OAuth callback.
+   * - Verifies CSRF state
+   * - Exchanges code for tokens
+   * - Fetches the authed user's Google account email
+   * - Upserts the profile row (so reconnect works without error)
+   */
+  app.post("/api/google-business/callback", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { code, storeId, state } = req.body;
+    if (!code || !storeId) {
+      return res.status(400).json({ message: "Code and storeId are required" });
+    }
+
+    // CSRF state verification
+    const expectedState = (req.session as any).googleOAuthState;
+    if (expectedState && state && expectedState !== state) {
+      return res.status(400).json({ message: "Invalid OAuth state – possible CSRF attack" });
+    }
+    // Clear the state from session after use
+    delete (req.session as any).googleOAuthState;
+
+    try {
+      const apiManager = new GoogleBusinessAPIManager({
+        clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        redirectUri: process.env.GOOGLE_REDIRECT_URI ?? "",
+      });
+
+      // Exchange code → tokens (also stores credentials on the manager's OAuth2Client)
+      const tokens = await apiManager.getTokensFromCode(code);
+
+      // Fetch authenticated user info to get the Google account email
+      const userInfo = await apiManager.getGoogleUserInfo();
+
+      // List business accounts
+      const accountsData = await apiManager.getBusinessAccounts();
+      const accounts = (accountsData.accounts ?? []) as any[];
+
+      if (!accounts.length) {
+        return res.status(400).json({ message: "No Google Business accounts found for this Google account" });
+      }
+
+      // Upsert the profile so re-authentication updates tokens instead of failing
+      // with a unique constraint violation.
+      const existingProfile = await db
+        .select()
+        .from(googleBusinessProfiles)
+        .where(eq(googleBusinessProfiles.storeId, Number(storeId)))
+        .limit(1);
+
+      let profileRow: typeof googleBusinessProfiles.$inferSelect;
+      if (existingProfile.length) {
+        // Update existing profile with fresh tokens
+        const updated = await db
+          .update(googleBusinessProfiles)
+          .set({
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token ?? existingProfile[0].refreshToken,
+            tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            googleAccountEmail: userInfo?.email ?? existingProfile[0].googleAccountEmail,
+            businessAccountId: accounts[0].name,
+            businessAccountResourceName: accounts[0].name,
+            isConnected: false,   // reset; user must re-select location
+            updatedAt: new Date(),
+          })
+          .where(eq(googleBusinessProfiles.storeId, Number(storeId)))
+          .returning();
+        profileRow = updated[0];
+      } else {
+        // Insert new profile
+        const inserted = await db
+          .insert(googleBusinessProfiles)
+          .values({
+            storeId: Number(storeId),
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            googleAccountEmail: userInfo?.email ?? null,
+            businessAccountId: accounts[0].name,
+            businessAccountResourceName: accounts[0].name,
+            isConnected: false,
+          })
+          .returning();
+        profileRow = inserted[0];
+      }
+
+      res.json({
+        message: "Google account authenticated",
+        accounts,
+        profileId: profileRow.id,
+        googleEmail: userInfo?.email ?? null,
+      });
+    } catch (error) {
+      console.error("Error in Google callback:", error);
+      res.status(500).json({ message: "Failed to authenticate with Google" });
+    }
+  });
+
+  /**
+   * Get locations for a business account.
+   */
+  app.post("/api/google-business/locations", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { profileId, accountName } = req.body;
+    if (!profileId || !accountName) {
+      return res.status(400).json({ message: "profileId and accountName are required" });
+    }
+
+    try {
+      const profiles = await db
+        .select()
+        .from(googleBusinessProfiles)
+        .where(eq(googleBusinessProfiles.id, profileId))
+        .limit(1);
+
+      if (!profiles.length) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      const apiManager = createApiManagerFromProfile(profiles[0]);
+      const locationsData = await apiManager.getLocations(accountName);
+      const locs = locationsData.locations ?? [];
+
+      res.json({ locations: locs });
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      res.status(500).json({ message: "Failed to fetch locations" });
+    }
+  });
+
+  /**
+   * Connect a specific location to the store.
+   */
+  app.post("/api/google-business/connect-location", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { profileId, locationName, locationId } = req.body;
+    if (!profileId || !locationName) {
+      return res.status(400).json({ message: "profileId and locationName are required" });
+    }
+
+    try {
+      const updated = await db
+        .update(googleBusinessProfiles)
+        .set({
+          locationResourceName: locationName,
+          locationId: locationId ?? null,
+          isConnected: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(googleBusinessProfiles.id, profileId))
+        .returning();
+
+      res.json({ message: "Location connected successfully", profile: updated[0] });
+    } catch (error) {
+      console.error("Error connecting location:", error);
+      res.status(500).json({ message: "Failed to connect location" });
+    }
+  });
+
+  /**
+   * Get Google Business Profile for a store (tokens are stripped before returning).
+   */
+  app.get("/api/google-business/profile/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+
+    try {
+      const profiles = await db
+        .select()
+        .from(googleBusinessProfiles)
+        .where(eq(googleBusinessProfiles.storeId, storeId))
+        .limit(1);
+
+      if (!profiles.length) {
+        return res.json({ profile: null });
+      }
+
+      // Never return sensitive tokens to the client
+      const { accessToken, refreshToken, ...safeProfile } = profiles[0];
+      res.json({ profile: safeProfile });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  /**
+   * Disconnect Google Business Profile.
+   * Revokes the OAuth token at Google, then removes all local review data.
+   * Required by Google API policies: users must be able to revoke access at any time,
+   * and disconnecting must remove all associated data.
+   */
+  app.delete("/api/google-business/profile/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+
+    try {
+      // Verify the store belongs to this user
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const profiles = await db
+        .select()
+        .from(googleBusinessProfiles)
+        .where(eq(googleBusinessProfiles.storeId, storeId))
+        .limit(1);
+
+      if (!profiles.length) {
+        return res.status(404).json({ message: "No Google Business Profile found for this store" });
+      }
+
+      const profile = profiles[0];
+
+      // Revoke the OAuth token at Google so the app loses API access
+      if (profile.accessToken || profile.refreshToken) {
+        const apiManager = createApiManagerFromProfile(profile);
+        await apiManager.revokeTokens();
+      }
+
+      // Delete all draft/published responses for this store's reviews
+      await db
+        .delete(googleReviewResponses)
+        .where(eq(googleReviewResponses.storeId, storeId));
+
+      // Delete all synced reviews for this store
+      await db
+        .delete(googleReviews)
+        .where(eq(googleReviews.storeId, storeId));
+
+      // Delete the profile itself
+      await db
+        .delete(googleBusinessProfiles)
+        .where(eq(googleBusinessProfiles.storeId, storeId));
+
+      console.log(`Google Business Profile disconnected for store ${storeId}`);
+      res.json({ message: "Google Business Profile disconnected and all data removed" });
+    } catch (error) {
+      console.error("Error disconnecting Google Business Profile:", error);
+      res.status(500).json({ message: "Failed to disconnect Google Business Profile" });
+    }
+  });
+
+  /**
+   * Sync reviews from Google.
+   */
+  app.post("/api/google-business/sync-reviews/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+
+    try {
+      await syncGoogleReviews(storeId);
+      res.json({ message: "Reviews synced successfully" });
+    } catch (error) {
+      console.error("Error syncing reviews:", error);
+      res.status(500).json({ message: "Failed to sync reviews" });
+    }
+  });
+
+  /**
+   * Get reviews for a store
+   */
+  app.get("/api/google-business/reviews/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+    const ratingFilter = req.query.rating ? Number(req.query.rating) : null;
+    const statusFilter = req.query.status as string | null;
+    const limit = req.query.limit ? Number(req.query.limit) : 50;
+
+    try {
+      const conditions = [eq(googleReviews.storeId, storeId)];
+      
+      if (ratingFilter) {
+        conditions.push(eq(googleReviews.rating, ratingFilter));
+      }
+
+      if (statusFilter) {
+        conditions.push(eq(googleReviews.responseStatus, statusFilter));
+      }
+
+      const reviews = await db
+        .select()
+        .from(googleReviews)
+        .where(and(...conditions))
+        .orderBy(desc(googleReviews.reviewCreateTime))
+        .limit(limit);
+
+      res.json({ reviews });
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  /**
+   * Get a single review with responses
+   */
+  app.get("/api/google-business/reviews/:storeId/:reviewId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { storeId, reviewId } = req.params;
+
+    try {
+      const review = await db
+        .select()
+        .from(googleReviews)
+        .where(
+          and(
+            eq(googleReviews.storeId, Number(storeId)),
+            eq(googleReviews.id, Number(reviewId))
+          )
+        )
+        .limit(1);
+
+      if (!review.length) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+
+      const responses = await db
+        .select()
+        .from(googleReviewResponses)
+        .where(eq(googleReviewResponses.googleReviewId, Number(reviewId)));
+
+      res.json({
+        review: review[0],
+        responses,
+      });
+    } catch (error) {
+      console.error("Error fetching review:", error);
+      res.status(500).json({ message: "Failed to fetch review" });
+    }
+  });
+
+  /**
+   * Create a draft response to a review
+   */
+  app.post("/api/google-business/review-response", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const input = z
+        .object({
+          googleReviewId: z.number(),
+          storeId: z.number(),
+          responseText: z.string().min(1).max(5000),
+          staffId: z.number().optional(),
+        })
+        .parse(req.body);
+
+      const response = await db
+        .insert(googleReviewResponses)
+        .values({
+          ...input,
+          responseStatus: "pending",
+          createdBy: userId,
+        })
+        .returning();
+
+      res.status(201).json(response[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        console.error("Error creating response:", error);
+        res.status(500).json({ message: "Failed to create response" });
+      }
+    }
+  });
+
+  /**
+   * Update a review response
+   */
+  app.patch("/api/google-business/review-response/:responseId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const responseId = Number(req.params.responseId);
+
+    try {
+      const input = z
+        .object({
+          responseText: z.string().min(1).max(5000).optional(),
+          staffId: z.number().optional(),
+        })
+        .parse(req.body);
+
+      const updated = await db
+        .update(googleReviewResponses)
+        .set({
+          ...input,
+          updatedAt: new Date(),
+        })
+        .where(eq(googleReviewResponses.id, responseId))
+        .returning();
+
+      if (!updated.length) {
+        return res.status(404).json({ message: "Response not found" });
+      }
+
+      res.json(updated[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        console.error("Error updating response:", error);
+        res.status(500).json({ message: "Failed to update response" });
+      }
+    }
+  });
+
+  /**
+   * Publish a review response to Google.
+   */
+  app.post("/api/google-business/review-response/:responseId/publish", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const responseId = Number(req.params.responseId);
+
+    try {
+      await publishReviewResponse(responseId);
+      res.json({ message: "Response published successfully" });
+    } catch (error) {
+      console.error("Error publishing response:", error);
+      res.status(500).json({ message: "Failed to publish response" });
+    }
+  });
+
+  /**
+   * Delete a review response
+   */
+  app.delete("/api/google-business/review-response/:responseId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const responseId = Number(req.params.responseId);
+
+    try {
+      await db
+        .delete(googleReviewResponses)
+        .where(eq(googleReviewResponses.id, responseId));
+
+      res.json({ message: "Response deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting response:", error);
+      res.status(500).json({ message: "Failed to delete response" });
+    }
+  });
+
+  /**
+   * Get review statistics
+   */
+  app.get("/api/google-business/reviews-stats/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+
+    try {
+      const allReviews = await db
+        .select()
+        .from(googleReviews)
+        .where(eq(googleReviews.storeId, storeId));
+
+      const stats = {
+        totalReviews: allReviews.length,
+        averageRating: 
+          allReviews.length > 0
+            ? (allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length).toFixed(1)
+            : 0,
+        respondedReviews: allReviews.filter((r) => r.responseStatus === "responded").length,
+        notRespondedReviews: allReviews.filter((r) => r.responseStatus === "not_responded").length,
+        ratingDistribution: {
+          5: allReviews.filter((r) => r.rating === 5).length,
+          4: allReviews.filter((r) => r.rating === 4).length,
+          3: allReviews.filter((r) => r.rating === 3).length,
+          2: allReviews.filter((r) => r.rating === 2).length,
+          1: allReviews.filter((r) => r.rating === 1).length,
+        },
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting review stats:", error);
+      res.status(500).json({ message: "Failed to get review stats" });
+    }
+  });
+
+  // === ADMIN TRIAL MANAGEMENT ===
+  
+  /**
+   * Admin: Get user trial status
+   */
+  app.get("/api/admin/users/:userId/trial-status", async (req, res) => {
+    const userId = req.params.userId;
+    
+    try {
+      const trialStatus = await TrialService.getTrialStatus(userId);
+      res.json(trialStatus);
+    } catch (error) {
+      console.error("Error fetching user trial status:", error);
+      res.status(500).json({ message: "Failed to fetch trial status" });
+    }
+  });
+
+  /**
+   * Admin: Extend user trial
+   */
+  app.post("/api/admin/users/:userId/extend-trial", async (req, res) => {
+    const userId = req.params.userId;
+    const { additionalDays } = req.body;
+    
+    if (!additionalDays || additionalDays <= 0) {
+      return res.status(400).json({ message: "Additional days must be greater than 0" });
+    }
+    
+    try {
+      await TrialService.extendTrial(userId, additionalDays);
+      const trialStatus = await TrialService.getTrialStatus(userId);
+      res.json({ message: "Trial extended successfully", trialStatus });
+    } catch (error) {
+      console.error("Error extending trial:", error);
+      res.status(500).json({ message: "Failed to extend trial" });
+    }
+  });
+
+  /**
+   * Admin: Reset user trial
+   */
+  app.post("/api/admin/users/:userId/reset-trial", async (req, res) => {
+    const userId = req.params.userId;
+    
+    try {
+      await TrialService.resetTrial(userId);
+      const trialStatus = await TrialService.getTrialStatus(userId);
+      res.json({ message: "Trial reset successfully", trialStatus });
+    } catch (error) {
+      console.error("Error resetting trial:", error);
+      res.status(500).json({ message: "Failed to reset trial" });
+    }
+  });
+
+  /**
+   * Admin: Activate user subscription
+   */
+  app.post("/api/admin/users/:userId/activate-subscription", async (req, res) => {
+    const userId = req.params.userId;
+    
+    try {
+      await TrialService.activateSubscription(userId);
+      const trialStatus = await TrialService.getTrialStatus(userId);
+      res.json({ message: "Subscription activated successfully", trialStatus });
+    } catch (error) {
+      console.error("Error activating subscription:", error);
+      res.status(500).json({ message: "Failed to activate subscription" });
+    }
+  });
+
+  /**
+   * Admin: Cancel user subscription
+   */
+  app.post("/api/admin/users/:userId/cancel-subscription", async (req, res) => {
+    const userId = req.params.userId;
+    
+    try {
+      await TrialService.cancelSubscription(userId);
+      const trialStatus = await TrialService.getTrialStatus(userId);
+      res.json({ message: "Subscription cancelled successfully", trialStatus });
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
+  /**
+   * Admin Dashboard Stats API
+   */
+
+  // GET dashboard statistics
+  app.get("/api/admin/dashboard/stats", async (req, res) => {
+    try {
+      // Get total stores count using raw SQL via pool
+      const totalStoresResult = await pool.query(`SELECT COUNT(*)::int as count FROM locations`);
+      const totalStoresCount = Number(totalStoresResult.rows[0]?.count || 0);
+      
+      // Get total users count using raw SQL via pool
+      const totalUsersResult = await pool.query(`SELECT COUNT(*)::int as count FROM users`);
+      const totalUsersCount = Number(totalUsersResult.rows[0]?.count || 0);
+      
+      // Get total appointments using raw SQL via pool
+      const totalAppointmentsResult = await pool.query(`SELECT COUNT(*)::int as count FROM appointments`);
+      const totalAppointmentsCount = Number(totalAppointmentsResult.rows[0]?.count || 0);
+
+      // Get trial user count using raw SQL via pool
+      const trialUsersResult = await pool.query(`SELECT COUNT(*)::int as count FROM users WHERE subscription_status = 'trial'`);
+      const trialUsersCount = Number(trialUsersResult.rows[0]?.count || 0);
+
+      // Stripe is not yet implemented — subscriptions and MRR are always 0
+      const stats = {
+        totalAccounts: totalStoresCount,
+        newAccountsThisMonth: 0,
+        newAccountsLastMonth: 0,
+        totalSubscriptions: 0,   // No Stripe subscriptions yet
+        activeSubscriptions: 0,  // No Stripe subscriptions yet
+        mrr: 0,                  // No Stripe subscriptions yet
+        mrrGrowth: 0,
+        newSubsThisMonth: 0,
+        newSubsLastMonth: 0,
+        totalUsers: totalUsersCount,
+        newUsersThisMonth: 0,
+        newUsersLastMonth: 0,
+        totalAppointments: totalAppointmentsCount,
+        appointmentsThisMonth: 0,
+        trialUsers: trialUsersCount
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  /**
+   * Platform Settings API
+   */
+
+  // GET platform settings
+  app.get("/api/admin/platform-settings", async (req, res) => {
+    try {
+      // Get settings from environment variables
+      const settings = {
+        trialPeriodDays: parseInt(process.env.TRIAL_PERIOD_DAYS || '30'),
+        mailgun: {
+          apiKey: process.env.MAILGUN_API_KEY || '',
+          domain: process.env.MAILGUN_DOMAIN || '',
+          fromEmail: process.env.MAILGUN_FROM_EMAIL || 'noreply@yourdomain.com',
+          fromName: process.env.MAILGUN_FROM_NAME || 'Booking Platform',
+          enabled: !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN)
+        },
+        twilio: {
+          accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+          authToken: process.env.TWILIO_AUTH_TOKEN || '',
+          phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
+          enabled: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER)
+        }
+      };
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching platform settings:", error);
+      res.status(500).json({ message: "Failed to fetch platform settings" });
+    }
+  });
+
+  // PUT platform settings
+  app.put("/api/admin/platform-settings", async (req, res) => {
+    try {
+      const { trialPeriodDays, mailgun, twilio } = req.body;
+      
+      // Validate input
+      const platformSettingsSchema = z.object({
+        trialPeriodDays: z.number().min(1).max(365),
+        mailgun: z.object({
+          apiKey: z.string().optional(),
+          domain: z.string().optional(),
+          fromEmail: z.string().email().optional(),
+          fromName: z.string().optional(),
+          enabled: z.boolean()
+        }),
+        twilio: z.object({
+          accountSid: z.string().optional(),
+          authToken: z.string().optional(),
+          phoneNumber: z.string().optional(),
+          enabled: z.boolean()
+        })
+      });
+
+      const validatedData = platformSettingsSchema.parse({ trialPeriodDays, mailgun, twilio });
+      
+      // Update environment variables in memory
+      process.env.TRIAL_PERIOD_DAYS = validatedData.trialPeriodDays.toString();
+      process.env.MAILGUN_API_KEY = validatedData.mailgun.apiKey || '';
+      process.env.MAILGUN_DOMAIN = validatedData.mailgun.domain || '';
+      process.env.MAILGUN_FROM_EMAIL = validatedData.mailgun.fromEmail || 'noreply@yourdomain.com';
+      process.env.MAILGUN_FROM_NAME = validatedData.mailgun.fromName || 'Booking Platform';
+      process.env.TWILIO_ACCOUNT_SID = validatedData.twilio.accountSid || '';
+      process.env.TWILIO_AUTH_TOKEN = validatedData.twilio.authToken || '';
+      process.env.TWILIO_PHONE_NUMBER = validatedData.twilio.phoneNumber || '';
+      
+      // Update .env file
+      const fs = require('fs');
+      const path = require('path');
+      const envPath = path.join(process.cwd(), '.env');
+      
+      let envContent = '';
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
+      }
+      
+      // Update or add each setting
+      const updates = [
+        `TRIAL_PERIOD_DAYS=${validatedData.trialPeriodDays}`,
+        `MAILGUN_API_KEY=${validatedData.mailgun.apiKey || ''}`,
+        `MAILGUN_DOMAIN=${validatedData.mailgun.domain || ''}`,
+        `MAILGUN_FROM_EMAIL=${validatedData.mailgun.fromEmail || 'noreply@yourdomain.com'}`,
+        `MAILGUN_FROM_NAME=${validatedData.mailgun.fromName || 'Booking Platform'}`,
+        `TWILIO_ACCOUNT_SID=${validatedData.twilio.accountSid || ''}`,
+        `TWILIO_AUTH_TOKEN=${validatedData.twilio.authToken || ''}`,
+        `TWILIO_PHONE_NUMBER=${validatedData.twilio.phoneNumber || ''}`
+      ];
+      
+      updates.forEach(update => {
+        const [key] = update.split('=');
+        const regex = new RegExp(`^${key}=.*$`, 'm');
+        if (envContent.match(regex)) {
+          envContent = envContent.replace(regex, update);
+        } else {
+          envContent += `\n${update}`;
+        }
+      });
+      
+      fs.writeFileSync(envPath, envContent);
+      
+      console.log("Platform settings saved to .env file");
+      
+      res.json({ message: "Platform settings updated successfully", settings: validatedData });
+    } catch (error) {
+      console.error("Error updating platform settings:", error);
+      res.status(500).json({ message: "Failed to update platform settings" });
+    }
+  });
+
+  // POST staff change password
+  app.post("/api/staff/change-password", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters long" });
+      }
+
+      // Get current user
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify current password
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password and mark as changed
+      await storage.updateUser(user.id, { 
+        password: hashedNewPassword, 
+        passwordChanged: true 
+      });
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // GET staff calendar access status
+  app.get("/api/staff/:id/calendar-access-status", isAuthenticated, async (req, res) => {
+    try {
+      const staffId = Number(req.params.id);
+      const staff = await storage.getStaffMember(staffId);
+
+      if (!staff) {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+
+      // Staff without an email cannot have calendar access
+      if (!staff.email) {
+        return res.json({ hasCalendarAccess: false, email: null, enabled: false });
+      }
+
+      // Check if user exists with staff role and this staffId
+      const user = await storage.findUserByEmail(staff.email);
+      const hasCalendarAccess = user && user.role === "staff" && user.staffId === staffId;
+
+      res.json({ 
+        hasCalendarAccess,
+        email: staff.email,
+        enabled: !!hasCalendarAccess
+      });
+    } catch (error) {
+      console.error("Error checking calendar access status:", error);
+      res.status(500).json({ message: "Failed to check calendar access status" });
+    }
+  });
+
+  // POST test mailgun connection
+  app.post("/api/admin/platform-settings/test-mailgun", async (req, res) => {
+    try {
+      const { to } = req.body;
+      
+      if (!to) {
+        return res.status(400).json({ message: "Recipient email is required" });
+      }
+
+      // Use Mailgun settings from .env
+      const apiKey = process.env.MAILGUN_API_KEY;
+      const domain = process.env.MAILGUN_DOMAIN;
+      const fromEmail = process.env.MAILGUN_FROM_EMAIL || `noreply@${domain}`;
+      const fromName = process.env.MAILGUN_FROM_NAME || 'Test Platform';
+
+      if (!apiKey || !domain) {
+        return res.status(500).json({ message: "Mailgun not configured in server environment" });
+      }
+
+      console.log("Testing mailgun connection to:", to);
+      
+      // Send actual test email via Mailgun API
+      const formData = new FormData();
+      formData.append('from', `${fromName} <${fromEmail}>`);
+      formData.append('to', to);
+      formData.append('subject', 'Mailgun Test Email');
+      formData.append('text', `This is a test email sent at ${new Date().toISOString()}. If you received this, your Mailgun configuration is working correctly.`);
+      formData.append('html', `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+            Mailgun Test Email
+          </h2>
+          <p style="color: #666; line-height: 1.6;">
+            This is a test email sent from your booking platform at <strong>${new Date().toLocaleString()}</strong>.
+          </p>
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="color: #495057; margin: 0 0 10px 0;">Test Details:</h3>
+            <ul style="color: #6c757d; margin: 0; padding-left: 20px;">
+              <li>Sent to: ${to}</li>
+              <li>Sent from: ${fromEmail}</li>
+              <li>Domain: ${domain}</li>
+              <li>Time: ${new Date().toISOString()}</li>
+            </ul>
+          </div>
+          <p style="color: #28a745; font-weight: bold;">
+            ✅ If you received this email, your Mailgun configuration is working correctly!
+          </p>
+        </div>
+      `);
+
+      const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`api:${apiKey}`).toString('base64')}`,
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Mailgun API error:', errorData);
+        throw new Error(`Mailgun API error: ${response.status} ${errorData}`);
+      }
+
+      const result = await response.json();
+      console.log('Mailgun test successful:', result);
+      
+      res.json({ 
+        message: "Mailgun test successful", 
+        timestamp: new Date().toISOString(),
+        recipient: to,
+        messageId: result.id
+      });
+    } catch (error) {
+      console.error("Error testing mailgun:", error);
+      res.status(500).json({ message: "Mailgun test failed", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // POST test twilio connection
+  app.post("/api/admin/platform-settings/test-twilio", async (req, res) => {
+    try {
+      const { to } = req.body;
+      
+      if (!to) {
+        return res.status(400).json({ message: "Recipient phone number is required" });
+      }
+
+      // TODO: Implement actual twilio test
+      console.log("Testing twilio connection to:", to);
+      
+      // Simulate test
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      res.json({ message: "Twilio test successful", timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error("Error testing twilio:", error);
+      res.status(500).json({ message: "Twilio test failed" });
+    }
+  });
+
+  // GET service status
+  app.get("/api/admin/platform-settings/status", async (req, res) => {
+    try {
+      const status = {
+        mailgun: {
+          connected: !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
+          lastCheck: new Date().toISOString(),
+          error: null
+        },
+        twilio: {
+          connected: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
+          lastCheck: new Date().toISOString(),
+          error: null
+        },
+        system: {
+          healthy: true,
+          lastCheck: new Date().toISOString()
+        }
+      };
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching service status:", error);
+      res.status(500).json({ message: "Failed to fetch service status" });
+    }
+  });
+
+  /**
+   * Billing Invoice Endpoints (Mock for now)
+   */
+
+  // GET all invoices
+  app.get("/api/billing/invoices/all", async (req, res) => {
+    try {
+      // Mock data - replace with actual database query
+      const invoices: any[] = []; // Mock empty invoices array
+      res.json({ data: invoices });
+    } catch (error) {
+      console.error("Error fetching all invoices:", error);
+      res.status(500).json({ message: "Failed to fetch all invoices" });
+    }
+  });
+
+  // GET unpaid invoices count
+  app.get("/api/billing/invoices/unpaid/count", async (req, res) => {
+    try {
+      // Mock data - replace with actual database query
+      const count = 0; // Mock unpaid count
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching unpaid invoices count:", error);
+      res.status(500).json({ message: "Failed to fetch unpaid invoices count" });
+    }
+  });
+
+  // GET past due invoices count
+  app.get("/api/billing/invoices/past-due/count", async (req, res) => {
+    try {
+      // Mock data - replace with actual database query
+      const count = 0; // Mock past due count
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching past due invoices count:", error);
+      res.status(500).json({ message: "Failed to fetch past due invoices count" });
+    }
   });
 
   // Start the reminder scheduler

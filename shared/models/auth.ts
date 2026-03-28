@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, timestamp, varchar, integer } from "drizzle-orm/pg-core";
 
 export const sessions = pgTable(
   "sessions",
@@ -15,12 +15,20 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique().notNull(),
   password: varchar("password").notNull(),
+  googleId: varchar("google_id"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").default("admin"), // "admin" or "staff"
+  staffId: integer("staff_id"), // Link to staff table if role is staff
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  passwordChanged: boolean("password_changed").default(false), // Track if staff has changed their initial password
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // Trial / subscription fields (added via migration 0001_add_trial_fields.sql)
+  subscriptionStatus: varchar("subscription_status", { length: 20 }).default("active"),
+  trialStartedAt: timestamp("trial_started_at"),
+  trialEndsAt: timestamp("trial_ends_at"),
 });
 
 export type UpsertUser = typeof users.$inferInsert;

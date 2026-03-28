@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useCreateCustomer } from "@/hooks/use-customers";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Delete } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Customer } from "@shared/schema";
@@ -11,7 +11,7 @@ import type { Customer } from "@shared/schema";
 type LookupStep = "phone" | "name";
 
 export default function ClientLookup() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { selectedStore } = useSelectedStore();
   const createCustomer = useCreateCustomer();
 

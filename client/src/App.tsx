@@ -1,10 +1,12 @@
-import { Switch, Route } from "wouter";
+
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/components/StoreProvider";
-import Landing from "@/pages/Landing";
+import { useTheme } from "@/hooks/use-theme";
+import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
 import Staff from "@/pages/Staff";
@@ -23,55 +25,111 @@ import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
 import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
+import MailSettings from "@/pages/MailSettings";
+import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import Auth from "@/pages/Auth";
+import StaffAuth from "@/pages/StaffAuth";
+import StaffPasswordChange from "@/pages/StaffPasswordChange";
+import StaffDashboard from "@/pages/StaffDashboard";
 import Onboarding from "@/pages/Onboarding";
 import PublicBooking from "@/pages/PublicBooking";
+import BookingWidgetPage from "@/pages/BookingWidgetPage";
+import BookingConfirmation from "@/pages/public-booking/BookingConfirmation";
 import Pricing from "@/pages/Pricing";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import NotFound from "@/pages/not-found";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/book/:slug" component={PublicBooking} />
-      <Route path="/auth" component={Auth} />
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/services" component={Services} />
-      <Route path="/staff" component={Staff} />
-      <Route path="/staff/:id" component={StaffDetail} />
-      <Route path="/customers" component={Customers} />
-      <Route path="/calendar" component={Calendar} />
-      <Route path="/appointments" component={Calendar} />
-      <Route path="/booking/new" component={NewBooking} />
-      <Route path="/client-lookup" component={ClientLookup} />
-      <Route path="/pos" component={POSInterface} />
-      <Route path="/client/:id" component={ClientProfile} />
-      <Route path="/products" component={Products} />
-      <Route path="/addons" component={AddonsPage} />
-      <Route path="/commission-report" component={CommissionReport} />
-      <Route path="/calendar-settings" component={CalendarSettingsPage} />
-      <Route path="/business-settings" component={BusinessSettings} />
-      <Route path="/online-booking" component={OnlineBooking} />
-      <Route path="/sms-settings" component={SmsSettings} />
-      <Route path="/cash-drawer" component={CashDrawer} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+// List of authenticated routes that require StoreProvider
+const authenticatedPaths = [
+  "/onboarding",
+  "/dashboard",
+  "/services",
+  "/staff",
+  "/customers",
+  "/calendar",
+  "/appointments",
+  "/booking",
+  "/client-lookup",
+  "/pos",
+  "/client",
+  "/products",
+  "/addons",
+  "/commission-report",
+  "/calendar-settings",
+  "/business-settings",
+  "/online-booking",
+  "/sms-settings",
+  "/mail-settings",
+  "/admin",
+  "/cash-drawer",
+];
 
 function App() {
+  useTheme();
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <StoreProvider>
-          <Toaster />
-          <Router />
-        </StoreProvider>
+        <Toaster />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
+}
+
+function AppRoutes() {
+  const location = useLocation();
+  const isPublicConfirmation = location.pathname.startsWith("/booking/") && !location.pathname.startsWith("/booking/new");
+
+  const isAuthenticatedRoute = authenticatedPaths.some(path =>
+    location.pathname === path || location.pathname.startsWith(path + "/")
+  ) && !isPublicConfirmation;
+
+  const routes = (
+    <Routes>
+      <Route path="/" element={<SubdomainRouter />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/widget" element={<BookingWidgetPage />} />
+      <Route path="/book/:slug" element={<PublicBooking />} />
+      <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/staff-auth" element={<StaffAuth />} />
+      <Route path="/staff-change-password" element={<StaffPasswordChange />} />
+      <Route path="/staff-dashboard" element={<StaffDashboard />} />
+      <Route path="/isadmin/*" element={<AdminDashboard />} />
+      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/services" element={<Services />} />
+      <Route path="/staff" element={<Staff />} />
+      <Route path="/staff/:id" element={<StaffDetail />} />
+      <Route path="/customers" element={<Customers />} />
+      <Route path="/calendar" element={<Calendar />} />
+      <Route path="/appointments" element={<Calendar />} />
+      <Route path="/booking/new" element={<NewBooking />} />
+      <Route path="/client-lookup" element={<ClientLookup />} />
+      <Route path="/pos" element={<POSInterface />} />
+      <Route path="/client/:id" element={<ClientProfile />} />
+      <Route path="/products" element={<Products />} />
+      <Route path="/addons" element={<AddonsPage />} />
+      <Route path="/commission-report" element={<CommissionReport />} />
+      <Route path="/calendar-settings" element={<CalendarSettingsPage />} />
+      <Route path="/business-settings" element={<BusinessSettings />} />
+      <Route path="/online-booking" element={<OnlineBooking />} />
+      <Route path="/sms-settings" element={<SmsSettings />} />
+      <Route path="/mail-settings" element={<MailSettings />} />
+      <Route path="/cash-drawer" element={<CashDrawer />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+
+  if (isAuthenticatedRoute) {
+    return <StoreProvider>{routes}</StoreProvider>;
+  }
+
+  return routes;
 }
 
 export default App;
