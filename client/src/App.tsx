@@ -43,6 +43,7 @@ import BarberLanding from "@/pages/BarberLanding";
 import SpaLanding from "@/pages/SpaLanding";
 import NailSalonLanding from "@/pages/NailSalonLanding";
 import TattooLanding from "@/pages/TattooLanding";
+import WalkInLanding from "@/pages/WalkInLanding";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -99,6 +100,7 @@ function AppRoutes() {
       <Route path="/spa" element={<SpaLanding />} />
       <Route path="/nails" element={<NailSalonLanding />} />
       <Route path="/tattoo" element={<TattooLanding />} />
+      <Route path="/haircuts" element={<WalkInLanding />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/widget" element={<BookingWidgetPage />} />
