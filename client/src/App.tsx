@@ -40,6 +40,7 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import StaffCalendar from "@/pages/StaffCalendar";
 import NotFound from "@/pages/not-found";
 import BarberLanding from "@/pages/BarberLanding";
+import SpaLanding from "@/pages/SpaLanding";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -93,6 +94,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<SubdomainRouter />} />
       <Route path="/barbers" element={<BarberLanding />} />
+      <Route path="/spa" element={<SpaLanding />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/widget" element={<BookingWidgetPage />} />
