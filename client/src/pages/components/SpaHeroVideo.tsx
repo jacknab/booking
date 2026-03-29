@@ -3,32 +3,33 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
   {
-    src: "https://videos.pexels.com/video-files/3770444/3770444-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/3770444/3770444-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/4098769/4098769-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/4098769/4098769-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/7615464/7615464-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/7615464/7615464-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/3758870/3758870-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/3758870/3758870-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/4473606/4473606-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/4473606/4473606-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/5762736/5762736-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/5762736/5762736-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/5202423/5202423-hd_1920_1080_30fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/5202423/5202423-hd_1280_720_30fps.mp4",
+    src: "https://videos.pexels.com/video-files/6757612/6757612-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/6757612/6757612-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
 ];
 
+// Facial & massage spa imagery — facials, massage, hot stone, skincare
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=1920&q=80",
 ];
 
 export default function SpaHeroVideo() {
