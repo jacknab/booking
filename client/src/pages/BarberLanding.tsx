@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import BarberHeroVideo from "./components/BarberHeroVideo";
 
 export default function BarberLanding() {
   useEffect(() => {
@@ -69,37 +70,12 @@ export default function BarberLanding() {
 
       {/* Hero Section */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#060E1A]">
-        {/* Background image */}
-        <div
-          className="absolute inset-0 z-0 bg-center bg-cover bg-no-repeat"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=80')",
-          }}
-        />
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-[#060E1A]/70 z-10" />
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/30 via-transparent to-[#060E1A]/80 z-10" />
-
-        {/* Barber pole accent line */}
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 z-20 overflow-hidden">
-          <div
-            className="w-full h-full"
-            style={{
-              background:
-                "repeating-linear-gradient(180deg, #00D4AA 0px, #00D4AA 20px, white 20px, white 40px, #1a3a5c 40px, #1a3a5c 60px)",
-              animation: "barberPole 3s linear infinite",
-            }}
-          />
+        {/* Animated video background */}
+        <div className="absolute inset-0 z-0">
+          <BarberHeroVideo />
         </div>
-
-        <style>{`
-          @keyframes barberPole {
-            from { transform: translateY(0); }
-            to { transform: translateY(60px); }
-          }
-        `}</style>
+        {/* Gradient overlay to blend into page */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/30 via-[#060E1A]/10 to-[#060E1A]/60 z-10" />
 
         <div className="relative z-20 text-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
           <motion.div
