@@ -104,6 +104,22 @@ script/build.ts   — Production build script (Vite + esbuild)
 4. **Custom Hooks Pattern**: Each data domain (appointments, services, staff, etc.) has its own hook file with CRUD mutations and queries. All hooks use `useSelectedStore()` to scope queries by store.
 5. **Dev/Prod Split**: In dev, Vite middleware serves the frontend with HMR. In production, pre-built static files are served from `dist/public`
 
+### Business-Type Landing Pages
+Marketing landing pages targeting specific industries, each with a hero video background, feature grid, testimonials, comparison table, and CTA:
+
+| Business Type | Route | File |
+|---|---|---|
+| Barbershops | `/barbers` | `BarberLanding.tsx` |
+| Day Spas | `/spa` | `SpaLanding.tsx` |
+| Nail Salons | `/nails` | `NailSalonLanding.tsx` |
+| Tattoo Artists | `/tattoo` | `TattooLanding.tsx` |
+| Walk-In Shops | `/haircuts` | `WalkInLanding.tsx` |
+| Hair Salons | `/hair-salons` | `HairSalonLanding.tsx` |
+| Pet Groomers | `/groomers` | `PetGroomerLanding.tsx` |
+| Estheticians | `/estheticians` | `EstheticianLanding.tsx` |
+
+Each page has a matching `*HeroVideo.tsx` component in `client/src/pages/components/` that cycles through Pexels video clips with Unsplash image fallbacks.
+
 ### Build & Run
 - **Dev**: `npm run dev` — runs tsx with Vite dev middleware
 - **Build**: `npm run build` — Vite builds client to `dist/public`, esbuild bundles server to `dist/index.cjs`
