@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "QaA5zYBKvKZyTtAEYXroR"
+uri = "file://landing-pages.md"
+type = "text"
+title = "Certxa Landing Pages — All Routes"
