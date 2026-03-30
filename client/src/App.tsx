@@ -47,6 +47,13 @@ import WalkInLanding from "@/pages/WalkInLanding";
 import HairSalonLanding from "@/pages/HairSalonLanding";
 import PetGroomerLanding from "@/pages/PetGroomerLanding";
 import EstheticianLanding from "@/pages/EstheticianLanding";
+import HouseCleaningLanding from "@/pages/HouseCleaningLanding";
+import HandymanLanding from "@/pages/HandymanLanding";
+import RideServiceLanding from "@/pages/RideServiceLanding";
+import SnowRemovalLanding from "@/pages/SnowRemovalLanding";
+import LawnCareLanding from "@/pages/LawnCareLanding";
+import TutoringLanding from "@/pages/TutoringLanding";
+import DogWalkingLanding from "@/pages/DogWalkingLanding";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -107,6 +114,13 @@ function AppRoutes() {
       <Route path="/hair-salons" element={<HairSalonLanding />} />
       <Route path="/groomers" element={<PetGroomerLanding />} />
       <Route path="/estheticians" element={<EstheticianLanding />} />
+      <Route path="/house-cleaning" element={<HouseCleaningLanding />} />
+      <Route path="/handyman" element={<HandymanLanding />} />
+      <Route path="/ride-service" element={<RideServiceLanding />} />
+      <Route path="/snow-removal" element={<SnowRemovalLanding />} />
+      <Route path="/lawn-care" element={<LawnCareLanding />} />
+      <Route path="/tutoring" element={<TutoringLanding />} />
+      <Route path="/dog-walking" element={<DogWalkingLanding />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/widget" element={<BookingWidgetPage />} />

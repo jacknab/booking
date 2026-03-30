@@ -117,6 +117,13 @@ Marketing landing pages targeting specific industries, each with a hero video ba
 | Hair Salons | `/hair-salons` | `HairSalonLanding.tsx` |
 | Pet Groomers | `/groomers` | `PetGroomerLanding.tsx` |
 | Estheticians | `/estheticians` | `EstheticianLanding.tsx` |
+| House Cleaning | `/house-cleaning` | `HouseCleaningLanding.tsx` |
+| Handyman | `/handyman` | `HandymanLanding.tsx` |
+| Ride Service | `/ride-service` | `RideServiceLanding.tsx` |
+| Snow Removal | `/snow-removal` | `SnowRemovalLanding.tsx` |
+| Lawn Care | `/lawn-care` | `LawnCareLanding.tsx` |
+| Tutoring | `/tutoring` | `TutoringLanding.tsx` |
+| Dog Walking | `/dog-walking` | `DogWalkingLanding.tsx` |
 
 Each page has a matching `*HeroVideo.tsx` component in `client/src/pages/components/` that cycles through Pexels video clips with Unsplash image fallbacks.
 
