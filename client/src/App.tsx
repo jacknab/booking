@@ -23,6 +23,11 @@ import BusinessSettings from "@/pages/BusinessSettings";
 import CashDrawer from "@/pages/CashDrawer";
 import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
+import Analytics from "@/pages/Analytics";
+import Waitlist from "@/pages/Waitlist";
+import GiftCards from "@/pages/GiftCards";
+import IntakeForms from "@/pages/IntakeForms";
+import Loyalty from "@/pages/Loyalty";
 import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
 import MailSettings from "@/pages/MailSettings";
@@ -61,9 +66,12 @@ import DogWalkingLanding from "@/pages/DogWalkingLanding";
 const authenticatedPaths = [
   "/onboarding",
   "/dashboard",
+  "/analytics",
   "/services",
   "/staff",
   "/customers",
+  "/waitlist",
+  "/loyalty",
   "/calendar",
   "/appointments",
   "/booking",
@@ -72,6 +80,8 @@ const authenticatedPaths = [
   "/client",
   "/products",
   "/addons",
+  "/gift-cards",
+  "/intake-forms",
   "/commission-report",
   "/calendar-settings",
   "/business-settings",
@@ -150,6 +160,11 @@ function AppRoutes() {
       <Route path="/client/:id" element={<ClientProfile />} />
       <Route path="/products" element={<Products />} />
       <Route path="/addons" element={<AddonsPage />} />
+      <Route path="/analytics" element={<Analytics />} />
+      <Route path="/waitlist" element={<Waitlist />} />
+      <Route path="/gift-cards" element={<GiftCards />} />
+      <Route path="/intake-forms" element={<IntakeForms />} />
+      <Route path="/loyalty" element={<Loyalty />} />
       <Route path="/commission-report" element={<CommissionReport />} />
       <Route path="/calendar-settings" element={<CalendarSettingsPage />} />
       <Route path="/business-settings" element={<BusinessSettings />} />

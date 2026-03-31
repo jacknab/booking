@@ -10,34 +10,67 @@ import {
   Banknote,
   Settings,
   Building2,
-  Puzzle,
   BarChart3,
   Globe,
   MessageSquare,
   Mail,
   Moon,
-  Sun
+  Sun,
+  TrendingUp,
+  Clock,
+  Gift,
+  ClipboardList,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/calendar", label: "Calendar", icon: Calendar },
-  { to: "/services", label: "Services", icon: Scissors },
-  // { to: "/addons", label: "Add-Ons", icon: Puzzle }, // Hidden
-  { to: "/staff", label: "Staff", icon: UserCircle },
-  { to: "/products", label: "Products", icon: ShoppingBag },
-  { to: "/customers", label: "Customers", icon: Users },
-  { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
-  { to: "/commission-report", label: "Commissions", icon: BarChart3 },
-  { to: "/online-booking", label: "Online Booking", icon: Globe },
-  { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare },
-  { to: "/mail-settings", label: "Email Notifications", icon: Mail },
-  { to: "/business-settings", label: "Business Settings", icon: Building2 },
-  { to: "/calendar-settings", label: "Calendar Settings", icon: Settings },
+const navGroups = [
+  {
+    label: "Overview",
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/analytics", label: "Analytics", icon: TrendingUp },
+      { to: "/calendar", label: "Calendar", icon: Calendar },
+    ],
+  },
+  {
+    label: "Clients",
+    items: [
+      { to: "/customers", label: "Customers", icon: Users },
+      { to: "/waitlist", label: "Waitlist", icon: Clock },
+      { to: "/loyalty", label: "Loyalty Program", icon: Star },
+    ],
+  },
+  {
+    label: "Business",
+    items: [
+      { to: "/services", label: "Services", icon: Scissors },
+      { to: "/staff", label: "Staff", icon: UserCircle },
+      { to: "/products", label: "Products", icon: ShoppingBag },
+      { to: "/gift-cards", label: "Gift Cards", icon: Gift },
+      { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
+      { to: "/commission-report", label: "Commissions", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      { to: "/online-booking", label: "Online Booking", icon: Globe },
+      { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare },
+      { to: "/mail-settings", label: "Email Notifications", icon: Mail },
+      { to: "/business-settings", label: "Business Settings", icon: Building2 },
+      { to: "/calendar-settings", label: "Calendar Settings", icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
@@ -63,27 +96,34 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
           </Link>
         </div>
         
-        <div className="flex-1">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={onLinkClick}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
-                    isActive
-                      ? "bg-muted text-primary"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+        <div className="flex-1 overflow-y-auto">
+          <nav className="px-2 text-sm font-medium lg:px-4 pb-4">
+            {navGroups.map((group) => (
+              <div key={group.label} className="mb-2">
+                <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {group.label}
+                </p>
+                {group.items.map((item) => {
+                  const isActive = location.pathname === item.to;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={onLinkClick}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                        isActive
+                          ? "bg-muted text-primary"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
         

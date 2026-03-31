@@ -39,6 +39,13 @@ import {
   calendarSettings,
   smsSettings,
   mailSettings,
+  waitlist,
+  giftCards,
+  giftCardTransactions,
+  intakeForms,
+  intakeFormFields,
+  intakeFormResponses,
+  loyaltyTransactions,
 } from "@shared/schema";
 import {
   GoogleBusinessAPIManager,
@@ -3264,6 +3271,394 @@ If you have any questions, please contact your administrator.
     } catch (error) {
       console.error("Error fetching past due invoices count:", error);
       res.status(500).json({ message: "Failed to fetch past due invoices count" });
+    }
+  });
+
+  // ============================================================
+  // WAITLIST ROUTES
+  // ============================================================
+
+  app.get("/api/waitlist", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const storeId = userStore[0].id;
+
+      const entries = await db
+        .select({
+          id: waitlist.id,
+          storeId: waitlist.storeId,
+          customerName: waitlist.customerName,
+          customerPhone: waitlist.customerPhone,
+          customerEmail: waitlist.customerEmail,
+          preferredDate: waitlist.preferredDate,
+          preferredTimeStart: waitlist.preferredTimeStart,
+          preferredTimeEnd: waitlist.preferredTimeEnd,
+          notes: waitlist.notes,
+          status: waitlist.status,
+          notifiedAt: waitlist.notifiedAt,
+          createdAt: waitlist.createdAt,
+          serviceId: waitlist.serviceId,
+          staffId: waitlist.staffId,
+          customerId: waitlist.customerId,
+        })
+        .from(waitlist)
+        .where(eq(waitlist.storeId, storeId))
+        .orderBy(desc(waitlist.createdAt));
+
+      res.json(entries);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch waitlist" });
+    }
+  });
+
+  app.post("/api/waitlist", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const storeId = userStore[0].id;
+
+      const { customerName, customerPhone, customerEmail, preferredDate, preferredTimeStart, preferredTimeEnd, notes, serviceId, staffId, customerId } = req.body;
+      const [entry] = await db.insert(waitlist).values({
+        storeId,
+        customerName,
+        customerPhone,
+        customerEmail,
+        preferredDate: preferredDate ? new Date(preferredDate) : null,
+        preferredTimeStart,
+        preferredTimeEnd,
+        notes,
+        serviceId: serviceId ? parseInt(serviceId) : null,
+        staffId: staffId ? parseInt(staffId) : null,
+        customerId: customerId ? parseInt(customerId) : null,
+        status: "waiting",
+      }).returning();
+
+      res.json(entry);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to add to waitlist" });
+    }
+  });
+
+  app.put("/api/waitlist/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates: any = {};
+      if (req.body.status !== undefined) updates.status = req.body.status;
+      if (req.body.notifiedAt !== undefined) updates.notifiedAt = new Date(req.body.notifiedAt);
+      const [entry] = await db.update(waitlist).set(updates).where(eq(waitlist.id, id)).returning();
+      res.json(entry);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to update waitlist entry" });
+    }
+  });
+
+  app.delete("/api/waitlist/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(waitlist).where(eq(waitlist.id, id));
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to delete waitlist entry" });
+    }
+  });
+
+  // ============================================================
+  // GIFT CARD ROUTES
+  // ============================================================
+
+  const generateGiftCardCode = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "GC-";
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  };
+
+  app.get("/api/gift-cards", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const cards = await db.select().from(giftCards).where(eq(giftCards.storeId, userStore[0].id)).orderBy(desc(giftCards.createdAt));
+      res.json(cards);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch gift cards" });
+    }
+  });
+
+  app.post("/api/gift-cards", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const storeId = userStore[0].id;
+
+      const { amount, issuedToName, issuedToEmail, expiresAt, notes } = req.body;
+      const code = generateGiftCardCode();
+
+      const [card] = await db.insert(giftCards).values({
+        storeId,
+        code,
+        originalAmount: amount.toString(),
+        remainingBalance: amount.toString(),
+        issuedToName,
+        issuedToEmail,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        notes,
+        isActive: true,
+      }).returning();
+
+      res.json(card);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to create gift card" });
+    }
+  });
+
+  app.get("/api/gift-cards/check/:code", async (req, res) => {
+    try {
+      const [card] = await db.select().from(giftCards).where(eq(giftCards.code, req.params.code));
+      if (!card) return res.status(404).json({ message: "Gift card not found" });
+      res.json(card);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to check gift card" });
+    }
+  });
+
+  app.post("/api/gift-cards/redeem", isAuthenticated, async (req, res) => {
+    try {
+      const { code, amount } = req.body;
+      const [card] = await db.select().from(giftCards).where(eq(giftCards.code, code));
+      if (!card) return res.status(404).json({ message: "Gift card not found" });
+      if (!card.isActive) return res.status(400).json({ message: "Gift card is not active" });
+
+      const remaining = parseFloat(card.remainingBalance);
+      const redeem = parseFloat(amount);
+      if (redeem > remaining) return res.status(400).json({ message: "Insufficient balance" });
+
+      const newBalance = (remaining - redeem).toFixed(2);
+      const [updated] = await db.update(giftCards)
+        .set({ remainingBalance: newBalance, isActive: parseFloat(newBalance) > 0 })
+        .where(eq(giftCards.id, card.id))
+        .returning();
+
+      await db.insert(giftCardTransactions).values({
+        giftCardId: card.id,
+        storeId: card.storeId,
+        amount: redeem.toString(),
+        type: "redemption",
+        balanceAfter: newBalance,
+      });
+
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to redeem gift card" });
+    }
+  });
+
+  app.put("/api/gift-cards/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [updated] = await db.update(giftCards).set(req.body).where(eq(giftCards.id, id)).returning();
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to update gift card" });
+    }
+  });
+
+  // ============================================================
+  // INTAKE FORMS ROUTES
+  // ============================================================
+
+  app.get("/api/intake-forms", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const storeId = userStore[0].id;
+
+      const forms = await db.select().from(intakeForms).where(eq(intakeForms.storeId, storeId)).orderBy(desc(intakeForms.createdAt));
+      
+      const formsWithFields = await Promise.all(forms.map(async (form) => {
+        const fields = await db.select().from(intakeFormFields).where(eq(intakeFormFields.formId, form.id)).orderBy(intakeFormFields.sortOrder);
+        return { ...form, fields };
+      }));
+
+      res.json(formsWithFields);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch intake forms" });
+    }
+  });
+
+  app.post("/api/intake-forms", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const storeId = userStore[0].id;
+
+      const { name, description, requireBeforeBooking, serviceId, fields } = req.body;
+      const [form] = await db.insert(intakeForms).values({
+        storeId, name, description, requireBeforeBooking: !!requireBeforeBooking,
+        serviceId: serviceId ? parseInt(serviceId) : null,
+      }).returning();
+
+      if (fields && fields.length > 0) {
+        await db.insert(intakeFormFields).values(
+          fields.map((f: any, i: number) => ({
+            formId: form.id, label: f.label, fieldType: f.fieldType,
+            options: f.options || null, required: !!f.required, sortOrder: i,
+          }))
+        );
+      }
+
+      res.json(form);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to create intake form" });
+    }
+  });
+
+  app.put("/api/intake-forms/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, description, requireBeforeBooking, isActive, fields } = req.body;
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (requireBeforeBooking !== undefined) updates.requireBeforeBooking = requireBeforeBooking;
+      if (isActive !== undefined) updates.isActive = isActive;
+
+      const [form] = await db.update(intakeForms).set(updates).where(eq(intakeForms.id, id)).returning();
+
+      if (fields !== undefined) {
+        await db.delete(intakeFormFields).where(eq(intakeFormFields.formId, id));
+        if (fields.length > 0) {
+          await db.insert(intakeFormFields).values(
+            fields.map((f: any, i: number) => ({
+              formId: id, label: f.label, fieldType: f.fieldType,
+              options: f.options || null, required: !!f.required, sortOrder: i,
+            }))
+          );
+        }
+      }
+
+      res.json(form);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to update intake form" });
+    }
+  });
+
+  app.delete("/api/intake-forms/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(intakeFormFields).where(eq(intakeFormFields.formId, id));
+      await db.delete(intakeForms).where(eq(intakeForms.id, id));
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to delete intake form" });
+    }
+  });
+
+  app.get("/api/intake-forms/responses", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const responses = await db.select().from(intakeFormResponses).where(eq(intakeFormResponses.storeId, userStore[0].id)).orderBy(desc(intakeFormResponses.submittedAt));
+      res.json(responses);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch responses" });
+    }
+  });
+
+  app.post("/api/intake-forms/:id/respond", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const { customerId, appointmentId, customerName, responses } = req.body;
+      const [form] = await db.select().from(intakeForms).where(eq(intakeForms.id, formId));
+      if (!form) return res.status(404).json({ message: "Form not found" });
+
+      const [response] = await db.insert(intakeFormResponses).values({
+        formId, storeId: form.storeId,
+        customerId: customerId ? parseInt(customerId) : null,
+        appointmentId: appointmentId ? parseInt(appointmentId) : null,
+        customerName, responses: JSON.stringify(responses),
+      }).returning();
+
+      res.json(response);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to submit response" });
+    }
+  });
+
+  // ============================================================
+  // LOYALTY ROUTES
+  // ============================================================
+
+  app.get("/api/loyalty/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const userStore = await db.select().from(locations).where(eq(locations.userId, userId)).limit(1);
+      if (!userStore.length) return res.status(404).json({ message: "Store not found" });
+      const storeId = userStore[0].id;
+
+      const txns = await db
+        .select({
+          id: loyaltyTransactions.id,
+          customerId: loyaltyTransactions.customerId,
+          type: loyaltyTransactions.type,
+          points: loyaltyTransactions.points,
+          description: loyaltyTransactions.description,
+          createdAt: loyaltyTransactions.createdAt,
+          appointmentId: loyaltyTransactions.appointmentId,
+          customerName: customers.name,
+        })
+        .from(loyaltyTransactions)
+        .leftJoin(customers, eq(loyaltyTransactions.customerId, customers.id))
+        .where(eq(loyaltyTransactions.storeId, storeId))
+        .orderBy(desc(loyaltyTransactions.createdAt))
+        .limit(200);
+
+      res.json(txns.map(t => ({ ...t, customer: t.customerName ? { name: t.customerName } : null })));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch loyalty transactions" });
+    }
+  });
+
+  app.post("/api/loyalty/adjust", isAuthenticated, async (req, res) => {
+    try {
+      const { customerId, storeId, type, points, description } = req.body;
+
+      const [txn] = await db.insert(loyaltyTransactions).values({
+        storeId: parseInt(storeId), customerId: parseInt(customerId),
+        type, points: parseInt(points), description,
+      }).returning();
+
+      const [customer] = await db.select().from(customers).where(eq(customers.id, parseInt(customerId)));
+      const newPoints = Math.max(0, (customer.loyaltyPoints || 0) + parseInt(points));
+      await db.update(customers).set({ loyaltyPoints: newPoints }).where(eq(customers.id, parseInt(customerId)));
+
+      res.json(txn);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to adjust loyalty points" });
     }
   });
 

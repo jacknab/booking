@@ -114,6 +114,9 @@ export const customers = pgTable("customers", {
   email: text("email"),
   phone: text("phone"),
   notes: text("notes"),
+  birthday: text("birthday"),
+  marketingOptIn: boolean("marketing_opt_in").default(true),
+  loyaltyPoints: integer("loyalty_points").default(0),
   storeId: integer("store_id").references(() => locations.id),
 });
 
@@ -133,6 +136,15 @@ export const appointments = pgTable("appointments", {
   staffId: integer("staff_id").references(() => staff.id),
   customerId: integer("customer_id").references(() => customers.id),
   storeId: integer("store_id").references(() => locations.id),
+  recurrenceRule: text("recurrence_rule"),
+  recurrenceParentId: integer("recurrence_parent_id"),
+  depositRequired: boolean("deposit_required").default(false),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }),
+  depositPaid: boolean("deposit_paid").default(false),
+  giftCardId: integer("gift_card_id"),
+  giftCardAmount: decimal("gift_card_amount", { precision: 10, scale: 2 }),
+  loyaltyPointsEarned: integer("loyalty_points_earned").default(0),
+  loyaltyPointsRedeemed: integer("loyalty_points_redeemed").default(0),
 });
 
 export const products = pgTable("products", {
@@ -373,6 +385,104 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// === WAITLIST ===
+
+export const waitlist = pgTable("waitlist", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  serviceId: integer("service_id").references(() => services.id),
+  staffId: integer("staff_id").references(() => staff.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  customerEmail: text("customer_email"),
+  preferredDate: timestamp("preferred_date"),
+  preferredTimeStart: text("preferred_time_start"),
+  preferredTimeEnd: text("preferred_time_end"),
+  notes: text("notes"),
+  status: text("status").default("waiting"),
+  notifiedAt: timestamp("notified_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === GIFT CARDS ===
+
+export const giftCards = pgTable("gift_cards", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  code: text("code").notNull().unique(),
+  originalAmount: decimal("original_amount", { precision: 10, scale: 2 }).notNull(),
+  remainingBalance: decimal("remaining_balance", { precision: 10, scale: 2 }).notNull(),
+  issuedToName: text("issued_to_name"),
+  issuedToEmail: text("issued_to_email"),
+  purchasedByCustomerId: integer("purchased_by_customer_id").references(() => customers.id),
+  recipientCustomerId: integer("recipient_customer_id").references(() => customers.id),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  notes: text("notes"),
+});
+
+export const giftCardTransactions = pgTable("gift_card_transactions", {
+  id: serial("id").primaryKey(),
+  giftCardId: integer("gift_card_id").references(() => giftCards.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  type: text("type").notNull(),
+  balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === INTAKE FORMS ===
+
+export const intakeForms = pgTable("intake_forms", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  requireBeforeBooking: boolean("require_before_booking").default(false),
+  serviceId: integer("service_id").references(() => services.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const intakeFormFields = pgTable("intake_form_fields", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").references(() => intakeForms.id).notNull(),
+  label: text("label").notNull(),
+  fieldType: text("field_type").notNull(),
+  options: text("options"),
+  required: boolean("required").default(false),
+  sortOrder: integer("sort_order").default(0),
+});
+
+export const intakeFormResponses = pgTable("intake_form_responses", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").references(() => intakeForms.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  customerName: text("customer_name"),
+  responses: text("responses").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+});
+
+// === LOYALTY ===
+
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  type: text("type").notNull(),
+  points: integer("points").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === RELATIONS ===
 
 export const locationsRelations = relations(locations, ({ many }) => ({
@@ -397,6 +507,10 @@ export const locationsRelations = relations(locations, ({ many }) => ({
   googleBusinessProfiles: many(googleBusinessProfiles),
   googleReviews: many(googleReviews),
   googleReviewResponses: many(googleReviewResponses),
+  waitlist: many(waitlist),
+  giftCards: many(giftCards),
+  intakeForms: many(intakeForms),
+  loyaltyTransactions: many(loyaltyTransactions),
 }));
 
 export const smsSettingsRelations = relations(smsSettings, ({ one }) => ({
@@ -669,3 +783,34 @@ export type InsertGoogleReviewResponse = z.infer<typeof insertGoogleReviewRespon
 export type CashDrawerSessionWithActions = CashDrawerSession & {
   actions: DrawerAction[];
 };
+
+// === NEW FEATURE SCHEMAS ===
+
+export const insertWaitlistSchema = createInsertSchema(waitlist).omit({ id: true });
+export const insertGiftCardSchema = createInsertSchema(giftCards).omit({ id: true });
+export const insertGiftCardTransactionSchema = createInsertSchema(giftCardTransactions).omit({ id: true });
+export const insertIntakeFormSchema = createInsertSchema(intakeForms).omit({ id: true });
+export const insertIntakeFormFieldSchema = createInsertSchema(intakeFormFields).omit({ id: true });
+export const insertIntakeFormResponseSchema = createInsertSchema(intakeFormResponses).omit({ id: true });
+export const insertLoyaltyTransactionSchema = createInsertSchema(loyaltyTransactions).omit({ id: true });
+
+export type WaitlistEntry = typeof waitlist.$inferSelect;
+export type InsertWaitlistEntry = z.infer<typeof insertWaitlistSchema>;
+
+export type GiftCard = typeof giftCards.$inferSelect;
+export type InsertGiftCard = z.infer<typeof insertGiftCardSchema>;
+
+export type GiftCardTransaction = typeof giftCardTransactions.$inferSelect;
+export type InsertGiftCardTransaction = z.infer<typeof insertGiftCardTransactionSchema>;
+
+export type IntakeForm = typeof intakeForms.$inferSelect;
+export type InsertIntakeForm = z.infer<typeof insertIntakeFormSchema>;
+
+export type IntakeFormField = typeof intakeFormFields.$inferSelect;
+export type InsertIntakeFormField = z.infer<typeof insertIntakeFormFieldSchema>;
+
+export type IntakeFormResponse = typeof intakeFormResponses.$inferSelect;
+export type InsertIntakeFormResponse = z.infer<typeof insertIntakeFormResponseSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type InsertLoyaltyTransaction = z.infer<typeof insertLoyaltyTransactionSchema>;

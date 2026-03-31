@@ -48,6 +48,14 @@ Preferred communication style: Simple, everyday language.
 - `smsLog` — SMS message log (storeId, appointmentId, phone, messageType, status, twilioSid, sentAt)
 - `users` — Auth users (email/password, onboardingCompleted flag)
 - `sessions` — Session storage for authentication
+- `waitlist` — Per-store waitlist entries (customerName, phone, email, requestedService, requestedDate, requestedTime, notes, status, notifiedAt)
+- `giftCards` — Issued gift cards (code, storeId, originalAmount, remainingBalance, issuedToName, issuedToEmail, expiresAt, isActive, notes)
+- `giftCardTransactions` — Ledger of gift card use (giftCardId, appointmentId, type [issue/redeem/adjustment], amount, balanceBefore, balanceAfter, notes)
+- `intakeForms` — Custom client intake forms (storeId, name, description, isActive, fields array with label/type/required/options)
+- `intakeFormResponses` — Client responses to intake forms (formId, appointmentId, customerName, customerEmail, responses jsonb)
+- `loyaltyTransactions` — Point ledger per customer (storeId, customerId, appointmentId, type [earn/redeem/manual], points, balanceBefore, balanceAfter, notes)
+- Extended `customers` with: loyaltyPoints, birthday, marketingOptIn
+- Extended `appointments` with: recurrenceRule, depositRequired, giftCardId, loyaltyPointsEarned
 
 ### Authentication & Onboarding
 - **Method**: Simple email/password authentication
@@ -126,6 +134,19 @@ Marketing landing pages targeting specific industries, each with a hero video ba
 | Dog Walking | `/dog-walking` | `DogWalkingLanding.tsx` |
 
 Each page has a matching `*HeroVideo.tsx` component in `client/src/pages/components/` that cycles through Pexels video clips with Unsplash image fallbacks.
+
+### Competitor Features (Added)
+Five features researched from top platforms (Fresha, Vagaro, Square Appointments, Acuity, Mindbody) and implemented:
+
+| Feature | Route | Page | Backend Routes |
+|---|---|---|---|
+| Analytics Dashboard | `/analytics` | `Analytics.tsx` | Uses existing `/api/appointments` + `/api/staff` |
+| Waitlist System | `/waitlist` | `Waitlist.tsx` | `GET/POST/PUT/DELETE /api/waitlist` |
+| Gift Cards / Vouchers | `/gift-cards` | `GiftCards.tsx` | `GET/POST /api/gift-cards`, `/api/gift-cards/check/:code`, `/api/gift-cards/redeem`, `PUT /api/gift-cards/:id` |
+| Client Intake Forms | `/intake-forms` | `IntakeForms.tsx` | `GET/POST/PUT/DELETE /api/intake-forms`, `GET/POST /api/intake-forms/responses` |
+| Loyalty Program | `/loyalty` | `Loyalty.tsx` | `GET /api/loyalty/transactions`, `POST /api/loyalty/adjust`, `GET /api/loyalty/customer/:id` |
+
+Sidebar uses grouped `navGroups` structure (OVERVIEW / CLIENTS / BUSINESS / FINANCE) in `Sidebar.tsx`.
 
 ### Build & Run
 - **Dev**: `npm run dev` — runs tsx with Vite dev middleware
