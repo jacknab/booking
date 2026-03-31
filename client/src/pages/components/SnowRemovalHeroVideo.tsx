@@ -2,15 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
-  { src: "https://videos.pexels.com/video-files/4167526/4167526-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/4167526/4167526-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/6466419/6466419-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/6466419/6466419-hd_1280_720_30fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/7202344/7202344-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/7202344/7202344-hd_1280_720_30fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/8035571/8035571-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/8035571/8035571-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/6466491/6466491-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/6466491/6466491-hd_1280_720_30fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/5698513/5698513-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/5698513/5698513-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/7202365/7202365-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/7202365/7202365-hd_1280_720_30fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/4167559/4167559-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/4167559/4167559-hd_1280_720_25fps.mp4", duration: 8000 },
 ];
 const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1491002052546-bf38f186af56?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1520880867659-28ee2bcc7b80?auto=format&fit=crop&w=1920&q=80",
   "https://images.unsplash.com/photo-1547666961-c534748ad66b?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1516912481808-3406841bd33c?auto=format&fit=crop&w=1920&q=80",
   "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=1920&q=80",
 ];
 
