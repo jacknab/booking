@@ -28,6 +28,8 @@ import Waitlist from "@/pages/Waitlist";
 import GiftCards from "@/pages/GiftCards";
 import IntakeForms from "@/pages/IntakeForms";
 import Loyalty from "@/pages/Loyalty";
+import Reviews from "@/pages/Reviews";
+import ReviewSubmit from "@/pages/ReviewSubmit";
 import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
 import MailSettings from "@/pages/MailSettings";
@@ -72,6 +74,7 @@ const authenticatedPaths = [
   "/customers",
   "/waitlist",
   "/loyalty",
+  "/reviews",
   "/calendar",
   "/appointments",
   "/booking",
@@ -138,6 +141,7 @@ function AppRoutes() {
       <Route path="/widget" element={<BookingWidgetPage />} />
       <Route path="/book/:slug" element={<PublicBooking />} />
       <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />
+      <Route path="/review/:appointmentId" element={<ReviewSubmit />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -165,6 +169,7 @@ function AppRoutes() {
       <Route path="/gift-cards" element={<GiftCards />} />
       <Route path="/intake-forms" element={<IntakeForms />} />
       <Route path="/loyalty" element={<Loyalty />} />
+      <Route path="/reviews" element={<Reviews />} />
       <Route path="/commission-report" element={<CommissionReport />} />
       <Route path="/calendar-settings" element={<CalendarSettingsPage />} />
       <Route path="/business-settings" element={<BusinessSettings />} />

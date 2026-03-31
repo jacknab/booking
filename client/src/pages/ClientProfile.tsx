@@ -8,11 +8,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { formatInTz } from "@/lib/timezone";
-import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X } from "lucide-react";
+import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Customer, AppointmentWithDetails } from "@shared/schema";
+import type { Customer, AppointmentWithDetails, Review } from "@shared/schema";
 
-type ProfileSection = "overview" | "next" | "past" | "deposits" | "notes" | "purchases";
+type ProfileSection = "overview" | "next" | "past" | "deposits" | "notes" | "purchases" | "reviews";
 
 export default function ClientProfile() {
   const navigate = useNavigate();
@@ -33,6 +33,17 @@ export default function ClientProfile() {
   const { data: allAppointments } = useQuery<AppointmentWithDetails[]>({
     queryKey: [`/api/appointments?customerId=${clientId}&storeId=${storeId}`, clientId, storeId],
     enabled: !!clientId && !!storeId,
+  });
+
+  const { data: clientReviews = [] } = useQuery<Review[]>({
+    queryKey: ["/api/reviews", storeId, "client", clientId],
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const all: Review[] = await res.json();
+      return all.filter(r => r.customerId === clientId);
+    },
+    enabled: !!storeId && !!clientId,
   });
 
   const now = new Date();
@@ -81,6 +92,7 @@ export default function ClientProfile() {
     { id: "deposits", label: "Deposits", icon: CreditCard },
     { id: "notes", label: "Notes", count: client?.notes ? 1 : 0, icon: FileText },
     { id: "purchases", label: "Purchases", count: 0, icon: ShoppingBag },
+    { id: "reviews", label: "Reviews", count: clientReviews.length, icon: Star },
   ];
 
   const initials = client?.name
@@ -247,6 +259,60 @@ export default function ClientProfile() {
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Purchases</h2>
             <p className="text-sm text-muted-foreground">No purchases recorded</p>
+          </div>
+        );
+
+      case "reviews":
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold">Reviews</h2>
+            {clientReviews.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No reviews from this client yet</p>
+            ) : (
+              <div className="space-y-3">
+                {clientReviews.map((review) => (
+                  <Card key={review.id} className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={cn(
+                              "h-4 w-4",
+                              s <= review.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"
+                            )}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ""}
+                      </span>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm">&ldquo;{review.comment}&rdquo;</p>
+                    )}
+                    {(review.serviceName || review.staffName) && (
+                      <p className="text-xs text-muted-foreground">
+                        {review.serviceName}{review.staffName ? ` · with ${review.staffName}` : ""}
+                      </p>
+                    )}
+                    {review.appointmentId && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-7 text-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/review/${review.appointmentId}`);
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy Review Link
+                      </Button>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         );
 

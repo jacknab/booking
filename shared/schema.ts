@@ -784,6 +784,24 @@ export type CashDrawerSessionWithActions = CashDrawerSession & {
   actions: DrawerAction[];
 };
 
+// === REVIEWS TABLE ===
+
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  staffId: integer("staff_id").references(() => staff.id),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  customerName: text("customer_name"),
+  serviceName: text("service_name"),
+  staffName: text("staff_name"),
+  isPublic: boolean("is_public").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === NEW FEATURE SCHEMAS ===
 
 export const insertWaitlistSchema = createInsertSchema(waitlist).omit({ id: true });
@@ -814,3 +832,7 @@ export type InsertIntakeFormResponse = z.infer<typeof insertIntakeFormResponseSc
 
 export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
 export type InsertLoyaltyTransaction = z.infer<typeof insertLoyaltyTransactionSchema>;
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = z.infer<typeof insertReviewSchema>;

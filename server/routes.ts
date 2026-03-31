@@ -46,6 +46,7 @@ import {
   intakeFormFields,
   intakeFormResponses,
   loyaltyTransactions,
+  reviews,
 } from "@shared/schema";
 import {
   GoogleBusinessAPIManager,
@@ -3659,6 +3660,161 @@ If you have any questions, please contact your administrator.
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Failed to adjust loyalty points" });
+    }
+  });
+
+  // ============================================================
+  // REVIEWS
+  // ============================================================
+
+  // Public: get appointment info for the review form
+  app.get("/api/reviews/form/:appointmentId", async (req, res) => {
+    try {
+      const appointmentId = parseInt(req.params.appointmentId);
+      const [apt] = await db
+        .select({
+          id: appointments.id,
+          date: appointments.date,
+          status: appointments.status,
+          storeId: appointments.storeId,
+          storeName: locations.name,
+          customerName: customers.name,
+          serviceName: services.name,
+          staffName: staff.name,
+        })
+        .from(appointments)
+        .leftJoin(locations, eq(appointments.storeId, locations.id))
+        .leftJoin(customers, eq(appointments.customerId, customers.id))
+        .leftJoin(services, eq(appointments.serviceId, services.id))
+        .leftJoin(staff, eq(appointments.staffId, staff.id))
+        .where(eq(appointments.id, appointmentId));
+
+      if (!apt) return res.status(404).json({ message: "Appointment not found" });
+
+      // Check if review already submitted
+      const [existing] = await db.select().from(reviews).where(eq(reviews.appointmentId, appointmentId));
+
+      res.json({ ...apt, alreadyReviewed: !!existing });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to load review form" });
+    }
+  });
+
+  // Public: submit a review
+  app.post("/api/reviews/submit", async (req, res) => {
+    try {
+      const { appointmentId, rating, comment } = req.body;
+      if (!appointmentId || !rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Invalid review data" });
+      }
+
+      const [apt] = await db
+        .select({
+          id: appointments.id,
+          storeId: appointments.storeId,
+          customerId: appointments.customerId,
+          staffId: appointments.staffId,
+          customerName: customers.name,
+          serviceName: services.name,
+          staffName: staff.name,
+        })
+        .from(appointments)
+        .leftJoin(customers, eq(appointments.customerId, customers.id))
+        .leftJoin(services, eq(appointments.serviceId, services.id))
+        .leftJoin(staff, eq(appointments.staffId, staff.id))
+        .where(eq(appointments.id, parseInt(appointmentId)));
+
+      if (!apt) return res.status(404).json({ message: "Appointment not found" });
+
+      // Prevent duplicate reviews
+      const [existing] = await db.select().from(reviews).where(eq(reviews.appointmentId, parseInt(appointmentId)));
+      if (existing) return res.status(409).json({ message: "Review already submitted" });
+
+      const [review] = await db.insert(reviews).values({
+        storeId: apt.storeId!,
+        customerId: apt.customerId,
+        appointmentId: parseInt(appointmentId),
+        staffId: apt.staffId,
+        rating: parseInt(rating),
+        comment: comment || null,
+        customerName: apt.customerName,
+        serviceName: apt.serviceName,
+        staffName: apt.staffName,
+        isPublic: true,
+        isFeatured: false,
+      }).returning();
+
+      res.json(review);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to submit review" });
+    }
+  });
+
+  // Authenticated: list all reviews for a store
+  app.get("/api/reviews", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = parseInt(req.query.storeId as string);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+
+      const rows = await db
+        .select()
+        .from(reviews)
+        .where(eq(reviews.storeId, storeId))
+        .orderBy(desc(reviews.createdAt));
+
+      res.json(rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  // Authenticated: aggregate stats
+  app.get("/api/reviews/stats", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = parseInt(req.query.storeId as string);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+
+      const rows = await db.select().from(reviews).where(eq(reviews.storeId, storeId));
+      const total = rows.length;
+      const avg = total > 0 ? rows.reduce((s, r) => s + r.rating, 0) / total : 0;
+      const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      rows.forEach(r => { distribution[r.rating] = (distribution[r.rating] || 0) + 1; });
+
+      res.json({ total, avg: Math.round(avg * 10) / 10, distribution });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch review stats" });
+    }
+  });
+
+  // Authenticated: update review (toggle public/featured)
+  app.put("/api/reviews/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { isPublic, isFeatured } = req.body;
+      const update: Partial<typeof reviews.$inferInsert> = {};
+      if (isPublic !== undefined) update.isPublic = isPublic;
+      if (isFeatured !== undefined) update.isFeatured = isFeatured;
+      const [row] = await db.update(reviews).set(update).where(eq(reviews.id, id)).returning();
+      res.json(row);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to update review" });
+    }
+  });
+
+  // Authenticated: delete review
+  app.delete("/api/reviews/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(reviews).where(eq(reviews.id, id));
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to delete review" });
     }
   });
 
