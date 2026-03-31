@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
-  { src: "https://videos.pexels.com/video-files/5691599/5691599-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/5691599/5691599-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/5539684/5539684-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/5539684/5539684-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/5585959/5585959-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/5585959/5585959-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/9536474/9536474-hd_1920_1080_24fps.mp4", fallback: "https://videos.pexels.com/video-files/9536474/9536474-hd_1280_720_24fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/6585764/6585764-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/6585764/6585764-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/8062124/8062124-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/8062124/8062124-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/4551451/4551451-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/4551451/4551451-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/3209829/3209829-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/3209829/3209829-hd_1280_720_25fps.mp4", duration: 8000 },
 ];
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1574362848149-f2da74e2cc06?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1581244277943-fe0d04950f62?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1593113598332-8f74c443f14e?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1517646458010-ea6bd9f7b052?auto=format&fit=crop&w=1920&q=80",
 ];
 
 export default function HandymanHeroVideo() {

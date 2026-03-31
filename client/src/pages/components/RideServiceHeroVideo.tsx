@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
-  { src: "https://videos.pexels.com/video-files/3048122/3048122-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/3048122/3048122-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/4015578/4015578-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/4015578/4015578-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/7265459/7265459-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/7265459/7265459-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/6894509/6894509-hd_1920_1080_24fps.mp4", fallback: "https://videos.pexels.com/video-files/6894509/6894509-hd_1280_720_24fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/3943122/3943122-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/3943122/3943122-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/5752423/5752423-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/5752423/5752423-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/6973494/6973494-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/6973494/6973494-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/4540964/4540964-hd_1920_1080_24fps.mp4", fallback: "https://videos.pexels.com/video-files/4540964/4540964-hd_1280_720_24fps.mp4", duration: 8000 },
 ];
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1557296387-5358ad7997bb?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1617469767068-d1ff4ffe07d8?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?auto=format&fit=crop&w=1920&q=80",
 ];
 
 export default function RideServiceHeroVideo() {

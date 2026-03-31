@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
-  { src: "https://videos.pexels.com/video-files/4108715/4108715-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/4108715/4108715-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/6195943/6195943-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/6195943/6195943-hd_1280_720_30fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/4108702/4108702-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/4108702/4108702-hd_1280_720_25fps.mp4", duration: 8000 },
-  { src: "https://videos.pexels.com/video-files/7722800/7722800-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/7722800/7722800-hd_1280_720_30fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/3209828/3209828-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/3209828/3209828-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/5997899/5997899-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/5997899/5997899-hd_1280_720_30fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/6003374/6003374-hd_1920_1080_25fps.mp4", fallback: "https://videos.pexels.com/video-files/6003374/6003374-hd_1280_720_25fps.mp4", duration: 8000 },
+  { src: "https://videos.pexels.com/video-files/8298504/8298504-hd_1920_1080_30fps.mp4", fallback: "https://videos.pexels.com/video-files/8298504/8298504-hd_1280_720_30fps.mp4", duration: 8000 },
 ];
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1920&q=80",
 ];
 
 export default function HouseCleaningHeroVideo() {

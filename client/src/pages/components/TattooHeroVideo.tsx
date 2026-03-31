@@ -3,33 +3,32 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
   {
-    src: "https://videos.pexels.com/video-files/7565435/7565435-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/7565435/7565435-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/8111316/8111316-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/8111316/8111316-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/6135053/6135053-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/6135053/6135053-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/7565426/7565426-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/7565426/7565426-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/5198748/5198748-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/5198748/5198748-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/6135070/6135070-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/6135070/6135070-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/7565455/7565455-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/7565455/7565455-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/5198740/5198740-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/5198740/5198740-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
 ];
 
-// Tattoo artist at work — close-up needle, artist sketching, finished tattoo art
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1590246814883-57c511e43a69?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1622557850710-66f18c4cbc89?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1598532213919-078e54dd1f40?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1562851529-c370841f6536?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1554270473-ee4d44a01ebd?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1546804782-1e0fecccf2f7?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=1920&q=80",
 ];
 
 export default function TattooHeroVideo() {
