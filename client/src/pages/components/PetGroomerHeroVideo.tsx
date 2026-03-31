@@ -3,32 +3,32 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const CLIPS = [
   {
-    src: "https://videos.pexels.com/video-files/7210577/7210577-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/7210577/7210577-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/7210592/7210592-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/7210592/7210592-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/6492427/6492427-hd_1920_1080_24fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/6492427/6492427-hd_1280_720_24fps.mp4",
+    src: "https://videos.pexels.com/video-files/6492439/6492439-hd_1920_1080_24fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/6492439/6492439-hd_1280_720_24fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/4148983/4148983-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/4148983/4148983-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/8108182/8108182-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/8108182/8108182-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
   {
-    src: "https://videos.pexels.com/video-files/3196009/3196009-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/3196009/3196009-hd_1280_720_25fps.mp4",
+    src: "https://videos.pexels.com/video-files/5473813/5473813-hd_1920_1080_25fps.mp4",
+    fallback: "https://videos.pexels.com/video-files/5473813/5473813-hd_1280_720_25fps.mp4",
     duration: 8000,
   },
 ];
 
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1535025183041-0991a977d25b?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1920&q=80",
 ];
 
 export default function PetGroomerHeroVideo() {
