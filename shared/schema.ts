@@ -364,6 +364,15 @@ export const googleReviewResponses = pgTable("google_review_responses", {
   responseStatusIdx: index("google_review_responses_response_status_idx").on(table.responseStatus),
 }));
 
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === RELATIONS ===
 
 export const locationsRelations = relations(locations, ({ many }) => ({

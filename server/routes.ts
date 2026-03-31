@@ -7,11 +7,10 @@ import { z } from "zod";
 import { db, pool } from "./db";
 import { users } from "@shared/models/auth";
 import { eq, and, desc, sql, count } from "drizzle-orm";
-import { sendEmail } from "./mail";
+import { sendEmail, sendBookingConfirmationEmail, sendReminderEmail, sendReviewRequestEmail, startEmailReminderScheduler } from "./mail";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { sendBookingConfirmation, startReminderScheduler } from "./sms";
-import { sendBookingConfirmationEmail, sendReminderEmail, sendReviewRequestEmail } from "./mail";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { 
@@ -1937,6 +1936,7 @@ If you have any questions, please contact your administrator.
         customerEmail: z.string().email().optional(),
         customerPhone: z.string().min(1),
         notes: z.string().optional(),
+        addonIds: z.array(z.number()).optional().default([]),
       });
 
       const input = bookingSchema.parse(req.body);
@@ -1975,6 +1975,20 @@ If you have any questions, please contact your administrator.
         discountAmount: null,
         totalPaid: null,
       });
+
+      // Save add-ons and extend appointment duration if any were selected
+      if (input.addonIds && input.addonIds.length > 0) {
+        let addonDuration = 0;
+        for (const addonId of input.addonIds) {
+          const addon = await storage.getAddon(addonId);
+          if (addon) addonDuration += addon.duration;
+        }
+        const totalDuration = input.duration + addonDuration;
+        if (addonDuration > 0) {
+          await storage.updateAppointment(appointment.id, { duration: totalDuration });
+        }
+        await storage.setAppointmentAddons(appointment.id, input.addonIds);
+      }
 
       const fullAppointment = await storage.getAppointment(appointment.id);
       if (fullAppointment) {
@@ -3253,8 +3267,9 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  // Start the reminder scheduler
+  // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
+  startEmailReminderScheduler();
 
   return httpServer;
 }

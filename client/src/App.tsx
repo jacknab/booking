@@ -28,6 +28,8 @@ import SmsSettings from "@/pages/SmsSettings";
 import MailSettings from "@/pages/MailSettings";
 import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import Auth from "@/pages/Auth";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import StaffAuth from "@/pages/StaffAuth";
 import StaffPasswordChange from "@/pages/StaffPasswordChange";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -127,6 +129,8 @@ function AppRoutes() {
       <Route path="/book/:slug" element={<PublicBooking />} />
       <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/staff-auth" element={<StaffAuth />} />
       <Route path="/staff-change-password" element={<StaffPasswordChange />} />
       <Route path="/staff-dashboard" element={<StaffDashboard />} />

@@ -211,8 +211,76 @@ export async function sendReviewRequestEmail(
   );
 }
 
-export function startEmailReminderScheduler() {
-  // Scheduler implementation would go here
-  // This would send reminders X hours before appointments
-  console.log("Email reminder scheduler started");
+let emailReminderIntervalId: ReturnType<typeof setInterval> | null = null;
+
+export function startEmailReminderScheduler(): void {
+  if (emailReminderIntervalId) return;
+
+  console.log("[Email] Reminder scheduler started (checks every 5 minutes)");
+
+  emailReminderIntervalId = setInterval(async () => {
+    try {
+      await processEmailReminders();
+      await processEmailReviewRequests();
+    } catch (err) {
+      console.error("[Email] Scheduler error:", err);
+    }
+  }, 5 * 60 * 1000);
+
+  // Run once on startup after a short delay
+  setTimeout(() => {
+    processEmailReminders().catch(console.error);
+    processEmailReviewRequests().catch(console.error);
+  }, 15_000);
+}
+
+async function processEmailReminders(): Promise<void> {
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const in25h = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+
+  const { storage } = await import("./storage");
+  const upcomingAppointments = await storage.getAppointmentsNeedingReminders(in24h, in25h);
+
+  for (const appt of upcomingAppointments) {
+    try {
+      await sendReminderEmail(appt);
+    } catch (err) {
+      console.error(`[Email] Reminder error for appointment ${appt.id}:`, err);
+    }
+  }
+
+  if (upcomingAppointments.length > 0) {
+    console.log(`[Email] Processed ${upcomingAppointments.length} reminder(s)`);
+  }
+}
+
+async function processEmailReviewRequests(): Promise<void> {
+  const now = new Date();
+  const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000);
+  const ninetyMinAgo = new Date(now.getTime() - 90 * 60 * 1000);
+
+  const { storage } = await import("./storage");
+  const completedAppointments = await storage.getRecentlyCompletedAppointments(ninetyMinAgo, thirtyMinAgo);
+
+  let sent = 0;
+  for (const appt of completedAppointments) {
+    try {
+      await sendReviewRequestEmail(appt);
+      sent++;
+    } catch (err) {
+      console.error(`[Email] Review request error for appointment ${appt.id}:`, err);
+    }
+  }
+
+  if (sent > 0) {
+    console.log(`[Email] Sent ${sent} review request(s)`);
+  }
+}
+
+export function stopEmailReminderScheduler(): void {
+  if (emailReminderIntervalId) {
+    clearInterval(emailReminderIntervalId);
+    emailReminderIntervalId = null;
+  }
 }

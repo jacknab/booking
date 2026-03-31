@@ -2,10 +2,12 @@ import type { Express, RequestHandler } from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { db } from "./db";
 import { users } from "@shared/models/auth";
-import { locations, staff } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { locations, staff, passwordResetTokens } from "@shared/schema";
+import { eq, and, gt } from "drizzle-orm";
+import { sendEmail } from "./mail";
 
 export function setupAuth(app: Express) {
   app.set("trust proxy", 1);
@@ -204,6 +206,73 @@ export function setupAuth(app: Express) {
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email is required" });
+
+      const normalizedEmail = email.toLowerCase().trim();
+      const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
+
+      // Always return 200 to prevent email enumeration attacks
+      if (!user) return res.json({ message: "If that email is registered, a reset link has been sent." });
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await db.insert(passwordResetTokens).values({
+        userId: user.id,
+        token,
+        expiresAt,
+      });
+
+      const appUrl = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost:5000"}`;
+      const resetUrl = `${appUrl}/reset-password?token=${token}`;
+
+      const html = `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2>Reset your Certxa password</h2>
+          <p>Hi ${user.firstName || "there"},</p>
+          <p>We received a request to reset your password. Click the link below to set a new one:</p>
+          <p><a href="${resetUrl}" style="background:#111;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">Reset Password</a></p>
+          <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+        </div>`;
+
+      await sendEmail(0, normalizedEmail, "Reset your Certxa password", html);
+
+      res.json({ message: "If that email is registered, a reset link has been sent." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) return res.status(400).json({ message: "Token and password are required" });
+      if (password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+
+      const now = new Date();
+      const [resetRecord] = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(and(eq(passwordResetTokens.token, token), gt(passwordResetTokens.expiresAt, now)));
+
+      if (!resetRecord) return res.status(400).json({ message: "Invalid or expired reset link. Please request a new one." });
+      if (resetRecord.usedAt) return res.status(400).json({ message: "This reset link has already been used." });
+
+      const hashed = await bcrypt.hash(password, 10);
+      await db.update(users).set({ password: hashed }).where(eq(users.id, resetRecord.userId));
+      await db.update(passwordResetTokens).set({ usedAt: now }).where(eq(passwordResetTokens.id, resetRecord.id));
+
+      res.json({ message: "Password updated successfully. You can now log in." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 }
