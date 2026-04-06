@@ -40,9 +40,13 @@ type SetupStep =
   | "select-location"
   | "connected";
 
-export function GoogleBusinessProfileSetup() {
+interface GoogleBusinessProfileSetupProps {
+  storeId?: number | null;
+}
+
+export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusinessProfileSetupProps = {}) {
   const params = useParams();
-  const storeId = params?.storeId ? Number(params.storeId) : null;
+  const storeId = propStoreId ?? (params?.storeId ? Number(params.storeId) : null);
 
   const [profile, setProfile] = useState<GoogleBusinessProfile | null>(null);
   const [loading, setLoading] = useState(false);

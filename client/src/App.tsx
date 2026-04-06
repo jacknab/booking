@@ -29,6 +29,7 @@ import GiftCards from "@/pages/GiftCards";
 import IntakeForms from "@/pages/IntakeForms";
 import Loyalty from "@/pages/Loyalty";
 import Reviews from "@/pages/Reviews";
+import GoogleBusiness from "@/pages/GoogleBusiness";
 import ReviewSubmit from "@/pages/ReviewSubmit";
 import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
@@ -75,6 +76,7 @@ const authenticatedPaths = [
   "/waitlist",
   "/loyalty",
   "/reviews",
+  "/google-business",
   "/calendar",
   "/appointments",
   "/booking",
@@ -170,6 +172,7 @@ function AppRoutes() {
       <Route path="/intake-forms" element={<IntakeForms />} />
       <Route path="/loyalty" element={<Loyalty />} />
       <Route path="/reviews" element={<Reviews />} />
+      <Route path="/google-business" element={<GoogleBusiness />} />
       <Route path="/commission-report" element={<CommissionReport />} />
       <Route path="/calendar-settings" element={<CalendarSettingsPage />} />
       <Route path="/business-settings" element={<BusinessSettings />} />

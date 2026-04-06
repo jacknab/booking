@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, MessageCircle, AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { GoogleReview } from "@shared/schema";
+import { ReviewResponseDialog } from "@/components/ReviewResponseDialog";
 
 interface ReviewStats {
   totalReviews: number;
@@ -21,9 +22,13 @@ interface ReviewStats {
   };
 }
 
-export function GoogleReviewsManager() {
+interface GoogleReviewsManagerProps {
+  storeId?: number | null;
+}
+
+export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsManagerProps = {}) {
   const params = useParams();
-  const storeId = params?.storeId ? Number(params.storeId) : null;
+  const storeId = propStoreId ?? (params?.storeId ? Number(params.storeId) : null);
 
   const [reviews, setReviews] = useState<GoogleReview[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
@@ -300,6 +305,15 @@ export function GoogleReviewsManager() {
             </Card>
           ))}
         </div>
+      )}
+
+      {selectedReview && storeId && (
+        <ReviewResponseDialog
+          review={selectedReview}
+          storeId={storeId}
+          onClose={() => setSelectedReview(null)}
+          onRefresh={() => { loadReviews(); loadStats(); }}
+        />
       )}
     </div>
   );
