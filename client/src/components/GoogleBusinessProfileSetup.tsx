@@ -56,12 +56,14 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedLocationTitle, setSelectedLocationTitle] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load existing profile on mount
+  // Load existing profile on mount — but not if we're about to handle an OAuth callback
   useEffect(() => {
-    if (storeId) {
+    const hasOAuthCode = new URLSearchParams(window.location.search).has("code");
+    if (storeId && !hasOAuthCode) {
       loadProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,6 +184,7 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
         profileId,
         locationName: selectedLocation,
         locationId: selectedLocationId,
+        businessName: selectedLocationTitle,
       });
       await loadProfile();
     } catch (error: any) {
@@ -376,6 +379,9 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
                           setSelectedLocation(e.target.value);
                           setSelectedLocationId(
                             location.name.split("/").pop() ?? ""
+                          );
+                          setSelectedLocationTitle(
+                            location.title ?? location.displayName ?? null
                           );
                         }}
                       />

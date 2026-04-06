@@ -162,10 +162,46 @@ Sidebar uses grouped `navGroups` structure (OVERVIEW / CLIENTS / BUSINESS / FINA
 - **Admin Page**: `/sms-settings` — Configure Twilio creds, enable/disable message types, customize templates, send test SMS, view log
 - **Template Variables**: `{customerName}`, `{storeName}`, `{appointmentDate}`, `{appointmentTime}`, `{serviceName}`, `{reviewUrl}`
 
+### Google Business Profile Integration
+Business owners can connect their Google Business Profile to sync and respond to customer reviews directly from the dashboard.
+
+**Database Tables:**
+- `google_business_profiles` — OAuth tokens + connection info per store (storeId FK, accessToken, refreshToken, tokenExpiresAt, googleAccountEmail, businessName, businessAccountId, locationResourceName, locationId, isConnected, lastSyncedAt)
+- `google_reviews` — Synced reviews (storeId, googleReviewId, customerName, rating, reviewText, reviewCreateTime, responseStatus)
+- `google_review_responses` — Draft/published responses (googleReviewId, storeId, responseText, responseStatus, createdBy)
+
+**Key Files:**
+- `server/google-business-api.ts` — `GoogleBusinessAPIManager` class (OAuth2, accounts, locations, reviews via direct HTTP to `mybusinessreviews.googleapis.com`), `syncGoogleReviews()`, `publishReviewResponse()`
+- `client/src/components/GoogleBusinessProfileSetup.tsx` — 4-step OAuth wizard (Connect → Select Account → Select Location → Connected)
+- `client/src/components/GoogleReviewsManager.tsx` — Review list with stats, filters, and sync button
+- `client/src/components/ReviewResponseDialog.tsx` — Per-review response dialog with draft → publish workflow
+- `client/src/pages/GoogleBusiness.tsx` — Tabbed page (Connection + Reviews) at `/google-business`
+
+**OAuth Flow:**
+1. User clicks "Connect Google Business Profile" → GET `/api/google-business/auth-url` (CSRF state stored in session)
+2. Browser redirects to Google consent screen
+3. Google redirects back to `/google-business?code=...&state=...`
+4. Frontend component detects `?code=` and POSTs to `/api/google-business/callback` (code exchange + upsert profile)
+5. User selects business account → POST `/api/google-business/locations` (list locations)
+6. User selects location → POST `/api/google-business/connect-location` (saves businessName + location)
+
+**APIs Used:**
+- `mybusinessaccountmanagement v1` — List business accounts (via googleapis npm package)
+- `mybusinessbusinessinformation v1` — List locations (via googleapis npm package)
+- `mybusinessreviews.googleapis.com/v1` — List/reply/delete reviews (direct HTTP via `oauth2Client.request()` — NOT in googleapis npm package)
+
+**Environment Variables Required:**
+- `GOOGLE_CLIENT_ID` — Google OAuth2 client ID
+- `GOOGLE_CLIENT_SECRET` — Google OAuth2 client secret
+- `GOOGLE_REDIRECT_URI` — Must match registered URI in Google Cloud Console (e.g., `https://<domain>/google-business`)
+
+**Route:** `/google-business` (sidebar: "Google Reviews")
+
 ## External Dependencies
 
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable
 - **Session Secret**: Uses `SESSION_SECRET` environment variable for express-session
 - **Twilio**: Optional. Per-store SMS credentials configured in admin SMS Settings page
+- **Google OAuth**: Required for Google Business Profile integration. `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` env vars needed.
 - **Google Fonts**: Outfit, DM Sans, Fira Code, Geist Mono (loaded via CDN in index.html and CSS imports)
 - **Vite**: Build tool with React plugin for frontend bundling

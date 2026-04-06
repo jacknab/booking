@@ -247,8 +247,9 @@ export function ReviewResponseDialog({
             </div>
           )}
 
-          {/* New Response Form */}
-          {review.responseStatus === "not_responded" && (
+          {/* New Response Form — show when no published response exists locally */}
+          {(review.responseStatus === "not_responded" ||
+            !responses.some((r) => r.responseStatus === "approved")) && (
             <div className="space-y-3 border-t pt-4">
               <h5 className="font-medium">Add a Response</h5>
               <Textarea

@@ -153,20 +153,17 @@ export class GoogleBusinessAPIManager {
 
   /**
    * Get reviews for a specific location.
-   * Uses mybusinessreviews v1 (the current split API for reviews).
+   * Uses direct HTTP calls to mybusinessreviews.googleapis.com v1
+   * because the googleapis npm package does not bundle this API.
    */
   async getReviews(locationName: string): Promise<GoogleReviewData[]> {
     try {
-      // mybusinessreviews is the current home of review management
-      const service = (google as any).mybusinessreviews({
-        version: "v1",
-        auth: this.oauth2Client,
+      const response = await this.oauth2Client.request<{ reviews?: GoogleReviewData[] }>({
+        url: `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews`,
+        method: "GET",
+        params: { pageSize: 50 },
       });
-      const response = await service.accounts.locations.reviews.list({
-        parent: locationName,
-        pageSize: 50,
-      });
-      return (response.data.reviews ?? []) as GoogleReviewData[];
+      return response.data.reviews ?? [];
     } catch (error) {
       console.error("Error fetching reviews:", error);
       throw error;
@@ -175,16 +172,14 @@ export class GoogleBusinessAPIManager {
 
   /**
    * Post or update a reply to a review.
+   * PUT https://mybusinessreviews.googleapis.com/v1/{reviewName}/reply
    */
   async replyToReview(reviewName: string, comment: string): Promise<any> {
     try {
-      const service = (google as any).mybusinessreviews({
-        version: "v1",
-        auth: this.oauth2Client,
-      });
-      const response = await service.accounts.locations.reviews.updateReply({
-        name: reviewName,
-        requestBody: { comment },
+      const response = await this.oauth2Client.request({
+        url: `https://mybusinessreviews.googleapis.com/v1/${reviewName}/reply`,
+        method: "PUT",
+        data: { comment },
       });
       return response.data;
     } catch (error) {
@@ -195,15 +190,13 @@ export class GoogleBusinessAPIManager {
 
   /**
    * Delete an existing reply from a review.
+   * DELETE https://mybusinessreviews.googleapis.com/v1/{reviewName}/reply
    */
   async deleteReviewReply(reviewName: string): Promise<any> {
     try {
-      const service = (google as any).mybusinessreviews({
-        version: "v1",
-        auth: this.oauth2Client,
-      });
-      const response = await service.accounts.locations.reviews.deleteReply({
-        name: reviewName,
+      const response = await this.oauth2Client.request({
+        url: `https://mybusinessreviews.googleapis.com/v1/${reviewName}/reply`,
+        method: "DELETE",
       });
       return response.data;
     } catch (error) {

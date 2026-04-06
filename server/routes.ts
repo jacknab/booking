@@ -2422,7 +2422,7 @@ If you have any questions, please contact your administrator.
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const { profileId, locationName, locationId } = req.body;
+    const { profileId, locationName, locationId, businessName } = req.body;
     if (!profileId || !locationName) {
       return res.status(400).json({ message: "profileId and locationName are required" });
     }
@@ -2433,6 +2433,7 @@ If you have any questions, please contact your administrator.
         .set({
           locationResourceName: locationName,
           locationId: locationId ?? null,
+          businessName: businessName ?? null,
           isConnected: true,
           updatedAt: new Date(),
         })
@@ -2727,7 +2728,9 @@ If you have any questions, please contact your administrator.
   });
 
   /**
-   * Delete a review response
+   * Delete a review response.
+   * If the response was already published to Google (status = "approved"),
+   * the reply is also removed from Google so the review stays in sync.
    */
   app.delete("/api/google-business/review-response/:responseId", async (req, res) => {
     const userId = (req.session as any)?.userId;
@@ -2736,6 +2739,47 @@ If you have any questions, please contact your administrator.
     const responseId = Number(req.params.responseId);
 
     try {
+      // Load the response first so we know if it was published
+      const existing = await db
+        .select()
+        .from(googleReviewResponses)
+        .where(eq(googleReviewResponses.id, responseId))
+        .limit(1);
+
+      if (existing.length && existing[0].responseStatus === "approved") {
+        // Also delete the reply from Google so it doesn't stay visible
+        try {
+          const review = await db
+            .select()
+            .from(googleReviews)
+            .where(eq(googleReviews.id, existing[0].googleReviewId))
+            .limit(1);
+
+          if (review.length) {
+            const profile = await db
+              .select()
+              .from(googleBusinessProfiles)
+              .where(eq(googleBusinessProfiles.storeId, review[0].storeId))
+              .limit(1);
+
+            if (profile.length) {
+              const apiManager = createApiManagerFromProfile(profile[0]);
+              const reviewResourceName = `${profile[0].locationResourceName}/reviews/${review[0].googleReviewId}`;
+              await apiManager.deleteReviewReply(reviewResourceName);
+
+              // Mark the review as not responded since reply was removed
+              await db
+                .update(googleReviews)
+                .set({ responseStatus: "not_responded" })
+                .where(eq(googleReviews.id, review[0].id));
+            }
+          }
+        } catch (googleError) {
+          // Non-fatal: log but still delete locally
+          console.warn("Could not delete reply from Google:", googleError);
+        }
+      }
+
       await db
         .delete(googleReviewResponses)
         .where(eq(googleReviewResponses.id, responseId));
