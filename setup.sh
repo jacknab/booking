@@ -348,11 +348,18 @@ PYEOF
     }
 
     if [ -f "${APP_DIR}/.env" ]; then
-        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, GOOGLE_REDIRECT_URI."
+        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, GOOGLE_REDIRECT_URI, SESSION_SECRET."
         upsert_env "DATABASE_URL"        "${NEW_DB_URL}"
         upsert_env "PORT"                "${APP_PORT}"
         upsert_env "NODE_ENV"            "production"
         upsert_env "GOOGLE_REDIRECT_URI" "https://${DOMAIN}/google-business"
+        # Ensure SESSION_SECRET is always present (generate one if missing)
+        if ! grep -q "^SESSION_SECRET=" "${APP_DIR}/.env"; then
+            local SESSION_SECRET
+            SESSION_SECRET=$(openssl rand -hex 32 2>/dev/null || echo "change-me-$(date +%s)")
+            upsert_env "SESSION_SECRET" "${SESSION_SECRET}"
+            info "SESSION_SECRET was missing — generated and added to .env."
+        fi
         success ".env updated."
     else
         local SESSION_SECRET
