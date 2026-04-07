@@ -3,7 +3,17 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, MessageCircle, AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import {
+  Star,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  BarChart2,
+  MessageSquare,
+  TrendingUp,
+} from "lucide-react";
 import axios from "axios";
 import { GoogleReview } from "@shared/schema";
 import { ReviewResponseDialog } from "@/components/ReviewResponseDialog";
@@ -106,6 +116,25 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
     );
   };
 
+  const renderStarLabel = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            size={12}
+            className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200"}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const responseRate =
+    stats && stats.totalReviews > 0
+      ? Math.round((stats.respondedReviews / stats.totalReviews) * 100)
+      : 0;
+
   if (!storeId) {
     return (
       <Card className="border-red-200 bg-red-50">
@@ -118,65 +147,110 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+
+      {/* Summary stat cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Total Reviews
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalReviews}</div>
+            <CardContent className="pt-5 pb-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Reviews</p>
+              <p className="text-3xl font-bold">{stats.totalReviews}</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Average Rating
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.averageRating}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Responded
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ color: "#10b981" }}>
-                {stats.respondedReviews}
+            <CardContent className="pt-5 pb-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Average Rating</p>
+              <div className="flex items-end gap-2">
+                <p className="text-3xl font-bold">{stats.averageRating}</p>
+                <Star size={18} className="fill-yellow-400 text-yellow-400 mb-1" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Not Responded
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ color: "#ef4444" }}>
-                {stats.notRespondedReviews}
+            <CardContent className="pt-5 pb-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Response Rate</p>
+              <div className="flex items-end gap-2">
+                <p className="text-3xl font-bold">{responseRate}%</p>
+                <TrendingUp size={16} className="text-emerald-500 mb-1" />
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.respondedReviews} of {stats.totalReviews} responded
+              </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                5-Star Reviews
-              </CardTitle>
+            <CardContent className="pt-5 pb-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Awaiting Response</p>
+              <div className="flex items-end gap-2">
+                <p className="text-3xl font-bold text-amber-500">{stats.notRespondedReviews}</p>
+                <MessageSquare size={16} className="text-amber-500 mb-1" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Rating distribution + compliance panel */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Rating Distribution */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <BarChart2 size={16} className="text-muted-foreground" />
+                <CardTitle className="text-sm font-semibold">Rating Distribution</CardTitle>
+              </div>
+              <CardDescription className="text-xs">All reviews shown — no filtering or suppression</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.ratingDistribution[5]}</div>
+            <CardContent className="space-y-2">
+              {([5, 4, 3, 2, 1] as const).map((star) => {
+                const count = stats.ratingDistribution[star] ?? 0;
+                const pct = stats.totalReviews > 0 ? (count / stats.totalReviews) * 100 : 0;
+                return (
+                  <div key={star} className="flex items-center gap-3">
+                    {renderStarLabel(star)}
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-yellow-400 transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground w-6 text-right">{count}</span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Google Policy Compliance */}
+          <Card className="border-emerald-200 bg-emerald-50/50">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={16} className="text-emerald-600" />
+                <CardTitle className="text-sm font-semibold text-emerald-800">Google Policy Compliance</CardTitle>
+              </div>
+              <CardDescription className="text-xs text-emerald-700">
+                This integration follows Google's Business Profile API policies
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                "All reviews displayed as-is — no suppression or hiding",
+                "Ratings are read-only — never modified or manipulated",
+                "Reviews are never automatically deleted",
+                "Responses require manual review and publishing by you",
+                "Sync pulls all reviews regardless of rating",
+                "You can disconnect and remove all data at any time",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-600 mt-0.5 shrink-0" />
+                  <span className="text-xs text-emerald-800">{item}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -192,12 +266,12 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
           {syncing ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Syncing...
+              Syncing from Google...
             </>
           ) : (
             <>
               <RefreshCw size={16} />
-              Sync Reviews
+              Sync Reviews from Google
             </>
           )}
         </Button>
@@ -228,6 +302,13 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
         </div>
       </div>
 
+      {filterRating !== null && (
+        <p className="text-xs text-muted-foreground">
+          Filtering by {filterRating}-star reviews. This filter only changes your view — all reviews remain
+          on Google and are never hidden or suppressed.
+        </p>
+      )}
+
       {/* Reviews List */}
       {loading ? (
         <Card>
@@ -237,9 +318,15 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
         </Card>
       ) : reviews.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-center">No Reviews Found</CardTitle>
-          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-2 text-center">
+            <Star size={32} className="text-gray-300" />
+            <p className="font-medium text-gray-600">No reviews found</p>
+            <p className="text-sm text-muted-foreground">
+              {filterRating || filterStatus
+                ? "Try adjusting your filters to see more reviews."
+                : "Sync with Google to pull in your latest reviews."}
+            </p>
+          </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -281,7 +368,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-gray-700">{review.reviewText}</p>
+                <p className="text-gray-700">{review.reviewText || <span className="text-muted-foreground italic">No written review</span>}</p>
                 {review.reviewImageUrls && (
                   <div className="flex gap-2 flex-wrap">
                     {(() => {
@@ -301,6 +388,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                     })()}
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground">Click to view details and manage your response</p>
               </CardContent>
             </Card>
           ))}
