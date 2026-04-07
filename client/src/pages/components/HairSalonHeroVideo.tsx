@@ -1,50 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const CLIPS = [
-  {
-    src: "https://videos.pexels.com/video-files/3195394/3195394-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/3195394/3195394-hd_1280_720_25fps.mp4",
-    duration: 8000,
-  },
-  {
-    src: "https://videos.pexels.com/video-files/4098589/4098589-hd_1920_1080_25fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/4098589/4098589-hd_1280_720_25fps.mp4",
-    duration: 8000,
-  },
-  {
-    src: "https://videos.pexels.com/video-files/3049568/3049568-hd_1920_1080_30fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/3049568/3049568-hd_1280_720_30fps.mp4",
-    duration: 8000,
-  },
-  {
-    src: "https://videos.pexels.com/video-files/7518889/7518889-hd_1920_1080_30fps.mp4",
-    fallback: "https://videos.pexels.com/video-files/7518889/7518889-hd_1280_720_30fps.mp4",
-    duration: 8000,
-  },
-];
-
-const FALLBACK_IMAGES = [
+const IMAGES = [
   "/haircut-hero-1.png",
   "/haircut-hero-2.png",
   "/haircut-hero-3.png",
   "/haircut-hero-4.png",
 ];
 
+const DURATION = 7000;
+
 export default function HairSalonHeroVideo() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [videoErrors, setVideoErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % CLIPS.length);
-    }, CLIPS[currentIndex].duration);
+      setCurrentIndex((prev) => (prev + 1) % IMAGES.length);
+    }, DURATION);
     return () => clearTimeout(timer);
   }, [currentIndex]);
-
-  const handleVideoError = (index: number) => {
-    setVideoErrors((prev) => ({ ...prev, [index]: true }));
-  };
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#060E1A]">
@@ -76,15 +50,53 @@ export default function HairSalonHeroVideo() {
       />
 
       <AnimatePresence mode="wait">
-        <VideoClip
+        <motion.div
           key={currentIndex}
-          index={currentIndex}
-          src={CLIPS[currentIndex].src}
-          fallbackSrc={CLIPS[currentIndex].fallback}
-          imageFallback={FALLBACK_IMAGES[currentIndex % FALLBACK_IMAGES.length]}
-          hasError={!!videoErrors[currentIndex]}
-          onError={() => handleVideoError(currentIndex)}
-        />
+          initial={{ opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.06 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          className="absolute inset-0"
+        >
+          <motion.img
+            src={IMAGES[currentIndex]}
+            alt=""
+            className="w-full h-full object-cover opacity-55"
+            initial={{ scale: 1.06 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: DURATION / 1000, ease: "linear" }}
+          />
+
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "radial-gradient(ellipse at center, transparent 30%, #060E1A 100%)",
+            }}
+          />
+
+          <motion.div
+            className="absolute top-1/4 left-1/3 w-2 h-2 rounded-full bg-[#00D4AA]"
+            animate={{ y: [-10, 10, -10], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute top-2/3 left-1/5 w-1.5 h-1.5 rounded-full bg-[#00D4AA]/70"
+            animate={{ y: [8, -8, 8], opacity: [0.3, 0.8, 0.3] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          />
+          <motion.div
+            className="absolute top-1/2 right-1/4 w-1 h-1 rounded-full bg-white/60"
+            animate={{ y: [-6, 10, -6], opacity: [0.4, 0.9, 0.4] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          />
+
+          <motion.div
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute bottom-[32%] left-[8%] h-px w-1/4 bg-gradient-to-r from-transparent via-[#00D4AA] to-transparent origin-left"
+          />
+        </motion.div>
       </AnimatePresence>
 
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#060E1A] to-transparent pointer-events-none z-10" />
@@ -134,7 +146,7 @@ export default function HairSalonHeroVideo() {
       </motion.div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-none">
-        {CLIPS.map((_, i) => (
+        {IMAGES.map((_, i) => (
           <motion.div
             key={i}
             animate={{ opacity: i === currentIndex ? 1 : 0.3, scaleX: i === currentIndex ? 1.4 : 1 }}
@@ -144,94 +156,5 @@ export default function HairSalonHeroVideo() {
         ))}
       </div>
     </div>
-  );
-}
-
-function VideoClip({
-  index,
-  src,
-  fallbackSrc,
-  imageFallback,
-  hasError,
-  onError,
-}: {
-  index: number;
-  src: string;
-  fallbackSrc: string;
-  imageFallback: string;
-  hasError: boolean;
-  onError: () => void;
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current && !hasError) {
-      videoRef.current.play().catch(() => {});
-    }
-  }, [hasError]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 1.04 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.06 }}
-      transition={{ duration: 1.2, ease: "easeInOut" }}
-      className="absolute inset-0"
-    >
-      {hasError ? (
-        <motion.img
-          src={imageFallback}
-          alt=""
-          className="w-full h-full object-cover opacity-50"
-          initial={{ scale: 1.08 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 8, ease: "linear" }}
-        />
-      ) : (
-        <video
-          ref={videoRef}
-          className="w-full h-full object-cover opacity-55"
-          autoPlay
-          muted
-          loop
-          playsInline
-          onError={onError}
-        >
-          <source src={src} type="video/mp4" />
-          <source src={fallbackSrc} type="video/mp4" />
-          <img src={imageFallback} alt="" className="w-full h-full object-cover opacity-50" />
-        </video>
-      )}
-
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at center, transparent 30%, #060E1A 100%)",
-        }}
-      />
-
-      <motion.div
-        className="absolute top-1/4 left-1/3 w-2 h-2 rounded-full bg-[#00D4AA]"
-        animate={{ y: [-10, 10, -10], opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute top-2/3 left-1/5 w-1.5 h-1.5 rounded-full bg-[#00D4AA]/70"
-        animate={{ y: [8, -8, 8], opacity: [0.3, 0.8, 0.3] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-      />
-      <motion.div
-        className="absolute top-1/2 right-1/4 w-1 h-1 rounded-full bg-white/60"
-        animate={{ y: [-6, 10, -6], opacity: [0.4, 0.9, 0.4] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      />
-
-      <motion.div
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{ scaleX: 1, opacity: 1 }}
-        transition={{ delay: 0.6, duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute bottom-[32%] left-[8%] h-px w-1/4 bg-gradient-to-r from-transparent via-[#00D4AA] to-transparent origin-left"
-      />
-    </motion.div>
   );
 }
