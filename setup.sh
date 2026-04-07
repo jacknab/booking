@@ -26,7 +26,7 @@ error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 hdr()     { echo -e "\n${BOLD}${CYAN}━━━  $*  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"; }
 
 # ─── GLOBAL CONFIGURATION ─────────────────────────────────────────────────────
-APP_PORT=5000
+APP_PORT=5059
 DB_USER="certxa_user"
 DB_NAME="certxa_db"
 SERVICE_NAME="certxa"
@@ -483,6 +483,34 @@ EOF
 
     # ── Nginx + SSL ──────────────────────────────────────────────────────────
     hdr "Step 10b/10  Nginx + SSL"
+
+    # ── Remove any existing certbot certificates for this domain ─────────────
+    info "Checking for existing certbot certificates for '${DOMAIN}'..."
+    EXISTING_CERTS=()
+    for CANDIDATE in \
+        "/etc/letsencrypt/live/${DOMAIN}" \
+        "/etc/letsencrypt/live/${DOMAIN}-0001" \
+        "/etc/letsencrypt/live/${DOMAIN}-0002" \
+        "/etc/letsencrypt/live/${DOMAIN}-0003"; do
+        if [ -d "${CANDIDATE}" ]; then
+            CERT_NAME="$(basename "${CANDIDATE}")"
+            EXISTING_CERTS+=("${CERT_NAME}")
+        fi
+    done
+
+    if [ ${#EXISTING_CERTS[@]} -gt 0 ]; then
+        warn "Found ${#EXISTING_CERTS[@]} existing certificate(s) for '${DOMAIN}' — removing them now."
+        for CERT_NAME in "${EXISTING_CERTS[@]}"; do
+            info "Deleting certificate: ${CERT_NAME}"
+            sudo certbot delete --cert-name "${CERT_NAME}" --non-interactive 2>/dev/null \
+                || sudo rm -rf "/etc/letsencrypt/live/${CERT_NAME}" \
+                               "/etc/letsencrypt/archive/${CERT_NAME}" \
+                               "/etc/letsencrypt/renewal/${CERT_NAME}.conf"
+        done
+        success "Old certificate(s) removed — a fresh one will be issued."
+    else
+        info "No existing certificates found for '${DOMAIN}' — proceeding to issue a new one."
+    fi
 
     local CERT_BASE=""
     for CANDIDATE in \
