@@ -495,6 +495,7 @@ do_step_8() {
     info "Pre-migration fixes complete. Pushing Drizzle schema..."
     echo ""
 
+    export DATABASE_URL="${DB_URL}"
     npx drizzle-kit push --force
 
     success "Schema pushed."
