@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Scissors, Sparkles, Flower2, Lamp, ArrowRight, ArrowLeft, Loader2, Check, Plus, Minus, Users } from "lucide-react";
+import { Scissors, Sparkles, Flower2, Lamp, ArrowRight, ArrowLeft, Loader2, Check, Plus, Minus, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -432,58 +432,12 @@ export default function Onboarding() {
         </div>
 
         {step === 1 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-1" data-testid="text-step1-title">Get started</h2>
-            <p className="text-sm text-muted-foreground mb-5">What type of business do you run?</p>
-
-            <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
-              {businessTypes.map((type) => {
-                const isSelected = selectedType === type.id;
-                return (
-                  <div
-                    key={type.id}
-                    className="flex flex-col flex-shrink-0 w-44 cursor-pointer snap-start"
-                    onClick={() => setSelectedType(type.id)}
-                    data-testid={`card-business-type-${type.id.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    <div
-                      className={`relative h-64 w-full rounded-2xl overflow-hidden transition-all duration-200 bg-gradient-to-br ${type.fallbackGradient} ${
-                        isSelected
-                          ? "ring-4 ring-primary ring-offset-2 shadow-xl scale-[1.02]"
-                          : "hover:scale-[1.01] hover:shadow-lg"
-                      }`}
-                    >
-                      <video
-                        src={type.videoUrl}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
-                      {isSelected && (
-                        <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
-                          <Check className="w-3.5 h-3.5 text-primary" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-2.5 px-0.5">
-                      <p className="font-semibold text-sm leading-tight">{type.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{type.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <Button onClick={() => setStep(2)} disabled={!canProceed(1)} data-testid="button-next-step">
-                Next
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          <Step1BusinessType
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
+            onNext={() => setStep(2)}
+            canProceed={canProceed(1)}
+          />
         )}
 
         {step === 2 && (
@@ -769,6 +723,168 @@ export default function Onboarding() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function BusinessTypeCard({
+  type,
+  isSelected,
+  onSelect,
+}: {
+  type: { id: string; label: string; description: string; videoUrl: string; fallbackGradient: string };
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const playVideo = () => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const pauseVideo = () => {
+    if (!isSelected && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  useEffect(() => {
+    if (isSelected) {
+      playVideo();
+    } else {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    }
+  }, [isSelected]);
+
+  return (
+    <div
+      className="flex flex-col flex-shrink-0 w-44 cursor-pointer snap-start"
+      onClick={onSelect}
+      onMouseEnter={playVideo}
+      onMouseLeave={pauseVideo}
+      data-testid={`card-business-type-${type.id.toLowerCase().replace(/\s+/g, "-")}`}
+    >
+      <div
+        className={`relative h-64 w-full rounded-2xl overflow-hidden transition-all duration-200 bg-gradient-to-br ${type.fallbackGradient} ${
+          isSelected
+            ? "ring-4 ring-primary ring-offset-2 shadow-xl scale-[1.02]"
+            : "hover:scale-[1.01] hover:shadow-lg"
+        }`}
+      >
+        <video
+          ref={videoRef}
+          src={type.videoUrl}
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+        {isSelected && (
+          <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
+            <Check className="w-3.5 h-3.5 text-primary" />
+          </div>
+        )}
+      </div>
+      <div className="mt-2.5 px-0.5">
+        <p className="font-semibold text-sm leading-tight">{type.label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{type.description}</p>
+      </div>
+    </div>
+  );
+}
+
+function Step1BusinessType({
+  selectedType,
+  setSelectedType,
+  onNext,
+  canProceed,
+}: {
+  selectedType: string | null;
+  setSelectedType: (id: string) => void;
+  onNext: () => void;
+  canProceed: boolean;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollState = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    return () => el.removeEventListener("scroll", updateScrollState);
+  }, []);
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl font-semibold mb-1" data-testid="text-step1-title">Get started</h2>
+      <p className="text-sm text-muted-foreground mb-5">What type of business do you run?</p>
+
+      <div className="relative">
+        {canScrollLeft && (
+          <button
+            onClick={() => scroll("left")}
+            className="absolute left-0 top-1/2 -translate-y-8 -translate-x-2 z-10 w-9 h-9 rounded-full bg-background border shadow-md flex items-center justify-center hover:bg-muted transition-colors"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {businessTypes.map((type) => (
+            <BusinessTypeCard
+              key={type.id}
+              type={type}
+              isSelected={selectedType === type.id}
+              onSelect={() => setSelectedType(type.id)}
+            />
+          ))}
+        </div>
+
+        {canScrollRight && (
+          <button
+            onClick={() => scroll("right")}
+            className="absolute right-0 top-1/2 -translate-y-8 translate-x-2 z-10 w-9 h-9 rounded-full bg-background border shadow-md flex items-center justify-center hover:bg-muted transition-colors"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <Button onClick={onNext} disabled={!canProceed} data-testid="button-next-step">
+          Next
+          <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
       </div>
     </div>
   );
