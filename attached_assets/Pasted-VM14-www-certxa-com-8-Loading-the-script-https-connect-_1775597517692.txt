@@ -1,0 +1,57 @@
+VM14 www.certxa.com:8 Loading the script 'https://connect.facebook.net/en_US/fbevents.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+(anonymous) @ VM14 www.certxa.com:8
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+videos.pexels.com/video-files/7579543/7579543-hd_1920_1080_30fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/7579543/7579543-hd_1280_720_30fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/3045540/3045540-hd_1920_1080_25fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/3045540/3045540-hd_1280_720_25fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/7518889/7518889-hd_1920_1080_30fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/7518889/7518889-hd_1280_720_30fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/4125613/4125613-hd_1920_1080_25fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/4125613/4125613-hd_1280_720_25fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/3045540/3045540-hd_1920_1080_25fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+videos.pexels.com/video-files/3045540/3045540-hd_1280_720_25fps.mp4:1  Failed to load resource: the server responded with a status of 403 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/register:1  Failed to load resource: the server responded with a status of 500 ()
+api/auth/register:1  Failed to load resource: the server responded with a status of 500 ()
+index-DJeMtiux.js:14  GET https://www.certxa.com/api/auth/user 401 (Unauthorized)
+Wle @ index-DJeMtiux.js:14
+a @ index-DJeMtiux.js:8
+b @ index-DJeMtiux.js:8
+start @ index-DJeMtiux.js:8
+fetch @ index-DJeMtiux.js:8
+#u @ index-DJeMtiux.js:8
+fetch @ index-DJeMtiux.js:8
+refetch @ index-DJeMtiux.js:8
+onFocus @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+batch @ index-DJeMtiux.js:8
+onFocus @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+await in (anonymous)
+(anonymous) @ index-DJeMtiux.js:8
+onFocus @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+t @ index-DJeMtiux.js:8
+index-DJeMtiux.js:14 Fetch failed loading: GET "https://www.certxa.com/api/auth/user".
+Wle @ index-DJeMtiux.js:14
+a @ index-DJeMtiux.js:8
+b @ index-DJeMtiux.js:8
+start @ index-DJeMtiux.js:8
+fetch @ index-DJeMtiux.js:8
+#u @ index-DJeMtiux.js:8
+fetch @ index-DJeMtiux.js:8
+refetch @ index-DJeMtiux.js:8
+onFocus @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+batch @ index-DJeMtiux.js:8
+onFocus @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+await in (anonymous)
+(anonymous) @ index-DJeMtiux.js:8
+onFocus @ index-DJeMtiux.js:8
+(anonymous) @ index-DJeMtiux.js:8
+t @ index-DJeMtiux.js:8
