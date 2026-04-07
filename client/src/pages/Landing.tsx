@@ -281,18 +281,18 @@ export default function Landing() {
               <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-xl grayscale opacity-70" />
               <span className="font-bold text-2xl text-white/80 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Certxa</span>
             </div>
-            <p className="text-white/40 text-sm">
+            <p className="text-white text-sm font-medium">
               © 2025 Certxa. All rights reserved.
             </p>
           </div>
           <div className="mt-8 pt-8 border-t border-white/10 flex flex-wrap items-center justify-center md:justify-end gap-8">
-            <Link to="/privacy-policy" className="text-sm text-white/50 hover:text-white transition-colors">
+            <Link to="/privacy-policy" className="text-sm text-white font-medium hover:text-[#00D4AA] transition-colors">
               Privacy Policy
             </Link>
-            <Link to="/terms-of-service" className="text-sm text-white/50 hover:text-white transition-colors">
+            <Link to="/terms-of-service" className="text-sm text-white font-medium hover:text-[#00D4AA] transition-colors">
               Terms of Service
             </Link>
-            <Link to="/staff-auth" className="text-sm text-white/50 hover:text-white transition-colors">
+            <Link to="/staff-auth" className="text-sm text-white font-medium hover:text-[#00D4AA] transition-colors">
               Staff Login
             </Link>
           </div>
