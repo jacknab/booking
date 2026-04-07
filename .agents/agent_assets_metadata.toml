@@ -1,8 +1,49 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "Vp14PQs6nQ4-p00pVJwhH"
+uri = "file://client/public/spa-massage-hero.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "QaA5zYBKvKZyTtAEYXroR"
 uri = "file://landing-pages.md"
 type = "text"
 title = "Certxa Landing Pages — All Routes"
+
+[[outputs]]
+id = "xK0piAo7t8YybcmED4tt1"
+uri = "file://attached_assets/stock_images/spa_massage_hero_1.jpg"
+type = "image"
+title = "massage spa therapy wellness"
+
+[[outputs]]
+id = "0aUt4ipN2TcGLP6QmgkS-"
+uri = "file://attached_assets/stock_images/spa_massage_hero_2.jpg"
+type = "image"
+title = "massage spa therapy wellness"
+
+[[outputs]]
+id = "UvW3dJiBILUpI7hiCN8b_"
+uri = "file://attached_assets/stock_images/spa_massage_hero_3.jpg"
+type = "image"
+title = "massage spa therapy wellness"
+
+[[outputs]]
+id = "suz0f_FY5ANMCryB5ABCo"
+uri = "file://attached_assets/stock_images/man_spa_massage_1.jpg"
+type = "image"
+title = "man getting back massage from masseuse in spa treatment room"
+
+[[outputs]]
+id = "5YBES2XiIErD-IFNrha0b"
+uri = "file://attached_assets/stock_images/man_spa_massage_2.jpg"
+type = "image"
+title = "man getting back massage from masseuse in spa treatment room"
+
+[[outputs]]
+id = "2iM1LHNlndVkw61uC3Tjd"
+uri = "file://attached_assets/stock_images/man_spa_massage_3.jpg"
+type = "image"
+title = "man getting back massage from masseuse in spa treatment room"
