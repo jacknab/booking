@@ -8,7 +8,7 @@ const timelineSteps = [
   {
     icon: Clock,
     label: "Today",
-    highlight: "Free, 3-day trial",
+    highlight: "Free, 14-day trial",
     sub: "Explore all features immediately",
     done: false,
   },
@@ -144,7 +144,7 @@ export default function Pricing() {
                     </div>
                     <div className="pb-5 pt-0.5">
                       <p className="text-white font-semibold text-base leading-snug">
-                        Today – Free, 3-day trial
+                        Today – Free, 14-day trial
                       </p>
                       <p className="text-white/50 text-sm mt-0.5">Explore all features immediately</p>
                     </div>
@@ -191,7 +191,7 @@ export default function Pricing() {
               </div>
 
               <p className="text-white/25 text-xs mt-10 leading-relaxed">
-                Plus applicable taxes. Renews at $39/mo after promotional period unless cancelled. Cancel anytime during free trial to avoid charges.
+                Plus applicable taxes. Renews at $39/mo after promotional period unless cancelled. Cancel anytime during your 14-day free trial to avoid charges.
               </p>
             </div>
 
@@ -235,7 +235,7 @@ export default function Pricing() {
                   </Button>
                 </Link>
                 <p className="text-white/30 text-xs text-center mt-3">
-                  3 days free · Then $1/mo for 3 months · Then $39/mo
+                  14 days free · Then $1/mo for 3 months · Then $39/mo
                 </p>
               </div>
             </div>
