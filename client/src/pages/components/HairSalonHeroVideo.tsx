@@ -25,10 +25,10 @@ const CLIPS = [
 ];
 
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=1920&q=80",
+  "/haircut-hero-1.png",
+  "/haircut-hero-2.png",
+  "/haircut-hero-3.png",
+  "/haircut-hero-4.png",
 ];
 
 export default function HairSalonHeroVideo() {
