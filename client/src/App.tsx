@@ -47,6 +47,7 @@ import BookingWidgetPage from "@/pages/BookingWidgetPage";
 import BookingConfirmation from "@/pages/public-booking/BookingConfirmation";
 import Pricing from "@/pages/Pricing";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
 import StaffCalendar from "@/pages/StaffCalendar";
 import NotFound from "@/pages/not-found";
 import BarberLanding from "@/pages/BarberLanding";
@@ -140,6 +141,7 @@ function AppRoutes() {
       <Route path="/dog-walking" element={<DogWalkingLanding />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
       <Route path="/widget" element={<BookingWidgetPage />} />
       <Route path="/book/:slug" element={<PublicBooking />} />
       <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />

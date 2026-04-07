@@ -289,6 +289,9 @@ export default function Landing() {
             <Link to="/privacy-policy" className="text-sm text-white/50 hover:text-white transition-colors">
               Privacy Policy
             </Link>
+            <Link to="/terms-of-service" className="text-sm text-white/50 hover:text-white transition-colors">
+              Terms of Service
+            </Link>
             <Link to="/staff-auth" className="text-sm text-white/50 hover:text-white transition-colors">
               Staff Login
             </Link>
