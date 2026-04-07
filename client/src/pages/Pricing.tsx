@@ -1,78 +1,59 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Shield, Zap, Clock } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { motion } from "framer-motion";
 
-const timelineSteps = [
-  {
-    icon: Clock,
-    label: "Today",
-    highlight: "Free, 14-day trial",
-    sub: "Explore all features immediately",
-    done: false,
-  },
-  {
-    icon: Zap,
-    label: "Next",
-    highlight: "$39 → $1/mo for 3 months",
-    sub: "That's 97% off!",
-    done: false,
-  },
-  {
-    icon: Shield,
-    label: "Always",
-    highlight: "No commitment, cancel anytime",
-    sub: "Full control, no lock-in",
-    done: false,
-  },
+const staffOptions = [
+  { label: "Just Me", count: 1 },
+  { label: "2", count: 2 },
+  { label: "3", count: 3 },
+  { label: "4", count: 4 },
+  { label: "5", count: 5 },
+  { label: "6", count: 6 },
+  { label: "7+", count: 7 },
 ];
 
-const planIncludes = [
-  "Online Calendar & Scheduling",
-  "Appointment Reminders (SMS & Email)",
-  "Online Booking Page",
-  "Staff & Client Management",
-  "POS Checkout with Split Tender",
-  "Business Analytics Dashboard",
-  "Google Review Booster",
-  "Inventory & Product Management",
-  "Commission Tracking",
-  "Marketing SMS Campaigns",
-];
+const BASE_PRICE = 23.99;
+const BASE_ORIGINAL = 30.0;
+const PER_STAFF = 5;
+const PER_STAFF_ORIGINAL = 7;
 
 const comparisonFeatures = [
-  { category: "The Essentials", label: "", start: false, pro: false },
-  { label: "Free Online Booking Platform", start: true, pro: true },
-  { label: "No Contract, Cancel Anytime", start: true, pro: true },
-  { label: "No Setup Costs", start: true, pro: true },
-  { label: "Live Chat Support 24/7", start: true, pro: true },
-  { label: "SMS Notifications Available", start: true, pro: true },
-  { category: "No-Show & Cancellation Protection", label: "", start: false, pro: false },
-  { label: "SMS Notifications", start: true, pro: true },
-  { label: "In-App & Email Notifications", start: true, pro: true },
-  { label: "Ability to Block Clients from Online Booking", start: false, pro: true },
-  { category: "Client Excellence", label: "", start: false, pro: false },
-  { label: "Stay Open 24/7 with Online Booking", start: true, pro: true },
-  { label: "Embed Booking Page on Your Website", start: true, pro: true },
-  { category: "Business Management", label: "", start: false, pro: false },
-  { label: "Multi-Store Management", start: true, pro: true },
-  { label: "Timezone-Aware Calendar", start: true, pro: true },
-  { label: "POS Checkout with Split Tender", start: true, pro: true },
-  { label: "Cash Drawer & Z Report", start: true, pro: true },
-  { label: "Thermal Receipt Printing", start: true, pro: true },
-  { label: "Services & Add-Ons Management", start: true, pro: true },
-  { label: "Staff Availability & Scheduling", start: true, pro: true },
-  { category: "Growth & Analytics", label: "", start: false, pro: false },
-  { label: "Dashboard Analytics", start: true, pro: true },
-  { label: "Commission Tracking & Payouts", start: false, pro: true },
-  { label: "Product Inventory Management", start: true, pro: true },
-  { label: "Advanced Business Reporting", start: false, pro: true },
-  { label: "Google Review Booster", start: false, pro: true },
-  { label: "Marketing SMS Campaigns", start: false, pro: true },
+  { category: "The Essentials", label: "" },
+  { label: "Free Online Booking Platform" },
+  { label: "No Contract, Cancel Anytime" },
+  { label: "No Setup Costs" },
+  { label: "Live Chat Support 24/7" },
+  { label: "SMS Notifications Available" },
+  { category: "No-Show & Cancellation Protection", label: "" },
+  { label: "SMS Notifications" },
+  { label: "In-App & Email Notifications" },
+  { label: "Ability to Block Clients from Online Booking" },
+  { category: "Client Excellence", label: "" },
+  { label: "Stay Open 24/7 with Online Booking" },
+  { label: "Embed Booking Page on Your Website" },
+  { category: "Business Management", label: "" },
+  { label: "Multi-Store Management" },
+  { label: "Timezone-Aware Calendar" },
+  { label: "POS Checkout with Split Tender" },
+  { label: "Cash Drawer & Z Report" },
+  { label: "Thermal Receipt Printing" },
+  { label: "Services & Add-Ons Management" },
+  { label: "Staff Availability & Scheduling" },
+  { category: "Growth & Analytics", label: "" },
+  { label: "Dashboard Analytics" },
+  { label: "Commission Tracking & Payouts" },
+  { label: "Product Inventory Management" },
+  { label: "Advanced Business Reporting" },
+  { label: "Google Review Booster" },
+  { label: "Marketing SMS Campaigns" },
 ];
 
 export default function Pricing() {
+  const [locationType, setLocationType] = useState<"one" | "multiple">("one");
+  const [staffIndex, setStaffIndex] = useState(0);
+
   useEffect(() => {
     const link = document.createElement("link");
     link.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap";
@@ -81,24 +62,30 @@ export default function Pricing() {
     return () => { document.head.removeChild(link); };
   }, []);
 
+  const staff = staffOptions[staffIndex];
+  const extraStaff = Math.max(0, staff.count - 1);
+  const locationBonus = locationType === "multiple" ? 15 : 0;
+  const displayPrice = (BASE_PRICE + extraStaff * PER_STAFF + locationBonus).toFixed(2);
+  const displayOriginal = (BASE_ORIGINAL + extraStaff * PER_STAFF_ORIGINAL + locationBonus).toFixed(2);
+
   return (
     <div className="min-h-screen bg-[#060E1A] text-white flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <nav className="fixed w-full z-50 bg-[#060E1A]/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
-            <Link to="/" className="flex items-center gap-3" data-testid="link-home">
+            <Link to="/" className="flex items-center gap-3">
               <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-xl shadow-lg" />
               <span className="font-bold text-2xl tracking-tight text-white">Certxa</span>
             </Link>
             <div className="flex items-center gap-6">
               <Link to="/pricing">
-                <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10" data-testid="link-pricing">Pricing</Button>
+                <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10">Pricing</Button>
               </Link>
               <Link to="/auth">
-                <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10" data-testid="link-login">Log in</Button>
+                <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10">Log in</Button>
               </Link>
               <Link to="/auth">
-                <Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full" data-testid="link-get-started">
+                <Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">
                   Get Started
                 </Button>
               </Link>
@@ -107,199 +94,125 @@ export default function Pricing() {
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center pt-28 pb-20 px-4">
+      <div className="flex-1 flex flex-col items-center pt-36 pb-20 px-4">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl"
+          className="w-full max-w-2xl text-center"
         >
-          <div className="rounded-3xl overflow-hidden border border-white/10 flex flex-col md:flex-row min-h-[480px] shadow-[0_0_60px_rgba(0,212,170,0.08)]">
-            <div
-              className="flex-1 p-10 flex flex-col justify-between border-r border-white/10"
-              style={{ background: "linear-gradient(145deg, #0e0e1a 0%, #0a0a14 100%)" }}
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-12">
+            Pricing that Fits Your Business
+          </h1>
+
+          <div className="inline-flex items-center bg-white/10 rounded-full p-1 mb-10 border border-white/10">
+            <button
+              onClick={() => setLocationType("one")}
+              className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+                locationType === "one"
+                  ? "bg-white text-[#060E1A] shadow"
+                  : "text-white/60 hover:text-white"
+              }`}
             >
-              <div>
-                <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-1">
-                  Start for free.
-                </h1>
-                <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-10 flex items-center gap-3 flex-wrap">
-                  Stay for
-                  <img
-                    src="/half_dollar_bill.png"
-                    alt="$1"
-                    className="inline-block"
-                    style={{
-                      height: "4.5rem",
-                      width: "auto",
-                      transform: "rotate(-5deg)",
-                      filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.6))",
-                      verticalAlign: "middle",
-                    }}
-                  />
-                </h1>
-
-                <div className="space-y-0">
-                  {/* Step 1 - filled bullet */}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-[#5c6bc0]">
-                        <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                      </div>
-                      <div
-                        className="w-px mt-1 mb-1"
-                        style={{
-                          height: "32px",
-                          background: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.25) 0px, rgba(255,255,255,0.25) 4px, transparent 4px, transparent 8px)",
-                        }}
-                      />
-                    </div>
-                    <div className="pb-5 pt-0.5">
-                      <p className="text-white font-semibold text-base leading-snug">
-                        Today – Free, 14-day trial
-                      </p>
-                      <p className="text-white/50 text-sm mt-0.5">Explore all features immediately</p>
-                    </div>
-                  </div>
-
-                  {/* Step 2 - outlined bullet */}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white/40">
-                        <Check className="w-3.5 h-3.5 text-white/50" strokeWidth={2.5} />
-                      </div>
-                      <div
-                        className="w-px mt-1 mb-1"
-                        style={{
-                          height: "32px",
-                          background: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.25) 0px, rgba(255,255,255,0.25) 4px, transparent 4px, transparent 8px)",
-                        }}
-                      />
-                    </div>
-                    <div className="pb-5 pt-0.5">
-                      <p className="text-white font-semibold text-base leading-snug">
-                        Next –{" "}
-                        <span className="line-through text-white/40">$39</span>{" "}
-                        $1/mo for 3 months
-                      </p>
-                      <p className="text-white/50 text-sm mt-0.5">That's 97% off!</p>
-                    </div>
-                  </div>
-
-                  {/* Step 3 - outlined bullet, no connector */}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white/40">
-                        <Check className="w-3.5 h-3.5 text-white/50" strokeWidth={2.5} />
-                      </div>
-                    </div>
-                    <div className="pt-0.5">
-                      <p className="text-white font-semibold text-base leading-snug">
-                        Always – No commitment, cancel anytime
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-white/25 text-xs mt-10 leading-relaxed">
-                Plus applicable taxes. Renews at $39/mo after promotional period unless cancelled. Cancel anytime during your 14-day free trial to avoid charges.
-              </p>
-            </div>
-
-            <div className="flex-1 bg-[#0D1B2E] p-10 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <p className="text-white font-bold text-lg">Pro Plan</p>
-                    <p className="text-white/50 text-sm">Everything you need to grow</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-baseline gap-1 justify-end">
-                      <span className="text-white/40 text-sm line-through">$39</span>
-                      <span className="text-[#00D4AA] font-black text-3xl">$1</span>
-                      <span className="text-white/40 text-sm">/mo</span>
-                    </div>
-                    <p className="text-[#00D4AA]/70 text-xs">for first 3 months</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-8">
-                  {planIncludes.map((feature) => (
-                    <div key={feature} className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-[#00D4AA]/15 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 text-[#00D4AA]" />
-                      </div>
-                      <span className="text-white/80 text-sm">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Link to="/auth" data-testid="button-start-trial">
-                  <Button
-                    size="lg"
-                    className="w-full h-13 text-base font-bold rounded-xl bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] shadow-[0_0_20px_rgba(0,212,170,0.3)] transition-all hover:scale-[1.02]"
-                  >
-                    Start Free Trial — No Card Required
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
-                <p className="text-white/30 text-xs text-center mt-3">
-                  14 days free · Then $1/mo for 3 months · Then $39/mo
-                </p>
-              </div>
-            </div>
+              One Location
+            </button>
+            <button
+              onClick={() => setLocationType("multiple")}
+              className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+                locationType === "multiple"
+                  ? "bg-white text-[#060E1A] shadow"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              Multiple Locations
+            </button>
           </div>
+
+          <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,212,170,0.06)]">
+            <p className="text-white/60 font-medium mb-4">Here's what you'll pay:</p>
+
+            <div className="mb-1">
+              <span className="text-[#f87171] line-through text-lg font-medium">
+                ${displayOriginal}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-center gap-1 mb-1">
+              <span className="text-white text-2xl font-bold">$</span>
+              <span className="text-white text-6xl font-black">{displayPrice.split(".")[0]}</span>
+              <span className="text-white text-2xl font-bold">.{displayPrice.split(".")[1]}</span>
+              <span className="text-white/50 text-base ml-1">/ month</span>
+            </div>
+
+            <p className="text-[#00D4AA] text-sm mb-1">
+              {staff.count === 1 ? "1 bookable calendar" : `${staff.count} bookable calendars`}
+            </p>
+            <p className="text-white/40 text-xs mb-6">Exclusive offer!</p>
+
+            <div className="flex flex-wrap justify-center gap-2 mb-6">
+              {staffOptions.map((opt, i) => (
+                <button
+                  key={opt.label}
+                  onClick={() => setStaffIndex(i)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                    staffIndex === i
+                      ? "bg-[#1a2a40] border-[#00D4AA] text-white"
+                      : "border-white/15 text-white/50 hover:border-white/30 hover:text-white/80"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-white/40 text-xs mb-1">*Cancel anytime with no cancellation fees</p>
+            <p className="text-white/30 text-xs mb-6">Exclusions apply</p>
+
+            <Link to="/auth">
+              <Button
+                size="lg"
+                className="w-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold rounded-xl h-12 text-base shadow-[0_0_20px_rgba(0,212,170,0.25)] transition-all hover:scale-[1.02]"
+              >
+                Start Free Trial
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+
+            <Link to="/auth" className="block mt-3 text-[#00D4AA] text-sm font-medium hover:underline">
+              Contact Sales ›
+            </Link>
+          </div>
+
+          <p className="text-white/50 text-lg font-semibold mt-12 leading-relaxed">
+            Simplicity Meets Functionality. Our Features Make<br className="hidden sm:block" /> Your Life Easier.
+          </p>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full max-w-4xl mt-16"
+          className="w-full max-w-2xl mt-16"
         >
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
-            <h2 className="text-2xl font-bold text-white text-center mb-8">Everything included in Pro</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" data-testid="table-feature-comparison">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-3 pr-4 font-normal text-white/40 w-3/4"></th>
-                    <th className="py-3 px-4 w-1/4">
-                      <span className="inline-block bg-[#00D4AA] text-[#0A2540] text-xs font-bold uppercase px-3 py-1 rounded-full">
-                        Pro
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonFeatures.map((row, idx) => {
-                    if (row.category) {
-                      return (
-                        <tr key={`cat-${idx}`} className="border-b border-white/10">
-                          <td colSpan={2} className="py-4 font-bold text-white/80">
-                            {row.category}
-                          </td>
-                        </tr>
-                      );
-                    }
-                    return (
-                      <tr key={`feat-${idx}`} className="border-b border-white/5 last:border-b-0">
-                        <td className="py-3 pr-4 text-white/50">{row.label}</td>
-                        <td className="py-3 px-4 text-center">
-                          {row.pro ? (
-                            <Check className="w-5 h-5 text-[#00D4AA] mx-auto" />
-                          ) : (
-                            <span className="text-white/20">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
+            <h2 className="text-2xl font-bold text-white text-center mb-8">Everything Included</h2>
+            <div className="space-y-0">
+              {comparisonFeatures.map((row, idx) => {
+                if (row.category) {
+                  return (
+                    <div key={`cat-${idx}`} className="pt-6 pb-2">
+                      <p className="text-white/60 text-xs font-bold uppercase tracking-widest">{row.category}</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={`feat-${idx}`} className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-b-0">
+                    <div className="w-5 h-5 rounded-full bg-[#00D4AA]/15 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3 h-3 text-[#00D4AA]" />
+                    </div>
+                    <span className="text-white/70 text-sm">{row.label}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </motion.div>
