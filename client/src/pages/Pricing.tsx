@@ -115,38 +115,82 @@ export default function Pricing() {
           className="w-full max-w-4xl"
         >
           <div className="rounded-3xl overflow-hidden border border-white/10 flex flex-col md:flex-row min-h-[480px] shadow-[0_0_60px_rgba(0,212,170,0.08)]">
-            <div className="flex-1 bg-gradient-to-br from-[#0A1628] to-[#060E1A] p-10 flex flex-col justify-between border-r border-white/10">
+            <div
+              className="flex-1 p-10 flex flex-col justify-between border-r border-white/10"
+              style={{ background: "linear-gradient(145deg, #0e0e1a 0%, #0a0a14 100%)" }}
+            >
               <div>
-                <p className="text-[#00D4AA] font-semibold text-sm mb-4 uppercase tracking-widest">Simple pricing</p>
-                <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-2">
+                <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-1">
                   Start for free.
                 </h1>
-                <h1 className="text-4xl md:text-5xl font-black leading-tight mb-10" style={{ color: "#00D4AA" }}>
+                <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-10">
                   Stay for $1.
                 </h1>
 
-                <div className="space-y-7">
-                  {timelineSteps.map((step, i) => (
-                    <div key={i} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full border-2 border-[#00D4AA] flex items-center justify-center flex-shrink-0 bg-[#00D4AA]/10">
-                          <Check className="w-4 h-4 text-[#00D4AA]" />
-                        </div>
-                        {i < timelineSteps.length - 1 && (
-                          <div className="w-px flex-1 mt-2 bg-gradient-to-b from-[#00D4AA]/40 to-transparent min-h-[28px]" />
-                        )}
+                <div className="space-y-0">
+                  {/* Step 1 - filled bullet */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-[#5c6bc0]">
+                        <Check className="w-4 h-4 text-white" strokeWidth={3} />
                       </div>
-                      <div className="pb-2">
-                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-0.5">{step.label}</p>
-                        <p className="text-white font-bold text-base">{step.highlight}</p>
-                        <p className="text-white/50 text-sm">{step.sub}</p>
+                      <div
+                        className="w-px mt-1 mb-1"
+                        style={{
+                          height: "32px",
+                          background: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.25) 0px, rgba(255,255,255,0.25) 4px, transparent 4px, transparent 8px)",
+                        }}
+                      />
+                    </div>
+                    <div className="pb-5 pt-0.5">
+                      <p className="text-white font-semibold text-base leading-snug">
+                        Today – Free, 3-day trial
+                      </p>
+                      <p className="text-white/50 text-sm mt-0.5">Explore all features immediately</p>
+                    </div>
+                  </div>
+
+                  {/* Step 2 - outlined bullet */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white/40">
+                        <Check className="w-3.5 h-3.5 text-white/50" strokeWidth={2.5} />
+                      </div>
+                      <div
+                        className="w-px mt-1 mb-1"
+                        style={{
+                          height: "32px",
+                          background: "repeating-linear-gradient(to bottom, rgba(255,255,255,0.25) 0px, rgba(255,255,255,0.25) 4px, transparent 4px, transparent 8px)",
+                        }}
+                      />
+                    </div>
+                    <div className="pb-5 pt-0.5">
+                      <p className="text-white font-semibold text-base leading-snug">
+                        Next –{" "}
+                        <span className="line-through text-white/40">$39</span>{" "}
+                        $1/mo for 3 months
+                      </p>
+                      <p className="text-white/50 text-sm mt-0.5">That's 97% off!</p>
+                    </div>
+                  </div>
+
+                  {/* Step 3 - outlined bullet, no connector */}
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white/40">
+                        <Check className="w-3.5 h-3.5 text-white/50" strokeWidth={2.5} />
                       </div>
                     </div>
-                  ))}
+                    <div className="pt-0.5">
+                      <p className="text-white font-semibold text-base leading-snug">
+                        Always – No commitment, cancel anytime
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <p className="text-white/30 text-xs mt-8 leading-relaxed">
+              <p className="text-white/25 text-xs mt-10 leading-relaxed">
                 Plus applicable taxes. Renews at $39/mo after promotional period unless cancelled. Cancel anytime during free trial to avoid charges.
               </p>
             </div>
