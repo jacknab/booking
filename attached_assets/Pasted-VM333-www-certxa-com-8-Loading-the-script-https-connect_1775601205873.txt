@@ -1,0 +1,133 @@
+VM333 www.certxa.com:8 Loading the script 'https://connect.facebook.net/en_US/fbevents.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+(anonymous) @ VM333 www.certxa.com:8
+(anonymous) @ VM333 www.certxa.com:8
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/onboarding:1  Failed to load resource: the server responded with a status of 401 ()
+api/onboarding:1  Failed to load resource: the server responded with a status of 401 ()
+index-CV3eQs18.js:14  GET https://www.certxa.com/api/auth/user 401 (Unauthorized)
+Wle @ index-CV3eQs18.js:14
+a @ index-CV3eQs18.js:8
+b @ index-CV3eQs18.js:8
+start @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+#u @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+refetch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+batch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+await in (anonymous)
+(anonymous) @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+t @ index-CV3eQs18.js:8
+index-CV3eQs18.js:6 Uncaught Error: Minified React error #300; visit https://reactjs.org/docs/error-decoder.html?invariant=300 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at wj (index-CV3eQs18.js:6:18036)
+    at Ej (index-CV3eQs18.js:8:3158)
+    at r3 (index-CV3eQs18.js:8:45592)
+    at JO (index-CV3eQs18.js:8:40402)
+    at tJ (index-CV3eQs18.js:8:40330)
+    at Gg (index-CV3eQs18.js:8:40183)
+    at XO (index-CV3eQs18.js:8:37209)
+    at gl (index-CV3eQs18.js:6:3273)
+    at index-CV3eQs18.js:8:34763
+wj @ index-CV3eQs18.js:6
+Ej @ index-CV3eQs18.js:8
+r3 @ index-CV3eQs18.js:8
+JO @ index-CV3eQs18.js:8
+tJ @ index-CV3eQs18.js:8
+Gg @ index-CV3eQs18.js:8
+XO @ index-CV3eQs18.js:8
+gl @ index-CV3eQs18.js:6
+(anonymous) @ index-CV3eQs18.js:8
+setTimeout
+a @ index-CV3eQs18.js:8
+o @ index-CV3eQs18.js:8
+batch @ index-CV3eQs18.js:8
+#s @ index-CV3eQs18.js:8
+setData @ index-CV3eQs18.js:8
+onSuccess @ index-CV3eQs18.js:8
+h @ index-CV3eQs18.js:8
+Promise.then
+b @ index-CV3eQs18.js:8
+start @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+#u @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+refetch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+batch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+await in (anonymous)
+(anonymous) @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+t @ index-CV3eQs18.js:8
+index-CV3eQs18.js:14  GET https://www.certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index-CV3eQs18.js:14
+a @ index-CV3eQs18.js:8
+b @ index-CV3eQs18.js:8
+start @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+#u @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+refetch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+batch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+await in (anonymous)
+(anonymous) @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+t @ index-CV3eQs18.js:8
+index-CV3eQs18.js:14 Fetch failed loading: GET "https://www.certxa.com/api/auth/user".
+Wle @ index-CV3eQs18.js:14
+a @ index-CV3eQs18.js:8
+b @ index-CV3eQs18.js:8
+start @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+#u @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+refetch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+batch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+await in (anonymous)
+(anonymous) @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+t @ index-CV3eQs18.js:8
+index-CV3eQs18.js:14 Fetch failed loading: GET "https://www.certxa.com/api/stores".
+queryFn @ index-CV3eQs18.js:14
+a @ index-CV3eQs18.js:8
+b @ index-CV3eQs18.js:8
+start @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+#u @ index-CV3eQs18.js:8
+fetch @ index-CV3eQs18.js:8
+refetch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+batch @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+await in (anonymous)
+(anonymous) @ index-CV3eQs18.js:8
+onFocus @ index-CV3eQs18.js:8
+(anonymous) @ index-CV3eQs18.js:8
+t @ index-CV3eQs18.js:8

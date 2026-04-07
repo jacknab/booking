@@ -206,28 +206,10 @@ export default function Onboarding() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isLoading } = useAuth();
-  
-  // Show loading state while auth is loading
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Redirect if no user
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
 
-  const [step, setStep] = useState(1);
+  // ── All hooks must be declared before any conditional return ──
   const totalSteps = 4;
-
+  const [step, setStep] = useState(1);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -314,15 +296,45 @@ export default function Onboarding() {
     }
   };
 
+  // Redirect side-effects in useEffect (never call navigate during render)
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/auth");
-    } else if (user?.onboardingCompleted) {
+    } else if (!isLoading && user?.onboardingCompleted) {
       navigate("/calendar");
     }
   }, [user, isLoading, navigate]);
 
-  if (isLoading || !user || user.onboardingCompleted) {
+  // useMutation must be declared before any conditional return
+  const onboardMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/onboarding", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/auth/user"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      toast({ title: "You're all set!", description: "Your business is ready to use." });
+      navigate("/calendar");
+    },
+    onError: (error: any) => {
+      toast({ title: "Setup failed", description: error.message || "Something went wrong", variant: "destructive" });
+    },
+  });
+
+  // ── Guard: nothing to render until we know the user state ──
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.onboardingCompleted) {
     return null;
   }
 
@@ -352,22 +364,6 @@ export default function Onboarding() {
     newHours[dayIdx] = { ...newHours[dayIdx], [field]: value };
     setHours(newHours);
   };
-
-  const onboardMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/onboarding", data);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
-      toast({ title: "You're all set!", description: "Your business is ready to use." });
-      navigate("/calendar");
-    },
-    onError: (error: any) => {
-      toast({ title: "Setup failed", description: error.message || "Something went wrong", variant: "destructive" });
-    },
-  });
 
   const handleComplete = () => {
     if (!selectedType || !businessName.trim()) return;

@@ -64,7 +64,13 @@ export function setupAuth(app: Express) {
 
       (req.session as any).userId = user.id;
       const { password: _, ...safeUser } = user;
-      res.status(201).json(safeUser);
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error after registration:", err);
+          return res.status(500).json({ message: "Session could not be saved" });
+        }
+        res.status(201).json(safeUser);
+      });
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
