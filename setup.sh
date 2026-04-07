@@ -430,18 +430,72 @@ do_step_7() {
 do_step_8() {
     hdr "Step 8/10  Database schema"
     cd "${APP_DIR}"
-    echo ""
-    echo -e "${BOLD}The following step will create or update database tables to match the application schema.${RESET}"
-    echo -e "  Drizzle will show you exactly which tables will be created or altered before applying any changes."
+
+    detect_pg
+    [[ -z "${PG_VERSION:-}" ]] && error "PostgreSQL is not installed. Please run Step 2 first."
+
+    info "Running pre-migration data fixes..."
+
+    # Load DB connection details from .env
+    local DB_URL
+    DB_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
+    [[ -z "$DB_URL" ]] && error "DATABASE_URL not found in .env — please run Step 6 first."
+
+    run_sql() {
+        psql "${DB_URL}" -v ON_ERROR_STOP=0 -c "$1" 2>/dev/null || true
+    }
+
+    # 1. Rename password_hash → password if the old column exists and new one doesn't
+    local HAS_PW_HASH
+    HAS_PW_HASH=$(psql "${DB_URL}" -tAc \
+        "SELECT COUNT(*) FROM information_schema.columns
+         WHERE table_name='users' AND column_name='password_hash';" 2>/dev/null || echo "0")
+    local HAS_PW
+    HAS_PW=$(psql "${DB_URL}" -tAc \
+        "SELECT COUNT(*) FROM information_schema.columns
+         WHERE table_name='users' AND column_name='password';" 2>/dev/null || echo "0")
+
+    if [[ "${HAS_PW_HASH:-0}" == "1" && "${HAS_PW:-0}" == "0" ]]; then
+        info "Renaming 'password_hash' column to 'password' in users table..."
+        run_sql "ALTER TABLE users RENAME COLUMN password_hash TO password;"
+        success "Column renamed."
+    elif [[ "${HAS_PW_HASH:-0}" == "1" && "${HAS_PW:-0}" == "1" ]]; then
+        info "Both 'password_hash' and 'password' columns exist — copying data and dropping old column..."
+        run_sql "UPDATE users SET password = password_hash WHERE password IS NULL OR password = '';"
+        run_sql "ALTER TABLE users DROP COLUMN password_hash;"
+        success "Merged and dropped old column."
+    else
+        info "Password column already in correct state — skipping."
+    fi
+
+    # 2. Remove users with null or empty emails (can't enforce NOT NULL otherwise)
+    local NULL_EMAIL_COUNT
+    NULL_EMAIL_COUNT=$(psql "${DB_URL}" -tAc \
+        "SELECT COUNT(*) FROM users WHERE email IS NULL OR email = '';" 2>/dev/null || echo "0")
+    if [[ "${NULL_EMAIL_COUNT:-0}" -gt "0" ]]; then
+        warn "Removing ${NULL_EMAIL_COUNT} user(s) with missing email addresses..."
+        run_sql "DELETE FROM users WHERE email IS NULL OR email = '';"
+        success "Invalid users removed."
+    fi
+
+    # 3. Remove duplicate emails, keeping the most recently created account
+    local DUP_COUNT
+    DUP_COUNT=$(psql "${DB_URL}" -tAc \
+        "SELECT COUNT(*) FROM (
+            SELECT email FROM users GROUP BY email HAVING COUNT(*) > 1
+         ) t;" 2>/dev/null || echo "0")
+    if [[ "${DUP_COUNT:-0}" -gt "0" ]]; then
+        warn "Removing ${DUP_COUNT} duplicate email(s) from users table..."
+        run_sql "DELETE FROM users WHERE id NOT IN (
+                     SELECT DISTINCT ON (email) id FROM users ORDER BY email, created_at DESC NULLS LAST
+                 );"
+        success "Duplicate users removed."
+    fi
+
+    info "Pre-migration fixes complete. Pushing Drizzle schema..."
     echo ""
 
-    if [ "$AUTO_YES" = true ]; then
-        info "Running in unattended mode (--yes) — applying schema without prompt."
-        npx drizzle-kit push --force
-    else
-        info "Pushing Drizzle schema — you will be asked to confirm any destructive changes..."
-        npx drizzle-kit push
-    fi
+    npx drizzle-kit push --force
 
     success "Schema pushed."
 }
