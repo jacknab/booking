@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelectedStore } from "@/hooks/use-store";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -118,7 +119,8 @@ export default function Reviews() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <AppLayout>
+    <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Client Reviews</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -289,5 +291,6 @@ export default function Reviews() {
         </div>
       )}
     </div>
+    </AppLayout>
   );
 }
