@@ -501,9 +501,19 @@ do_step_8() {
     echo ""
 
     export DATABASE_URL="${DB_URL}"
-    npx drizzle-kit push --force
+    if ! npx drizzle-kit push --force; then
+        error "Drizzle schema push failed — check the error above. Fix the DATABASE_URL in .env and re-run Step 8."
+    fi
 
-    success "Schema pushed."
+    # Verify the push actually worked by checking a core table exists
+    TABLE_CHECK=$(psql "${DB_URL}" -tAc \
+        "SELECT COUNT(*) FROM information_schema.tables
+         WHERE table_schema='public' AND table_name='users';" 2>/dev/null || echo "0")
+    if [[ "${TABLE_CHECK:-0}" == "0" ]]; then
+        error "Schema push appeared to succeed but the 'users' table was not created. Check your DATABASE_URL and re-run Step 8."
+    fi
+
+    success "Schema pushed and verified."
 }
 
 # ── Step 9 – Production build ─────────────────────────────────────────────────
@@ -546,7 +556,21 @@ EOF
     sudo systemctl daemon-reload
     sudo systemctl enable "${SERVICE_NAME}"
     sudo systemctl restart "${SERVICE_NAME}"
-    success "Service '${SERVICE_NAME}' enabled and started."
+
+    # Wait up to 15 seconds for the service to come up
+    info "Waiting for service to start..."
+    for i in $(seq 1 15); do
+        sleep 1
+        if sudo systemctl is-active --quiet "${SERVICE_NAME}"; then
+            success "Service '${SERVICE_NAME}' is running."
+            break
+        fi
+        if [ "$i" -eq 15 ]; then
+            warn "Service did not come up within 15 seconds. Last log lines:"
+            sudo journalctl -u "${SERVICE_NAME}" -n 20 --no-pager 2>/dev/null || true
+            error "Service '${SERVICE_NAME}' failed to start — see logs above. Fix the issue and re-run Step 10."
+        fi
+    done
 
     # ── Nginx + SSL ──────────────────────────────────────────────────────────
     hdr "Step 10b/10  Nginx + SSL"
@@ -693,6 +717,8 @@ server {
     location /api/ {
         proxy_pass http://127.0.0.1:${APP_PORT};
         proxy_http_version 1.1;
+        proxy_set_header Upgrade           \$http_upgrade;
+        proxy_set_header Connection        "upgrade";
         proxy_set_header Host              \$host;
         proxy_set_header X-Real-IP         \$remote_addr;
         proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
