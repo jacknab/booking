@@ -61,7 +61,7 @@ export default function HairSalonHeroVideo() {
           <motion.img
             src={IMAGES[currentIndex]}
             alt=""
-            className="w-full h-full object-cover opacity-55"
+            className="w-full h-full object-cover opacity-80"
             initial={{ scale: 1.06 }}
             animate={{ scale: 1 }}
             transition={{ duration: DURATION / 1000, ease: "linear" }}
@@ -70,7 +70,7 @@ export default function HairSalonHeroVideo() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: "radial-gradient(ellipse at center, transparent 30%, #060E1A 100%)",
+              background: "radial-gradient(ellipse at center, transparent 40%, rgba(6,14,26,0.75) 100%)",
             }}
           />
 

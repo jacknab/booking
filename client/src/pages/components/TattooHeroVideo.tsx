@@ -63,7 +63,7 @@ export default function TattooHeroVideo() {
           <motion.img
             src={IMAGES[currentIndex]}
             alt=""
-            className="w-full h-full object-cover opacity-55"
+            className="w-full h-full object-cover opacity-80"
             initial={{ scale: 1.06 }}
             animate={{ scale: 1 }}
             transition={{ duration: DURATION / 1000, ease: "linear" }}
@@ -73,7 +73,7 @@ export default function TattooHeroVideo() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: "radial-gradient(ellipse at center, transparent 20%, #0B0A0E 100%)",
+              background: "radial-gradient(ellipse at center, transparent 40%, rgba(11,10,14,0.75) 100%)",
             }}
           />
 

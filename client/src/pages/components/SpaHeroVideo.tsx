@@ -63,7 +63,7 @@ export default function SpaHeroVideo() {
           <motion.img
             src={IMAGES[currentIndex]}
             alt=""
-            className="w-full h-full object-cover opacity-50"
+            className="w-full h-full object-cover opacity-80"
             initial={{ scale: 1.06 }}
             animate={{ scale: 1 }}
             transition={{ duration: DURATION / 1000, ease: "linear" }}
@@ -73,7 +73,7 @@ export default function SpaHeroVideo() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: "radial-gradient(ellipse at center, transparent 25%, #0D1F1A 100%)",
+              background: "radial-gradient(ellipse at center, transparent 40%, rgba(13,31,26,0.75) 100%)",
             }}
           />
 
