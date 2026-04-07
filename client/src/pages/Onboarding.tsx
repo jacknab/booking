@@ -17,65 +17,57 @@ const businessTypes = [
     id: "Hair Salon",
     label: "Hair Salon",
     description: "Haircuts, color & styling",
-    icon: Scissors,
-    gradient: "from-rose-400 via-pink-500 to-fuchsia-600",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/hair_salon.mp4",
+    fallbackGradient: "from-rose-400 via-pink-500 to-fuchsia-600",
   },
   {
     id: "Nail Salon",
     label: "Nail Salon",
     description: "Manicures, pedicures & nail art",
-    icon: Sparkles,
-    gradient: "from-violet-400 via-purple-500 to-indigo-600",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/nail_salon.mp4",
+    fallbackGradient: "from-violet-400 via-purple-500 to-indigo-600",
   },
   {
     id: "Spa",
     label: "Spa",
     description: "Massage, facials & body treatments",
-    icon: Flower2,
-    gradient: "from-emerald-400 via-teal-500 to-cyan-600",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/spa.mp4",
+    fallbackGradient: "from-emerald-400 via-teal-500 to-cyan-600",
   },
   {
     id: "Barbershop",
     label: "Barbershop",
     description: "Cuts, fades & beard trims",
-    icon: Lamp,
-    gradient: "from-amber-400 via-orange-500 to-red-500",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/barbershop.mp4",
+    fallbackGradient: "from-amber-400 via-orange-500 to-red-500",
   },
   {
     id: "Esthetician",
     label: "Esthetician",
     description: "Skin care, facials & waxing",
-    icon: Sparkles,
-    gradient: "from-sky-400 via-blue-500 to-indigo-500",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/esthetician.mp4",
+    fallbackGradient: "from-sky-400 via-blue-500 to-indigo-500",
   },
   {
     id: "Pet Groomer",
     label: "Pet Groomer",
     description: "Grooming, baths & trims",
-    icon: Scissors,
-    gradient: "from-lime-400 via-green-500 to-teal-600",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/pet_groomer.mp4",
+    fallbackGradient: "from-lime-400 via-green-500 to-teal-600",
   },
   {
     id: "Tattoo Studio",
     label: "Tattoo Studio",
     description: "Tattoos, piercings & body art",
-    icon: Lamp,
-    gradient: "from-slate-600 via-gray-700 to-zinc-800",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/tattoo_studio.mp4",
+    fallbackGradient: "from-slate-600 via-gray-700 to-zinc-800",
   },
   {
     id: "Other",
     label: "Other",
     description: "Any appointment-based business",
-    icon: Users,
-    gradient: "from-pink-400 via-rose-500 to-orange-500",
-    iconBg: "bg-white/20",
+    videoUrl: "/videos/other_business.mp4",
+    fallbackGradient: "from-pink-400 via-rose-500 to-orange-500",
   },
 ];
 
@@ -417,7 +409,7 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-xl">
+      <div className={`w-full transition-all duration-300 ${step === 1 ? "max-w-2xl" : "max-w-xl"}`}>
         <div className="flex items-center justify-center gap-2 mb-6">
           <img src="/web-app.png" alt="Certxa" className="w-14 h-14 rounded-lg" />
           <span className="font-display font-bold text-3xl tracking-tight">Certxa</span>
@@ -441,31 +433,35 @@ export default function Onboarding() {
 
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-semibold text-center mb-1" data-testid="text-step1-title">Get started</h2>
-            <p className="text-sm text-muted-foreground text-center mb-6">What type of business do you run?</p>
+            <h2 className="text-xl font-semibold mb-1" data-testid="text-step1-title">Get started</h2>
+            <p className="text-sm text-muted-foreground mb-5">What type of business do you run?</p>
 
-            <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
+            <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
               {businessTypes.map((type) => {
-                const Icon = type.icon;
                 const isSelected = selectedType === type.id;
                 return (
                   <div
                     key={type.id}
-                    className="flex flex-col flex-shrink-0 w-40 cursor-pointer snap-start"
+                    className="flex flex-col flex-shrink-0 w-44 cursor-pointer snap-start"
                     onClick={() => setSelectedType(type.id)}
                     data-testid={`card-business-type-${type.id.toLowerCase().replace(/\s+/g, "-")}`}
                   >
                     <div
-                      className={`relative h-56 w-full rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center overflow-hidden transition-all duration-200 ${
+                      className={`relative h-64 w-full rounded-2xl overflow-hidden transition-all duration-200 bg-gradient-to-br ${type.fallbackGradient} ${
                         isSelected
-                          ? "ring-4 ring-primary ring-offset-2 shadow-lg scale-[1.02]"
-                          : "hover:scale-[1.01] hover:shadow-md"
+                          ? "ring-4 ring-primary ring-offset-2 shadow-xl scale-[1.02]"
+                          : "hover:scale-[1.01] hover:shadow-lg"
                       }`}
                     >
-                      <div className="absolute inset-0 bg-black/10" />
-                      <div className={`relative z-10 w-14 h-14 rounded-2xl ${type.iconBg} backdrop-blur-sm flex items-center justify-center`}>
-                        <Icon className="w-7 h-7 text-white" />
-                      </div>
+                      <video
+                        src={type.videoUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
                       {isSelected && (
                         <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
                           <Check className="w-3.5 h-3.5 text-primary" />
