@@ -16,26 +16,66 @@ const businessTypes = [
   {
     id: "Hair Salon",
     label: "Hair Salon",
-    description: "Haircuts, color, styling and treatments",
+    description: "Haircuts, color & styling",
     icon: Scissors,
+    gradient: "from-rose-400 via-pink-500 to-fuchsia-600",
+    iconBg: "bg-white/20",
   },
   {
     id: "Nail Salon",
     label: "Nail Salon",
-    description: "Manicures, pedicures, acrylics and nail art",
+    description: "Manicures, pedicures & nail art",
     icon: Sparkles,
+    gradient: "from-violet-400 via-purple-500 to-indigo-600",
+    iconBg: "bg-white/20",
   },
   {
     id: "Spa",
     label: "Spa",
-    description: "Massage, facials, body treatments and waxing",
+    description: "Massage, facials & body treatments",
     icon: Flower2,
+    gradient: "from-emerald-400 via-teal-500 to-cyan-600",
+    iconBg: "bg-white/20",
   },
   {
     id: "Barbershop",
     label: "Barbershop",
-    description: "Men's cuts, fades, beard trims and shaves",
+    description: "Cuts, fades & beard trims",
     icon: Lamp,
+    gradient: "from-amber-400 via-orange-500 to-red-500",
+    iconBg: "bg-white/20",
+  },
+  {
+    id: "Esthetician",
+    label: "Esthetician",
+    description: "Skin care, facials & waxing",
+    icon: Sparkles,
+    gradient: "from-sky-400 via-blue-500 to-indigo-500",
+    iconBg: "bg-white/20",
+  },
+  {
+    id: "Pet Groomer",
+    label: "Pet Groomer",
+    description: "Grooming, baths & trims",
+    icon: Scissors,
+    gradient: "from-lime-400 via-green-500 to-teal-600",
+    iconBg: "bg-white/20",
+  },
+  {
+    id: "Tattoo Studio",
+    label: "Tattoo Studio",
+    description: "Tattoos, piercings & body art",
+    icon: Lamp,
+    gradient: "from-slate-600 via-gray-700 to-zinc-800",
+    iconBg: "bg-white/20",
+  },
+  {
+    id: "Other",
+    label: "Other",
+    description: "Any appointment-based business",
+    icon: Users,
+    gradient: "from-pink-400 via-rose-500 to-orange-500",
+    iconBg: "bg-white/20",
   },
 ];
 
@@ -405,30 +445,42 @@ export default function Onboarding() {
 
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-semibold text-center mb-1" data-testid="text-step1-title">What type of business do you run?</h2>
-            <p className="text-sm text-muted-foreground text-center mb-6">We'll set up your services and categories automatically</p>
+            <h2 className="text-xl font-semibold text-center mb-1" data-testid="text-step1-title">Get started</h2>
+            <p className="text-sm text-muted-foreground text-center mb-6">What type of business do you run?</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
               {businessTypes.map((type) => {
                 const Icon = type.icon;
                 const isSelected = selectedType === type.id;
                 return (
-                  <Card
+                  <div
                     key={type.id}
-                    className={`cursor-pointer transition-colors toggle-elevate ${isSelected ? "toggle-elevated border-primary" : ""}`}
+                    className="flex flex-col flex-shrink-0 w-40 cursor-pointer snap-start"
                     onClick={() => setSelectedType(type.id)}
                     data-testid={`card-business-type-${type.id.toLowerCase().replace(/\s+/g, "-")}`}
                   >
-                    <CardContent className="p-4 flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                        <Icon className="w-5 h-5" />
+                    <div
+                      className={`relative h-56 w-full rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center overflow-hidden transition-all duration-200 ${
+                        isSelected
+                          ? "ring-4 ring-primary ring-offset-2 shadow-lg scale-[1.02]"
+                          : "hover:scale-[1.01] hover:shadow-md"
+                      }`}
+                    >
+                      <div className="absolute inset-0 bg-black/10" />
+                      <div className={`relative z-10 w-14 h-14 rounded-2xl ${type.iconBg} backdrop-blur-sm flex items-center justify-center`}>
+                        <Icon className="w-7 h-7 text-white" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm">{type.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{type.description}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      {isSelected && (
+                        <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
+                          <Check className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2.5 px-0.5">
+                      <p className="font-semibold text-sm leading-tight">{type.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{type.description}</p>
+                    </div>
+                  </div>
                 );
               })}
             </div>
