@@ -77,7 +77,12 @@ done
 DB_PASSWORD=""
 if [ -f "${APP_DIR}/.env" ] && grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
     EXISTING_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
-    DB_PASSWORD=$(echo "${EXISTING_URL}" | grep -oP '(?<=:)[^@]+(?=@)' || true)
+    # Safely extract password using sed — handles postgresql://user:pass@host/db format only
+    DB_PASSWORD=$(echo "${EXISTING_URL}" | sed -nE 's|^[^:]+://[^:@]+:([^@/]+)@[^/].*|\1|p' || true)
+    # Discard if it looks malformed (contains slashes or colons — sign of a corrupt URL)
+    if echo "${DB_PASSWORD}" | grep -qP '[:/]'; then
+        DB_PASSWORD=""
+    fi
 fi
 if [ -z "${DB_PASSWORD:-}" ]; then
     DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
