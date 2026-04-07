@@ -123,8 +123,21 @@ export default function Pricing() {
                 <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-1">
                   Start for free.
                 </h1>
-                <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-10">
-                  Stay for $1.
+                <h1 className="text-4xl md:text-5xl font-black text-white leading-snug mb-10 flex items-center gap-3 flex-wrap">
+                  Stay for
+                  <img
+                    src="/half_dollar_bill.png"
+                    alt="$1"
+                    className="inline-block"
+                    style={{
+                      height: "4.5rem",
+                      width: "auto",
+                      transform: "rotate(-5deg)",
+                      filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.6))",
+                      verticalAlign: "middle",
+                    }}
+                  />
+                  .
                 </h1>
 
                 <div className="space-y-0">
