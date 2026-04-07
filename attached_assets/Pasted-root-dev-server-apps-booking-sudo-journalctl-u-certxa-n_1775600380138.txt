@@ -1,0 +1,31 @@
+root@dev-server:/apps/booking# sudo journalctl -u certxa -n 30 --no-pager
+Apr 07 22:13:35 dev-server certxa[41270]: }
+Apr 07 22:13:35 dev-server certxa[41270]: Node.js v22.22.0
+Apr 07 22:13:35 dev-server systemd[1]: certxa.service: Main process exited, code=exited, status=1/FAILURE
+Apr 07 22:13:35 dev-server systemd[1]: certxa.service: Failed with result 'exit-code'.
+Apr 07 22:13:41 dev-server systemd[1]: certxa.service: Scheduled restart job, restart counter is at 9.
+Apr 07 22:13:41 dev-server systemd[1]: Stopped Certxa – Node.js production server.
+Apr 07 22:13:41 dev-server systemd[1]: Started Certxa – Node.js production server.
+Apr 07 22:13:41 dev-server certxa[41348]: node:internal/modules/cjs/loader:1386
+Apr 07 22:13:41 dev-server certxa[41348]:   throw err;
+Apr 07 22:13:41 dev-server certxa[41348]:   ^
+Apr 07 22:13:41 dev-server certxa[41348]: Error: Cannot find module '/apps/booking/dist/index.cjs'
+Apr 07 22:13:41 dev-server certxa[41348]:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+Apr 07 22:13:41 dev-server certxa[41348]:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+Apr 07 22:13:41 dev-server certxa[41348]:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+Apr 07 22:13:41 dev-server certxa[41348]:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+Apr 07 22:13:41 dev-server certxa[41348]:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+Apr 07 22:13:41 dev-server certxa[41348]:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+Apr 07 22:13:41 dev-server certxa[41348]:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+Apr 07 22:13:41 dev-server certxa[41348]:     at node:internal/main/run_main_module:36:49 {
+Apr 07 22:13:41 dev-server certxa[41348]:   code: 'MODULE_NOT_FOUND',
+Apr 07 22:13:41 dev-server certxa[41348]:   requireStack: []
+Apr 07 22:13:41 dev-server certxa[41348]: }
+Apr 07 22:13:41 dev-server certxa[41348]: Node.js v22.22.0
+Apr 07 22:13:41 dev-server systemd[1]: certxa.service: Main process exited, code=exited, status=1/FAILURE
+Apr 07 22:13:41 dev-server systemd[1]: certxa.service: Failed with result 'exit-code'.
+Apr 07 22:13:46 dev-server systemd[1]: Stopped Certxa – Node.js production server.
+Apr 07 22:14:06 dev-server systemd[1]: Started Certxa – Node.js production server.
+Apr 07 22:14:07 dev-server certxa[41909]: [SMS] Reminder scheduler started (checks every 5 minutes)
+Apr 07 22:14:07 dev-server certxa[41909]: [Email] Reminder scheduler started (checks every 5 minutes)
+Apr 07 22:14:07 dev-server certxa[41909]: 10:14:07 PM [express] serving on port 5060
