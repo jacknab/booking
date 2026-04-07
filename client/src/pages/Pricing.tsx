@@ -137,7 +137,6 @@ export default function Pricing() {
                       verticalAlign: "middle",
                     }}
                   />
-                  .
                 </h1>
 
                 <div className="space-y-0">
