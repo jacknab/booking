@@ -25,10 +25,10 @@ const CLIPS = [
 ];
 
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1562851529-c370841f6536?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1554270473-ee4d44a01ebd?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1546804782-1e0fecccf2f7?auto=format&fit=crop&w=1920&q=80",
-  "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=1920&q=80",
+  "/tattoo-hero-1.png",
+  "/tattoo-hero-2.png",
+  "/tattoo-hero-3.png",
+  "/tattoo-hero-4.png",
 ];
 
 export default function TattooHeroVideo() {

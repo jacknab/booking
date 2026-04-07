@@ -6,6 +6,30 @@ uri = "file://client/public/spa-massage-hero.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "QT7Pvn1wu0vQVh7vU7Uh5"
+uri = "file://client/public/tattoo-hero-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "otFHYjGiP9wStirSAb8ss"
+uri = "file://client/public/tattoo-hero-2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "690waT_7F1SqdxYEbjjPI"
+uri = "file://client/public/tattoo-hero-3.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "Lw2ENvSssQRP2l_KQFVZv"
+uri = "file://client/public/tattoo-hero-4.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "QaA5zYBKvKZyTtAEYXroR"
 uri = "file://landing-pages.md"
