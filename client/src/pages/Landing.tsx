@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,18 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import HeroVideo from "./components/HeroVideo";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+const businessTypeCards = [
+  { id: "Hair Salon",     label: "Hair Salons",    description: "Haircuts, color & styling",           videoUrl: "/videos/hair_salon.mp4",     fallbackGradient: "from-rose-400 via-pink-500 to-fuchsia-600",    route: "/hair-salons" },
+  { id: "Nail Salon",     label: "Nail Salons",    description: "Manicures, pedicures & nail art",     videoUrl: "/videos/nail_salon.mp4",     fallbackGradient: "from-violet-400 via-purple-500 to-indigo-600", route: "/nails" },
+  { id: "Spa",            label: "Spas",           description: "Massage, facials & body treatments",  videoUrl: "/videos/spa.mp4",            fallbackGradient: "from-emerald-400 via-teal-500 to-cyan-600",    route: "/spa" },
+  { id: "Barbershop",     label: "Barbershops",    description: "Cuts, fades & beard trims",           videoUrl: "/videos/barbershop.mp4",     fallbackGradient: "from-amber-400 via-orange-500 to-red-500",     route: "/barbers" },
+  { id: "Esthetician",   label: "Estheticians",   description: "Skin care, facials & waxing",         videoUrl: "/videos/esthetician.mp4",    fallbackGradient: "from-sky-400 via-blue-500 to-indigo-500",      route: "/estheticians" },
+  { id: "Pet Groomer",   label: "Pet Groomers",   description: "Grooming, baths & trims",             videoUrl: "/videos/pet_groomer.mp4",    fallbackGradient: "from-lime-400 via-green-500 to-teal-600",      route: "/groomers" },
+  { id: "Tattoo Studio", label: "Tattoo Studios", description: "Tattoos, piercings & body art",       videoUrl: "/videos/tattoo_studio.mp4",  fallbackGradient: "from-slate-600 via-gray-700 to-zinc-800",      route: "/tattoo" },
+  { id: "Other",         label: "Other Business", description: "Any appointment-based business",      videoUrl: "/videos/other_business.mp4", fallbackGradient: "from-pink-400 via-rose-500 to-orange-500",     route: "/auth" },
+];
 
 export default function Landing() {
   const { isAuthenticated } = useAuth();
@@ -227,28 +238,25 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Business Types Section */}
-      <div className="py-32 bg-[#0A2540] text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D4AA]/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#F5A623]/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
-        
+      {/* Business Types Section — Video Cards */}
+      <div className="py-32 bg-[#060E1A] text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D4AA]/8 blur-[140px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#7c3aed]/8 blur-[140px] rounded-full pointer-events-none" />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-20">
+          <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Built for Every Beauty & Wellness Business
             </h2>
-            <p className="text-white/70 text-xl max-w-2xl mx-auto font-light">
-              Tailored features designed exactly for how you work.
+            <p className="text-white/60 text-xl max-w-2xl mx-auto font-light">
+              Select your business type to see how Certxa is tailored for you.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <BusinessTypeCard emoji="💅" title="Nail Salons" desc="Online booking, nail tech schedules, service catalog" />
-            <BusinessTypeCard emoji="💇" title="Hair Salons" desc="Multi-stylist calendars, color services, POS" />
-            <BusinessTypeCard emoji="✂️" title="Barbers" desc="Walk-in management, barber rotation, fast checkout" />
-            <BusinessTypeCard emoji="🐾" title="Pet Groomers" desc="Pet profiles, grooming notes, automated reminders" />
-            <BusinessTypeCard emoji="🧿" title="Acupuncturists" desc="Treatment tracking, intake forms, recurring clients" />
-            <BusinessTypeCard emoji="🎨" title="Tattoo Artists" desc="Deposit management, design consultations, waitlists" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {businessTypeCards.map((type) => (
+              <LandingBusinessCard key={type.id} type={type} />
+            ))}
           </div>
         </div>
       </div>
@@ -316,12 +324,51 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
   );
 }
 
-function BusinessTypeCard({ emoji, title, desc }: { emoji: string, title: string, desc: string }) {
+function LandingBusinessCard({ type }: {
+  type: { id: string; label: string; description: string; videoUrl: string; fallbackGradient: string; route: string };
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
+
+  const playVideo = () => {
+    if (videoRef.current) videoRef.current.play().catch(() => {});
+  };
+
+  const pauseVideo = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/10 transition-colors backdrop-blur-sm group cursor-default">
-      <div className="text-5xl mb-6 group-hover:scale-110 transition-transform origin-left">{emoji}</div>
-      <h3 className="text-xl font-bold text-white mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
-      <p className="text-white/60 font-light leading-relaxed">{desc}</p>
+    <div
+      className="flex flex-col cursor-pointer group"
+      onClick={() => navigate(type.route)}
+      onMouseEnter={playVideo}
+      onMouseLeave={pauseVideo}
+    >
+      <div
+        className={`relative h-56 w-full rounded-2xl overflow-hidden bg-gradient-to-br ${type.fallbackGradient} group-hover:scale-[1.03] group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300`}
+      >
+        <video
+          ref={videoRef}
+          src={type.videoUrl}
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ArrowRight className="w-5 h-5 text-white drop-shadow" />
+        </div>
+      </div>
+      <div className="mt-3 px-1">
+        <p className="font-bold text-white text-sm leading-tight group-hover:text-[#00D4AA] transition-colors">{type.label}</p>
+        <p className="text-white/50 text-xs mt-0.5 leading-snug">{type.description}</p>
+      </div>
     </div>
   );
 }
