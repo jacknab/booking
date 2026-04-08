@@ -529,6 +529,11 @@ do_step_10() {
     hdr "Step 10a/10  systemd service (${SERVICE_NAME})"
     local RUN_AS_USER
     RUN_AS_USER="$(whoami)"
+    
+    # IMPORTANT: Never use -r dotenv/config in ExecStart as it pollutes global environment
+    # Always use EnvironmentFile for application-specific environment variables
+    warn "Creating systemd service with isolated environment variables..."
+    warn "Warning: Be cautious of environment pollution when using systemd services."
 
     sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
