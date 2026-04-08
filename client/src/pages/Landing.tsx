@@ -344,7 +344,7 @@ function LandingBusinessCard({ type }: {
   return (
     <div
       className="flex flex-col flex-shrink-0 cursor-pointer group"
-      style={{ width: "200px" }}
+      style={{ width: "260px" }}
       onClick={() => navigate(type.route)}
       onMouseEnter={playVideo}
       onMouseLeave={pauseVideo}
@@ -360,13 +360,15 @@ function LandingBusinessCard({ type }: {
           muted
           playsInline
           preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover:blur-sm group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <span className="bg-white text-[#0A2540] text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
             {type.label}
           </span>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-md">
+            <ArrowRight className="w-4 h-4 text-[#0A2540]" />
+          </div>
         </div>
       </div>
       <div className="mt-3">
