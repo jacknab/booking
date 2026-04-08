@@ -390,7 +390,6 @@ function LandingBusinessCard({ type }: {
       </div>
       <div className="mt-3">
         <p className="font-semibold text-white text-sm leading-tight group-hover:text-[#00D4AA] transition-colors">{type.label}</p>
-        <p className="text-white/50 text-xs mt-0.5 leading-snug">{type.description}</p>
       </div>
     </div>
   );
