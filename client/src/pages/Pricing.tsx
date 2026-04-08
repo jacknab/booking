@@ -131,16 +131,9 @@ export default function Pricing() {
           <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-8 shadow-[0_0_40px_rgba(0,212,170,0.06)]">
             <p className="text-white/60 font-medium mb-4">Here's what you'll pay:</p>
 
-            <div className="mb-1">
-              <span className="text-[#f87171] line-through text-lg font-medium">
-                ${displayOriginal}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-center gap-1 mb-1">
-              <span className="text-white text-2xl font-bold">$</span>
-              <span className="text-white text-6xl font-black">{displayPrice.split(".")[0]}</span>
-              <span className="text-white text-2xl font-bold">.{displayPrice.split(".")[1]}</span>
-              <span className="text-white/50 text-base ml-1">/ month</span>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <span className="text-white text-4xl font-black">${displayPrice}</span>
+              <span className="text-white/50 text-base">/ month</span>
             </div>
 
             <p className="text-[#00D4AA] text-sm mb-1">
