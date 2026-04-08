@@ -350,7 +350,7 @@ function LandingBusinessCard({ type }: {
       onMouseLeave={pauseVideo}
     >
       <div
-        className={`relative w-full rounded-xl overflow-hidden bg-gradient-to-br ${type.fallbackGradient} transition-all duration-300 group-hover:brightness-110 group-hover:shadow-[0_12px_36px_rgba(0,0,0,0.5)]`}
+        className={`relative w-full rounded-xl overflow-hidden bg-gradient-to-br ${type.fallbackGradient} shadow-md group-hover:shadow-[0_12px_36px_rgba(0,0,0,0.5)] transition-all duration-300`}
         style={{ aspectRatio: "3/4" }}
       >
         <video
@@ -360,8 +360,14 @@ function LandingBusinessCard({ type }: {
           muted
           playsInline
           preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover:blur-sm group-hover:scale-105"
         />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="bg-white text-[#0A2540] text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
+            {type.label}
+          </span>
+        </div>
       </div>
       <div className="mt-3">
         <p className="font-semibold text-white text-sm leading-tight group-hover:text-[#00D4AA] transition-colors">{type.label}</p>
