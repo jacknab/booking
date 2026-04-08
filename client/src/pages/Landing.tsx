@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowRight, Calendar, BarChart3, Scissors, Users, DollarSign,
+  ArrowRight, ChevronLeft, ChevronRight, Calendar, BarChart3, Scissors, Users, DollarSign,
   Banknote, Clock, ShoppingBag, Puzzle, Receipt, Building2, UserCircle, PlayCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -253,11 +253,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
-            {businessTypeCards.map((type) => (
-              <LandingBusinessCard key={type.id} type={type} />
-            ))}
-          </div>
+          <BusinessTypeCarousel />
         </div>
       </div>
 
@@ -324,6 +320,45 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
   );
 }
 
+function BusinessTypeCarousel() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (dir: "left" | "right") => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollBy({ left: dir === "right" ? 580 : -580, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => scroll("left")}
+        className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full border-2 border-white/80 bg-[#060E1A]/80 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-[#060E1A] transition-all shadow-xl"
+        aria-label="Scroll left"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto pb-4 scrollbar-none"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {businessTypeCards.map((type) => (
+          <LandingBusinessCard key={type.id} type={type} />
+        ))}
+      </div>
+
+      <button
+        onClick={() => scroll("right")}
+        className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full border-2 border-white/80 bg-[#060E1A]/80 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-[#060E1A] transition-all shadow-xl"
+        aria-label="Scroll right"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
 function LandingBusinessCard({ type }: {
   type: { id: string; label: string; description: string; videoUrl: string; fallbackGradient: string; route: string };
 }) {
@@ -366,9 +401,6 @@ function LandingBusinessCard({ type }: {
           <span className="bg-white text-[#0A2540] text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
             {type.label}
           </span>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-md">
-            <ArrowRight className="w-4 h-4 text-[#0A2540]" />
-          </div>
         </div>
       </div>
       <div className="mt-3">
