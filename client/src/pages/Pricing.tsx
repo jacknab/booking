@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 const staffOptions = [
@@ -19,36 +19,6 @@ const BASE_ORIGINAL = 30.0;
 const PER_STAFF = 5;
 const PER_STAFF_ORIGINAL = 7;
 
-const comparisonFeatures = [
-  { category: "The Essentials", label: "" },
-  { label: "Free Online Booking Platform" },
-  { label: "No Contract, Cancel Anytime" },
-  { label: "No Setup Costs" },
-  { label: "Live Chat Support 24/7" },
-  { label: "SMS Notifications Available" },
-  { category: "No-Show & Cancellation Protection", label: "" },
-  { label: "SMS Notifications" },
-  { label: "In-App & Email Notifications" },
-  { label: "Ability to Block Clients from Online Booking" },
-  { category: "Client Excellence", label: "" },
-  { label: "Stay Open 24/7 with Online Booking" },
-  { label: "Embed Booking Page on Your Website" },
-  { category: "Business Management", label: "" },
-  { label: "Multi-Store Management" },
-  { label: "Timezone-Aware Calendar" },
-  { label: "POS Checkout with Split Tender" },
-  { label: "Cash Drawer & Z Report" },
-  { label: "Thermal Receipt Printing" },
-  { label: "Services & Add-Ons Management" },
-  { label: "Staff Availability & Scheduling" },
-  { category: "Growth & Analytics", label: "" },
-  { label: "Dashboard Analytics" },
-  { label: "Commission Tracking & Payouts" },
-  { label: "Product Inventory Management" },
-  { label: "Advanced Business Reporting" },
-  { label: "Google Review Booster" },
-  { label: "Marketing SMS Campaigns" },
-];
 
 export default function Pricing() {
   const [locationType, setLocationType] = useState<"one" | "multiple">("one");
@@ -180,35 +150,6 @@ export default function Pricing() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full max-w-2xl mt-16"
-        >
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-white text-center mb-8">Everything Included</h2>
-            <div className="space-y-0">
-              {comparisonFeatures.map((row, idx) => {
-                if (row.category) {
-                  return (
-                    <div key={`cat-${idx}`} className="pt-6 pb-2">
-                      <p className="text-white/60 text-xs font-bold uppercase tracking-widest">{row.category}</p>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={`feat-${idx}`} className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-b-0">
-                    <div className="w-5 h-5 rounded-full bg-[#00D4AA]/15 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-3 h-3 text-[#00D4AA]" />
-                    </div>
-                    <span className="text-white/70 text-sm">{row.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
       </div>
 
       <footer className="bg-[#060E1A] py-12 border-t border-white/10">
