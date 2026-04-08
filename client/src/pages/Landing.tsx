@@ -362,39 +362,24 @@ function BusinessTypeCarousel() {
 function LandingBusinessCard({ type }: {
   type: { id: string; label: string; description: string; videoUrl: string; fallbackGradient: string; route: string };
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
-
-  const playVideo = () => {
-    if (videoRef.current) videoRef.current.play().catch(() => {});
-  };
-
-  const pauseVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  };
 
   return (
     <div
       className="flex flex-col flex-shrink-0 cursor-pointer group"
       style={{ width: "260px" }}
       onClick={() => navigate(type.route)}
-      onMouseEnter={playVideo}
-      onMouseLeave={pauseVideo}
     >
       <div
         className={`relative w-full rounded-xl overflow-hidden bg-gradient-to-br ${type.fallbackGradient} shadow-md group-hover:shadow-[0_12px_36px_rgba(0,0,0,0.5)] transition-all duration-300`}
         style={{ aspectRatio: "3/4" }}
       >
         <video
-          ref={videoRef}
           src={type.videoUrl}
+          autoPlay
           loop
           muted
           playsInline
-          preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
