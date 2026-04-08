@@ -253,7 +253,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
             {businessTypeCards.map((type) => (
               <LandingBusinessCard key={type.id} type={type} />
             ))}
@@ -343,13 +343,15 @@ function LandingBusinessCard({ type }: {
 
   return (
     <div
-      className="flex flex-col cursor-pointer group"
+      className="flex flex-col flex-shrink-0 cursor-pointer group"
+      style={{ width: "200px" }}
       onClick={() => navigate(type.route)}
       onMouseEnter={playVideo}
       onMouseLeave={pauseVideo}
     >
       <div
-        className={`relative h-56 w-full rounded-2xl overflow-hidden bg-gradient-to-br ${type.fallbackGradient} group-hover:scale-[1.03] group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300`}
+        className={`relative w-full rounded-xl overflow-hidden bg-gradient-to-br ${type.fallbackGradient} transition-all duration-300 group-hover:brightness-110 group-hover:shadow-[0_12px_36px_rgba(0,0,0,0.5)]`}
+        style={{ aspectRatio: "3/4" }}
       >
         <video
           ref={videoRef}
@@ -360,13 +362,9 @@ function LandingBusinessCard({ type }: {
           preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
-        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ArrowRight className="w-5 h-5 text-white drop-shadow" />
-        </div>
       </div>
-      <div className="mt-3 px-1">
-        <p className="font-bold text-white text-sm leading-tight group-hover:text-[#00D4AA] transition-colors">{type.label}</p>
+      <div className="mt-3">
+        <p className="font-semibold text-white text-sm leading-tight group-hover:text-[#00D4AA] transition-colors">{type.label}</p>
         <p className="text-white/50 text-xs mt-0.5 leading-snug">{type.description}</p>
       </div>
     </div>
