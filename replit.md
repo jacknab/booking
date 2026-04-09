@@ -197,6 +197,18 @@ Business owners can connect their Google Business Profile to sync and respond to
 
 **Route:** `/google-business` (sidebar: "Google Reviews")
 
+## Production VPS Deployment Notes
+
+### Middleware order fix (important)
+Static file serving (`server/static.ts`) is intentionally registered **before** the session/auth middleware in `server/index.ts`. This ensures CSS, JS, and image assets are served directly even if the database session store has a momentary connection issue at startup. Without this order, the PostgreSQL session middleware would intercept every request (including asset requests) and, if it encountered a DB error, would return `application/json` for CSS/JS files — causing a blank page.
+
+The SPA catch-all in `server/static.ts` explicitly skips `/api/*` and `/ws` paths so they fall through to the API route layer.
+
+### Re-deploying on VPS after code changes
+1. Pull latest code to the VPS
+2. `npm run build` (rebuild client + server bundle)
+3. `pm2 restart certxa` (reload the running process)
+
 ## External Dependencies
 
 - **PostgreSQL**: Required. Connection via `DATABASE_URL` environment variable

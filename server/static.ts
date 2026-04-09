@@ -1,4 +1,4 @@
-import express, { type Express, type Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 
@@ -78,9 +78,26 @@ export function serveStatic(app: Express) {
     res.send(sitemap);
   });
 
-  // Fall through to index.html if the file doesn't exist (SPA routing)
-  app.use("/{*path}", (_req: Request, res: Response) => {
+  // Fall through to index.html for SPA routing.
+  // Use a plain app.use (no path pattern) so req.url/req.path are never
+  // modified by Express path-stripping, and we can reliably skip /api/* routes.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const reqPath = req.url.split("?")[0];
+    if (
+      reqPath.startsWith("/api/") ||
+      reqPath === "/ws" ||
+      reqPath.startsWith("/ws/")
+    ) {
+      return next();
+    }
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(distPath, "index.html"), (err) => {
+      if (err) {
+        console.error("[static] Failed to serve index.html:", err);
+        if (!res.headersSent) {
+          res.status(500).send("Server error: could not load the application.");
+        }
+      }
+    });
   });
 }

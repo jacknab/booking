@@ -119,52 +119,54 @@ app.use((req, res, next) => {
 // --- Passport Google OAuth Setup ---
 // Moved to server/passport.ts
 
-setupAuth(app);
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-// --- Google Auth Routes ---
-app.get("/api/auth/google", (req, res, next) => {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return res.status(500).send("Google OAuth is not configured on the server. Please check environment variables.");
-  }
-  console.log("Google OAuth: Initiating authentication...");
-  passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
-});
-
-app.get(
-  "/api/auth/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
-  (req: Request, res: Response) => {
-    console.log("Google OAuth: Callback received, user:", req.user?.email);
-    // Manually log in the user using the existing session mechanism
-    if (req.user) {
-      (req.session as any).userId = req.user.id;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.redirect("/login");
-        }
-        console.log("Google OAuth: User logged in successfully, redirecting to /");
-        res.redirect("/");
-      });
-    } else {
-      console.error("Google OAuth: No user in request");
-      res.redirect("/login");
-    }
-  }
-);
-
 // --- Main Async Boot ---
 (async () => {
-  // Setup static file serving BEFORE API routes to prevent conflicts
+  // Serve static files FIRST — before session/auth middleware — so that CSS/JS
+  // assets are always served correctly even if the database session store has a
+  // momentary connection issue.  The catch-all inside serveStatic skips /api/*
+  // routes so they fall through to registerRoutes below.
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
+
+  setupAuth(app);
+
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // --- Google Auth Routes ---
+  app.get("/api/auth/google", (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(500).send("Google OAuth is not configured on the server. Please check environment variables.");
+    }
+    console.log("Google OAuth: Initiating authentication...");
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  });
+
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+    (req: Request, res: Response) => {
+      console.log("Google OAuth: Callback received, user:", req.user?.email);
+      if (req.user) {
+        (req.session as any).userId = req.user.id;
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.redirect("/login");
+          }
+          console.log("Google OAuth: User logged in successfully, redirecting to /");
+          res.redirect("/");
+        });
+      } else {
+        console.error("Google OAuth: No user in request");
+        res.redirect("/login");
+      }
+    }
+  );
 
   await registerRoutes(httpServer, app);
 
