@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Calendar, Users, DollarSign, Clock, Building2, PlayCircle, Smartphone, Star, ShieldCheck, MapPin, Repeat, CheckCircle, BarChart3 } from "lucide-react";
+import { ArrowRight, Calendar, Users, DollarSign, Clock, Building2,  Smartphone, Star, ShieldCheck, MapPin, Repeat, CheckCircle, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import HouseCleaningHeroVideo from "./components/HouseCleaningHeroVideo";
@@ -26,7 +26,7 @@ export default function HouseCleaningLanding() {
             <div className="flex items-center gap-6">
               <Link to="/pricing"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Pricing</Button></Link>
               <Link to="/auth"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Log in</Button></Link>
-              <Link to="/auth"><Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">Get Started</Button></Link>
+              <Link to="/auth?mode=register"><Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">Get Started</Button></Link>
             </div>
           </div>
         </div>
@@ -47,8 +47,7 @@ export default function HouseCleaningLanding() {
             Certxa lets clients book your cleaning services online, sends automatic reminders, and tracks every job and payment — so you can focus on the clean, not the paperwork.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link to="/auth"><Button size="lg" className="h-14 px-8 text-lg rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_30px_rgba(0,212,170,0.3)] transition-all hover:scale-105">Start Free Trial<ArrowRight className="ml-2 w-5 h-5" /></Button></Link>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full border-white/30 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm transition-all"><PlayCircle className="mr-2 w-5 h-5" />Watch Demo</Button>
+            <Link to="/auth?mode=register"><Button size="lg" className="h-14 px-8 text-lg rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_30px_rgba(0,212,170,0.3)] transition-all hover:scale-105">Start Free Trial<ArrowRight className="ml-2 w-5 h-5" /></Button></Link>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.8 }} className="flex flex-wrap justify-center gap-3 text-sm font-medium text-white/70">
             <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">✅ No credit card required</span>
@@ -223,7 +222,7 @@ function CTASection({ headline, sub, context }: { headline: string; sub: string;
         <h2 className="text-5xl md:text-6xl font-black text-white mb-6 tracking-tight">{headline}</h2>
         <p className="text-white/80 text-xl mb-4 max-w-2xl mx-auto font-light">{sub}</p>
         <p className="text-white/50 text-base mb-12 max-w-xl mx-auto">{context}</p>
-        <Link to="/auth"><Button size="lg" className="h-16 px-10 text-xl rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_40px_rgba(0,212,170,0.4)] transition-all hover:scale-105">Start Free — No Credit Card Required<ArrowRight className="ml-3 w-6 h-6" /></Button></Link>
+        <Link to="/auth?mode=register"><Button size="lg" className="h-16 px-10 text-xl rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_40px_rgba(0,212,170,0.4)] transition-all hover:scale-105">Start Free — No Credit Card Required<ArrowRight className="ml-3 w-6 h-6" /></Button></Link>
         <p className="mt-6 text-white/40 text-sm">Questions? <a href="mailto:hello@certxa.com" className="underline hover:text-white/70 transition-colors">hello@certxa.com</a></p>
       </div>
     </div>

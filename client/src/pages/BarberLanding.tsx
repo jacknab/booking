@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight, Calendar, BarChart3, Scissors, Users, DollarSign,
-  Banknote, Clock, Receipt, Building2, UserCircle, PlayCircle,
+  Banknote, Clock, Receipt, Building2, UserCircle, 
   Smartphone, Star, Zap, ShieldCheck
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -58,7 +58,7 @@ export default function BarberLanding() {
                   Log in
                 </Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth?mode=register">
                 <Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">
                   Get Started
                 </Button>
@@ -118,7 +118,7 @@ export default function BarberLanding() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
-            <Link to="/auth">
+            <Link to="/auth?mode=register">
               <Button
                 size="lg"
                 className="h-14 px-8 text-lg rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_30px_rgba(0,212,170,0.3)] transition-all hover:scale-105"
@@ -127,14 +127,6 @@ export default function BarberLanding() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-lg rounded-full border-white/30 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm transition-all"
-            >
-              <PlayCircle className="mr-2 w-5 h-5" />
-              Watch Demo
-            </Button>
           </motion.div>
 
           <motion.div
@@ -455,7 +447,7 @@ export default function BarberLanding() {
             Join thousands of barbershops already using Certxa to grow their
             business.
           </p>
-          <Link to="/auth">
+          <Link to="/auth?mode=register">
             <Button
               size="lg"
               className="h-16 px-10 text-xl rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_40px_rgba(0,212,170,0.4)] transition-all hover:scale-105"

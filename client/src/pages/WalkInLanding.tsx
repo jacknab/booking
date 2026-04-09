@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight, BarChart3, Users, DollarSign,
-  Clock, Building2, UserCircle, PlayCircle,
+  Clock, Building2, UserCircle, 
   Smartphone, Star, ShieldCheck, MonitorSmartphone,
   Zap, ListOrdered, Receipt
 } from "lucide-react";
@@ -47,7 +47,7 @@ export default function WalkInLanding() {
                   Log in
                 </Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth?mode=register">
                 <Button className="bg-[#FBBF24] hover:bg-[#FBBF24]/90 text-[#0D1117] font-bold px-6 rounded-full">
                   Get Started
                 </Button>
@@ -102,7 +102,7 @@ export default function WalkInLanding() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
-            <Link to="/auth">
+            <Link to="/auth?mode=register">
               <Button
                 size="lg"
                 className="h-14 px-8 text-lg rounded-full bg-[#FBBF24] hover:bg-[#FBBF24]/90 text-[#0D1117] font-bold shadow-[0_0_30px_rgba(251,191,36,0.30)] transition-all hover:scale-105"
@@ -111,14 +111,6 @@ export default function WalkInLanding() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-lg rounded-full border-white/30 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm transition-all"
-            >
-              <PlayCircle className="mr-2 w-5 h-5" />
-              Watch Demo
-            </Button>
           </motion.div>
 
           <motion.div
@@ -399,7 +391,7 @@ export default function WalkInLanding() {
           <p className="text-white/50 text-base mb-12 max-w-xl mx-auto">
             Join thousands of walk-in shops already using Certxa to move faster and serve more customers.
           </p>
-          <Link to="/auth">
+          <Link to="/auth?mode=register">
             <Button
               size="lg"
               className="h-16 px-10 text-xl rounded-full bg-[#FBBF24] hover:bg-[#FBBF24]/90 text-[#0D1117] font-bold shadow-[0_0_40px_rgba(251,191,36,0.30)] transition-all hover:scale-105"

@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowRight, ChevronLeft, ChevronRight, PlayCircle
+  ArrowRight, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import HeroVideo from "./components/HeroVideo";
@@ -52,7 +52,7 @@ export default function Landing() {
               <Link to="/auth">
                 <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10" data-testid="link-login">Log in</Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth?mode=register">
                 <Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full" data-testid="link-get-started">
                   Get Started
                 </Button>
@@ -105,16 +105,12 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 pointer-events-auto"
           >
-            <Link to="/auth">
+            <Link to="/auth?mode=register">
               <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_30px_rgba(0,212,170,0.3)] transition-all hover:scale-105" data-testid="link-free-trial">
                 Start Free Trial
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full border-white/30 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm transition-all" data-testid="button-view-demo">
-              <PlayCircle className="mr-2 w-5 h-5" />
-              Watch Demo
-            </Button>
           </motion.div>
 
           <motion.div
@@ -164,7 +160,7 @@ export default function Landing() {
           <p className="text-white/80 text-xl mb-12 max-w-2xl mx-auto font-light">
             Join thousands of beauty professionals who trust Certxa to manage their business, from scheduling to checkout.
           </p>
-          <Link to="/auth">
+          <Link to="/auth?mode=register">
             <Button size="lg" className="h-16 px-10 text-xl rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_40px_rgba(0,212,170,0.4)] transition-all hover:scale-105" data-testid="link-cta-bottom">
               Start Free — No Credit Card Required
               <ArrowRight className="ml-3 w-6 h-6" />

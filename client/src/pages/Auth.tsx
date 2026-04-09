@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,10 @@ export default function Auth() {
   } = useAuth();
 
   const { toast } = useToast();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<"login" | "register">(
+    searchParams.get("mode") === "register" ? "register" : "login"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
