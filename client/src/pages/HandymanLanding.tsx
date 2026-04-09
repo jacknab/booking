@@ -4,6 +4,7 @@ import { ArrowRight, Calendar, Users, DollarSign, Clock, Building2,  Smartphone,
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import HandymanHeroVideo from "./components/HandymanHeroVideo";
+import BusinessTypeMenu from "./components/BusinessTypeMenu";
 
 export default function HandymanLanding() {
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function HandymanLanding() {
           <div className="flex justify-between h-20 items-center">
             <Link to="/" className="flex items-center gap-3"><img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-xl shadow-lg" /><span className="font-bold text-2xl tracking-tight text-white">Certxa</span></Link>
             <div className="flex items-center gap-6">
+              <BusinessTypeMenu />
               <Link to="/pricing"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Pricing</Button></Link>
               <Link to="/auth"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Log in</Button></Link>
               <Link to="/auth?mode=register"><Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">Get Started</Button></Link>

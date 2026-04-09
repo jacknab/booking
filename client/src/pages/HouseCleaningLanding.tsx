@@ -4,6 +4,7 @@ import { ArrowRight, Calendar, Users, DollarSign, Clock, Building2,  Smartphone,
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import HouseCleaningHeroVideo from "./components/HouseCleaningHeroVideo";
+import BusinessTypeMenu from "./components/BusinessTypeMenu";
 
 export default function HouseCleaningLanding() {
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function HouseCleaningLanding() {
               <span className="font-bold text-2xl tracking-tight text-white">Certxa</span>
             </Link>
             <div className="flex items-center gap-6">
+              <BusinessTypeMenu />
               <Link to="/pricing"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Pricing</Button></Link>
               <Link to="/auth"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Log in</Button></Link>
               <Link to="/auth?mode=register"><Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">Get Started</Button></Link>

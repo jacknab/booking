@@ -8,6 +8,7 @@ import {
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import HairSalonHeroVideo from "./components/HairSalonHeroVideo";
+import BusinessTypeMenu from "./components/BusinessTypeMenu";
 
 export default function HairSalonLanding() {
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function HairSalonLanding() {
               </span>
             </Link>
             <div className="flex items-center gap-6">
+              <BusinessTypeMenu />
               <Link to="/pricing">
                 <Button
                   variant="ghost"

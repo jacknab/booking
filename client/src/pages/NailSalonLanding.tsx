@@ -9,6 +9,7 @@ import {
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import NailSalonHeroVideo from "./components/NailSalonHeroVideo";
+import BusinessTypeMenu from "./components/BusinessTypeMenu";
 
 export default function NailSalonLanding() {
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function NailSalonLanding() {
               <span className="font-bold text-2xl tracking-tight text-white">Certxa</span>
             </Link>
             <div className="flex items-center gap-6">
+              <BusinessTypeMenu />
               <Link to="/pricing">
                 <Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">
                   Pricing
