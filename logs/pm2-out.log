@@ -1,0 +1,42 @@
+2026-04-09 09:53:43 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+2026-04-09 09:53:43 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+2026-04-09 09:53:43 +00:00: 9:53:43 AM [express] serving on port 5065
+2026-04-09 09:55:51 +00:00: 9:55:51 AM [express] GET /api/.env 401 in 2ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:51 +00:00: 9:55:51 AM [express] GET /api/v1/.env 401 in 2ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:51 +00:00: 9:55:51 AM [express] GET /api/v2/.env 401 in 2ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:51 +00:00: 9:55:51 AM [express] GET /api/shared/.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:51 +00:00: 9:55:51 AM [express] GET /api/shared/config/.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:53 +00:00: 9:55:53 AM [express] GET /api/config.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:53 +00:00: 9:55:53 AM [express] GET /api/shared/config.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:53 +00:00: 9:55:53 AM [express] GET /api/shared/config/config.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:55:59 +00:00: 9:55:59 AM [express] GET /api/stripe.ts 401 in 2ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:00 +00:00: 9:56:00 AM [express] GET /api/config 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:00 +00:00: 9:56:00 AM [express] GET /api/v1/config 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:00 +00:00: 9:56:00 AM [express] GET /api/config.map 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:00 +00:00: 9:56:00 AM [express] GET /api/settings 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:00 +00:00: 9:56:00 AM [express] GET /api/v1/settings 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:01 +00:00: 9:56:01 AM [express] GET /api/settings.map 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:01 +00:00: 9:56:01 AM [express] GET /api/stripe/config 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:01 +00:00: 9:56:01 AM [express] GET /api/payment/config 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:01 +00:00: 9:56:01 AM [express] GET /api/v1/config.map 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:56:34 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+2026-04-09 09:56:34 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+2026-04-09 09:56:34 +00:00: 9:56:34 AM [express] serving on port 5065
+2026-04-09 09:58:27 +00:00: 9:58:27 AM [express] GET /api/.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:27 +00:00: 9:58:27 AM [express] GET /api/v1/.env 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:27 +00:00: 9:58:27 AM [express] GET /api/shared/.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:27 +00:00: 9:58:27 AM [express] GET /api/v2/.env 401 in 2ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:27 +00:00: 9:58:27 AM [express] GET /api/shared/config/.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:28 +00:00: 9:58:28 AM [express] GET /api/config.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:28 +00:00: 9:58:28 AM [express] GET /api/shared/config.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:28 +00:00: 9:58:28 AM [express] GET /api/shared/config/config.env 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/stripe.ts 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/config 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/v1/config 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/settings 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/v1/settings 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/stripe/config 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/payment/config 401 in 0ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:31 +00:00: 9:58:31 AM [express] GET /api/config.map 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:32 +00:00: 9:58:32 AM [express] GET /api/v1/config.map 401 in 1ms :: {"message":"Unauthorized"}
+2026-04-09 09:58:32 +00:00: 9:58:32 AM [express] GET /api/settings.map 401 in 1ms :: {"message":"Unauthorized"}

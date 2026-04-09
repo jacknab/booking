@@ -37009,3 +37009,240 @@
 2026-03-26 12:36:50 +00:00: (Use `node --trace-deprecation ...` to show where the warning was created)
 2026-03-26 15:34:04 +00:00: (node:4102703) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 2026-03-26 15:34:04 +00:00: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-04-09 09:53:43 +00:00: (node:1117532) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-04-09 09:53:43 +00:00: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-04-09 09:54:17 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:17 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:17 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:17 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:17 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:17 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:17 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:17 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:17 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:17 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:17 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:54:17 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:17 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:17 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:17 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:17 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:17 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:17 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:17 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:17 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:17 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:17 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:54:17 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:17 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:17 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:17 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:17 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:17 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:17 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:17 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:17 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:17 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:17 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:54:24 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:24 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:24 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:24 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:24 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:24 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:24 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:24 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:24 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:24 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:24 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:54:24 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:24 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:24 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:24 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:24 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:24 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:24 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:24 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:24 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:24 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:24 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:54:25 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:25 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:25 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:25 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:25 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:25 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:25 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:25 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:25 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:25 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:25 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:54:25 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:54:25 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:54:25 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:54:25 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:54:25 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:54:25 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:54:25 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:54:25 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:54:25 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:54:25 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:54:25 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:56:34 +00:00: (node:1119755) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-04-09 09:56:34 +00:00: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-04-09 09:56:38 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:56:38 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:56:38 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:56:38 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:56:38 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:56:38 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:56:38 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:56:38 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:56:38 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:56:38 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:56:38 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 09:56:38 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 09:56:38 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 09:56:38 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 09:56:38 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 09:56:38 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 09:56:38 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 09:56:38 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 09:56:38 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 09:56:38 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 09:56:38 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 09:56:38 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:00:09 +00:00: Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'
+2026-04-09 10:00:09 +00:00: Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'
+2026-04-09 10:02:06 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:02:06 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:02:06 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:02:06 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:02:06 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:02:06 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:02:06 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:02:06 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:02:06 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:02:06 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:02:06 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:02:06 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:02:06 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:02:06 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:02:06 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:02:06 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:02:06 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:02:06 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:02:06 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:02:06 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:02:06 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:02:06 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:02:07 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:02:07 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:02:07 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:02:07 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:02:07 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:02:07 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:02:07 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:02:07 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:02:07 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:02:07 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:02:07 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:03:45 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:03:45 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:03:45 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:03:45 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:03:45 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:03:45 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:03:45 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:03:45 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:03:45 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:03:45 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:03:45 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:08 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:08 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:08 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:08 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:08 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:08 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:08 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:08 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:08 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:08 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:08 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:09 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:09 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:09 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:09 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:09 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:09 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:09 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:09 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:09 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:09 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:09 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:09 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:09 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:09 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:09 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:09 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:09 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:09 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:09 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:09 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:09 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:09 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:10 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:10 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:10 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:10 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:10 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:10 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:10 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:10 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:10 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:10 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:10 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:11 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:11 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:11 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:11 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:11 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:11 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:11 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:11 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:11 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:11 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:11 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:13 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:13 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:13 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:13 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:13 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:13 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:13 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:13 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:13 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:13 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:13 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:13 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:13 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:13 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:13 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:13 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:13 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:13 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:13 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:13 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:13 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:13 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-09 10:06:18 +00:00: Internal Server Error: Error: Not allowed by CORS
+2026-04-09 10:06:18 +00:00:     at origin (/apps/booking/dist/index.cjs:189:1942)
+2026-04-09 10:06:18 +00:00:     at /apps/booking/node_modules/cors/lib/index.js:219:13
+2026-04-09 10:06:18 +00:00:     at optionsCallback (/apps/booking/node_modules/cors/lib/index.js:199:9)
+2026-04-09 10:06:18 +00:00:     at corsMiddleware (/apps/booking/node_modules/cors/lib/index.js:204:7)
+2026-04-09 10:06:18 +00:00:     at Sa.handleRequest (/apps/booking/dist/index.cjs:43:1456)
+2026-04-09 10:06:18 +00:00:     at I (/apps/booking/dist/index.cjs:43:6490)
+2026-04-09 10:06:18 +00:00:     at /apps/booking/dist/index.cjs:43:6089
+2026-04-09 10:06:18 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
+2026-04-09 10:06:18 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
+2026-04-09 10:06:18 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
