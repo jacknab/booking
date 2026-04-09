@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  setup.sh  –  Certxa full production VPS setup
+#  setup.sh  –  Certxa Booking Platform full production VPS setup
 #
 #  Usage:
-#    bash setup.sh                       # interactive menu
-#    bash setup.sh mydomain.com          # pre-fill domain, show menu
-#    bash setup.sh mydomain.com --yes    # fully unattended, run all steps
+#    bash setup.sh                     # interactive whiptail GUI menu
+#    bash setup.sh mydomain.com        # pre-fill domain, show menu
+#    bash setup.sh mydomain.com --yes  # fully unattended, run all steps
 #
 #  Requirements:
-#    - Ubuntu 20.04 / 22.04 / 24.04
-#    - Non-root user with sudo privileges
-#    - DNS A record pointing to this server's IP
+#    - Ubuntu 22.04.5 LTS (Jammy Jellyfish)
+#    - Node.js v20.x LTS
+#    - PostgreSQL 15+
 # =============================================================================
 
 set -euo pipefail
@@ -31,6 +31,35 @@ DB_USER="certxa_user"
 DB_NAME="certxa_db"
 SERVICE_NAME="certxa"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="${APP_DIR}/.setup_config"
+BACKTITLE="Certxa Booking Platform – VPS Setup"
+CERT_EMAIL=""
+
+# ─── WHIPTAIL HELPER ──────────────────────────────────────────────────────────
+ensure_whiptail() {
+    if ! command -v whiptail &>/dev/null; then
+        info "Installing whiptail..."
+        sudo apt-get install -y whiptail -qq 2>/dev/null || true
+    fi
+}
+
+# ─── CONFIGURATION STORAGE ────────────────────────────────────────────────────
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+        info "Configuration loaded from $CONFIG_FILE"
+    fi
+}
+
+save_config() {
+    cat > "$CONFIG_FILE" <<CONFIGEOF
+DOMAIN="${DOMAIN:-}"
+APP_PORT="${APP_PORT}"
+DB_NAME="${DB_NAME}"
+CERT_EMAIL="${CERT_EMAIL:-}"
+CONFIGEOF
+    success "Configuration saved to $CONFIG_FILE"
+}
 
 # ─── ARGUMENT PARSING ─────────────────────────────────────────────────────────
 AUTO_YES=false
@@ -42,53 +71,7 @@ for ARG in "$@"; do
     esac
 done
 
-# ─── DOMAIN ───────────────────────────────────────────────────────────────────
-if [ -z "$DOMAIN" ]; then
-    read -rp "$(echo -e "${BOLD}Domain name${RESET} [example.com]: ")" DOMAIN
-fi
-DOMAIN="${DOMAIN#https://}"; DOMAIN="${DOMAIN#http://}"; DOMAIN="${DOMAIN%/}"
-[[ -z "$DOMAIN" ]] && error "Domain name cannot be empty."
-
-# ─── PORT ─────────────────────────────────────────────────────────────────────
-while true; do
-    echo ""
-    echo -e "${BOLD}What port should the app run on?${RESET}"
-    echo -e "  (1024–65535 — default: ${CYAN}${APP_PORT}${RESET})"
-    if ss -tlnp 2>/dev/null | awk '{print $4}' | grep -q ":${APP_PORT}$"; then
-        echo -e "  ${RED}[WARN]${RESET} Port ${APP_PORT} appears to be in use — consider choosing a different one."
-    fi
-    read -rp "  Port: " _INPUT_PORT
-    _INPUT_PORT="${_INPUT_PORT:-$APP_PORT}"
-    if [[ "$_INPUT_PORT" =~ ^[0-9]+$ ]] && (( _INPUT_PORT >= 1024 && _INPUT_PORT <= 65535 )); then
-        if ss -tlnp 2>/dev/null | awk '{print $4}' | grep -q ":${_INPUT_PORT}$"; then
-            echo -e "  ${RED}[WARN]${RESET} Port ${_INPUT_PORT} is already in use by another process."
-            read -rp "  Use it anyway? [y/N]: " _CONFIRM_PORT
-            [[ "$_CONFIRM_PORT" =~ ^[Yy]$ ]] || continue
-        fi
-        APP_PORT="$_INPUT_PORT"
-        info "Application will run on port ${APP_PORT}."
-        break
-    else
-        echo -e "${RED}[ERROR]${RESET} Enter a number between 1024 and 65535."
-    fi
-done
-
-# ─── DB PASSWORD (reuse from .env or generate fresh) ─────────────────────────
-DB_PASSWORD=""
-if [ -f "${APP_DIR}/.env" ] && grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
-    EXISTING_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
-    # Safely extract password using sed — handles postgresql://user:pass@host/db format only
-    DB_PASSWORD=$(echo "${EXISTING_URL}" | sed -nE 's|^[^:]+://[^:@]+:([^@/]+)@[^/].*|\1|p' || true)
-    # Discard if it looks malformed (contains slashes or colons — sign of a corrupt URL)
-    if echo "${DB_PASSWORD}" | grep -qP '[:/]'; then
-        DB_PASSWORD=""
-    fi
-fi
-if [ -z "${DB_PASSWORD:-}" ]; then
-    DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
-fi
-
-# ─── DETECT POSTGRES VARS (called at start of any step that needs them) ───────
+# ─── DETECT POSTGRES VARS ─────────────────────────────────────────────────────
 detect_pg() {
     PG_VERSION=$(dpkg -l 'postgresql-[0-9]*' 2>/dev/null \
         | awk '/^ii/{print $2}' \
@@ -102,9 +85,357 @@ detect_pg() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP FUNCTIONS
-# Each step is self-contained and safe to re-run multiple times.
+#  WHIPTAIL GUI SCREENS
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Disclaimer ────────────────────────────────────────────────────────────────
+show_disclaimer() {
+    ensure_whiptail
+    set +e
+    whiptail \
+        --title "  DISCLAIMER  " \
+        --backtitle "$BACKTITLE" \
+        --msgbox "\
+Auto application setup process for Certxa Booking Platform.
+This setup tool is developed for Ubuntu 22.04.5 LTS Linux based systems.
+
+Requirements: Node.js v20.x LTS and PostgreSQL 15+
+
+This tool will:
+  - Install system dependencies and packages
+  - Configure PostgreSQL database and user
+  - Set up SSL certificates via Let's Encrypt
+  - Deploy the application with PM2 process management
+  - Configure Nginx as a reverse proxy (booking.conf)
+    with wildcard subdomain support for booking slugs
+
+IMPORTANT - Please be aware:
+  * All changes made are PERMANENT and cannot be automatically undone
+  * This script does not create backups of existing config files
+    unless explicitly stated
+  * Running this script may overwrite existing settings
+  * You are responsible for ensuring your system meets all
+    prerequisites before proceeding
+
+By continuing you accept full responsibility for any changes made." \
+        26 72
+    STATUS=$?
+    set -e
+
+    if [ $STATUS -ne 0 ]; then
+        clear; echo "Setup cancelled."; exit 0
+    fi
+
+    set +e
+    whiptail \
+        --title "  DISCLAIMER  " \
+        --backtitle "$BACKTITLE" \
+        --yesno "\nDo you agree to proceed with the Certxa setup?" \
+        9 50
+    STATUS=$?
+    set -e
+
+    if [ $STATUS -ne 0 ]; then
+        clear; echo "Setup cancelled by user."; exit 0
+    fi
+}
+
+# ── Apache detection ──────────────────────────────────────────────────────────
+check_apache() {
+    if dpkg -l 2>/dev/null | grep -q "^ii.*apache2"; then
+        if whiptail \
+            --title "  Apache2 Detected  " \
+            --backtitle "$BACKTITLE" \
+            --yesno "\
+WARNING: Apache2 web server detected on this system!
+
+Certxa requires Nginx as its reverse proxy. Apache2 will
+conflict with Nginx and must be removed before setup can continue.
+
+This will:
+  1) Backup your Apache2 configuration to /root/
+  2) Uninstall Apache2 and its utilities
+
+Do you want to backup and remove Apache2 now?" \
+            16 64; then
+
+            info "Backing up Apache2 configuration..."
+            BACKUP_FILE="/root/Apache_backup_$(date +%Y%m%d_%H%M%S).zip"
+            sudo zip -r "$BACKUP_FILE" /etc/apache2/ 2>/dev/null || true
+
+            if [ -f "$BACKUP_FILE" ]; then
+                success "Apache2 config backed up to $BACKUP_FILE"
+            else
+                warn "Could not create Apache2 backup — continuing anyway."
+            fi
+
+            info "Uninstalling Apache2..."
+            sudo systemctl stop apache2 2>/dev/null || true
+            sudo apt-get remove --purge apache2 apache2-utils -y -qq
+            sudo apt-get autoremove -y -qq
+            success "Apache2 removed successfully."
+
+            whiptail \
+                --title "  Apache2 Removed  " \
+                --backtitle "$BACKTITLE" \
+                --msgbox "\nApache2 has been removed.\nBackup saved to: ${BACKUP_FILE}" \
+                10 56
+        else
+            clear
+            echo "Setup cancelled — Apache2 must be removed before continuing."
+            exit 0
+        fi
+    fi
+}
+
+# ── Domain prompt ─────────────────────────────────────────────────────────────
+prompt_domain() {
+    if [ -z "$DOMAIN" ]; then
+        set +e
+        DOMAIN=$(whiptail \
+            --title "  Domain Name  " \
+            --backtitle "$BACKTITLE" \
+            --inputbox "\nEnter the domain name for this server:\n(e.g. example.com)\n\nNote: booking subdomains (e.g. salon.example.com)\nare handled automatically via wildcard SSL." \
+            12 58 "" \
+            3>&1 1>&2 2>&3)
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+            clear; echo "Setup cancelled."; exit 0
+        fi
+    fi
+
+    DOMAIN="${DOMAIN#https://}"
+    DOMAIN="${DOMAIN#http://}"
+    DOMAIN="${DOMAIN%/}"
+
+    [[ -z "$DOMAIN" ]] && error "Domain name cannot be empty."
+
+    clear
+    echo "Domain set to: $DOMAIN"
+    sleep 1
+}
+
+# ── Port prompt ───────────────────────────────────────────────────────────────
+prompt_port() {
+    while true; do
+        set +e
+        PORT_IN=$(whiptail \
+            --title "  Application Port  " \
+            --backtitle "$BACKTITLE" \
+            --inputbox "\nWhat port should the app run on?\n(1024-65535, default: ${APP_PORT})" \
+            10 54 "$APP_PORT" \
+            3>&1 1>&2 2>&3)
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+            clear; echo "Setup cancelled."; exit 0
+        fi
+
+        PORT_IN="${PORT_IN:-$APP_PORT}"
+
+        if [[ "$PORT_IN" =~ ^[0-9]+$ ]] && (( PORT_IN >= 1024 && PORT_IN <= 65535 )); then
+            if ss -tlnp 2>/dev/null | awk '{print $4}' | grep -q ":${PORT_IN}$"; then
+                set +e
+                whiptail \
+                    --title "  Port In Use  " \
+                    --backtitle "$BACKTITLE" \
+                    --yesno "\nPort ${PORT_IN} is already in use.\n\nUse it anyway?" \
+                    9 52
+                STATUS=$?
+                set -e
+
+                if [ $STATUS -ne 0 ]; then
+                    continue
+                fi
+            fi
+            APP_PORT="$PORT_IN"
+            break
+        else
+            whiptail \
+                --title "  Invalid Port  " \
+                --backtitle "$BACKTITLE" \
+                --msgbox "\nPort must be between 1024 and 65535." \
+                8 50
+        fi
+    done
+}
+
+# ── Main menu ─────────────────────────────────────────────────────────────────
+show_menu() {
+    local INFO="Domain: ${DOMAIN}   |   Port: ${APP_PORT}   |   DB: ${DB_NAME}"
+
+    local CHOICE
+    set +e
+    CHOICE=$(whiptail \
+        --title "  Certxa – VPS Setup Wizard  " \
+        --backtitle "${BACKTITLE}" \
+        --menu "\n${INFO}\n\nWhat would you like to do?" \
+        26 76 14 \
+        "1"  "  Full Setup  (all 10 steps from the beginning)" \
+        "2"  "  Configuration Variables Setup" \
+        ""   "  ─────────────────────────────────────────────────" \
+        "3"  "  Resume from Step 1  –  Swap space" \
+        "4"  "  Resume from Step 2  –  System packages & Node.js" \
+        "5"  "  Resume from Step 3  –  Firewall (UFW + fail2ban)" \
+        "6"  "  Resume from Step 4  –  npm install" \
+        "7"  "  Resume from Step 5  –  PostgreSQL database & user" \
+        "8"  "  Resume from Step 6  –  .env configuration" \
+        "9"  "  Resume from Step 7  –  Uploads directory" \
+        "10" "  Resume from Step 8  –  Database schema (Drizzle push)" \
+        "11" "  Resume from Step 9  –  Production build" \
+        "12" "  Resume from Step 10 –  PM2 + Nginx (booking.conf) + SSL" \
+        "0"  "  Exit" \
+        3>&1 1>&2 2>&3)
+    STATUS=$?
+    set -e
+
+    if [ $STATUS -ne 0 ]; then
+        clear; echo "Exiting."; exit 0
+    fi
+
+    clear
+
+    case "$CHOICE" in
+        0)   clear; echo "Exiting."; exit 0 ;;
+        1)   run_from 1 ;;
+        2)   do_step_0 ;;
+        3)   run_from 1 ;;
+        4)   run_from 2 ;;
+        5)   run_from 3 ;;
+        6)   run_from 4 ;;
+        7)   run_from 5 ;;
+        8)   run_from 6 ;;
+        9)   run_from 7 ;;
+        10)  run_from 8 ;;
+        11)  run_from 9 ;;
+        12)  run_from 10 ;;
+        "")  return 0 ;;
+    esac
+
+    set +e
+    whiptail \
+        --title "  Step Complete  " \
+        --backtitle "$BACKTITLE" \
+        --msgbox "\n  Done!  Press Enter to return to the menu." \
+        9 50 \
+        3>&1 1>&2 2>&3
+    STATUS=$?
+    set -e
+
+    [ $STATUS -ne 0 ] && true
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  STEP FUNCTIONS
+#  Each step is self-contained and safe to re-run.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Step 0 – Configuration Variables Setup ────────────────────────────────────
+do_step_0() {
+    hdr "Configuration Variables Setup"
+    load_config
+
+    while true; do
+        local CHOICE
+        set +e
+        CHOICE=$(whiptail \
+            --title "  Configuration Variables  " \
+            --backtitle "$BACKTITLE" \
+            --menu "\nCurrent settings:\n  Domain : ${DOMAIN:-<not set>}\n  Port   : ${APP_PORT}\n  DB     : ${DB_NAME}\n  Email  : ${CERT_EMAIL:-<not set>}\n\nSelect a value to change:" \
+            20 62 6 \
+            "1" "Domain name      [${DOMAIN:-<not set>}]" \
+            "2" "Application port [${APP_PORT}]" \
+            "3" "Database name    [${DB_NAME}]" \
+            "4" "SSL cert email   [${CERT_EMAIL:-<not set>}]" \
+            "5" "Save and exit" \
+            "6" "Exit without saving" \
+            3>&1 1>&2 2>&3)
+        STATUS=$?
+        set -e
+
+        [ $STATUS -ne 0 ] && break
+
+        case "$CHOICE" in
+            1)
+                local NEW_DOMAIN
+                set +e
+                NEW_DOMAIN=$(whiptail \
+                    --title "  Domain Name  " \
+                    --backtitle "$BACKTITLE" \
+                    --inputbox "\nEnter domain name:" \
+                    9 52 "${DOMAIN:-}" \
+                    3>&1 1>&2 2>&3)
+                STATUS=$?
+                set -e
+
+                [ $STATUS -ne 0 ] && continue
+                if [ -n "$NEW_DOMAIN" ]; then
+                    DOMAIN="${NEW_DOMAIN#https://}"; DOMAIN="${DOMAIN#http://}"; DOMAIN="${DOMAIN%/}"
+                    success "Domain updated to: $DOMAIN"
+                fi
+                ;;
+            2)
+                local NEW_PORT
+                set +e
+                NEW_PORT=$(whiptail \
+                    --title "  Application Port  " \
+                    --backtitle "$BACKTITLE" \
+                    --inputbox "\nEnter port (1024-65535):" \
+                    9 52 "${APP_PORT}" \
+                    3>&1 1>&2 2>&3)
+                STATUS=$?
+                set -e
+
+                [ $STATUS -ne 0 ] && continue
+                if [[ "$NEW_PORT" =~ ^[0-9]+$ ]] && (( NEW_PORT >= 1024 && NEW_PORT <= 65535 )); then
+                    APP_PORT="$NEW_PORT"
+                    success "Port updated to: $APP_PORT"
+                fi
+                ;;
+            3)
+                local NEW_DB
+                set +e
+                NEW_DB=$(whiptail \
+                    --title "  Database Name  " \
+                    --backtitle "$BACKTITLE" \
+                    --inputbox "\nEnter database name:" \
+                    9 52 "${DB_NAME}" \
+                    3>&1 1>&2 2>&3)
+                STATUS=$?
+                set -e
+
+                [ $STATUS -ne 0 ] && continue
+                if [[ "$NEW_DB" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
+                    DB_NAME="$NEW_DB"
+                    success "Database name updated to: $DB_NAME"
+                fi
+                ;;
+            4)
+                local NEW_EMAIL
+                set +e
+                NEW_EMAIL=$(whiptail \
+                    --title "  SSL Certificate Email  " \
+                    --backtitle "$BACKTITLE" \
+                    --inputbox "\nEnter email for SSL certificate notices:" \
+                    9 54 "${CERT_EMAIL:-admin@${DOMAIN:-example.com}}" \
+                    3>&1 1>&2 2>&3)
+                STATUS=$?
+                set -e
+
+                [ $STATUS -ne 0 ] && continue
+                if [ -n "$NEW_EMAIL" ]; then
+                    CERT_EMAIL="$NEW_EMAIL"
+                    success "Email updated to: $CERT_EMAIL"
+                fi
+                ;;
+            5)  save_config; break ;;
+            6)  break ;;
+        esac
+    done
+}
 
 # ── Step 1 – Swap space ───────────────────────────────────────────────────────
 do_step_1() {
@@ -152,6 +483,15 @@ do_step_2() {
         info "Node.js $(node --version) already present — skipping."
     fi
 
+    # PM2
+    if ! command -v pm2 &>/dev/null; then
+        info "Installing PM2..."
+        sudo npm install -g pm2 -q
+        success "PM2 installed."
+    else
+        info "PM2 $(pm2 --version) already present — skipping."
+    fi
+
     # PostgreSQL
     PG_VERSION=$(dpkg -l 'postgresql-[0-9]*' 2>/dev/null \
         | awk '/^ii/{print $2}' \
@@ -170,7 +510,6 @@ do_step_2() {
         info "PostgreSQL ${PG_VERSION} already installed."
     fi
 
-    # Detect service name and start
     detect_pg
     if ! sudo systemctl is-active --quiet "${PG_SERVICE}" 2>/dev/null; then
         sudo systemctl enable "${PG_SERVICE}" --now
@@ -284,19 +623,33 @@ do_step_4() {
 do_step_5() {
     hdr "Step 5/10  PostgreSQL – user, database, permissions"
 
-    # ── Prompt for database name ──────────────────────────────────────────────
+    # Prompt for database name via whiptail
     while true; do
-        echo ""
-        echo -e "${BOLD}What should the database be called?${RESET}"
-        echo -e "  (letters, numbers and underscores only — default: ${CYAN}${DB_NAME}${RESET})"
-        read -rp "  Database name: " _INPUT_DB_NAME
-        _INPUT_DB_NAME="${_INPUT_DB_NAME:-$DB_NAME}"
-        if [[ "$_INPUT_DB_NAME" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
-            DB_NAME="$_INPUT_DB_NAME"
+        local INPUT_DB_NAME
+        set +e
+        INPUT_DB_NAME=$(whiptail \
+            --title "  Database Name  " \
+            --backtitle "$BACKTITLE" \
+            --inputbox "\nWhat should the database be called?\n(letters, numbers and underscores only)" \
+            10 58 "${DB_NAME}" \
+            3>&1 1>&2 2>&3)
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+            warn "Using default DB name."; break
+        fi
+        INPUT_DB_NAME="${INPUT_DB_NAME:-$DB_NAME}"
+        if [[ "$INPUT_DB_NAME" =~ ^[a-zA-Z][a-zA-Z0-9_]*$ ]]; then
+            DB_NAME="$INPUT_DB_NAME"
             info "Database will be named '${DB_NAME}'."
             break
         else
-            echo -e "${RED}[ERROR]${RESET} Invalid name — use only letters, numbers, and underscores, starting with a letter."
+            whiptail \
+                --title "  Invalid Name  " \
+                --backtitle "$BACKTITLE" \
+                --msgbox "\nInvalid name — use only letters, numbers, and underscores,\nstarting with a letter." \
+                9 58
         fi
     done
 
@@ -305,6 +658,19 @@ do_step_5() {
     if ! sudo -u postgres pg_isready -q 2>/dev/null; then
         sudo systemctl start "${PG_SERVICE}"
         sleep 3
+    fi
+
+    # DB password — reuse from .env or generate fresh
+    DB_PASSWORD=""
+    if [ -f "${APP_DIR}/.env" ] && grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
+        EXISTING_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
+        DB_PASSWORD=$(echo "${EXISTING_URL}" | sed -nE 's|^[^:]+://[^:@]+:([^@/]+)@[^/].*|\1|p' || true)
+        if echo "${DB_PASSWORD}" | grep -qP '[:/]'; then
+            DB_PASSWORD=""
+        fi
+    fi
+    if [ -z "${DB_PASSWORD:-}" ]; then
+        DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
     fi
 
     sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" \
@@ -317,19 +683,49 @@ do_step_5() {
         info "Database '${DB_NAME}' already exists — keeping existing data."
     else
         info "Creating database '${DB_NAME}'..."
-        sudo systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
         sudo -u postgres psql -v ON_ERROR_STOP=1 \
             -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
     fi
 
     sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};"
     sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};"
+    sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${DB_USER};"
     success "Database '${DB_NAME}' and user '${DB_USER}' are ready."
+
+    # Write DATABASE_URL to .env
+    local NEW_DB_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1/${DB_NAME}?sslmode=disable"
+    if [ -f "${APP_DIR}/.env" ]; then
+        if grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
+            sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${NEW_DB_URL}|" "${APP_DIR}/.env"
+            info "DATABASE_URL updated in .env."
+        else
+            echo "DATABASE_URL=${NEW_DB_URL}" >> "${APP_DIR}/.env"
+            info "DATABASE_URL added to .env."
+        fi
+    else
+        echo "DATABASE_URL=${NEW_DB_URL}" > "${APP_DIR}/.env"
+        chmod 600 "${APP_DIR}/.env"
+        info "Created .env with DATABASE_URL."
+    fi
+
+    success "DATABASE_URL written: ${NEW_DB_URL}"
 }
 
 # ── Step 6 – .env file ────────────────────────────────────────────────────────
 do_step_6() {
     hdr "Step 6/10  .env file"
+
+    # Ensure DB_PASSWORD is set
+    DB_PASSWORD=""
+    if [ -f "${APP_DIR}/.env" ] && grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
+        EXISTING_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
+        DB_PASSWORD=$(echo "${EXISTING_URL}" | sed -nE 's|^[^:]+://[^:@]+:([^@/]+)@[^/].*|\1|p' || true)
+        if echo "${DB_PASSWORD}" | grep -qP '[:/]'; then DB_PASSWORD=""; fi
+    fi
+    if [ -z "${DB_PASSWORD:-}" ]; then
+        DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
+    fi
+
     local NEW_DB_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1/${DB_NAME}?sslmode=disable"
 
     upsert_env() {
@@ -353,17 +749,18 @@ PYEOF
     }
 
     if [ -f "${APP_DIR}/.env" ]; then
-        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, GOOGLE_REDIRECT_URI, SESSION_SECRET."
+        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, CORS_ORIGINS, GOOGLE_REDIRECT_URI."
         upsert_env "DATABASE_URL"        "${NEW_DB_URL}"
         upsert_env "PORT"                "${APP_PORT}"
         upsert_env "NODE_ENV"            "production"
+        upsert_env "CORS_ALLOW_ALL"      "false"
+        upsert_env "CORS_ORIGINS"        "https://${DOMAIN}"
         upsert_env "GOOGLE_REDIRECT_URI" "https://${DOMAIN}/google-business"
-        # Ensure SESSION_SECRET is always present (generate one if missing)
         if ! grep -q "^SESSION_SECRET=" "${APP_DIR}/.env"; then
             local SESSION_SECRET
             SESSION_SECRET=$(openssl rand -hex 32 2>/dev/null || echo "change-me-$(date +%s)")
             upsert_env "SESSION_SECRET" "${SESSION_SECRET}"
-            info "SESSION_SECRET was missing — generated and added to .env."
+            info "SESSION_SECRET generated and added."
         fi
         success ".env updated."
     else
@@ -414,7 +811,7 @@ EOF
         success ".env created."
     fi
     chmod 600 "${APP_DIR}/.env"
-    info ".env permissions set to 600 (owner-read only)."
+    info ".env permissions set to 600."
 }
 
 # ── Step 7 – Uploads directory ────────────────────────────────────────────────
@@ -425,7 +822,8 @@ do_step_7() {
         "${APP_DIR}/uploads/avatars" \
         "${APP_DIR}/uploads/logos" \
         "${APP_DIR}/uploads/products"; do
-        [ -d "$DIR" ] || mkdir -p "$DIR" && info "Verified: $DIR"
+        [ -d "$DIR" ] || mkdir -p "$DIR"
+        info "Verified: $DIR"
     done
     chmod -R 755 "${APP_DIR}/uploads"
     success "uploads/ directory structure ready."
@@ -436,21 +834,26 @@ do_step_8() {
     hdr "Step 8/10  Database schema"
     cd "${APP_DIR}"
 
-    detect_pg
-    [[ -z "${PG_VERSION:-}" ]] && error "PostgreSQL is not installed. Please run Step 2 first."
+    if [ ! -f "${APP_DIR}/.env" ]; then
+        warn ".env not found — running Step 6 to create it first."
+        do_step_6
+    fi
 
-    info "Running pre-migration data fixes..."
-
-    # Load DB connection details from .env
+    info "Reading DATABASE_URL from .env..."
     local DB_URL
-    DB_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
-    [[ -z "$DB_URL" ]] && error "DATABASE_URL not found in .env — please run Step 6 first."
+    DB_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | head -1 | cut -d= -f2-)
+    if [ -z "${DB_URL}" ]; then
+        error "DATABASE_URL is empty in .env — cannot push schema. Run Step 6 first."
+    fi
+    export DATABASE_URL="${DB_URL}"
 
     run_sql() {
         psql "${DB_URL}" -v ON_ERROR_STOP=0 -c "$1" 2>/dev/null || true
     }
 
-    # 1. Rename password_hash → password if the old column exists and new one doesn't
+    info "Running pre-migration data fixes..."
+
+    # Rename password_hash → password if the old column exists and the new one doesn't
     local HAS_PW_HASH
     HAS_PW_HASH=$(psql "${DB_URL}" -tAc \
         "SELECT COUNT(*) FROM information_schema.columns
@@ -465,7 +868,7 @@ do_step_8() {
         run_sql "ALTER TABLE users RENAME COLUMN password_hash TO password;"
         success "Column renamed."
     elif [[ "${HAS_PW_HASH:-0}" == "1" && "${HAS_PW:-0}" == "1" ]]; then
-        info "Both 'password_hash' and 'password' columns exist — copying data and dropping old column..."
+        info "Both 'password_hash' and 'password' columns exist — merging..."
         run_sql "UPDATE users SET password = password_hash WHERE password IS NULL OR password = '';"
         run_sql "ALTER TABLE users DROP COLUMN password_hash;"
         success "Merged and dropped old column."
@@ -473,7 +876,7 @@ do_step_8() {
         info "Password column already in correct state — skipping."
     fi
 
-    # 2. Remove users with null or empty emails (can't enforce NOT NULL otherwise)
+    # Remove users with null or empty emails
     local NULL_EMAIL_COUNT
     NULL_EMAIL_COUNT=$(psql "${DB_URL}" -tAc \
         "SELECT COUNT(*) FROM users WHERE email IS NULL OR email = '';" 2>/dev/null || echo "0")
@@ -483,7 +886,7 @@ do_step_8() {
         success "Invalid users removed."
     fi
 
-    # 3. Remove duplicate emails, keeping the most recently created account
+    # Remove duplicate emails, keeping the most recently created account
     local DUP_COUNT
     DUP_COUNT=$(psql "${DB_URL}" -tAc \
         "SELECT COUNT(*) FROM (
@@ -500,12 +903,12 @@ do_step_8() {
     info "Pre-migration fixes complete. Pushing Drizzle schema..."
     echo ""
 
-    export DATABASE_URL="${DB_URL}"
     if ! npx drizzle-kit push --force; then
-        error "Drizzle schema push failed — check the error above. Fix the DATABASE_URL in .env and re-run Step 8."
+        error "Schema push failed — check the error above and re-run Step 8."
     fi
 
-    # Verify the push actually worked by checking a core table exists
+    # Verify a core table exists
+    local TABLE_CHECK
     TABLE_CHECK=$(psql "${DB_URL}" -tAc \
         "SELECT COUNT(*) FROM information_schema.tables
          WHERE table_schema='public' AND table_name='users';" 2>/dev/null || echo "0")
@@ -524,88 +927,97 @@ do_step_9() {
     success "Build complete → ${APP_DIR}/dist/"
 }
 
-# ── Step 10 – systemd service ─────────────────────────────────────────────────
+# ── Step 10 – PM2 + Nginx (booking.conf) + SSL ───────────────────────────────
 do_step_10() {
-    hdr "Step 10a/10  systemd service (${SERVICE_NAME})"
-    local RUN_AS_USER
-    RUN_AS_USER="$(whoami)"
-    
-    # IMPORTANT: Never use -r dotenv/config in ExecStart as it pollutes global environment
-    # Always use EnvironmentFile for application-specific environment variables
-    warn "Creating systemd service with isolated environment variables..."
-    warn "Warning: Be cautious of environment pollution when using systemd services."
+    hdr "Step 10a/10  PM2 process management (${SERVICE_NAME})"
 
-    sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
-[Unit]
-Description=Certxa – Node.js production server
-After=network.target postgresql.service
-Wants=postgresql.service
+    # Ensure DB_PASSWORD is available
+    DB_PASSWORD=""
+    if [ -f "${APP_DIR}/.env" ] && grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
+        EXISTING_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | cut -d= -f2-)
+        DB_PASSWORD=$(echo "${EXISTING_URL}" | sed -nE 's|^[^:]+://[^:@]+:([^@/]+)@[^/].*|\1|p' || true)
+        if echo "${DB_PASSWORD}" | grep -qP '[:/]'; then DB_PASSWORD=""; fi
+    fi
+    if [ -z "${DB_PASSWORD:-}" ]; then
+        DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
+    fi
 
-[Service]
-Type=simple
-User=${RUN_AS_USER}
-WorkingDirectory=${APP_DIR}
-EnvironmentFile=${APP_DIR}/.env
-ExecStart=$(which node) ${APP_DIR}/dist/index.cjs
-Restart=always
-RestartSec=5
-LimitNOFILE=65536
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=${SERVICE_NAME}
+    mkdir -p "${APP_DIR}/logs"
 
-[Install]
-WantedBy=multi-user.target
-EOF
+    cat > "${APP_DIR}/ecosystem.config.cjs" <<ECOEOF
+module.exports = {
+  apps: [
+    {
+      name: '${SERVICE_NAME}',
+      script: 'dist/index.cjs',
+      cwd: '${APP_DIR}',
+      env_file: '${APP_DIR}/.env',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        PORT: ${APP_PORT},
+        DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1/${DB_NAME}?sslmode=disable'
+      },
+      error_file: '${APP_DIR}/logs/pm2-error.log',
+      out_file: '${APP_DIR}/logs/pm2-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G'
+    }
+  ]
+};
+ECOEOF
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable "${SERVICE_NAME}"
-    sudo systemctl restart "${SERVICE_NAME}"
+    # Stop existing instance if running
+    pm2 stop "${SERVICE_NAME}" 2>/dev/null || true
+    pm2 delete "${SERVICE_NAME}" 2>/dev/null || true
 
-    # Wait up to 15 seconds for the service to come up
-    info "Waiting for service to start..."
+    info "Starting application with PM2..."
+    pm2 start "${APP_DIR}/ecosystem.config.cjs"
+
+    info "Waiting for application to start..."
     for i in $(seq 1 15); do
         sleep 1
-        if sudo systemctl is-active --quiet "${SERVICE_NAME}"; then
-            success "Service '${SERVICE_NAME}' is running."
+        if pm2 list | grep -q "${SERVICE_NAME}.*online"; then
+            success "Application '${SERVICE_NAME}' is running."
             break
         fi
         if [ "$i" -eq 15 ]; then
-            warn "Service did not come up within 15 seconds. Last log lines:"
-            sudo journalctl -u "${SERVICE_NAME}" -n 20 --no-pager 2>/dev/null || true
-            error "Service '${SERVICE_NAME}' failed to start — see logs above. Fix the issue and re-run Step 10."
+            warn "Application did not come up within 15 seconds. Last log lines:"
+            pm2 logs "${SERVICE_NAME}" --lines 20 2>/dev/null || true
+            error "Application '${SERVICE_NAME}' failed to start — see logs above."
         fi
     done
+    pm2 save
+    pm2 startup 2>/dev/null || true
 
     # ── Nginx + SSL ──────────────────────────────────────────────────────────
-    hdr "Step 10b/10  Nginx + SSL"
+    hdr "Step 10b/10  Nginx booking.conf + SSL"
 
-    # ── Remove any existing certbot certificates for this domain ─────────────
-    info "Checking for existing certbot certificates for '${DOMAIN}'..."
+    info "Checking for existing certificates for '${DOMAIN}'..."
     EXISTING_CERTS=()
     for CANDIDATE in \
         "/etc/letsencrypt/live/${DOMAIN}" \
         "/etc/letsencrypt/live/${DOMAIN}-0001" \
         "/etc/letsencrypt/live/${DOMAIN}-0002" \
         "/etc/letsencrypt/live/${DOMAIN}-0003"; do
-        if [ -d "${CANDIDATE}" ]; then
-            CERT_NAME="$(basename "${CANDIDATE}")"
-            EXISTING_CERTS+=("${CERT_NAME}")
-        fi
+        [ -d "${CANDIDATE}" ] && EXISTING_CERTS+=("$(basename "${CANDIDATE}")")
     done
 
     if [ ${#EXISTING_CERTS[@]} -gt 0 ]; then
-        warn "Found ${#EXISTING_CERTS[@]} existing certificate(s) for '${DOMAIN}' — removing them now."
+        warn "Found ${#EXISTING_CERTS[@]} existing certificate(s) — removing for clean re-issue."
         for CERT_NAME in "${EXISTING_CERTS[@]}"; do
             info "Deleting certificate: ${CERT_NAME}"
             sudo certbot delete --cert-name "${CERT_NAME}" --non-interactive 2>/dev/null \
-                || sudo rm -rf "/etc/letsencrypt/live/${CERT_NAME}" \
-                               "/etc/letsencrypt/archive/${CERT_NAME}" \
-                               "/etc/letsencrypt/renewal/${CERT_NAME}.conf"
+                || sudo rm -rf \
+                    "/etc/letsencrypt/live/${CERT_NAME}" \
+                    "/etc/letsencrypt/archive/${CERT_NAME}" \
+                    "/etc/letsencrypt/renewal/${CERT_NAME}.conf"
         done
-        success "Old certificate(s) removed — a fresh one will be issued."
-    else
-        info "No existing certificates found for '${DOMAIN}' — proceeding to issue a new one."
+        success "Old certificate(s) removed."
     fi
 
     local CERT_BASE=""
@@ -615,62 +1027,11 @@ EOF
         "/etc/letsencrypt/live/${DOMAIN}-0002" \
         "/etc/letsencrypt/live/${DOMAIN}-0003"; do
         if [ -f "${CANDIDATE}/fullchain.pem" ] && [ -f "${CANDIDATE}/privkey.pem" ]; then
-            CERT_BASE="$CANDIDATE"
-            break
+            CERT_BASE="$CANDIDATE"; break
         fi
     done
 
-    if [ -z "$CERT_BASE" ]; then
-        info "No SSL certificate found for '${DOMAIN}' — requesting one from Let's Encrypt now."
-        echo ""
-
-        read -rp "$(echo -e "${BOLD}Email for SSL certificate notices${RESET} [admin@${DOMAIN}]: ")" _CERT_EMAIL
-        _CERT_EMAIL="${_CERT_EMAIL:-admin@${DOMAIN}}"
-
-        local TMP_SITE="/etc/nginx/sites-available/${SERVICE_NAME}_acme"
-        sudo tee "$TMP_SITE" > /dev/null <<ACMENGINX
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN} www.${DOMAIN};
-    root /var/www/html;
-    location /.well-known/acme-challenge/ { try_files \$uri =404; }
-    location / { return 444; }
-}
-ACMENGINX
-        sudo ln -sf "$TMP_SITE" "/etc/nginx/sites-enabled/${SERVICE_NAME}_acme"
-        sudo nginx -t && sudo systemctl reload nginx \
-            || error "Nginx config test failed — fix nginx errors and re-run Step 10."
-
-        info "Running certbot — make sure ${DOMAIN} and www.${DOMAIN} point to this server's IP and port 80 is open."
-        sudo certbot certonly --nginx \
-            -d "${DOMAIN}" -d "www.${DOMAIN}" \
-            --non-interactive --agree-tos -m "${_CERT_EMAIL}" \
-            || error "Certbot failed. Confirm DNS is pointing to this server and port 80 is reachable, then re-run Step 10."
-
-        sudo rm -f "/etc/nginx/sites-enabled/${SERVICE_NAME}_acme" "$TMP_SITE"
-        sudo systemctl reload nginx
-
-        for CANDIDATE in \
-            "/etc/letsencrypt/live/${DOMAIN}" \
-            "/etc/letsencrypt/live/${DOMAIN}-0001" \
-            "/etc/letsencrypt/live/${DOMAIN}-0002" \
-            "/etc/letsencrypt/live/${DOMAIN}-0003"; do
-            if [ -f "${CANDIDATE}/fullchain.pem" ] && [ -f "${CANDIDATE}/privkey.pem" ]; then
-                CERT_BASE="$CANDIDATE"
-                break
-            fi
-        done
-
-        [[ -z "$CERT_BASE" ]] \
-            && error "Certificate was issued but could not be located under /etc/letsencrypt/live/ — check certbot output above."
-
-        success "SSL certificate obtained at ${CERT_BASE}/"
-    else
-        info "Existing SSL certificate found at ${CERT_BASE}/"
-        info "Reusing existing certificate — no new certbot request needed."
-    fi
-
+    # Clean up default site and broken symlinks
     [ -L /etc/nginx/sites-enabled/default ] \
         && sudo rm -f /etc/nginx/sites-enabled/default \
         && info "Removed default nginx site."
@@ -680,27 +1041,105 @@ ACMENGINX
             && warn "Removed broken symlink: ${LINK}"
     done
 
-    local NG_GLOBAL="/etc/nginx/conf.d/certxa_global.conf"
-    sudo tee "$NG_GLOBAL" > /dev/null <<NGXGLOBAL
-server_tokens off;
-client_max_body_size 50M;
-NGXGLOBAL
-    info "Wrote ${NG_GLOBAL}"
+    # Clean up any old nginx configs from previous runs
+    sudo rm -f \
+        /etc/nginx/sites-enabled/booking.conf \
+        /etc/nginx/sites-available/booking.conf \
+        /etc/nginx/conf.d/certxa_global.conf \
+        /etc/nginx/sites-enabled/certxa \
+        /etc/nginx/sites-available/certxa \
+        2>/dev/null || true
 
-    local NGINX_SITE="/etc/nginx/sites-available/${SERVICE_NAME}"
+    if [ -z "$CERT_BASE" ]; then
+        local CERT_EMAIL_INPUT
+        set +e
+        CERT_EMAIL_INPUT=$(whiptail \
+            --title "  SSL Certificate Email  " \
+            --backtitle "$BACKTITLE" \
+            --inputbox "\nEnter email for Let's Encrypt SSL certificate notices:\n\nNote: A wildcard cert (*.${DOMAIN}) requires DNS\nchallenge. If your DNS provider supports it, certbot\nwill prompt you through the process." \
+            13 64 "${CERT_EMAIL:-admin@${DOMAIN}}" \
+            3>&1 1>&2 2>&3)
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+            CERT_EMAIL_INPUT="admin@${DOMAIN}"
+        fi
+        CERT_EMAIL="${CERT_EMAIL_INPUT:-admin@${DOMAIN}}"
+
+        info "Stopping Nginx briefly so certbot can use port 80..."
+        sudo systemctl stop nginx
+
+        # Issue cert for root domain and www — wildcard subdomains use the same cert
+        # if your DNS provider supports ACME DNS-01; otherwise a separate wildcard
+        # cert can be issued via: certbot certonly --manual --preferred-challenges dns
+        info "Running certbot for ${DOMAIN} and www.${DOMAIN}..."
+        sudo certbot certonly --standalone \
+            -d "${DOMAIN}" -d "www.${DOMAIN}" \
+            --non-interactive --agree-tos -m "${CERT_EMAIL}" || true
+
+        sudo systemctl start nginx
+        info "Nginx restarted."
+
+        for CANDIDATE in \
+            "/etc/letsencrypt/live/${DOMAIN}" \
+            "/etc/letsencrypt/live/${DOMAIN}-0001" \
+            "/etc/letsencrypt/live/${DOMAIN}-0002" \
+            "/etc/letsencrypt/live/${DOMAIN}-0003"; do
+            if [ -f "${CANDIDATE}/fullchain.pem" ] && [ -s "${CANDIDATE}/fullchain.pem" ] \
+                && [ -f "${CANDIDATE}/privkey.pem" ] && [ -s "${CANDIDATE}/privkey.pem" ]; then
+                CERT_BASE="$CANDIDATE"
+                success "SSL certificate validated: ${CANDIDATE}"
+                break
+            fi
+        done
+        [ -z "$CERT_BASE" ] && error "SSL certificate validation failed for ${DOMAIN}."
+        success "SSL certificate obtained at ${CERT_BASE}/"
+    else
+        info "Reusing existing certificate at ${CERT_BASE}/"
+    fi
+
+    # ── Write booking.conf ───────────────────────────────────────────────────
+    # server_name includes *.${DOMAIN} so booking-slug subdomains
+    # (e.g. salon.certxa.com) are routed here and the Express subdomain
+    # middleware can extract the slug from the forwarded host header.
+    # X-Forwarded-Host is passed on every block for the same reason.
+    # The app manages CORS — no Access-Control-Allow-* headers are set here.
+    local NGINX_SITE="/etc/nginx/sites-available/booking.conf"
     sudo tee "${NGINX_SITE}" > /dev/null <<NGINXEOF
+# =============================================================================
+#  booking.conf  –  Certxa Booking Platform  –  auto-generated by setup.sh
+#
+#  server_name includes *.${DOMAIN} so that booking-slug subdomains such as
+#  salon.${DOMAIN} are routed to the app, where the subdomain middleware
+#  resolves the store from the slug.
+#
+#  X-Forwarded-Host is set on every proxy block so Express can read the
+#  original hostname even behind this reverse proxy.
+#
+#  CORS is handled entirely by the Express app — do NOT add
+#  Access-Control-Allow-* headers here.
+# =============================================================================
+
+# ── HTTP → HTTPS redirect ─────────────────────────────────────────────────────
 server {
     listen 80;
     listen [::]:80;
-    server_name ${DOMAIN} www.${DOMAIN};
+    server_name ${DOMAIN} www.${DOMAIN} *.${DOMAIN};
     return 301 https://\$host\$request_uri;
 }
 
+# ── Main HTTPS server ─────────────────────────────────────────────────────────
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name ${DOMAIN} www.${DOMAIN};
 
+    # Root domain, www, and all booking-slug subdomains
+    server_name ${DOMAIN} www.${DOMAIN} *.${DOMAIN};
+
+    client_max_body_size 50M;
+
+    # ── SSL ──────────────────────────────────────────────────────────────────
     ssl_certificate     ${CERT_BASE}/fullchain.pem;
     ssl_certificate_key ${CERT_BASE}/privkey.pem;
     ssl_trusted_certificate ${CERT_BASE}/chain.pem;
@@ -714,58 +1153,125 @@ server {
     ssl_stapling on;
     ssl_stapling_verify on;
 
+    # ── Security headers ─────────────────────────────────────────────────────
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
     add_header X-Frame-Options SAMEORIGIN always;
     add_header X-Content-Type-Options nosniff always;
-    add_header Referrer-Policy no-referrer-when-downgrade always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
 
+    # ── API routes ───────────────────────────────────────────────────────────
+    # proxy_buffering off so streaming/SSE responses are not held back.
+    # proxy_pass_header Set-Cookie passes session cookies to the client.
     location /api/ {
         proxy_pass http://127.0.0.1:${APP_PORT};
         proxy_http_version 1.1;
-        proxy_set_header Upgrade           \$http_upgrade;
-        proxy_set_header Connection        "upgrade";
+
         proxy_set_header Host              \$host;
         proxy_set_header X-Real-IP         \$remote_addr;
         proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host  \$host;
+
         proxy_read_timeout 60s;
-        proxy_connect_timeout 5s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 60s;
+
         proxy_buffering off;
         proxy_pass_header Set-Cookie;
     }
 
-    location /uploads/ {
+    # ── Auth callback routes ──────────────────────────────────────────────────
+    # Explicit regex block so Google OAuth callbacks get cookie passthrough
+    # and correct forwarded headers — must appear before the /api/ block
+    # in Nginx location priority (regex > prefix), so it wins for /api/auth/.
+    location ~ ^/api/auth/ {
         proxy_pass http://127.0.0.1:${APP_PORT};
         proxy_http_version 1.1;
+
         proxy_set_header Host              \$host;
         proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_valid 200 7d;
-        add_header Cache-Control "public, max-age=604800, immutable";
+        proxy_set_header X-Forwarded-Host  \$host;
+
+        proxy_buffering off;
+        proxy_pass_header Set-Cookie;
+        proxy_read_timeout 30s;
     }
 
-    location / {
+    # ── WebSocket ────────────────────────────────────────────────────────────
+    # Handles real-time features that use WebSocket connections.
+    location /ws {
         proxy_pass http://127.0.0.1:${APP_PORT};
         proxy_http_version 1.1;
+
         proxy_set_header Upgrade           \$http_upgrade;
         proxy_set_header Connection        "upgrade";
         proxy_set_header Host              \$host;
         proxy_set_header X-Real-IP         \$remote_addr;
         proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 60s;
+        proxy_set_header X-Forwarded-Host  \$host;
+
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
     }
 
-    access_log /var/log/nginx/certxa_access.log;
-    error_log  /var/log/nginx/certxa_error.log warn;
+    # ── Static uploaded assets ────────────────────────────────────────────────
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              \$host;
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        proxy_cache_valid 200 7d;
+        add_header Cache-Control "public, max-age=604800, immutable";
+    }
+
+    # ── Catch-all — SPA + booking pages ──────────────────────────────────────
+    # Handles the React SPA, public booking widget routes, and all other
+    # paths. WebSocket upgrade headers are included so that any upgrade
+    # request not matched above is still handled correctly.
+    location / {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade           \$http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_set_header Host              \$host;
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        # Critical: lets Express read the original hostname (e.g. salon.${DOMAIN})
+        # and resolve the booking store slug via the subdomain middleware.
+        proxy_set_header X-Forwarded-Host  \$host;
+
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+
+        proxy_pass_header Set-Cookie;
+    }
+
+    # ── Logs ─────────────────────────────────────────────────────────────────
+    access_log /var/log/nginx/booking_access.log;
+    error_log  /var/log/nginx/booking_error.log warn;
 }
 NGINXEOF
 
-    sudo ln -sf "${NGINX_SITE}" "/etc/nginx/sites-enabled/${SERVICE_NAME}"
-    sudo nginx -t
+    sudo ln -sf "${NGINX_SITE}" "/etc/nginx/sites-enabled/booking.conf"
+
+    info "Testing nginx configuration..."
+    sudo nginx -t || error "Nginx config test failed — check output above and re-run Step 10."
+
+    if ! sudo systemctl is-active --quiet nginx; then
+        sudo systemctl start nginx
+    fi
     sudo systemctl reload nginx
     sudo systemctl enable certbot.timer 2>/dev/null || true
-    success "Nginx configured and reloaded."
+    success "Nginx configured and reloaded — booking.conf active."
 }
 
 # ─── RUN FROM A GIVEN STEP ────────────────────────────────────────────────────
@@ -787,14 +1293,17 @@ run_from() {
     echo -e "${BOLD}${GREEN}  Setup complete!${RESET}"
     echo ""
     echo -e "  ${BOLD}Site      :${RESET} ${CYAN}https://${DOMAIN}${RESET}"
-    echo -e "  ${BOLD}Admin     :${RESET} https://${DOMAIN}/login"
+    echo -e "  ${BOLD}Login     :${RESET} https://${DOMAIN}/login"
+    echo -e "  ${BOLD}Admin     :${RESET} https://${DOMAIN}/isadmin"
     echo -e "  ${BOLD}Database  :${RESET} ${DB_NAME}  (user: ${DB_USER})"
-    echo -e "  ${BOLD}Service   :${RESET} ${SERVICE_NAME}  (systemd)"
+    echo -e "  ${BOLD}Service   :${RESET} ${SERVICE_NAME}  (PM2)"
+    echo -e "  ${BOLD}Nginx     :${RESET} /etc/nginx/sites-available/booking.conf"
     echo ""
     echo -e "  ${BOLD}Useful commands:${RESET}"
-    echo -e "    App logs  : sudo journalctl -u ${SERVICE_NAME} -f"
-    echo -e "    Restart   : sudo systemctl restart ${SERVICE_NAME}"
-    echo -e "    Nginx log : sudo tail -f /var/log/nginx/certxa_error.log"
+    echo -e "    App logs  : pm2 logs ${SERVICE_NAME} -f"
+    echo -e "    Restart   : pm2 restart ${SERVICE_NAME}"
+    echo -e "    PM2 list  : pm2 list"
+    echo -e "    Nginx log : sudo tail -f /var/log/nginx/booking_error.log"
     echo -e "    Firewall  : sudo ufw status"
     echo ""
     echo -e "  ${BOLD}${YELLOW}Fill in your API keys in .env then restart:${RESET}"
@@ -803,91 +1312,33 @@ run_from() {
     echo -e "    GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET"
     echo -e "    MAILGUN_API_KEY / MAILGUN_DOMAIN / MAILGUN_FROM_EMAIL"
     echo -e "    TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER"
-    echo -e "    STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET"
     echo -e "    TEXTBELT_API_KEY"
+    echo -e "    STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET"
     echo ""
-    echo -e "    sudo systemctl restart ${SERVICE_NAME}"
+    echo -e "    pm2 restart ${SERVICE_NAME}"
     echo -e "${BOLD}${GREEN}════════════════════════════════════════════════${RESET}"
     echo ""
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MENU
+#  MAIN EXECUTION
 # ═══════════════════════════════════════════════════════════════════════════════
 
+ensure_whiptail
+load_config
+check_apache
+show_disclaimer
+prompt_domain
+prompt_port
+
+# Unattended mode — skip menu and run everything
 if [ "$AUTO_YES" = true ]; then
     info "Running all steps unattended (--yes flag set)."
     run_from 1
     exit 0
 fi
 
-show_menu() {
-    clear
-    echo -e "${BOLD}${CYAN}"
-    echo "  ╔══════════════════════════════════════════════════════════╗"
-    echo "  ║          Certxa  –  VPS Setup Menu                      ║"
-    echo "  ╠══════════════════════════════════════════════════════════╣"
-    echo "  ║                                                          ║"
-    echo "  ║   Domain : ${DOMAIN}"
-    echo "  ║                                                          ║"
-    echo "  ║   1)  Full Setup  (run all steps from the beginning)     ║"
-    echo "  ║                                                          ║"
-    echo "  ║   ── Resume / re-run from a specific step ──             ║"
-    echo "  ║   2)  Step  1  –  Swap space                            ║"
-    echo "  ║   3)  Step  2  –  System packages & Node.js             ║"
-    echo "  ║   4)  Step  3  –  Firewall  (UFW + fail2ban)            ║"
-    echo "  ║   5)  Step  4  –  npm install                           ║"
-    echo "  ║   6)  Step  5  –  PostgreSQL database & user            ║"
-    echo "  ║   7)  Step  6  –  .env configuration                    ║"
-    echo "  ║   8)  Step  7  –  Uploads directory                     ║"
-    echo "  ║   9)  Step  8  –  Database schema (Drizzle push)        ║"
-    echo "  ║  10)  Step  9  –  Production build                      ║"
-    echo "  ║  11)  Step 10  –  systemd service + Nginx + SSL         ║"
-    echo "  ║                                                          ║"
-    echo "  ║   0)  Exit                                               ║"
-    echo "  ║                                                          ║"
-    echo "  ╚══════════════════════════════════════════════════════════╝"
-    echo -e "${RESET}"
-    echo -e "  ${YELLOW}Note: every step is safe to re-run — it skips work${RESET}"
-    echo -e "  ${YELLOW}that is already done and only applies what's missing.${RESET}"
-    echo ""
-}
-
+# Interactive whiptail menu loop
 while true; do
     show_menu
-    read -rp "  Enter choice [0-11]: " CHOICE
-
-    case "$CHOICE" in
-        0)
-            echo "Exiting."; exit 0 ;;
-        1)
-            run_from 1  ;;
-        2)
-            run_from 1  ;;
-        3)
-            run_from 2  ;;
-        4)
-            run_from 3  ;;
-        5)
-            run_from 4  ;;
-        6)
-            run_from 5  ;;
-        7)
-            run_from 6  ;;
-        8)
-            run_from 7  ;;
-        9)
-            run_from 8  ;;
-        10)
-            run_from 9  ;;
-        11)
-            run_from 10 ;;
-        *)
-            echo -e "${RED}Invalid choice — please enter a number between 0 and 11.${RESET}"
-            sleep 1 ;;
-    esac
-
-    echo ""
-    read -rp "  Return to menu? [Y/n]: " AGAIN
-    [[ "${AGAIN,,}" == "n" ]] && break
 done
