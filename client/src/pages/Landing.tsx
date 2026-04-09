@@ -1,10 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowRight, ChevronLeft, ChevronRight, Calendar, BarChart3, Scissors, Users, DollarSign,
-  Banknote, Clock, ShoppingBag, Puzzle, Receipt, Building2, UserCircle, PlayCircle
+  ArrowRight, ChevronLeft, ChevronRight, PlayCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import HeroVideo from "./components/HeroVideo";
@@ -135,109 +133,6 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Social Proof Bar */}
-      <div className="bg-[#0A2540] py-6 border-y border-white/10 relative z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <p className="text-white/80 font-medium text-lg flex items-center gap-3">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00D4AA]"></span>
-              </span>
-              Trusted by 10,000+ businesses worldwide
-            </p>
-            <div className="flex flex-wrap justify-center gap-8 text-white/60 font-medium text-sm md:text-base">
-              <div className="flex items-center gap-2">
-                <span className="text-[#00D4AA] font-bold">✓</span> Phorest Alternative
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[#00D4AA] font-bold">✓</span> Vagaro Alternative
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[#00D4AA] font-bold">✓</span> Zolmi Alternative
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="py-32 bg-slate-50 text-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-[#0A2540]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              Everything Your Business Needs
-            </h2>
-            <p className="text-slate-500 text-xl max-w-2xl mx-auto font-light">
-              From nail salons to tattoo studios — one platform handles it all with powerful, easy-to-use tools.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <FeatureCard
-              icon={<Calendar className="w-6 h-6 text-[#00D4AA]" />}
-              title="Timezone-Aware Calendar"
-              description="Visual day-view calendar with staff columns, current-time indicator, and auto-scroll. Appointments display with color-coded staff blocks."
-            />
-            <FeatureCard
-              icon={<Scissors className="w-6 h-6 text-[#00D4AA]" />}
-              title="Services & Add-Ons"
-              description="Organize services by category with flexible pricing. Attach add-ons to appointments for upselling with inline batch editing."
-            />
-            <FeatureCard
-              icon={<UserCircle className="w-6 h-6 text-[#00D4AA]" />}
-              title="Staff Management"
-              description="Staff profiles with role assignments, calendar colors, weekly availability rules, and service-level permissions."
-            />
-            <FeatureCard
-              icon={<Users className="w-6 h-6 text-[#00D4AA]" />}
-              title="Client Records"
-              description="Full client profiles with appointment history, contact details, and notes. On-screen keyboard for quick client lookup at the desk."
-            />
-            <FeatureCard
-              icon={<DollarSign className="w-6 h-6 text-[#00D4AA]" />}
-              title="POS Checkout"
-              description="Full-featured point-of-sale with split tender support, tip presets, discount management, and tax calculation built right into the calendar."
-            />
-            <FeatureCard
-              icon={<Banknote className="w-6 h-6 text-[#00D4AA]" />}
-              title="Cash Drawer & Z Report"
-              description="Open and close cash drawer sessions, track cash in/out actions, denomination counting, and end-of-day Z report reconciliation."
-            />
-            <FeatureCard
-              icon={<Receipt className="w-6 h-6 text-[#00D4AA]" />}
-              title="Thermal Receipt Printing"
-              description="Generate and print 80mm thermal receipts directly from checkout with transaction details, itemized totals, and payment breakdown."
-            />
-            <FeatureCard
-              icon={<BarChart3 className="w-6 h-6 text-[#00D4AA]" />}
-              title="Commission Tracking"
-              description="Per-staff commission rates with detailed payout reports. Filter by date range and track service revenue vs. commission earned."
-            />
-            <FeatureCard
-              icon={<ShoppingBag className="w-6 h-6 text-[#00D4AA]" />}
-              title="Product Inventory"
-              description="Track retail products with stock levels, pricing, and categories. Inline editing for quick batch updates across your catalog."
-            />
-            <FeatureCard
-              icon={<Clock className="w-6 h-6 text-[#00D4AA]" />}
-              title="Appointment Workflows"
-              description="Status-based booking lifecycle: pending, confirmed, started, completed, cancelled, and no-show with cancellation reasons."
-            />
-            <FeatureCard
-              icon={<Building2 className="w-6 h-6 text-[#00D4AA]" />}
-              title="Multi-Store Support"
-              description="Manage multiple locations with independent business hours, timezone settings, and store-scoped data across all features."
-            />
-            <FeatureCard
-              icon={<Puzzle className="w-6 h-6 text-[#00D4AA]" />}
-              title="Business-Type Onboarding"
-              description="Choose your business type on signup and get auto-created services, categories, and add-ons tailored to your salon type."
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Business Types Section — Video Cards */}
       <div className="py-32 bg-[#060E1A] text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D4AA]/8 blur-[140px] rounded-full pointer-events-none" />
@@ -303,20 +198,6 @@ export default function Landing() {
         </div>
       </footer>
     </div>
-  );
-}
-
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-  return (
-    <Card className="border-0 shadow-[0_4px_20px_rgb(0,0,0,0.05)] hover:shadow-[0_10px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 bg-white rounded-3xl overflow-hidden group">
-      <CardContent className="p-8">
-        <div className="mb-6 p-4 bg-gradient-to-br from-[#00D4AA]/20 to-[#00D4AA]/5 rounded-2xl w-fit group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 text-[#00D4AA]">
-          {icon}
-        </div>
-        <h3 className="text-xl font-bold mb-3 text-[#0A2540]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
-        <p className="text-slate-500 leading-relaxed font-light">{description}</p>
-      </CardContent>
-    </Card>
   );
 }
 

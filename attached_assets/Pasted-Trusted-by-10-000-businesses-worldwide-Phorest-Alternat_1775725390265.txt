@@ -1,0 +1,46 @@
+Trusted by 10,000+ businesses worldwide
+
+✓
+Phorest Alternative
+✓
+Vagaro Alternative
+✓
+Zolmi Alternative
+Everything Your Business Needs
+From nail salons to tattoo studios — one platform handles it all with powerful, easy-to-use tools.
+
+Timezone-Aware Calendar
+Visual day-view calendar with staff columns, current-time indicator, and auto-scroll. Appointments display with color-coded staff blocks.
+
+Services & Add-Ons
+Organize services by category with flexible pricing. Attach add-ons to appointments for upselling with inline batch editing.
+
+Staff Management
+Staff profiles with role assignments, calendar colors, weekly availability rules, and service-level permissions.
+
+Client Records
+Full client profiles with appointment history, contact details, and notes. On-screen keyboard for quick client lookup at the desk.
+
+POS Checkout
+Full-featured point-of-sale with split tender support, tip presets, discount management, and tax calculation built right into the calendar.
+
+Cash Drawer & Z Report
+Open and close cash drawer sessions, track cash in/out actions, denomination counting, and end-of-day Z report reconciliation.
+
+Thermal Receipt Printing
+Generate and print 80mm thermal receipts directly from checkout with transaction details, itemized totals, and payment breakdown.
+
+Commission Tracking
+Per-staff commission rates with detailed payout reports. Filter by date range and track service revenue vs. commission earned.
+
+Product Inventory
+Track retail products with stock levels, pricing, and categories. Inline editing for quick batch updates across your catalog.
+
+Appointment Workflows
+Status-based booking lifecycle: pending, confirmed, started, completed, cancelled, and no-show with cancellation reasons.
+
+Multi-Store Support
+Manage multiple locations with independent business hours, timezone settings, and store-scoped data across all features.
+
+Business-Type Onboarding
+Choose your business type on signup and get auto-created services, categories, and add-ons tailored to your salon type.
