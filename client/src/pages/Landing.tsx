@@ -257,8 +257,11 @@ function LandingBusinessCard({ type }: {
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover opacity-60"
         />
+        {/* Permanent dim overlay — matches hero gradient style */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/20 via-[#060E1A]/10 to-[#060E1A]/50 pointer-events-none" />
+        {/* Hover overlay with label */}
         <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <span className="bg-white text-[#0A2540] text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
             {type.label}
