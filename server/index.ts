@@ -158,6 +158,14 @@ app.get(
 
 // --- Main Async Boot ---
 (async () => {
+  // Setup static file serving BEFORE API routes to prevent conflicts
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    const { setupVite } = await import("./vite");
+    await setupVite(httpServer, app);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -172,13 +180,6 @@ app.get(
 
     return res.status(status).json({ message });
   });
-
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  }
 
   const port = parseInt(process.env.PORT || "5005", 10);
   httpServer.listen(
