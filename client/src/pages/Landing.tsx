@@ -261,16 +261,21 @@ function LandingBusinessCard({ type }: {
         />
         {/* Permanent dim overlay — matches hero gradient style */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/20 via-[#060E1A]/10 to-[#060E1A]/50 pointer-events-none" />
-        {/* Hover overlay with label */}
-        <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <span className="bg-white text-[#0A2540] text-xs font-semibold px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
+        {/* Frosted glass label banner — etched text style */}
+        <div className="absolute left-0 right-0 bottom-[18%] py-3 bg-white/10 backdrop-blur-md border-t border-b border-white/20 flex items-center justify-center pointer-events-none">
+          <span
+            className="text-xs font-light tracking-[0.2em] text-white/75 uppercase"
+            style={{
+              textShadow: "0 1px 3px rgba(0,0,0,0.5), 0 -1px 1px rgba(255,255,255,0.12)",
+            }}
+          >
             {type.label}
           </span>
         </div>
+        {/* Subtle hover brightening */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white/5" />
       </div>
-      <div className="mt-3">
-        <p className="font-semibold text-white text-sm leading-tight group-hover:text-[#00D4AA] transition-colors">{type.label}</p>
-      </div>
+      <div className="mt-3 h-5" />
     </div>
   );
 }
