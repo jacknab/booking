@@ -951,7 +951,6 @@ module.exports = {
       name: '${SERVICE_NAME}',
       script: 'dist/index.cjs',
       cwd: '${APP_DIR}',
-      env_file: '${APP_DIR}/.env',
       instances: 1,
       exec_mode: 'fork',
       env: {
