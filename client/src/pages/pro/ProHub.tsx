@@ -9,7 +9,7 @@ import {
   Menu, X,
 } from "lucide-react";
 import { PRO_INDUSTRIES, PRO_CATEGORIES } from "./proIndustries";
-import dispatchImg from "@assets/image_1775799165749.png";
+import dispatchImg from "@assets/image_1775799875420.png";
 
 const STATS = [
   { value: "50,000+",  label: "Service Pros"         },
