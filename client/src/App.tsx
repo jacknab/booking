@@ -25,6 +25,7 @@ import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
 import Analytics from "@/pages/Analytics";
 import Reports from "@/pages/Reports";
+import IndustriesHub from "@/pages/IndustriesHub";
 import Waitlist from "@/pages/Waitlist";
 import GiftCards from "@/pages/GiftCards";
 import IntakeForms from "@/pages/IntakeForms";
@@ -134,6 +135,7 @@ function AppRoutes() {
       <Route path="/hair-salons" element={<HairSalonLanding />} />
       <Route path="/groomers" element={<PetGroomerLanding />} />
       <Route path="/estheticians" element={<EstheticianLanding />} />
+      <Route path="/industries" element={<IndustriesHub />} />
       <Route path="/house-cleaning" element={<HouseCleaningLanding />} />
       <Route path="/handyman" element={<HandymanLanding />} />
       <Route path="/ride-service" element={<RideServiceLanding />} />

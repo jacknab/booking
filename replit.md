@@ -2,7 +2,15 @@
 
 ## Overview
 
-This is a **salon/spa management application** (a Certxa clone) — a full-stack web app for managing salon businesses. It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app features a landing page for unauthenticated users and a full management dashboard behind authentication.
+This is the **Certxa** platform — a full-stack booking and business management app for service pros across all industries (salons, spas, home services, gig work, and trades). It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app has a public marketing section targeting 30+ industries and a full management dashboard behind authentication.
+
+**Key public pages:**
+- `/` — Main landing page (salon/spa focus with business type carousel)
+- `/industries` — Industries Hub (all 30+ supported service categories in a grid)
+- `/handyman`, `/house-cleaning`, `/lawn-care`, `/dog-walking`, `/tutoring` — Gig industry landing pages
+- `/barbers`, `/hair-salons`, `/nails`, `/spa`, `/estheticians`, `/tattoo`, `/haircuts`, `/groomers`, `/ride-service`, `/snow-removal` — Beauty & personal service landing pages
+
+**Key dashboard pages:** `/dashboard`, `/calendar`, `/services`, `/staff`, `/customers`, `/products`, `/analytics`, `/reports`, `/commission-report`, `/pos`, `/loyalty`, `/gift-cards`, `/reviews`, `/waitlist`, `/intake-forms`
 
 ## User Preferences
 

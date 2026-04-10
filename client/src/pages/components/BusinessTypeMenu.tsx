@@ -80,9 +80,9 @@ export default function BusinessTypeMenu() {
             </div>
             <div className="px-4 py-3 border-t border-white/10">
               <Link
-                to="/"
+                to="/industries"
                 onClick={() => setOpen(false)}
-                className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                className="text-xs text-white/40 hover:text-[#00D4AA] transition-colors"
               >
                 View all industries →
               </Link>
