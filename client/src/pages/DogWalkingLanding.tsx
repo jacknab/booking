@@ -125,6 +125,7 @@ const config: IndustryConfig = {
   ctaHeadline: "Ready to Walk More Dogs?",
   ctaSub: "Start your 60-day free trial. No credit card required. Cancel any time.",
   ctaContext: "Join thousands of dog walkers already using Certxa to grow their business.",
+  industryId: "dog-walking",
 };
 
 export default function DogWalkingLanding() {

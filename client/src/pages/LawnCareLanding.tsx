@@ -125,6 +125,7 @@ const config: IndustryConfig = {
   ctaHeadline: "Ready to Grow Your Lawn Business?",
   ctaSub: "Start your 60-day free trial. No credit card required. Cancel any time.",
   ctaContext: "Join thousands of lawn care pros already using Certxa.",
+  industryId: "lawn-care",
 };
 
 export default function LawnCareLanding() {

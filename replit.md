@@ -140,8 +140,20 @@ Marketing landing pages targeting specific industries, each with a hero video ba
 | Lawn Care | `/lawn-care` | `LawnCareLanding.tsx` |
 | Tutoring | `/tutoring` | `TutoringLanding.tsx` |
 | Dog Walking | `/dog-walking` | `DogWalkingLanding.tsx` |
+| HVAC | `/hvac` | `HVACLanding.tsx` |
+| Plumbing | `/plumbing` | `PlumbingLanding.tsx` |
+| Electrical | `/electrical` | `ElectricalLanding.tsx` |
+| Carpet Cleaning | `/carpet-cleaning` | `CarpetCleaningLanding.tsx` |
+| Pressure Washing | `/pressure-washing` | `PressureWashingLanding.tsx` |
+| Window Cleaning | `/window-cleaning` | `WindowCleaningLanding.tsx` |
 
-Each page has a matching `*HeroVideo.tsx` component in `client/src/pages/components/` that cycles through Pexels video clips with Unsplash image fallbacks.
+All pages use the shared `IndustryLandingTemplate.tsx` component — each is a ~100–150 line data-config file. Pages without custom hero video use `DarkHeroBackground.tsx` (navy gradient + teal glow + dot grid). Each page has a `*HeroVideo.tsx` component in `client/src/pages/components/` for industries that have one.
+
+### Industries Hub
+`/industries` — Hub page listing all industries in 3 categories (Trade Services, Personal Services, Beauty & Wellness). Live pages link directly; "Coming Soon" industries show a badge without a link.
+
+### Revenue Calculator
+`RevenueCalculator.tsx` in `client/src/components/marketing/` — 4-step widget embedded in both the Industries Hub and each individual industry landing page. Industries: 21 categories × 4 team sizes × 3 region tiers (urban/suburban/rural via ZIP3 prefix lookup).
 
 ### Competitor Features (Added)
 Five features researched from top platforms (Fresha, Vagaro, Square Appointments, Acuity, Mindbody) and implemented:

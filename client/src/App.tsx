@@ -67,6 +67,12 @@ import SnowRemovalLanding from "@/pages/SnowRemovalLanding";
 import LawnCareLanding from "@/pages/LawnCareLanding";
 import TutoringLanding from "@/pages/TutoringLanding";
 import DogWalkingLanding from "@/pages/DogWalkingLanding";
+import HVACLanding from "@/pages/HVACLanding";
+import PlumbingLanding from "@/pages/PlumbingLanding";
+import ElectricalLanding from "@/pages/ElectricalLanding";
+import CarpetCleaningLanding from "@/pages/CarpetCleaningLanding";
+import PressureWashingLanding from "@/pages/PressureWashingLanding";
+import WindowCleaningLanding from "@/pages/WindowCleaningLanding";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -143,6 +149,12 @@ function AppRoutes() {
       <Route path="/lawn-care" element={<LawnCareLanding />} />
       <Route path="/tutoring" element={<TutoringLanding />} />
       <Route path="/dog-walking" element={<DogWalkingLanding />} />
+      <Route path="/hvac" element={<HVACLanding />} />
+      <Route path="/plumbing" element={<PlumbingLanding />} />
+      <Route path="/electrical" element={<ElectricalLanding />} />
+      <Route path="/carpet-cleaning" element={<CarpetCleaningLanding />} />
+      <Route path="/pressure-washing" element={<PressureWashingLanding />} />
+      <Route path="/window-cleaning" element={<WindowCleaningLanding />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />

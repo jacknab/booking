@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import BusinessTypeMenu from "./BusinessTypeMenu";
+import RevenueCalculator from "@/components/marketing/RevenueCalculator";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ export interface IndustryConfig {
   ctaHeadline: string;
   ctaSub: string;
   ctaContext: string;
+  industryId?: string;
 }
 
 // ── Mock UI visuals per tab ───────────────────────────────────────────────────
@@ -614,6 +616,9 @@ export default function IndustryLandingTemplate({ config }: { config: IndustryCo
 
       {/* Compare Table */}
       <CompareTable title={config.compareTitle} subtitle={config.compareSubtitle} rows={config.compareRows} />
+
+      {/* Revenue Calculator */}
+      <RevenueCalculator defaultIndustry={config.industryId} />
 
       {/* FAQ */}
       <FaqSection faqs={config.faqs} />

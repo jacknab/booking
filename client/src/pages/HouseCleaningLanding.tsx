@@ -125,6 +125,7 @@ const config: IndustryConfig = {
   ctaHeadline: "Ready to Fill Your Calendar?",
   ctaSub: "Start your 60-day free trial. No credit card required. Cancel any time.",
   ctaContext: "Join thousands of cleaning businesses already using Certxa.",
+  industryId: "house-cleaning",
 };
 
 export default function HouseCleaningLanding() {

@@ -125,6 +125,7 @@ const config: IndustryConfig = {
   ctaHeadline: "Ready to Fill Your Teaching Schedule?",
   ctaSub: "Start your 60-day free trial. No credit card required. Cancel any time.",
   ctaContext: "Join thousands of tutors already using Certxa to grow their practice.",
+  industryId: "tutoring",
 };
 
 export default function TutoringLanding() {

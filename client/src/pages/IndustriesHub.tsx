@@ -4,23 +4,24 @@ import { ArrowRight, Calendar, DollarSign, Smartphone, Star, ShieldCheck, Chevro
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import BusinessTypeMenu from "./components/BusinessTypeMenu";
+import RevenueCalculator from "@/components/marketing/RevenueCalculator";
 
 const TRADE_SERVICES = [
   { emoji: "🏠", label: "House Cleaning",    desc: "Recurring bookings, team scheduling, and instant invoicing.",              path: "/house-cleaning",  live: true  },
   { emoji: "🔧", label: "Handyman",          desc: "Job site notes, multi-trade service catalog, and online payments.",        path: "/handyman",        live: true  },
   { emoji: "🌿", label: "Lawn Care",         desc: "Recurring mowing schedules, seasonal contracts, and crew dispatch.",       path: "/lawn-care",       live: true  },
   { emoji: "❄️", label: "Snow Removal",      desc: "On-demand dispatch, route planning, and contract billing.",                path: "/snow-removal",    live: true  },
-  { emoji: "💦", label: "Pressure Washing",  desc: "Before/after photos, property history, and flat-rate quoting.",           path: null,               live: false },
-  { emoji: "🪟", label: "Window Cleaning",   desc: "Residential and commercial scheduling with recurring job support.",        path: null,               live: false },
-  { emoji: "🧹", label: "Carpet Cleaning",   desc: "Quote by room, track chemicals and equipment, collect deposits.",          path: null,               live: false },
-  { emoji: "🪲", label: "Pest Control",      desc: "Subscription plans, treatment logs, and chemical usage tracking.",         path: null,               live: false },
-  { emoji: "🏊", label: "Pool Service",      desc: "Weekly route management, chemical readings, and service history.",         path: null,               live: false },
-  { emoji: "🔌", label: "Appliance Repair",  desc: "Parts tracking, warranty notes, and same-day emergency bookings.",         path: null,               live: false },
-  { emoji: "🎨", label: "Painting",          desc: "Detailed estimates, color notes, and multi-crew project tracking.",        path: null,               live: false },
-  { emoji: "📦", label: "Moving & Junk",     desc: "Multi-crew dispatch, truck scheduling, and job-site inventory.",           path: null,               live: false },
-  { emoji: "🌡️", label: "HVAC",             desc: "Service agreements, equipment tracking, and emergency dispatch.",          path: null,               live: false },
-  { emoji: "🚿", label: "Plumbing",          desc: "Emergency bookings, part-level invoicing, and job site photos.",           path: null,               live: false },
-  { emoji: "⚡", label: "Electrical",        desc: "Permit notes, equipment lists, and team-level job assignment.",            path: null,               live: false },
+  { emoji: "💦", label: "Pressure Washing",  desc: "Before/after photos, property history, and flat-rate quoting.",           path: "/pressure-washing", live: true  },
+  { emoji: "🪟", label: "Window Cleaning",   desc: "Residential and commercial scheduling with recurring job support.",        path: "/window-cleaning",  live: true  },
+  { emoji: "🧹", label: "Carpet Cleaning",   desc: "Quote by room, track chemicals and equipment, collect deposits.",          path: "/carpet-cleaning",  live: true  },
+  { emoji: "🪲", label: "Pest Control",      desc: "Subscription plans, treatment logs, and chemical usage tracking.",         path: null,                live: false },
+  { emoji: "🏊", label: "Pool Service",      desc: "Weekly route management, chemical readings, and service history.",         path: null,                live: false },
+  { emoji: "🔌", label: "Appliance Repair",  desc: "Parts tracking, warranty notes, and same-day emergency bookings.",         path: null,                live: false },
+  { emoji: "🎨", label: "Painting",          desc: "Detailed estimates, color notes, and multi-crew project tracking.",        path: null,                live: false },
+  { emoji: "📦", label: "Moving & Junk",     desc: "Multi-crew dispatch, truck scheduling, and job-site inventory.",           path: null,                live: false },
+  { emoji: "🌡️", label: "HVAC",             desc: "Service agreements, equipment tracking, and emergency dispatch.",          path: "/hvac",             live: true  },
+  { emoji: "🚿", label: "Plumbing",          desc: "Emergency bookings, part-level invoicing, and job site photos.",           path: "/plumbing",         live: true  },
+  { emoji: "⚡", label: "Electrical",        desc: "Permit notes, equipment lists, and team-level job assignment.",            path: "/electrical",       live: true  },
 ];
 
 const PERSONAL_SERVICES = [
@@ -287,6 +288,9 @@ export default function IndustriesHub() {
           </div>
         </div>
       </div>
+
+      {/* Revenue Calculator */}
+      <RevenueCalculator />
 
       {/* Testimonial strip */}
       <div className="py-20 bg-[#060E1A]">

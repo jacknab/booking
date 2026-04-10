@@ -125,6 +125,7 @@ const config: IndustryConfig = {
   ctaHeadline: "Ready to Line Up More Jobs?",
   ctaSub: "Start your 60-day free trial. No credit card required. Cancel any time.",
   ctaContext: "Join thousands of handymen and contractors already using Certxa.",
+  industryId: "handyman",
 };
 
 export default function HandymanLanding() {
