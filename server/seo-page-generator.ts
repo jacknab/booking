@@ -220,7 +220,7 @@ function getProductConfig(product: string, city: string, state: string): Product
 
 // ── Main generator ─────────────────────────────────────────────────────────
 
-export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.com"): string {
+export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.com", allRegions: SeoRegion[] = []): string {
   const product = region.product === "all" ? "booking" : region.product;
   const cfg = getProductConfig(product, region.city, region.state);
 
@@ -288,6 +288,87 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
 
   const color = cfg.color;
   const colorDark = cfg.colorDark;
+
+  // Build sitemap — group all pages (generated + current) by product
+  const productOrder: Array<"booking" | "queue" | "pro"> = ["booking", "queue", "pro"];
+  const productLabels: Record<string, string> = {
+    booking: "Certxa Booking",
+    queue: "Certxa Queue",
+    pro: "Certxa Pro",
+  };
+  // Include all regions that have been generated, plus the current region itself
+  const allForSitemap = [
+    ...allRegions.filter(r => r.pageGenerated && r.slug !== region.slug),
+    region,
+  ];
+  const grouped: Record<string, SeoRegion[]> = {};
+  for (const r of allForSitemap) {
+    const key = r.product === "all" ? "booking" : r.product;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
+  }
+  const sitemapGroupsHtml = productOrder
+    .filter(key => grouped[key]?.length)
+    .map(key => {
+      const links = grouped[key]
+        .sort((a, b) => a.city.localeCompare(b.city))
+        .map(r => {
+          const isCurrent = r.slug === region.slug;
+          const label = `${r.city}, ${r.stateCode}`;
+          if (isCurrent) {
+            return `<span class="sitemap-link current">${label} (this page)</span>`;
+          }
+          return `<a href="/regions/${r.slug}.html" class="sitemap-link">${label}</a>`;
+        })
+        .join("\n        ");
+      return `
+    <div>
+      <p class="sitemap-group-label">${productLabels[key]}</p>
+      <div class="sitemap-links">
+        ${links}
+      </div>
+    </div>`;
+    })
+    .join("");
+
+  const sitemapHtml = sitemapGroupsHtml ? `
+  <!-- Sitemap -->
+  <div class="sitemap">
+    <div class="sitemap-inner">
+      <p class="sitemap-title">All Regional Pages</p>
+      <div class="sitemap-groups">
+        ${sitemapGroupsHtml}
+        <div>
+          <p class="sitemap-group-label">Main Site</p>
+          <div class="sitemap-links">
+            <a href="/" class="sitemap-link">Certxa Home</a>
+            <a href="/get-started" class="sitemap-link">Pricing</a>
+            <a href="/booking" class="sitemap-link">Certxa Booking</a>
+            <a href="/queue" class="sitemap-link">Certxa Queue</a>
+            <a href="/pro" class="sitemap-link">Certxa Pro</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>` : `
+  <!-- Sitemap -->
+  <div class="sitemap">
+    <div class="sitemap-inner">
+      <p class="sitemap-title">Main Site</p>
+      <div class="sitemap-groups">
+        <div>
+          <p class="sitemap-group-label">Certxa</p>
+          <div class="sitemap-links">
+            <a href="/" class="sitemap-link">Certxa Home</a>
+            <a href="/get-started" class="sitemap-link">Pricing</a>
+            <a href="/booking" class="sitemap-link">Certxa Booking</a>
+            <a href="/queue" class="sitemap-link">Certxa Queue</a>
+            <a href="/pro" class="sitemap-link">Certxa Pro</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -509,14 +590,47 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
     .cta-banner h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; letter-spacing: -0.02em; margin-bottom: 16px; }
     .cta-banner p { color: rgba(255,255,255,0.5); font-size: 1.1rem; max-width: 560px; margin: 0 auto 36px; }
 
+    /* Sitemap */
+    .sitemap {
+      background: rgba(255,255,255,0.02);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 56px 24px 48px;
+    }
+    .sitemap-inner {
+      max-width: 1200px; margin: 0 auto;
+    }
+    .sitemap-title {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(255,255,255,0.2);
+      margin-bottom: 28px;
+    }
+    .sitemap-groups {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 32px;
+    }
+    .sitemap-group-label {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: rgba(255,255,255,0.3);
+      margin-bottom: 12px; padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .sitemap-links { display: flex; flex-direction: column; gap: 6px; }
+    .sitemap-link {
+      font-size: 0.82rem; color: rgba(255,255,255,0.35);
+      transition: color 0.15s;
+    }
+    .sitemap-link:hover { color: rgba(255,255,255,0.65); }
+    .sitemap-link.current { color: rgba(255,255,255,0.5); font-weight: 600; pointer-events: none; }
+
     /* Footer */
     footer {
-      text-align: center; padding: 40px 24px;
-      font-size: 0.85rem; color: rgba(255,255,255,0.25);
+      text-align: center; padding: 28px 24px;
+      font-size: 0.82rem; color: rgba(255,255,255,0.2);
       border-top: 1px solid rgba(255,255,255,0.05);
     }
-    footer a { color: rgba(255,255,255,0.35); }
-    footer a:hover { color: rgba(255,255,255,0.6); }
+    footer a { color: rgba(255,255,255,0.3); }
+    footer a:hover { color: rgba(255,255,255,0.55); }
 
     @media (max-width: 640px) {
       .nav-login { display: none; }
@@ -631,6 +745,8 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
     <a href="${cfg.ctaUrl}" class="btn-primary" style="font-size:1.1rem;padding:16px 40px;">${cfg.cta} →</a>
   </div>
 
+  ${sitemapHtml}
+
   <!-- Footer -->
   <footer>
     <p>
@@ -647,9 +763,9 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
 
 // ── Write page to disk ─────────────────────────────────────────────────────
 
-export function writeRegionPage(region: SeoRegion, siteUrl?: string): string {
+export function writeRegionPage(region: SeoRegion, siteUrl?: string, allRegions: SeoRegion[] = []): string {
   ensureDir();
-  const html = generateRegionPage(region, siteUrl);
+  const html = generateRegionPage(region, siteUrl, allRegions);
   const filePath = path.join(REGIONS_DIR, `${region.slug}.html`);
   fs.writeFileSync(filePath, html, "utf-8");
   return filePath;

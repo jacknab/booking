@@ -4228,7 +4228,8 @@ If you have any questions, please contact your administrator.
         const data = insertSeoRegionSchema.parse(req.body);
         const [row] = await db.insert(seoRegions).values(data).returning();
         try {
-          writeRegionPage(row);
+          const allRows = await db.select().from(seoRegions);
+          writeRegionPage(row, undefined, allRows);
           await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, row.id));
           row.pageGenerated = true;
         } catch (genErr) {
@@ -4249,7 +4250,8 @@ If you have any questions, please contact your administrator.
         const [row] = await db.update(seoRegions).set({ ...data, updatedAt: new Date() }).where(eq(seoRegions.id, id)).returning();
         if (!row) return res.status(404).json({ error: "Not found" });
         try {
-          writeRegionPage(row);
+          const allRows = await db.select().from(seoRegions);
+          writeRegionPage(row, undefined, allRows);
           await db.update(seoRegions).set({ pageGenerated: true }).where(eq(seoRegions.id, id));
           row.pageGenerated = true;
         } catch (genErr) {
@@ -4267,7 +4269,9 @@ If you have any questions, please contact your administrator.
         const id = parseInt(req.params.id);
         const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
         if (!row) return res.status(404).json({ error: "Not found" });
-        writeRegionPage(row);
+        // Fetch all regions so the sitemap in the footer can link to them all
+        const allRows = await db.select().from(seoRegions);
+        writeRegionPage(row, undefined, allRows);
         await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, id));
         res.json({ success: true, slug: row.slug, url: `/regions/${row.slug}.html` });
       } catch (err: any) {
@@ -4280,10 +4284,17 @@ If you have any questions, please contact your administrator.
       try {
         const rows = await db.select().from(seoRegions);
         let count = 0;
+        // Mark all as generated first so the sitemap shows every page
         for (const row of rows) {
           try {
-            writeRegionPage(row);
             await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, row.id));
+          } catch { /* skip failed */ }
+        }
+        // Fetch updated rows so pageGenerated flags are correct for sitemap links
+        const updatedRows = await db.select().from(seoRegions);
+        for (const row of updatedRows) {
+          try {
+            writeRegionPage(row, undefined, updatedRows);
             count++;
           } catch { /* skip failed */ }
         }
