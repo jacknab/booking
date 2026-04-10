@@ -2,118 +2,31 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, Calendar, Users, Wrench,
-  CheckCircle2, Smartphone, MapPin, Bell,
-  Star, ChevronDown,
+  CheckCircle2, MapPin, Star, ChevronDown,
 } from "lucide-react";
 
-// ── Mockups ───────────────────────────────────────────────────────────────────
+// ── Video Card ────────────────────────────────────────────────────────────────
 
-function BookingMockup() {
+function VideoCard({ src, accent }: { src: string; accent: string }) {
   return (
-    <div className="w-full max-w-sm bg-[#010B14] rounded-2xl border border-[#00D4AA]/20 shadow-2xl overflow-hidden">
-      <div className="bg-[#011A26] px-5 py-4 border-b border-white/8 flex items-center justify-between">
-        <div>
-          <p className="text-white font-bold text-sm">Studio Calendar</p>
-          <p className="text-white/40 text-xs">Thursday, April 10</p>
-        </div>
-        <span className="text-[10px] font-bold bg-[#00D4AA]/15 text-[#00D4AA] px-2.5 py-1 rounded-full border border-[#00D4AA]/25">
-          4 Booked
-        </span>
+    <div className="relative w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl" style={{ boxShadow: `0 0 60px ${accent}22` }}>
+      {/* Top bar like a browser/app chrome */}
+      <div className="flex items-center gap-1.5 px-4 py-3" style={{ background: "#000000cc" }}>
+        <span className="w-3 h-3 rounded-full bg-red-500/70" />
+        <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
+        <span className="w-3 h-3 rounded-full bg-green-500/70" />
       </div>
-      <div className="p-4 space-y-2.5">
-        {[
-          { time: "9:00 AM",  name: "Mia K.",   svc: "Blowout",        active: false },
-          { time: "10:30 AM", name: "Sarah L.",  svc: "Color + Cut",   active: true  },
-          { time: "12:00 PM", name: "Priya T.",  svc: "Deep Condition", active: false },
-          { time: "2:00 PM",  name: "Open Slot", svc: "— Available —",  active: false },
-          { time: "3:30 PM",  name: "Elena G.",  svc: "Highlights",     active: false },
-        ].map((r, i) => (
-          <div key={i} className={`flex items-center gap-3 rounded-xl px-3.5 py-3 ${r.active ? "bg-[#00D4AA]/10 border border-[#00D4AA]/25" : "bg-white/4"}`}>
-            <div className={`w-1 rounded-full self-stretch min-h-[28px] flex-shrink-0 ${r.active ? "bg-[#00D4AA]" : r.name === "Open Slot" ? "bg-white/15" : "bg-[#00D4AA]/40"}`} />
-            <span className={`text-[11px] w-16 flex-shrink-0 ${r.active ? "text-[#00D4AA]" : "text-white/35"}`}>{r.time}</span>
-            <span className={`text-sm font-semibold flex-1 ${r.active ? "text-white" : r.name === "Open Slot" ? "text-white/25" : "text-white/75"}`}>{r.name}</span>
-            <span className={`text-[11px] ${r.active ? "text-[#00D4AA]/80" : "text-white/30"}`}>{r.svc}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mx-4 mb-4 bg-[#00D4AA]/8 border border-[#00D4AA]/15 rounded-xl px-4 py-3 flex items-center gap-2.5">
-        <Bell className="w-3.5 h-3.5 text-[#00D4AA] flex-shrink-0" />
-        <p className="text-white/50 text-[11px]">Reminders sent automatically 24 hrs before</p>
-      </div>
-    </div>
-  );
-}
-
-function QueueMockup() {
-  return (
-    <div className="w-full max-w-sm bg-[#110800] rounded-2xl border border-[#F59E0B]/20 shadow-2xl overflow-hidden">
-      <div className="bg-[#1A0E00] px-5 py-4 border-b border-white/8 flex items-center justify-between">
-        <div>
-          <p className="text-[#F59E0B] text-[10px] font-bold uppercase tracking-widest">Live Queue</p>
-          <p className="text-white font-bold text-sm">Studio A — Walk-Ins</p>
-        </div>
-        <div className="text-right">
-          <p className="text-white/35 text-[10px]">Avg Wait</p>
-          <p className="text-[#F59E0B] font-extrabold text-lg leading-none">~14 min</p>
-        </div>
-      </div>
-      <div className="p-4 space-y-2">
-        {[
-          { pos: 1, name: "Jake R.",   wait: "In Chair",  active: true  },
-          { pos: 2, name: "Deon W.",   wait: "~8 min",    active: false },
-          { pos: 3, name: "Maria S.",  wait: "~22 min",   active: false },
-          { pos: 4, name: "Troy M.",   wait: "~36 min",   active: false },
-          { pos: 5, name: "Keisha P.", wait: "~50 min",   active: false },
-        ].map(r => (
-          <div key={r.pos} className={`flex items-center gap-3 rounded-xl px-3.5 py-3 ${r.active ? "bg-[#F59E0B]/10 border border-[#F59E0B]/25" : "bg-white/4"}`}>
-            <span className={`text-xs font-extrabold w-6 text-center ${r.active ? "text-[#F59E0B]" : "text-white/25"}`}>#{r.pos}</span>
-            <span className={`text-sm font-semibold flex-1 ${r.active ? "text-white" : "text-white/70"}`}>{r.name}</span>
-            <span className={`text-xs font-bold ${r.active ? "text-[#F59E0B]" : "text-white/35"}`}>{r.wait}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mx-4 mb-4 bg-[#F59E0B]/8 border border-[#F59E0B]/15 rounded-xl px-4 py-3 flex items-center gap-2.5">
-        <Smartphone className="w-3.5 h-3.5 text-[#F59E0B] flex-shrink-0" />
-        <p className="text-white/50 text-[11px]">Customers join & track their spot from any phone</p>
-      </div>
-    </div>
-  );
-}
-
-function ProMockup() {
-  return (
-    <div className="w-full max-w-sm bg-[#000D1F] rounded-2xl border border-[#3B82F6]/20 shadow-2xl overflow-hidden">
-      <div className="bg-[#000F26] px-5 py-4 border-b border-white/8 flex items-center justify-between">
-        <div>
-          <p className="text-white font-bold text-sm">Dispatch Board</p>
-          <p className="text-white/40 text-xs">Today · 3 active crews</p>
-        </div>
-        <span className="text-[10px] font-bold bg-[#3B82F6]/15 text-[#3B82F6] px-2.5 py-1 rounded-full border border-[#3B82F6]/25">
-          Live
-        </span>
-      </div>
-      <div className="p-4 space-y-2.5">
-        {[
-          { crew: "Mike D.",  job: "HVAC Service",    time: "9:00 AM",  status: "En Route",    sc: "#3B82F6" },
-          { crew: "Sara L.",  job: "Plumbing Repair", time: "11:00 AM", status: "In Progress",  sc: "#10B981" },
-          { crew: "James P.", job: "Electrical",      time: "1:30 PM",  status: "Scheduled",   sc: "#6B7280" },
-        ].map((r, i) => (
-          <div key={i} className="bg-white/4 rounded-xl px-3.5 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: r.sc + "18" }}>
-              <Wrench className="w-3.5 h-3.5" style={{ color: r.sc }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-semibold truncate">{r.job}</p>
-              <p className="text-white/35 text-[11px]">{r.crew} · {r.time}</p>
-            </div>
-            <span className="text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0" style={{ background: r.sc + "18", color: r.sc }}>{r.status}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mx-4 mb-4 bg-[#3B82F6]/8 border border-[#3B82F6]/15 rounded-xl px-4 py-3 flex items-center gap-2.5">
-        <MapPin className="w-3.5 h-3.5 text-[#3B82F6] flex-shrink-0" />
-        <p className="text-white/50 text-[11px]">Route-optimized · GPS live tracking on every job</p>
-      </div>
+      <video
+        src={src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="w-full block"
+        style={{ aspectRatio: "16/9", objectFit: "cover" }}
+      />
+      {/* Accent bottom glow strip */}
+      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
     </div>
   );
 }
@@ -223,9 +136,9 @@ export default function ProductSelector() {
                 </Link>
               </motion.div>
 
-              {/* Mockup */}
+              {/* Video */}
               <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-end">
-                <BookingMockup />
+                <VideoCard src="/videos/salon_booking.mp4" accent="#00D4AA" />
               </motion.div>
             </div>
           </div>
@@ -240,9 +153,9 @@ export default function ProductSelector() {
           <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-              {/* Mockup first on this row */}
+              {/* Video first on this row */}
               <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-start order-2 lg:order-1">
-                <QueueMockup />
+                <VideoCard src="/videos/barbershop_queue.mp4" accent="#F59E0B" />
               </motion.div>
 
               {/* Copy */}
@@ -347,9 +260,9 @@ export default function ProductSelector() {
                 </Link>
               </motion.div>
 
-              {/* Mockup */}
+              {/* Video */}
               <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-end">
-                <ProMockup />
+                <VideoCard src="/videos/handyman_pro.mp4" accent="#3B82F6" />
               </motion.div>
             </div>
           </div>
