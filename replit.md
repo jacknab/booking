@@ -14,12 +14,29 @@ This is the **Certxa** platform — a full-stack booking and business management
 - `/hvac`, `/plumbing`, `/electrical`, `/carpet-cleaning`, `/pressure-washing`, `/window-cleaning`, `/snow-removal` — Home service / trades landing pages
 - `/barbers`, `/hair-salons`, `/nails`, `/spa`, `/estheticians`, `/tattoo`, `/haircuts`, `/groomers`, `/ride-service` — Beauty & personal service landing pages
 
-**Pro Hub (HouseCallPro-inspired field service sub-app):**
+**Pro Hub (marketing pages):**
 - `/pro` — Main field service hub with hero, 25-industry grid with category filters, feature sections (scheduling/invoicing/CRM), stats bar, testimonials, and lead capture form
 - `/pro/:industry` — Individual industry pages (25 total: HVAC, Plumbing, Electrical, Roofing, Pest Control, Pool Service, House Cleaning, Carpet Cleaning, Window Cleaning, Pressure Washing, Handyman, Lawn Care, Snow Removal, Landscaping, Tree Service, Junk Removal, Gutter Cleaning, Painting, Appliance Repair, Garage Door, Chimney, Moving, General Contracting, Flooring, Drywall)
 - Each industry page: hero + badge + testimonial, 4 feature cards, 3-step how-it-works, comparison table, FAQ accordion, inline lead form, related industries
 - Lead captures stored in `pro_leads` DB table via `POST /api/pro/leads`
 - Files: `client/src/pages/pro/ProHub.tsx`, `client/src/pages/pro/ProIndustryPage.tsx`, `client/src/pages/pro/proIndustries.ts`
+
+**Certxa Pro Dashboard (full Housecall Pro clone, authenticated at `/pro-dashboard`):**
+- Dark sidebar layout with Certxa Pro branding; routes: Dispatch, Jobs, Estimates, Customers, Invoices, Crews, Reports, Settings
+- **Dispatch** (`/pro-dashboard`) — Live Leaflet map (CartoDB dark tiles, no API key needed) showing crew GPS markers + job location pins. Right panel with crew status and active jobs. Auto-refreshes every 15s. "Ping" button simulates GPS for demo.
+- **Jobs** (`/pro-dashboard/jobs`) — Full CRUD board with status filter tabs (New → Assigned → En Route → In Progress → Completed), priority badges, crew assignment. Status pipeline click-to-advance on detail page.
+- **Job Detail** (`/pro-dashboard/jobs/:id`) — Status pipeline, crew assignment dropdown, address with Google Maps link, job notes with author tracking.
+- **New Job** (`/pro-dashboard/jobs/new`) — Customer info, location, service type (20 types), priority, schedule datetime, estimated hours, crew assignment.
+- **Estimates** (`/pro-dashboard/estimates`) — Create estimates with line items, auto-calculated subtotal/tax/total, status flow (draft → sent → approved → declined → converted). "Convert to Job" creates a service order from the estimate.
+- **Customers** (`/pro-dashboard/customers`) — CRM with search, property type (residential/commercial), detail panel showing linked jobs/estimates/invoices.
+- **Invoices** (`/pro-dashboard/invoices`) — Create invoices with line items, track status (draft → sent → paid → overdue), "Mark Paid" action, revenue summary cards.
+- **Crews** (`/pro-dashboard/crews`) — Create/edit crew cards with color picker, GPS simulate button for demo, active job count per crew.
+- **Reports** (`/pro-dashboard/reports`) — Summary stats (revenue, outstanding, completion rate, estimate win rate), jobs-by-status bar chart, top service types chart, invoice/estimate pipeline.
+- **Settings** (`/pro-dashboard/settings`) — Business profile display, links to crew management, notification settings, billing.
+- **DB tables**: `pro_crews`, `pro_crew_locations`, `pro_service_orders`, `pro_order_notes`, `pro_customers`, `pro_estimates`, `pro_invoices`
+- **API routes**: `/api/pro-dashboard/crews`, `/api/pro-dashboard/orders`, `/api/pro-dashboard/estimates`, `/api/pro-dashboard/invoices`, `/api/pro-dashboard/customers`, `/api/pro-dashboard/dispatch`
+- **Files**: `server/routes/pro-dashboard.ts`, `client/src/pages/pro-dashboard/ProDashboardLayout.tsx` + all page files
+- storeId passed via `?storeId=X` query param; obtained from `StoreContext`; registered in `authenticatedPaths` in App.tsx so StoreProvider wraps it
 
 **SSR (Server-Side Rendering):**
 - All 22 marketing/industry landing pages use SSR in production for SEO

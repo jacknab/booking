@@ -819,6 +819,145 @@ export const reviews = pgTable("reviews", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// === CERTXA PRO — FIELD SERVICE TABLES ===
+
+export const crews = pgTable("pro_crews", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#00D4AA"),
+  active: boolean("active").notNull().default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const crewLocations = pgTable("pro_crew_locations", {
+  id: serial("id").primaryKey(),
+  crewId: integer("crew_id").references(() => crews.id).notNull(),
+  lat: decimal("lat", { precision: 10, scale: 7 }).notNull(),
+  lng: decimal("lng", { precision: 10, scale: 7 }).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const serviceOrders = pgTable("pro_service_orders", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  orderNumber: text("order_number").notNull(),
+  status: text("status").notNull().default("new"),
+  priority: text("priority").notNull().default("normal"),
+  serviceType: text("service_type").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  customerEmail: text("customer_email"),
+  address: text("address").notNull(),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  lat: decimal("lat", { precision: 10, scale: 7 }),
+  lng: decimal("lng", { precision: 10, scale: 7 }),
+  description: text("description"),
+  crewId: integer("crew_id").references(() => crews.id),
+  scheduledAt: timestamp("scheduled_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  estimatedHours: decimal("estimated_hours", { precision: 4, scale: 1 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const orderNotes = pgTable("pro_order_notes", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => serviceOrders.id).notNull(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  note: text("note").notNull(),
+  authorName: text("author_name"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const proCustomers = pgTable("pro_customers", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  propertyType: text("property_type").default("residential"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const proEstimates = pgTable("pro_estimates", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  estimateNumber: text("estimate_number").notNull(),
+  status: text("status").notNull().default("draft"),
+  customerId: integer("customer_id").references(() => proCustomers.id),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  customerEmail: text("customer_email"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  serviceType: text("service_type"),
+  description: text("description"),
+  lineItems: text("line_items"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).default("0"),
+  tax: decimal("tax", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).default("0"),
+  convertedToOrderId: integer("converted_to_order_id"),
+  validUntil: timestamp("valid_until"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const proInvoices = pgTable("pro_invoices", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  orderId: integer("order_id").references(() => serviceOrders.id),
+  invoiceNumber: text("invoice_number").notNull(),
+  status: text("status").notNull().default("draft"),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  customerEmail: text("customer_email"),
+  address: text("address"),
+  lineItems: text("line_items"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).default("0"),
+  tax: decimal("tax", { precision: 10, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).default("0"),
+  paidAt: timestamp("paid_at"),
+  dueAt: timestamp("due_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCrewSchema = createInsertSchema(crews).omit({ id: true, createdAt: true });
+export const insertServiceOrderSchema = createInsertSchema(serviceOrders).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertOrderNoteSchema = createInsertSchema(orderNotes).omit({ id: true, createdAt: true });
+
+export const insertProCustomerSchema = createInsertSchema(proCustomers).omit({ id: true, createdAt: true });
+export const insertProEstimateSchema = createInsertSchema(proEstimates).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertProInvoiceSchema = createInsertSchema(proInvoices).omit({ id: true, createdAt: true, updatedAt: true });
+
+export type Crew = typeof crews.$inferSelect;
+export type InsertCrew = z.infer<typeof insertCrewSchema>;
+export type ServiceOrder = typeof serviceOrders.$inferSelect;
+export type InsertServiceOrder = z.infer<typeof insertServiceOrderSchema>;
+export type OrderNote = typeof orderNotes.$inferSelect;
+export type InsertOrderNote = z.infer<typeof insertOrderNoteSchema>;
+export type CrewLocation = typeof crewLocations.$inferSelect;
+export type ProCustomer = typeof proCustomers.$inferSelect;
+export type InsertProCustomer = z.infer<typeof insertProCustomerSchema>;
+export type ProEstimate = typeof proEstimates.$inferSelect;
+export type InsertProEstimate = z.infer<typeof insertProEstimateSchema>;
+export type ProInvoice = typeof proInvoices.$inferSelect;
+export type InsertProInvoice = z.infer<typeof insertProInvoiceSchema>;
+
 // === NEW FEATURE SCHEMAS ===
 
 export const insertWaitlistSchema = createInsertSchema(waitlist).omit({ id: true });

@@ -78,6 +78,17 @@ import ProIndustryPage from "@/pages/pro/ProIndustryPage";
 import QueueLanding from "@/pages/QueueLanding";
 import Landing from "@/pages/Landing";
 import GetStarted from "@/pages/GetStarted";
+import ProDashboardLayout from "@/pages/pro-dashboard/ProDashboardLayout";
+import DispatchDashboard from "@/pages/pro-dashboard/DispatchDashboard";
+import JobsBoard from "@/pages/pro-dashboard/JobsBoard";
+import JobDetail from "@/pages/pro-dashboard/JobDetail";
+import NewJob from "@/pages/pro-dashboard/NewJob";
+import EstimatesPage from "@/pages/pro-dashboard/EstimatesPage";
+import CustomersPage from "@/pages/pro-dashboard/CustomersPage";
+import CrewsPage from "@/pages/pro-dashboard/CrewsPage";
+import InvoicesPage from "@/pages/pro-dashboard/InvoicesPage";
+import ReportsPage from "@/pages/pro-dashboard/ReportsPage";
+import SettingsPage from "@/pages/pro-dashboard/SettingsPage";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -110,6 +121,7 @@ const authenticatedPaths = [
   "/mail-settings",
   "/admin",
   "/cash-drawer",
+  "/pro-dashboard",
 ];
 
 function App() {
@@ -207,6 +219,19 @@ function AppRoutes() {
       <Route path="/sms-settings" element={<SmsSettings />} />
       <Route path="/mail-settings" element={<MailSettings />} />
       <Route path="/cash-drawer" element={<CashDrawer />} />
+
+      {/* Certxa Pro Dashboard */}
+      <Route path="/pro-dashboard" element={<ProDashboardLayout><DispatchDashboard /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/jobs" element={<ProDashboardLayout><JobsBoard /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/jobs/new" element={<ProDashboardLayout><NewJob /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/jobs/:id" element={<ProDashboardLayout><JobDetail /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/estimates" element={<ProDashboardLayout><EstimatesPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/customers" element={<ProDashboardLayout><CustomersPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/invoices" element={<ProDashboardLayout><InvoicesPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/crews" element={<ProDashboardLayout><CrewsPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/reports" element={<ProDashboardLayout><ReportsPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/settings" element={<ProDashboardLayout><SettingsPage /></ProDashboardLayout>} />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

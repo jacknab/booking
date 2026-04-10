@@ -3887,6 +3887,10 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // ── Certxa Pro Dashboard API ─────────────────────────────────────────────────
+  const { default: proDashboardRouter } = await import("./routes/pro-dashboard.js");
+  app.use("/api/pro-dashboard", proDashboardRouter);
+
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
   startEmailReminderScheduler();
