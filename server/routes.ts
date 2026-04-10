@@ -3050,6 +3050,21 @@ If you have any questions, please contact your administrator.
 
   // === YELP ALIAS ===
 
+  app.put("/api/stores/:storeId/facebook-page", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const storeId = Number(req.params.storeId);
+    const { facebookPageId } = req.body;
+    if (typeof facebookPageId !== "string") return res.status(400).json({ message: "facebookPageId required" });
+    const [updated] = await db
+      .update(locations)
+      .set({ facebookPageId: facebookPageId.trim() || null })
+      .where(and(eq(locations.id, storeId), eq(locations.userId, userId)))
+      .returning();
+    if (!updated) return res.status(404).json({ message: "Store not found" });
+    return res.json({ success: true, facebookPageId: updated.facebookPageId });
+  });
+
   app.put("/api/stores/:storeId/yelp-alias", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });

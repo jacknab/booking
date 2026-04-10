@@ -23,6 +23,8 @@ import type { Review } from "@shared/schema";
 import { GoogleConnectGate } from "@/components/GoogleConnectGate";
 import { YelpConnectGate } from "@/components/YelpConnectGate";
 import { YelpAliasForm } from "@/components/YelpAliasForm";
+import { FacebookConnectGate } from "@/components/FacebookConnectGate";
+import { FacebookPageForm } from "@/components/FacebookPageForm";
 
 type ReviewStats = {
   total: number;
@@ -56,7 +58,7 @@ export default function Reviews() {
   // "yelp"   → Yelp connect gate
   // "yelp-form" → Yelp alias input form
   // "done"   → show reviews normally
-  const [gateStep, setGateStep] = useState<"google" | "yelp" | "yelp-form" | "done">("google");
+  const [gateStep, setGateStep] = useState<"google" | "yelp" | "yelp-form" | "facebook" | "facebook-form" | "done">("google");
   const [googleConnecting, setGoogleConnecting] = useState(false);
 
   const { data: googleProfile, isLoading: googleLoading } = useQuery({
@@ -172,7 +174,7 @@ export default function Reviews() {
       <AppLayout>
         <YelpConnectGate
           onConnect={() => setGateStep("yelp-form")}
-          onSkip={() => setGateStep("done")}
+          onSkip={() => setGateStep("facebook")}
         />
       </AppLayout>
     );
@@ -182,6 +184,29 @@ export default function Reviews() {
     return (
       <AppLayout>
         <YelpAliasForm
+          storeId={storeId}
+          onSave={() => setGateStep("facebook")}
+          onSkip={() => setGateStep("facebook")}
+        />
+      </AppLayout>
+    );
+  }
+
+  if (effectiveStep === "facebook") {
+    return (
+      <AppLayout>
+        <FacebookConnectGate
+          onConnect={() => setGateStep("facebook-form")}
+          onSkip={() => setGateStep("done")}
+        />
+      </AppLayout>
+    );
+  }
+
+  if (effectiveStep === "facebook-form") {
+    return (
+      <AppLayout>
+        <FacebookPageForm
           storeId={storeId}
           onSave={() => setGateStep("done")}
           onSkip={() => setGateStep("done")}

@@ -29,6 +29,7 @@ export const locations = pgTable("locations", {
   storeLatitude: text("store_latitude"),
   storeLongitude: text("store_longitude"),
   yelpAlias: text("yelp_alias"),
+  facebookPageId: text("facebook_page_id"),
 });
 
 export const businessHours = pgTable("business_hours", {
