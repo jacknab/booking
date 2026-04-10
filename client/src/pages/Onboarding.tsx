@@ -408,24 +408,24 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#050C18] text-white p-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div className={`w-full transition-all duration-300 ${step === 1 ? "max-w-2xl" : "max-w-xl"}`}>
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <img src="/web-app.png" alt="Certxa" className="w-14 h-14 rounded-lg" />
-          <span className="font-display font-bold text-3xl tracking-tight">Certxa</span>
+        <div className="flex items-center justify-center gap-2.5 mb-8">
+          <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-lg shadow" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <span className="font-extrabold text-2xl tracking-tight text-white">Certxa</span>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <div className="flex items-center justify-center gap-2 mb-10">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div key={i} className="flex items-center gap-2">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${step > i + 1 ? "bg-primary text-primary-foreground" : step === i + 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all ${step > i + 1 ? "bg-[#00D4AA] text-[#050C18]" : step === i + 1 ? "bg-[#00D4AA] text-[#050C18]" : "bg-white/10 text-white/40"}`}
                 data-testid={`step-indicator-${i + 1}`}
               >
-                {step > i + 1 ? <Check className="w-4 h-4" /> : i + 1}
+                {step > i + 1 ? <Check className="w-3.5 h-3.5" /> : i + 1}
               </div>
               {i < totalSteps - 1 && (
-                <div className={`h-0.5 w-8 ${step > i + 1 ? "bg-primary" : "bg-muted"}`} />
+                <div className={`h-0.5 w-10 rounded-full transition-all ${step > i + 1 ? "bg-[#00D4AA]" : "bg-white/10"}`} />
               )}
             </div>
           ))}
@@ -442,13 +442,12 @@ export default function Onboarding() {
 
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-semibold text-center mb-1" data-testid="text-step2-title">Tell us about your business</h2>
-            <p className="text-sm text-muted-foreground text-center mb-6">This info helps set up your store profile</p>
+            <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step2-title">Tell us about your business</h2>
+            <p className="text-sm text-white/45 text-center mb-6">This info helps set up your store profile</p>
 
-            <Card>
-              <CardContent className="p-6 space-y-4">
+            <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-6 space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="businessName">Business name *</Label>
+                  <Label htmlFor="businessName" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Business name *</Label>
                   <Input
                     id="businessName"
                     data-testid="input-business-name"
@@ -456,11 +455,12 @@ export default function Onboarding() {
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="e.g. Bella's Hair Studio"
                     autoFocus
+                    className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email">Business Email</Label>
+                  <Label htmlFor="email" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Business Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -468,49 +468,46 @@ export default function Onboarding() {
                     value={email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="e.g. info@bellashair.com"
-                    className={emailError ? "border-destructive" : ""}
+                    className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${emailError ? "border-red-500/50" : ""}`}
                   />
-                  {emailError && (
-                    <p className="text-xs text-destructive mt-1">{emailError}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">Used for booking confirmations and customer contact</p>
+                  {emailError && <p className="text-xs text-red-400 mt-1">{emailError}</p>}
+                  <p className="text-xs text-white/30">Used for booking confirmations and customer contact</p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Address</Label>
                   <Input
                     id="address"
                     data-testid="input-address"
                     value={address}
                     onChange={(e) => handleAddressChange(e.target.value)}
-                    placeholder="e.g. 123 Main St, New York, NY"
-                    className={addressError ? "border-destructive" : ""}
+                    placeholder="e.g. 123 Main St"
+                    className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${addressError ? "border-red-500/50" : ""}`}
                   />
-                  {addressError && (
-                    <p className="text-xs text-destructive mt-1">{addressError}</p>
-                  )}
+                  {addressError && <p className="text-xs text-red-400 mt-1">{addressError}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="city">City</Label>
+                    <Label htmlFor="city" className="text-white/60 text-xs font-semibold uppercase tracking-wider">City</Label>
                     <Input
                       id="city"
                       data-testid="input-city"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="e.g. New York"
+                      placeholder="New York"
+                      className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="state">State</Label>
+                    <Label htmlFor="state" className="text-white/60 text-xs font-semibold uppercase tracking-wider">State</Label>
                     <Select value={state} onValueChange={setState}>
-                      <SelectTrigger data-testid="select-state">
+                      <SelectTrigger data-testid="select-state" className="bg-white/6 border-white/15 text-white h-11 rounded-xl">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
                         {usStates.map((usState) => (
-                          <SelectItem key={usState.value} value={usState.value}>
+                          <SelectItem key={usState.value} value={usState.value} className="text-white focus:bg-white/10 focus:text-white">
                             {usState.value}
                           </SelectItem>
                         ))}
@@ -518,208 +515,200 @@ export default function Onboarding() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="postcode">Postcode</Label>
+                    <Label htmlFor="postcode" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Zip</Label>
                     <Input
                       id="postcode"
                       data-testid="input-postcode"
                       value={postcode}
                       onChange={(e) => handlePostcodeChange(e.target.value)}
-                      placeholder="e.g. 10001"
+                      placeholder="10001"
                       inputMode="numeric"
                       maxLength={5}
-                      className={postcodeError ? "border-destructive" : ""}
+                      className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${postcodeError ? "border-red-500/50" : ""}`}
                     />
-                    {postcodeError && (
-                      <p className="text-xs text-destructive mt-1">{postcodeError}</p>
-                    )}
+                    {postcodeError && <p className="text-xs text-red-400 mt-1">{postcodeError}</p>}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Phone</Label>
                   <Input
                     id="phone"
                     type="tel"
                     data-testid="input-phone"
                     value={phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
-                    placeholder="e.g. (555) 123-4567"
+                    placeholder="(555) 123-4567"
                     inputMode="numeric"
                     maxLength={10}
-                    className={phoneError ? "border-destructive" : ""}
+                    className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${phoneError ? "border-red-500/50" : ""}`}
                   />
-                  {phoneError && (
-                    <p className="text-xs text-destructive mt-1">{phoneError}</p>
-                  )}
+                  {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="timezone">Timezone</Label>
+                  <Label htmlFor="timezone" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Timezone</Label>
                   <Select value={timezone} onValueChange={setTimezone}>
-                    <SelectTrigger data-testid="select-timezone">
+                    <SelectTrigger data-testid="select-timezone" className="bg-white/6 border-white/15 text-white h-11 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
                       {timezones.map((tz) => (
-                        <SelectItem key={tz.value} value={tz.value} data-testid={`option-tz-${tz.value}`}>
+                        <SelectItem key={tz.value} value={tz.value} data-testid={`option-tz-${tz.value}`} className="text-white focus:bg-white/10 focus:text-white">
                           {tz.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Auto-detected from your browser</p>
+                  <p className="text-xs text-white/30">Auto-detected from your browser</p>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} data-testid="button-back-step">
-                <ArrowLeft className="mr-2 w-4 h-4" />
-                Back
-              </Button>
-              <Button onClick={() => setStep(3)} disabled={!canProceed(2)} data-testid="button-next-step">
-                Next
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
+              <button onClick={() => setStep(1)} data-testid="button-back-step"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <button onClick={() => setStep(3)} disabled={!canProceed(2)} data-testid="button-next-step"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
+                Next <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
 
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-semibold text-center mb-1" data-testid="text-step3-title">Set your business hours</h2>
-            <p className="text-sm text-muted-foreground text-center mb-6">These will be your default staff hours too</p>
+            <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step3-title">Set your business hours</h2>
+            <p className="text-sm text-white/45 text-center mb-6">These will be your default staff hours too</p>
 
-            <Card>
-              <CardContent className="p-4 space-y-2">
-                {hours.map((day, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2" data-testid={`row-day-${i}`}>
-                    <div className="w-24 flex-shrink-0">
-                      <span className="text-sm font-medium">{dayNames[i]}</span>
-                    </div>
-                    <Switch
-                      checked={!day.isClosed}
-                      onCheckedChange={(checked) => updateHour(i, "isClosed", !checked)}
-                      data-testid={`switch-day-${i}`}
-                    />
-                    {day.isClosed ? (
-                      <span className="text-sm text-muted-foreground">Closed</span>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Select value={day.openTime} onValueChange={(v) => updateHour(i, "openTime", v)}>
-                          <SelectTrigger className="w-[120px]" data-testid={`select-open-${i}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeOptions.map(t => (
-                              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <span className="text-sm text-muted-foreground">to</span>
-                        <Select value={day.closeTime} onValueChange={(v) => updateHour(i, "closeTime", v)}>
-                          <SelectTrigger className="w-[120px]" data-testid={`select-close-${i}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeOptions.map(t => (
-                              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+            <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-4 space-y-1">
+              {hours.map((day, i) => (
+                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-white/6 last:border-0" data-testid={`row-day-${i}`}>
+                  <div className="w-24 flex-shrink-0">
+                    <span className="text-sm font-semibold text-white/80">{dayNames[i]}</span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <Switch
+                    checked={!day.isClosed}
+                    onCheckedChange={(checked) => updateHour(i, "isClosed", !checked)}
+                    data-testid={`switch-day-${i}`}
+                  />
+                  {day.isClosed ? (
+                    <span className="text-sm text-white/30">Closed</span>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Select value={day.openTime} onValueChange={(v) => updateHour(i, "openTime", v)}>
+                        <SelectTrigger className="w-[110px] bg-white/6 border-white/15 text-white h-9 rounded-lg text-xs" data-testid={`select-open-${i}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
+                          {timeOptions.map(t => (
+                            <SelectItem key={t.value} value={t.value} className="text-white focus:bg-white/10 focus:text-white text-xs">{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-xs text-white/30">to</span>
+                      <Select value={day.closeTime} onValueChange={(v) => updateHour(i, "closeTime", v)}>
+                        <SelectTrigger className="w-[110px] bg-white/6 border-white/15 text-white h-9 rounded-lg text-xs" data-testid={`select-close-${i}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
+                          {timeOptions.map(t => (
+                            <SelectItem key={t.value} value={t.value} className="text-white focus:bg-white/10 focus:text-white text-xs">{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} data-testid="button-back-step">
-                <ArrowLeft className="mr-2 w-4 h-4" />
-                Back
-              </Button>
-              <Button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step">
-                Next
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
+              <button onClick={() => setStep(2)} data-testid="button-back-step"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
+                Next <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
 
         {step === 4 && (
           <div>
-            <h2 className="text-xl font-semibold text-center mb-1" data-testid="text-step4-title">How many staff members?</h2>
-            <p className="text-sm text-muted-foreground text-center mb-6">Each team member will be assigned all services and your business hours</p>
+            <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step4-title">Add your team</h2>
+            <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-center gap-4 mb-6">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateStaffCount(staffCount - 1)}
-                    disabled={staffCount <= 1}
-                    data-testid="button-staff-minus"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-3xl font-bold tabular-nums" data-testid="text-staff-count">{staffCount}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateStaffCount(staffCount + 1)}
-                    disabled={staffCount >= 20}
-                    data-testid="button-staff-plus"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
+            <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-6">
+              <div className="flex items-center justify-center gap-5 mb-6">
+                <button
+                  onClick={() => updateStaffCount(staffCount - 1)}
+                  disabled={staffCount <= 1}
+                  data-testid="button-staff-minus"
+                  className="w-10 h-10 rounded-xl border border-white/15 flex items-center justify-center text-white/70 hover:bg-white/8 disabled:opacity-30 transition-all"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-white/40" />
+                  <span className="text-4xl font-black text-white tabular-nums" data-testid="text-staff-count">{staffCount}</span>
                 </div>
+                <button
+                  onClick={() => updateStaffCount(staffCount + 1)}
+                  disabled={staffCount >= 20}
+                  data-testid="button-staff-plus"
+                  className="w-10 h-10 rounded-xl border border-white/15 flex items-center justify-center text-white/70 hover:bg-white/8 disabled:opacity-30 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
 
-                <div className="space-y-3">
-                  {staffNames.map((name, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        style={{ backgroundColor: staffColors[i % staffColors.length] }}
-                      >
-                        {(name.trim() || `S${i + 1}`).charAt(0).toUpperCase()}
-                      </div>
-                      <Input
-                        value={name}
-                        onChange={(e) => updateStaffName(i, e.target.value)}
-                        placeholder={i === 0 ? "e.g. Owner / Your name" : `Staff member ${i + 1}`}
-                        data-testid={`input-staff-name-${i}`}
-                        autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
-                      />
+              <div className="space-y-3">
+                {staffNames.map((name, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow"
+                      style={{ backgroundColor: staffColors[i % staffColors.length] }}
+                    >
+                      {(name.trim() || `S${i + 1}`).charAt(0).toUpperCase()}
                     </div>
-                  ))}
-                </div>
+                    <Input
+                      value={name}
+                      onChange={(e) => updateStaffName(i, e.target.value)}
+                      placeholder={i === 0 ? "Your name / Owner" : `Staff member ${i + 1}`}
+                      data-testid={`input-staff-name-${i}`}
+                      autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
+                      className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
 
-                <div className="rounded-md bg-muted p-3 mt-4">
-                  <p className="text-xs text-muted-foreground">
-                    Setting up as a <span className="font-medium text-foreground">{selectedType}</span> — each staff member will be assigned all services and your business hours by default. You can customize everything later.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="bg-white/4 border border-white/8 rounded-xl px-4 py-3 mt-4">
+                <p className="text-xs text-white/40">
+                  Setting up as a <span className="font-semibold text-white/70">{selectedType}</span> — you can customize services, hours, and staff further in your dashboard.
+                </p>
+              </div>
+            </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <Button variant="outline" onClick={() => setStep(3)} data-testid="button-back-step">
-                <ArrowLeft className="mr-2 w-4 h-4" />
-                Back
-              </Button>
-              <Button
+              <button onClick={() => setStep(3)} data-testid="button-back-step"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <button
                 onClick={handleComplete}
                 disabled={!canProceed(4) || onboardMutation.isPending}
                 data-testid="button-complete-setup"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40"
               >
-                {onboardMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {onboardMutation.isPending ? "Setting up..." : "Complete setup"}
-              </Button>
+                {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {onboardMutation.isPending ? "Setting up…" : "Complete Setup"}
+                {!onboardMutation.isPending && <ArrowRight className="w-4 h-4" />}
+              </button>
             </div>
           </div>
         )}
@@ -774,8 +763,8 @@ function BusinessTypeCard({
       <div
         className={`relative h-64 w-full rounded-2xl overflow-hidden transition-all duration-200 bg-gradient-to-br ${type.fallbackGradient} ${
           isSelected
-            ? "ring-4 ring-primary ring-offset-2 shadow-xl scale-[1.02]"
-            : "hover:scale-[1.01] hover:shadow-lg"
+            ? "ring-2 ring-[#00D4AA] ring-offset-2 ring-offset-[#050C18] shadow-xl shadow-[#00D4AA]/20 scale-[1.03]"
+            : "hover:scale-[1.01] hover:shadow-lg opacity-80 hover:opacity-100"
         }`}
       >
         <video
@@ -789,14 +778,14 @@ function BusinessTypeCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
         {isSelected && (
-          <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
-            <Check className="w-3.5 h-3.5 text-primary" />
+          <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-[#00D4AA] flex items-center justify-center shadow">
+            <Check className="w-3.5 h-3.5 text-[#050C18]" />
           </div>
         )}
       </div>
       <div className="mt-2.5 px-0.5">
-        <p className="font-semibold text-sm leading-tight">{type.label}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{type.description}</p>
+        <p className={`font-bold text-sm leading-tight ${isSelected ? "text-[#00D4AA]" : "text-white"}`}>{type.label}</p>
+        <p className="text-xs text-white/40 mt-0.5 leading-snug">{type.description}</p>
       </div>
     </div>
   );
@@ -840,17 +829,17 @@ function Step1BusinessType({
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-1" data-testid="text-step1-title">Get started</h2>
-      <p className="text-sm text-muted-foreground mb-5">What type of business do you run?</p>
+      <h2 className="text-2xl font-extrabold mb-1 text-white" data-testid="text-step1-title">What type of business do you run?</h2>
+      <p className="text-sm text-white/45 mb-6">Pick the one that matches how you operate — you can switch later.</p>
 
       <div className="relative">
         {canScrollLeft && (
           <button
             onClick={() => scroll("left")}
-            className="absolute left-0 top-1/2 -translate-y-8 -translate-x-2 z-10 w-9 h-9 rounded-full bg-background border shadow-md flex items-center justify-center hover:bg-muted transition-colors"
+            className="absolute left-0 top-1/2 -translate-y-8 -translate-x-2 z-10 w-9 h-9 rounded-full bg-[#0D1F35] border border-white/15 shadow-md flex items-center justify-center hover:bg-white/10 transition-colors"
             aria-label="Scroll left"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 text-white" />
           </button>
         )}
 
@@ -872,19 +861,19 @@ function Step1BusinessType({
         {canScrollRight && (
           <button
             onClick={() => scroll("right")}
-            className="absolute right-0 top-1/2 -translate-y-8 translate-x-2 z-10 w-9 h-9 rounded-full bg-background border shadow-md flex items-center justify-center hover:bg-muted transition-colors"
+            className="absolute right-0 top-1/2 -translate-y-8 translate-x-2 z-10 w-9 h-9 rounded-full bg-[#0D1F35] border border-white/15 shadow-md flex items-center justify-center hover:bg-white/10 transition-colors"
             aria-label="Scroll right"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 text-white" />
           </button>
         )}
       </div>
 
       <div className="mt-6 flex justify-end">
-        <Button onClick={onNext} disabled={!canProceed} data-testid="button-next-step">
-          Next
-          <ArrowRight className="ml-2 w-4 h-4" />
-        </Button>
+        <button onClick={onNext} disabled={!canProceed} data-testid="button-next-step"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
+          Next <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );

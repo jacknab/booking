@@ -77,6 +77,7 @@ import ProHub from "@/pages/pro/ProHub";
 import ProIndustryPage from "@/pages/pro/ProIndustryPage";
 import QueueLanding from "@/pages/QueueLanding";
 import Landing from "@/pages/Landing";
+import GetStarted from "@/pages/GetStarted";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -161,6 +162,7 @@ function AppRoutes() {
       <Route path="/pro/:industry" element={<ProIndustryPage />} />
       <Route path="/queue" element={<QueueLanding />} />
       <Route path="/booking" element={<Landing />} />
+      <Route path="/get-started" element={<GetStarted />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />

@@ -46,7 +46,7 @@ export default function ProductSelector() {
           </div>
           <div className="flex items-center gap-4">
             <Link to="/auth" className="text-white/55 hover:text-white text-sm font-medium transition-colors hidden sm:block">Log In</Link>
-            <Link to="/auth?mode=register" className="bg-white text-[#050C18] font-bold text-sm px-5 py-2 rounded-xl hover:bg-white/90 transition-colors">
+            <Link to="/get-started" className="bg-white text-[#050C18] font-bold text-sm px-5 py-2 rounded-xl hover:bg-white/90 transition-colors">
               Get Started Free
             </Link>
           </div>
@@ -335,7 +335,7 @@ export default function ProductSelector() {
           <p className="text-white/50 text-lg mb-10 max-w-md mx-auto">
             Start a free 60-day trial on any product. No credit card. Switch plans anytime.
           </p>
-          <Link to="/auth?mode=register">
+          <Link to="/get-started">
             <button className="inline-flex items-center gap-3 bg-white text-[#050C18] font-bold text-lg px-10 py-5 rounded-2xl hover:bg-white/90 transition-colors shadow-2xl">
               Start Free — Pick Your Product <ArrowRight className="w-5 h-5" />
             </button>
