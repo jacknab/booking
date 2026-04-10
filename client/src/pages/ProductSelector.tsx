@@ -220,25 +220,37 @@ export default function ProductSelector() {
                 <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#3B82F6]/12 border border-[#3B82F6]/25 mb-6">
                   <Wrench className="w-4 h-4 text-[#3B82F6]" />
                   <span className="text-[#3B82F6] text-sm font-bold">Certxa Pro</span>
-                  <span className="text-[#3B82F6]/50 text-xs">· Field Service</span>
+                  <span className="text-[#3B82F6]/50 text-xs">· Field Service Management</span>
                 </div>
 
                 <h2 className="text-4xl sm:text-5xl font-black leading-[1.1] tracking-tight mb-5">
-                  Dispatch crews.<br />
-                  <span className="text-[#3B82F6]">Invoice on the spot.</span>
+                  Run the office.<br />
+                  <span className="text-[#3B82F6]">Empower the crew.</span>
                 </h2>
 
                 <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-lg">
-                  Built for businesses that send people into the field. Schedule jobs, dispatch crews with GPS routing, track time, and invoice from the job site — all synced to QuickBooks.
+                  Two tools, one system. Your office gets a full dispatch dashboard to schedule jobs, assign crews, and track everything in real time. Your crew gets a mobile app to receive jobs, navigate to sites, log time, and collect payment — right from their phone.
                 </p>
+
+                {/* Two-part callout */}
+                <div className="grid grid-cols-2 gap-3 mb-8">
+                  <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-4">
+                    <p className="text-[#3B82F6] font-bold text-sm mb-1">🖥️ Office Dashboard</p>
+                    <p className="text-white/50 text-xs leading-relaxed">Schedule jobs, assign crews, monitor progress, and manage invoicing — all from one screen.</p>
+                  </div>
+                  <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-4">
+                    <p className="text-[#3B82F6] font-bold text-sm mb-1">📱 Crew Mobile App</p>
+                    <p className="text-white/50 text-xs leading-relaxed">Crew members see their jobs, get turn-by-turn routing, check in on-site, and send invoices from the field.</p>
+                  </div>
+                </div>
 
                 <ul className="space-y-3 mb-10">
                   {[
-                    "Smart job dispatching with GPS-optimized routing",
-                    "Live crew tracking & field check-ins from mobile",
-                    "Mobile invoicing — create & collect payment on-site",
-                    "Time tracking, timesheets & crew scheduling",
-                    "QuickBooks sync keeps your books clean automatically",
+                    "Drag-and-drop job scheduling with GPS-optimized routing",
+                    "Real-time crew location & job status from the office",
+                    "Crew app: accept jobs, navigate, check in & clock out",
+                    "Mobile invoicing & card payments collected on-site",
+                    "QuickBooks sync — books stay clean automatically",
                   ].map(f => (
                     <li key={f} className="flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-[#3B82F6] flex-shrink-0 mt-0.5" />
@@ -292,7 +304,7 @@ export default function ProductSelector() {
             {[
               { q: "Certxa filled our calendar in the first week. Clients love being able to book at midnight. Our no-shows are basically gone.", name: "Jasmine R.", biz: "Luxe Hair Studio", product: "Booking", accent: "#00D4AA" },
               { q: "Our barbershop used to have people standing outside waiting. Now they wait down the street and walk in when we text them. Game changer.", name: "Marcus T.", biz: "Legacy Cuts",      product: "Queue",   accent: "#F59E0B" },
-              { q: "We went from paper job sheets to dispatching 6 crews with GPS tracking and mobile invoicing. Revenue is up 35% in one quarter.", name: "Dave K.",    biz: "K&Sons HVAC",    product: "Pro",     accent: "#3B82F6" },
+              { q: "The office dashboard shows me where every crew is, what job they're on, and what's coming next. The guys love the mobile app — they get their jobs, navigate, and send invoices all from their phone.", name: "Dave K.",    biz: "K&Sons HVAC",    product: "Pro",     accent: "#3B82F6" },
             ].map(t => (
               <div key={t.name} className="bg-white/4 border border-white/8 rounded-2xl p-6">
                 <div className="flex gap-0.5 mb-4">
