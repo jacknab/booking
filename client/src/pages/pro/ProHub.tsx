@@ -9,6 +9,7 @@ import {
   Menu, X,
 } from "lucide-react";
 import { PRO_INDUSTRIES, PRO_CATEGORIES } from "./proIndustries";
+import dispatchImg from "@assets/image_1775799165749.png";
 
 const STATS = [
   { value: "50,000+",  label: "Service Pros"         },
@@ -383,8 +384,42 @@ export default function ProHub() {
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.1 }}>
-            <SchedulingMock />
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="relative"
+          >
+            {/* Glow behind the card */}
+            <div className="absolute -inset-4 bg-[#00D4AA]/10 rounded-3xl blur-2xl pointer-events-none" />
+
+            {/* Screenshot frame */}
+            <div className="relative rounded-2xl overflow-hidden border border-white/15 shadow-[0_32px_80px_rgba(0,0,0,0.6)] ring-1 ring-white/8">
+              {/* Fake browser chrome */}
+              <div className="bg-[#0D1F35] border-b border-white/10 px-4 py-2.5 flex items-center gap-2 flex-shrink-0">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                  <div className="w-3 h-3 rounded-full bg-amber-400/70" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/70" />
+                </div>
+                <div className="flex-1 mx-3 bg-white/8 rounded-md px-3 py-1 text-white/30 text-[11px] font-medium truncate">
+                  app.certxa.com/pro-dashboard/schedule
+                </div>
+              </div>
+
+              <img
+                src={dispatchImg}
+                alt="Certxa Pro dispatch schedule — crew columns with real-time job cards"
+                className="w-full block"
+                loading="eager"
+              />
+            </div>
+
+            {/* Floating badge */}
+            <div className="absolute -bottom-4 -right-4 bg-[#00D4AA] text-[#060E1A] text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg shadow-[#00D4AA]/30 flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5" />
+              Live Dispatch Board
+            </div>
           </motion.div>
         </div>
       </section>
