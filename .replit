@@ -70,12 +70,12 @@ outputType = "webview"
 name = "Start mobile"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd mobile && npx expo start --web --port 8080"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd mobile && npx expo start --tunnel --port 8080"
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
