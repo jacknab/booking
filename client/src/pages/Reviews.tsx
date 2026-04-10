@@ -21,6 +21,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { Review } from "@shared/schema";
 import { GoogleConnectGate } from "@/components/GoogleConnectGate";
+import { YelpConnectGate } from "@/components/YelpConnectGate";
+import { YelpAliasForm } from "@/components/YelpAliasForm";
 
 type ReviewStats = {
   total: number;
@@ -49,7 +51,12 @@ export default function Reviews() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
-  const [googleSkipped, setGoogleSkipped] = useState(false);
+  // gateStep controls which screen is shown before the reviews table
+  // "google" → Google connect gate
+  // "yelp"   → Yelp connect gate
+  // "yelp-form" → Yelp alias input form
+  // "done"   → show reviews normally
+  const [gateStep, setGateStep] = useState<"google" | "yelp" | "yelp-form" | "done">("google");
   const [googleConnecting, setGoogleConnecting] = useState(false);
 
   const { data: googleProfile, isLoading: googleLoading } = useQuery({
@@ -65,7 +72,8 @@ export default function Reviews() {
   });
 
   const isGoogleConnected = !!googleProfile?.isConnected;
-  const showGate = !googleLoading && !isGoogleConnected && !googleSkipped;
+  // If Google is already connected, skip straight to reviews
+  const effectiveStep = !googleLoading && isGoogleConnected ? "done" : gateStep;
 
   async function handleGoogleConnect() {
     setGoogleConnecting(true);
@@ -147,13 +155,36 @@ export default function Reviews() {
     return Math.round(((stats.distribution[star] || 0) / stats.total) * 100);
   };
 
-  if (showGate) {
+  if (effectiveStep === "google") {
     return (
       <AppLayout>
         <GoogleConnectGate
           onConnect={handleGoogleConnect}
-          onSkip={() => setGoogleSkipped(true)}
+          onSkip={() => setGateStep("yelp")}
           loading={googleConnecting}
+        />
+      </AppLayout>
+    );
+  }
+
+  if (effectiveStep === "yelp") {
+    return (
+      <AppLayout>
+        <YelpConnectGate
+          onConnect={() => setGateStep("yelp-form")}
+          onSkip={() => setGateStep("done")}
+        />
+      </AppLayout>
+    );
+  }
+
+  if (effectiveStep === "yelp-form") {
+    return (
+      <AppLayout>
+        <YelpAliasForm
+          storeId={storeId}
+          onSave={() => setGateStep("done")}
+          onSkip={() => setGateStep("done")}
         />
       </AppLayout>
     );

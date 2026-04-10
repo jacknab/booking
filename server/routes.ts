@@ -3048,6 +3048,23 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // === YELP ALIAS ===
+
+  app.put("/api/stores/:storeId/yelp-alias", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const storeId = Number(req.params.storeId);
+    const { yelpAlias } = req.body;
+    if (typeof yelpAlias !== "string") return res.status(400).json({ message: "yelpAlias required" });
+    const [updated] = await db
+      .update(locations)
+      .set({ yelpAlias: yelpAlias.trim() || null })
+      .where(and(eq(locations.id, storeId), eq(locations.userId, userId)))
+      .returning();
+    if (!updated) return res.status(404).json({ message: "Store not found" });
+    return res.json({ success: true, yelpAlias: updated.yelpAlias });
+  });
+
   // === ADMIN TRIAL MANAGEMENT ===
   
   /**
