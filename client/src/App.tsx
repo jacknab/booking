@@ -89,6 +89,7 @@ import CrewsPage from "@/pages/pro-dashboard/CrewsPage";
 import InvoicesPage from "@/pages/pro-dashboard/InvoicesPage";
 import ReportsPage from "@/pages/pro-dashboard/ReportsPage";
 import SettingsPage from "@/pages/pro-dashboard/SettingsPage";
+import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 
 // List of authenticated routes that require StoreProvider
@@ -223,6 +224,7 @@ function AppRoutes() {
 
       {/* Certxa Pro Dashboard */}
       <Route path="/pro-dashboard" element={<ProDashboardLayout><DispatchDashboard /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/schedule" element={<ProDashboardLayout><SchedulePage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/jobs" element={<ProDashboardLayout><JobsBoard /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/jobs/new" element={<ProDashboardLayout><NewJob /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/jobs/:id" element={<ProDashboardLayout><JobDetail /></ProDashboardLayout>} />
