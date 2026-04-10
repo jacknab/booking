@@ -131,3 +131,9 @@ id = "GHS2SIJSoATw_d-fqHodL"
 uri = "file://docs/certxa-queue-smart-sms.md"
 type = "text"
 title = "Certxa Queue — Smart SMS Dispatch"
+
+[[outputs]]
+id = "lS1Wz02VC0cYPUtf-Ir6m"
+uri = "file://docs/facebook-reviews-integration.md"
+type = "text"
+title = "Facebook Reviews Integration — Complete Setup Guide"
