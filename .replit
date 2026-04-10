@@ -29,6 +29,10 @@ externalPort = 3003
 localPort = 8080
 externalPort = 8080
 
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
 [env]
 PORT = "5000"
 
@@ -75,7 +79,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mobile && npx expo start --tunnel --port 8080"
+args = "cd mobile && npx expo start --tunnel"
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
