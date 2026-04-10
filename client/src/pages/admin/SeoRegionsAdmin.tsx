@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { AdminLayout } from "./AdminLayout";
 
 interface SeoRegion {
@@ -61,6 +62,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function SeoRegionsAdmin() {
+  const location = useLocation();
   const [tab, setTab] = useState<"pages" | "bulk">("pages");
   const [regions, setRegions] = useState<SeoRegion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -239,7 +241,7 @@ export default function SeoRegionsAdmin() {
   const productColor: Record<string, string> = { booking: "#00D4AA", queue: "#F59E0B", pro: "#3B82F6", all: "#a78bfa" };
 
   return (
-    <AdminLayout>
+    <AdminLayout currentPath={location.pathname}>
       <div style={{ maxWidth: 1100 }}>
 
         {/* Header */}

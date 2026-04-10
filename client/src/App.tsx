@@ -42,6 +42,7 @@ import SmsSettings from "@/pages/SmsSettings";
 import MailSettings from "@/pages/MailSettings";
 import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import SeoRegionsAdmin from "@/pages/admin/SeoRegionsAdmin";
+import AccountsAdmin from "@/pages/admin/AccountsAdmin";
 import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -204,6 +205,7 @@ function AppRoutes() {
       <Route path="/staff-calendar" element={<StaffCalendar />} />
       <Route path="/isadmin/*" element={<AdminDashboard />} />
       <Route path="/admin/seo-regions" element={<SeoRegionsAdmin />} />
+      <Route path="/admin/accounts" element={<AccountsAdmin />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/pro-setup" element={<ProFeaturesSetup />} />
       <Route path="/dashboard" element={<Dashboard />} />

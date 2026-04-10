@@ -2389,24 +2389,59 @@ If you have any questions, please contact your administrator.
 
     try {
       const allUsers = await db.select().from(users);
-      
-      const accounts = await Promise.all(
-        allUsers.map(async (user: any) => {
-          const userStores = await db.select().from(locations).where(eq(locations.userId, user.id)).limit(1);
-          const store = userStores[0];
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            createdAt: user.createdAt,
-            storeName: store?.name,
-            storeCity: store?.city,
-            storeState: store?.state,
-            storePhone: store?.phone,
-          };
-        })
-      );
+      const allLocations = await db.select().from(locations);
+
+      const locationsByUser = new Map<string, typeof allLocations[0]>();
+      for (const loc of allLocations) {
+        if (loc.userId && !locationsByUser.has(loc.userId)) {
+          locationsByUser.set(loc.userId, loc);
+        }
+      }
+
+      const now = new Date();
+      const accounts = allUsers.map((user: any) => {
+        const store = locationsByUser.get(user.id);
+
+        // Compute a unified status
+        let computedStatus: string;
+        const subStatus = user.subscriptionStatus ?? "active";
+        const locStatus = (store?.accountStatus ?? "Active").toLowerCase();
+        const trialEnds = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
+
+        if (locStatus === "inactive") {
+          computedStatus = "Inactive";
+        } else if (subStatus === "trialing") {
+          computedStatus = trialEnds && trialEnds < now ? "Expired" : "Free Trial";
+        } else if (subStatus === "active") {
+          computedStatus = "Subscriber";
+        } else if (subStatus === "past_due") {
+          computedStatus = "Expired";
+        } else if (subStatus === "canceled") {
+          computedStatus = "Inactive";
+        } else {
+          computedStatus = store?.accountStatus ?? "Active";
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          createdAt: user.createdAt,
+          subscriptionStatus: subStatus,
+          trialStartedAt: user.trialStartedAt,
+          trialEndsAt: user.trialEndsAt,
+          computedStatus,
+          storeId: store?.id ?? null,
+          storeName: store?.name ?? null,
+          storeCity: store?.city ?? null,
+          storeState: store?.state ?? null,
+          storePhone: store?.phone ?? null,
+          storeCategory: store?.category ?? null,
+          accountStatus: store?.accountStatus ?? null,
+        };
+      });
 
       res.json(accounts);
     } catch (error) {
