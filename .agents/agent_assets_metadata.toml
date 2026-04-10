@@ -119,3 +119,9 @@ id = "2iM1LHNlndVkw61uC3Tjd"
 uri = "file://attached_assets/stock_images/man_spa_massage_3.jpg"
 type = "image"
 title = "man getting back massage from masseuse in spa treatment room"
+
+[[outputs]]
+id = "W5rdzSDRbNc5bu28OegVL"
+uri = "file://docs/GIG_INDUSTRIES_PLAN.md"
+type = "text"
+title = "Certxa Gig Industries Expansion Plan"
