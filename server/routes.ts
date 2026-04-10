@@ -3560,6 +3560,64 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // Atomic "Next Customer" — completes whoever is serving, promotes next waiting
+  app.post("/api/queue/next", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = req.query.storeId ? parseInt(req.query.storeId as string) : null;
+      const now = new Date();
+
+      // Complete whoever is currently serving/called
+      let completed = null;
+      const [currentlyServing] = await db
+        .select()
+        .from(waitlist)
+        .where(
+          storeId
+            ? and(
+                sql`${waitlist.status} IN ('serving', 'called')`,
+                eq(waitlist.storeId, storeId)
+              )
+            : sql`${waitlist.status} IN ('serving', 'called')`
+        )
+        .orderBy(waitlist.createdAt)
+        .limit(1);
+
+      if (currentlyServing) {
+        [completed] = await db
+          .update(waitlist)
+          .set({ status: "completed", completedAt: now })
+          .where(eq(waitlist.id, currentlyServing.id))
+          .returning();
+      }
+
+      // Promote next waiting person to serving
+      let serving = null;
+      const [nextWaiting] = await db
+        .select()
+        .from(waitlist)
+        .where(
+          storeId
+            ? and(eq(waitlist.status, "waiting"), eq(waitlist.storeId, storeId))
+            : eq(waitlist.status, "waiting")
+        )
+        .orderBy(waitlist.createdAt)
+        .limit(1);
+
+      if (nextWaiting) {
+        [serving] = await db
+          .update(waitlist)
+          .set({ status: "serving", calledAt: now })
+          .where(eq(waitlist.id, nextWaiting.id))
+          .returning();
+      }
+
+      res.json({ completed, serving });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to advance queue" });
+    }
+  });
+
   app.put("/api/waitlist/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

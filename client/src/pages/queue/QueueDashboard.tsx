@@ -6,8 +6,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import {
-  Users, Clock, CheckCircle, XCircle, Bell, Plus, Trash2,
-  Settings, RefreshCw, ExternalLink, Loader2, Phone, ChevronRight
+  Users, Clock, CheckCircle, Plus, Trash2,
+  Settings, RefreshCw, ExternalLink, Loader2, Phone, ChevronRight, UserCheck
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -22,20 +22,12 @@ type WaitlistEntry = {
   calledAt?: string;
 };
 
-const STATUS_META: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  waiting:   { label: "Waiting",   bg: "bg-amber-50  dark:bg-amber-950/40",  text: "text-amber-700  dark:text-amber-300",  dot: "bg-amber-400"  },
-  called:    { label: "Called",    bg: "bg-blue-50   dark:bg-blue-950/40",   text: "text-blue-700   dark:text-blue-300",   dot: "bg-blue-400"   },
-  serving:   { label: "Serving",   bg: "bg-teal-50   dark:bg-teal-950/40",   text: "text-teal-700   dark:text-teal-300",   dot: "bg-teal-400 animate-pulse"   },
-  completed: { label: "Done",      bg: "bg-green-50  dark:bg-green-950/40",  text: "text-green-700  dark:text-green-300",  dot: "bg-green-400"  },
-  cancelled: { label: "Removed",   bg: "bg-gray-50   dark:bg-gray-800/40",   text: "text-gray-500   dark:text-gray-400",   dot: "bg-gray-300"   },
-};
-
 export default function QueueDashboard() {
   const { selectedStore } = useSelectedStore();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newEntry, setNewEntry] = useState({ customerName: "", customerPhone: "", partySize: 1 });
+  const [newEntry, setNewEntry] = useState({ customerName: "", customerPhone: "" });
 
   const { data: entries = [], isLoading, refetch } = useQuery<WaitlistEntry[]>({
     queryKey: ["/api/waitlist"],
@@ -45,15 +37,22 @@ export default function QueueDashboard() {
 
   const today = new Date().toDateString();
   const todayEntries = entries.filter(e => new Date(e.createdAt).toDateString() === today);
+  const serving = todayEntries.filter(e => ["called", "serving"].includes(e.status));
   const waiting = todayEntries.filter(e => e.status === "waiting");
-  const called = todayEntries.filter(e => ["called", "serving"].includes(e.status));
   const served = todayEntries.filter(e => e.status === "completed");
-  const active = [...called, ...waiting];
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      apiRequest("PUT", `/api/waitlist/${id}`, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] }),
+  const nextMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/queue/next${selectedStore ? `?storeId=${selectedStore.id}` : ""}`),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
+      if (data.serving) {
+        toast({ title: `Now serving ${data.serving.customerName}` });
+      } else if (data.completed && !data.serving) {
+        toast({ title: "Queue is now empty" });
+      }
+    },
+    onError: () => toast({ title: "Failed to advance queue", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -66,28 +65,24 @@ export default function QueueDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
       setShowAddForm(false);
-      setNewEntry({ customerName: "", customerPhone: "", partySize: 1 });
+      setNewEntry({ customerName: "", customerPhone: "" });
       toast({ title: "Walk-in added to queue" });
     },
   });
-
-  const handleAction = (id: number, status: string) => {
-    updateMutation.mutate({ id, status });
-    toast({ title: status === "completed" ? "Marked as done" : status === "called" ? "Customer called" : "Status updated" });
-  };
 
   const handleAddWalkIn = () => {
     if (!newEntry.customerName.trim()) return;
     addMutation.mutate({
       customerName: newEntry.customerName.trim(),
       customerPhone: newEntry.customerPhone.trim() || undefined,
-      partySize: newEntry.partySize,
+      partySize: 1,
       storeId: selectedStore?.id,
       status: "waiting",
     });
   };
 
   const slug = (selectedStore as any)?.bookingSlug;
+  const hasNext = waiting.length > 0 || serving.length > 0;
 
   return (
     <AppLayout>
@@ -125,19 +120,47 @@ export default function QueueDashboard() {
             </Link>
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-muted transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Walk-In
+            </button>
+
+            {/* The main action button */}
+            <button
+              onClick={() => nextMutation.mutate()}
+              disabled={nextMutation.isPending || !hasNext}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 disabled:opacity-40 transition-colors shadow-sm"
+            >
+              {nextMutation.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <><ChevronRight className="w-4 h-4" /> Next</>
+              }
             </button>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatCard icon={<Users className="w-5 h-5 text-amber-500" />} label="Waiting" value={waiting.length} highlight={waiting.length > 0} />
-          <StatCard icon={<Bell className="w-5 h-5 text-blue-500" />} label="Called / Serving" value={called.length} />
-          <StatCard icon={<CheckCircle className="w-5 h-5 text-green-500" />} label="Served Today" value={served.length} />
+          <StatCard
+            icon={<UserCheck className="w-5 h-5 text-teal-500" />}
+            label="Now Serving"
+            value={serving.length}
+            highlight={serving.length > 0}
+            color="teal"
+          />
+          <StatCard
+            icon={<Users className="w-5 h-5 text-amber-500" />}
+            label="Waiting"
+            value={waiting.length}
+            highlight={waiting.length > 0}
+            color="amber"
+          />
+          <StatCard
+            icon={<CheckCircle className="w-5 h-5 text-green-500" />}
+            label="Served Today"
+            value={served.length}
+          />
         </div>
 
         {/* Add walk-in form */}
@@ -151,24 +174,16 @@ export default function QueueDashboard() {
                 onChange={e => setNewEntry(n => ({ ...n, customerName: e.target.value }))}
                 placeholder="Customer name *"
                 className="flex-1 min-w-[160px] px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                onKeyDown={e => e.key === "Enter" && handleAddWalkIn()}
+                autoFocus
               />
               <input
                 type="tel"
                 value={newEntry.customerPhone}
                 onChange={e => setNewEntry(n => ({ ...n, customerPhone: e.target.value }))}
                 placeholder="Phone (optional)"
-                className="w-40 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-44 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
-              <div className="flex items-center gap-1.5 border rounded-lg px-2 py-1">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <select
-                  value={newEntry.partySize}
-                  onChange={e => setNewEntry(n => ({ ...n, partySize: Number(e.target.value) }))}
-                  className="bg-transparent text-sm focus:outline-none pr-1"
-                >
-                  {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} {n === 1 ? "person" : "people"}</option>)}
-                </select>
-              </div>
               <button
                 onClick={handleAddWalkIn}
                 disabled={addMutation.isPending || !newEntry.customerName.trim()}
@@ -191,7 +206,7 @@ export default function QueueDashboard() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : active.length === 0 && waiting.length === 0 ? (
+        ) : serving.length === 0 && waiting.length === 0 ? (
           <div className="text-center py-20 border rounded-xl bg-card">
             <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <Users className="w-6 h-6 text-muted-foreground" />
@@ -210,25 +225,26 @@ export default function QueueDashboard() {
             )}
           </div>
         ) : (
-          <div className="space-y-2">
-            {/* Called/serving section */}
-            {called.length > 0 && (
-              <div className="mb-4">
+          <div className="space-y-4">
+
+            {/* Now Serving */}
+            {serving.length > 0 && (
+              <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">Now Serving</p>
-                {called.map(entry => (
+                {serving.map(entry => (
                   <QueueEntryRow
                     key={entry.id}
                     entry={entry}
                     position={null}
-                    onComplete={() => handleAction(entry.id, "completed")}
+                    isServing
                     onRemove={() => deleteMutation.mutate(entry.id)}
-                    isPending={updateMutation.isPending || deleteMutation.isPending}
+                    isPending={deleteMutation.isPending}
                   />
                 ))}
               </div>
             )}
 
-            {/* Waiting section */}
+            {/* Waiting */}
             {waiting.length > 0 && (
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">Waiting</p>
@@ -237,9 +253,9 @@ export default function QueueDashboard() {
                     key={entry.id}
                     entry={entry}
                     position={idx + 1}
-                    onCall={() => handleAction(entry.id, "called")}
+                    isServing={false}
                     onRemove={() => deleteMutation.mutate(entry.id)}
-                    isPending={updateMutation.isPending || deleteMutation.isPending}
+                    isPending={deleteMutation.isPending}
                   />
                 ))}
               </div>
@@ -247,18 +263,17 @@ export default function QueueDashboard() {
           </div>
         )}
 
-        {/* Recently served (collapsed) */}
+        {/* Recently served */}
         {served.length > 0 && (
           <div className="mt-8 border-t pt-4">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Served Today ({served.length})</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
+              Served Today ({served.length})
+            </p>
             <div className="space-y-1.5">
               {served.slice(0, 5).map(entry => (
                 <div key={entry.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30">
                   <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-muted-foreground flex-1">{entry.customerName}</span>
-                  {entry.partySize && entry.partySize > 1 && (
-                    <span className="text-xs text-muted-foreground">×{entry.partySize}</span>
-                  )}
                   <span className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
                   </span>
@@ -275,40 +290,55 @@ export default function QueueDashboard() {
   );
 }
 
-function StatCard({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: number; highlight?: boolean }) {
+function StatCard({
+  icon, label, value, highlight, color = "amber"
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  highlight?: boolean;
+  color?: "amber" | "teal";
+}) {
+  const colorMap = {
+    amber: { border: "border-amber-200 dark:border-amber-800/50", text: "text-amber-600 dark:text-amber-400" },
+    teal:  { border: "border-teal-200  dark:border-teal-800/50",  text: "text-teal-600  dark:text-teal-400"  },
+  };
+  const c = colorMap[color];
   return (
-    <div className={`rounded-xl border p-4 bg-card ${highlight && value > 0 ? "border-amber-200 dark:border-amber-800/50" : ""}`}>
+    <div className={`rounded-xl border p-4 bg-card ${highlight && value > 0 ? c.border : ""}`}>
       <div className="flex items-center gap-2 mb-2">{icon}<span className="text-sm text-muted-foreground">{label}</span></div>
-      <p className={`text-3xl font-bold ${highlight && value > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>{value}</p>
+      <p className={`text-3xl font-bold ${highlight && value > 0 ? c.text : "text-foreground"}`}>{value}</p>
     </div>
   );
 }
 
-function QueueEntryRow({ entry, position, onCall, onComplete, onRemove, isPending }: {
+function QueueEntryRow({
+  entry, position, isServing, onRemove, isPending
+}: {
   entry: WaitlistEntry;
   position: number | null;
-  onCall?: () => void;
-  onComplete?: () => void;
+  isServing: boolean;
   onRemove: () => void;
   isPending: boolean;
 }) {
-  const meta = STATUS_META[entry.status] || STATUS_META.waiting;
-  const isServing = ["called", "serving"].includes(entry.status);
-
   return (
-    <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 mb-2 transition-all ${meta.bg}`}>
+    <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 mb-2 transition-all ${
+      isServing
+        ? "bg-teal-50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/40"
+        : "bg-card"
+    }`}>
       {position !== null ? (
         <span className="text-lg font-black text-muted-foreground w-8 text-center flex-shrink-0">#{position}</span>
       ) : (
-        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${meta.dot}`} />
+        <div className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse flex-shrink-0" />
       )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-foreground truncate">{entry.customerName}</span>
-          {entry.partySize && entry.partySize > 1 && (
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-              ×{entry.partySize}
+          {isServing && (
+            <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40 px-2 py-0.5 rounded-full">
+              Serving
             </span>
           )}
         </div>
@@ -318,40 +348,21 @@ function QueueEntryRow({ entry, position, onCall, onComplete, onRemove, isPendin
               <Phone className="w-3 h-3" />{entry.customerPhone}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" />
             {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {onCall && !isServing && (
-          <button
-            onClick={onCall}
-            disabled={isPending}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            <Bell className="w-3 h-3" /> Call
-          </button>
-        )}
-        {onComplete && (
-          <button
-            onClick={onComplete}
-            disabled={isPending}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-semibold hover:bg-green-200 dark:hover:bg-green-900/60 disabled:opacity-50 transition-colors"
-          >
-            <CheckCircle className="w-3 h-3" /> Done
-          </button>
-        )}
-        <button
-          onClick={onRemove}
-          disabled={isPending}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 transition-colors"
-          title="Remove from queue"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <button
+        onClick={onRemove}
+        disabled={isPending}
+        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 transition-colors"
+        title="Remove from queue"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
