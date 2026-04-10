@@ -26,7 +26,7 @@ export default function PublicCheckIn() {
   const [page, setPage] = useState<Page>("loading");
   const [queueInfo, setQueueInfo] = useState<QueueInfo | null>(null);
   const [positionInfo, setPositionInfo] = useState<PositionInfo | null>(null);
-  const [form, setForm] = useState({ name: "", phone: "", partySize: 1 });
+  const [form, setForm] = useState({ name: "", phone: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
@@ -94,7 +94,7 @@ export default function PublicCheckIn() {
         body: JSON.stringify({
           customerName: form.name.trim(),
           customerPhone: form.phone.trim() || null,
-          partySize: form.partySize,
+          partySize: 1,
           latitude: coords?.lat ?? null,
           longitude: coords?.lon ?? null,
         }),
@@ -120,7 +120,7 @@ export default function PublicCheckIn() {
     } catch {}
     setPage("form");
     setPositionInfo(null);
-    setForm({ name: "", phone: "", partySize: 1 });
+    setForm({ name: "", phone: "" });
     fetchQueue();
   };
 
@@ -264,28 +264,6 @@ export default function PublicCheckIn() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-base"
                   autoComplete="tel"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Party Size
-                </label>
-                <div className="flex items-center gap-3">
-                  {[1, 2, 3, 4].map(n => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, partySize: n }))}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                        form.partySize === n
-                          ? "bg-teal-500 border-teal-500 text-white"
-                          : "bg-white border-gray-200 text-gray-700 hover:border-teal-300"
-                      }`}
-                    >
-                      {n === 4 ? "4+" : n}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {error && (
