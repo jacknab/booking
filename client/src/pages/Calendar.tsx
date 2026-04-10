@@ -10,7 +10,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, PlusCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -484,21 +484,35 @@ export default function Calendar() {
                                 data-testid={`calendar-slot-${member.id}-${slot.hour}-${slot.minute}`}
                               >
                                 {isSlotSelected && (
-                                  <div className="flex items-center justify-between h-full px-2">
-                                    <span className="text-xs font-bold text-blue-700 dark:text-blue-300 select-none">
-                                      {slotLabel}
-                                    </span>
-                                    <button
-                                      className="flex items-center justify-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleBookSlot(member.id, slot.hour, slot.minute);
-                                      }}
-                                      data-testid={`book-slot-btn-${member.id}-${slot.hour}-${slot.minute}`}
-                                      title="Book this time slot"
-                                    >
-                                      <PlusCircle className="w-5 h-5" />
-                                    </button>
+                                  <div
+                                    className="absolute z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden"
+                                    style={{ top: 0, left: "calc(100% + 6px)", minWidth: "180px" }}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <div className="px-3 py-2 border-b bg-muted/50">
+                                      <span className="text-xs font-semibold text-foreground">{slotLabel}</span>
+                                    </div>
+                                    <div className="p-1.5 flex flex-col gap-1">
+                                      <button
+                                        className="w-full px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleBookSlot(member.id, slot.hour, slot.minute);
+                                        }}
+                                        data-testid={`book-slot-btn-${member.id}-${slot.hour}-${slot.minute}`}
+                                      >
+                                        Create New Appointment
+                                      </button>
+                                      <button
+                                        className="w-full px-3 py-2 rounded-md border border-border text-xs font-semibold hover:bg-muted transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedSlot(null);
+                                        }}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
                                   </div>
                                 )}
                               </div>

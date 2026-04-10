@@ -63,8 +63,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // ─── Slot popup ───────────────────────────────────────────────────────────────
-function SlotPopup({ crew, hour, minute, onClose, navigate }: {
-  crew: any; hour: number; minute: number; onClose: () => void; navigate: (p: string) => void;
+function SlotPopup({ crew, hour, minute, colW, onClose, navigate }: {
+  crew: any; hour: number; minute: number; colW: number; onClose: () => void; navigate: (p: string) => void;
 }) {
   const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const suffix = hour < 12 ? "am" : "pm";
@@ -79,7 +79,7 @@ function SlotPopup({ crew, hour, minute, onClose, navigate }: {
 
   return (
     <div className="absolute z-30 bg-[#0D1F35] border border-[#00D4AA]/40 rounded-xl shadow-2xl p-3 w-44"
-      style={{ top: jobTop(`${new Date().toISOString().split("T")[0]}T${String(hour).padStart(2,"0")}:${mStr}:00`) + 2, left: 6 }}
+      style={{ top: jobTop(`${new Date().toISOString().split("T")[0]}T${String(hour).padStart(2,"0")}:${mStr}:00`) + 2, left: colW + 4 }}
       onClick={e => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-2">
@@ -193,6 +193,7 @@ function CrewColumn({ crew, jobs, colW, navigate, showNowLine, nowPx, selectedDa
           crew={crew}
           hour={popup.hour}
           minute={popup.minute}
+          colW={colW}
           onClose={() => setPopup(null)}
           navigate={navigate}
         />
