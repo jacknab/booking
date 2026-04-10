@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform,
 } from "react-native";
@@ -7,9 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Location from "expo-location";
 import { Colors } from "@/src/constants/colors";
-import { crewGet } from "@/src/lib/api";
+import { crewGet, crewPost } from "@/src/lib/api";
 import { useAuth } from "@/src/context/AuthContext";
+
+const GPS_INTERVAL_MS = 60_000;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,17 +22,58 @@ export default function HomeScreen() {
   const botPad = Platform.OS === "web" ? 100 : insets.bottom + 84;
 
   const [clockedIn, setClockedIn] = useState(false);
+  const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
+  const gpsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const sendLocation = async () => {
+    if (Platform.OS === "web") return;
+    try {
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      await crewPost("/api/crew/location", {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      });
+    } catch {
+    }
+  };
+
+  useEffect(() => {
+    if (clockedIn) {
+      (async () => {
+        if (Platform.OS !== "web") {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          setLocationGranted(status === "granted");
+          if (status !== "granted") return;
+        }
+        sendLocation();
+        gpsTimerRef.current = setInterval(sendLocation, GPS_INTERVAL_MS);
+      })();
+    } else {
+      if (gpsTimerRef.current) {
+        clearInterval(gpsTimerRef.current);
+        gpsTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (gpsTimerRef.current) {
+        clearInterval(gpsTimerRef.current);
+        gpsTimerRef.current = null;
+      }
+    };
+  }, [clockedIn]);
 
   const { data: meData } = useQuery<any>({
     queryKey: ["/api/crew/me"],
     queryFn: () => crewGet("/api/crew/me"),
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const { data: orders = [] } = useQuery<any[]>({
     queryKey: ["/api/crew/orders"],
     queryFn: () => crewGet("/api/crew/orders"),
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
   const activeJob = (orders as any[]).find((o: any) => o.status === "in_progress");

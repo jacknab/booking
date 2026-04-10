@@ -30,7 +30,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Certxa Crew needs your location to show the office where you are while you're working.",
+          "locationWhenInUsePermission": "Certxa Crew needs your location to show the office where you are while you're working.",
+          "isIosBackgroundLocationEnabled": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

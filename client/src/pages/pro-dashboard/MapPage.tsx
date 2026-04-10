@@ -212,7 +212,7 @@ export default function MapPage() {
       return r.json();
     },
     enabled: !!storeId,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
   const crews: any[] = dispatchData?.crews ?? [];
