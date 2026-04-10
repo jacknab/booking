@@ -6,11 +6,15 @@ This is the **Certxa** platform — a full-stack booking and business management
 
 **SEO Regional Page Builder:**
 - Admin UI at `/admin/seo-regions` (linked from admin sidebar as "SEO Pages")
+- Two-tab interface: **Pages** (manage/rebuild existing) and **Bulk Generator** (select business types + cities to mass-generate)
 - Add a city/region → a standalone static HTML page is instantly generated at `/regions/[slug].html`
-- Each page includes: `<title>`, `<meta description>`, `<meta keywords>`, Open Graph tags, JSON-LD LocalBusiness schema, JSON-LD FAQ schema, canonical URL, city-specific H1/H2 headings, phone number with `<a href="tel:...">`, features list, industries served, nearby cities for long-tail keywords, FAQ section, CTA
-- Three product templates: `booking`, `queue`, `pro` — each generates fully customized content
+- Each page includes: `<title>`, `<meta description>`, `<meta keywords>`, Open Graph tags, JSON-LD LocalBusiness schema, JSON-LD FAQ schema, canonical URL, city-specific H1/H2 headings, phone number, nearby cities for long-tail keywords, FAQ section, CTA
+- **Business-type pages:** `seoRegions.businessType` column → 18 unique templates in `seo-page-generator.ts` with industry-specific H1, H2s, FAQs, meta. Slug format: `{city}-{stateCode}-{business-type}` e.g. `dallas-tx-hair-salons`
+- **Bulk Generator:** Select any subset of 18 booking business types × 122 cities (100+ US + 20 CA) → one click creates all combinations and generates all HTML files. Duplicate slugs are skipped safely.
+- City database: `server/seo-cities.ts` — `ALL_CITIES` array with `BOOKING_BUSINESS_TYPES` list (18 types)
 - Files live in `client/public/regions/` and are served as static HTML — Google crawls them with no JavaScript required
-- API routes: `GET/POST/PUT/DELETE /api/seo-regions`, `POST /api/seo-regions/:id/generate`, `POST /api/seo-regions/generate-all`
+- API routes: `GET /api/seo-regions`, `GET /api/seo-regions/reference-data`, `POST /api/seo-regions`, `PUT /api/seo-regions/:id`, `DELETE /api/seo-regions/:id`, `POST /api/seo-regions/:id/generate`, `POST /api/seo-regions/generate-all`, `POST /api/seo-regions/bulk-seed`
+- **Route ordering critical:** `reference-data` and `generate-all` must be registered BEFORE `/:id` to avoid param capture
 - Page generator: `server/seo-page-generator.ts`; schema table: `seo_regions`
 - **Important:** API routes registered BEFORE Vite in `server/index.ts` to prevent Vite catch-all from intercepting `/api/*` requests
 

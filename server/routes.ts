@@ -53,6 +53,7 @@ import {
   insertSeoRegionSchema,
 } from "@shared/schema";
 import { writeRegionPage, deleteRegionPage } from "./seo-page-generator";
+import { buildRegionSlug, ALL_CITIES, BOOKING_BUSINESS_TYPES } from "./seo-cities";
 import {
   GoogleBusinessAPIManager,
   createApiManagerFromProfile,
@@ -4199,6 +4200,14 @@ If you have any questions, please contact your administrator.
 
   // ── SEO Regional Pages API ────────────────────────────────────────────────────
 
+    // Get city and business type reference data (MUST be before /:id)
+    app.get("/api/seo-regions/reference-data", async (_req, res) => {
+      res.json({
+        cities: ALL_CITIES,
+        bookingBusinessTypes: BOOKING_BUSINESS_TYPES,
+      });
+    });
+
     // List all regions
     app.get("/api/seo-regions", async (req, res) => {
       try {
@@ -4301,6 +4310,66 @@ If you have any questions, please contact your administrator.
         res.json({ success: true, generated: count, total: rows.length });
       } catch (err: any) {
         res.status(500).json({ error: err?.message ?? "Bulk generation failed" });
+      }
+    });
+
+    // Bulk seed — create records for all selected city × business type combinations
+    app.post("/api/seo-regions/bulk-seed", async (req, res) => {
+      try {
+        const { cities, businessTypes, phone } = req.body as {
+          cities: Array<{ city: string; state: string; stateCode: string; country?: string; nearbyCities?: string }>;
+          businessTypes: string[];
+          phone?: string;
+        };
+        if (!Array.isArray(cities) || cities.length === 0) return res.status(400).json({ error: "No cities provided" });
+        if (!Array.isArray(businessTypes) || businessTypes.length === 0) return res.status(400).json({ error: "No business types provided" });
+
+        let created = 0;
+        let skipped = 0;
+        const newRows: typeof seoRegions.$inferSelect[] = [];
+
+        for (const city of cities) {
+          for (const bt of businessTypes) {
+            const slug = buildRegionSlug(city.city, city.stateCode, bt);
+            try {
+              const [row] = await db.insert(seoRegions).values({
+                city: city.city,
+                state: city.state,
+                stateCode: city.stateCode,
+                slug,
+                product: "booking",
+                businessType: bt,
+                nearbyCities: city.nearbyCities ?? null,
+                phone: phone ?? null,
+                pageGenerated: false,
+              }).onConflictDoNothing().returning();
+              if (row) { newRows.push(row); created++; }
+              else skipped++;
+            } catch { skipped++; }
+          }
+        }
+
+        // Bulk generate all HTML pages
+        if (newRows.length > 0) {
+          const allRows = await db.select().from(seoRegions);
+          // Mark all as generated
+          for (const r of newRows) {
+            try {
+              await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, r.id));
+            } catch { /* skip */ }
+          }
+          const updatedAllRows = await db.select().from(seoRegions);
+          for (const r of newRows) {
+            try {
+              const fresh = updatedAllRows.find(x => x.id === r.id);
+              if (fresh) writeRegionPage(fresh, undefined, updatedAllRows);
+            } catch { /* skip */ }
+          }
+        }
+
+        res.json({ success: true, created, skipped, total: cities.length * businessTypes.length });
+      } catch (err: any) {
+        res.status(500).json({ error: err?.message ?? "Bulk seed failed" });
       }
     });
 
