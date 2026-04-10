@@ -23,6 +23,7 @@ import {
   Star,
   ThumbsUp,
   MapPin,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -61,6 +62,7 @@ const navGroups = [
   {
     label: "Finance",
     items: [
+      { to: "/reports", label: "Reports", icon: FileText },
       { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
       { to: "/commission-report", label: "Commissions", icon: BarChart3 },
     ],

@@ -1,0 +1,607 @@
+import { useState, useMemo } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSelectedStore } from "@/hooks/use-store";
+import { useAppointments } from "@/hooks/use-appointments";
+import { useStaffList } from "@/hooks/use-staff";
+import { useQuery } from "@tanstack/react-query";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line,
+} from "recharts";
+import {
+  DollarSign, Calendar, Users, Scissors, TrendingUp, TrendingDown,
+  ArrowUpRight, ArrowDownRight, Printer, UserCheck, UserX, AlertCircle,
+} from "lucide-react";
+import {
+  format, subDays, startOfDay, eachDayOfInterval, parseISO, isWithinInterval,
+  startOfMonth, eachMonthOfInterval, subMonths,
+} from "date-fns";
+import type { AppointmentWithDetails } from "@shared/schema";
+
+const CHART_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899"];
+
+type Range = "7d" | "30d" | "90d" | "12m";
+
+function rangeLabel(r: Range) {
+  return r === "7d" ? "Last 7 Days" : r === "30d" ? "Last 30 Days" : r === "90d" ? "Last 90 Days" : "Last 12 Months";
+}
+
+function fmt(n: number) {
+  return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function StatCard({
+  title, value, sub, icon: Icon, trend, trendLabel,
+}: {
+  title: string; value: string; sub?: string;
+  icon: React.ElementType; trend?: number; trendLabel?: string;
+}) {
+  const up = trend !== undefined && trend >= 0;
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+          </div>
+          <div className="rounded-full bg-primary/10 p-2">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        </div>
+        {trend !== undefined && (
+          <div className={`flex items-center gap-1 mt-3 text-xs font-medium ${up ? "text-green-600" : "text-red-500"}`}>
+            {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {Math.abs(trend).toFixed(1)}% {trendLabel || "vs prior period"}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Reports() {
+  const { selectedStore } = useSelectedStore();
+  const [range, setRange] = useState<Range>("30d");
+
+  const { data: allAppointments = [] } = useAppointments();
+  const { data: staffList = [] } = useStaffList();
+  const { data: customers = [] } = useQuery<any[]>({
+    queryKey: ["/api/customers"],
+    enabled: !!selectedStore,
+  });
+  const { data: services = [] } = useQuery<any[]>({
+    queryKey: ["/api/services"],
+    enabled: !!selectedStore,
+  });
+
+  const appointments = allAppointments as AppointmentWithDetails[];
+
+  const { days, rangeStart, prevStart } = useMemo(() => {
+    if (range === "12m") {
+      const rangeStart = startOfDay(subDays(new Date(), 365));
+      const prevStart = startOfDay(subDays(new Date(), 730));
+      return { days: 365, rangeStart, prevStart };
+    }
+    const d = range === "7d" ? 7 : range === "30d" ? 30 : 90;
+    const rangeStart = startOfDay(subDays(new Date(), d - 1));
+    const prevStart = startOfDay(subDays(new Date(), d * 2 - 1));
+    return { days: d, rangeStart, prevStart };
+  }, [range]);
+
+  const now = new Date();
+
+  const periodAppts = useMemo(() =>
+    appointments.filter(a => {
+      const d = new Date(a.date);
+      return d >= rangeStart && d <= now;
+    }), [appointments, rangeStart]);
+
+  const prevAppts = useMemo(() =>
+    appointments.filter(a => {
+      const d = new Date(a.date);
+      return d >= prevStart && d < rangeStart;
+    }), [appointments, prevStart, rangeStart]);
+
+  const completedAppts = useMemo(() => periodAppts.filter(a => a.status === "completed"), [periodAppts]);
+  const prevCompleted = useMemo(() => prevAppts.filter(a => a.status === "completed"), [prevAppts]);
+
+  function pct(cur: number, prev: number) {
+    if (!prev) return cur > 0 ? 100 : 0;
+    return ((cur - prev) / prev) * 100;
+  }
+
+  // ── Revenue ──────────────────────────────────────────────────────────────
+  const totalRevenue = useMemo(() =>
+    completedAppts.reduce((s, a) => s + parseFloat(a.totalPaid || "0"), 0), [completedAppts]);
+  const prevRevenue = useMemo(() =>
+    prevCompleted.reduce((s, a) => s + parseFloat(a.totalPaid || "0"), 0), [prevCompleted]);
+  const totalTips = useMemo(() =>
+    completedAppts.reduce((s, a) => s + parseFloat((a as any).tipAmount || "0"), 0), [completedAppts]);
+  const avgTicket = completedAppts.length ? totalRevenue / completedAppts.length : 0;
+
+  const revenueByDay = useMemo(() => {
+    if (range === "12m") {
+      const months = eachMonthOfInterval({ start: subMonths(now, 11), end: now });
+      return months.map(m => {
+        const label = format(m, "MMM yy");
+        const rev = completedAppts
+          .filter(a => format(new Date(a.date), "MMM yy") === label)
+          .reduce((s, a) => s + parseFloat(a.totalPaid || "0"), 0);
+        return { date: label, revenue: parseFloat(rev.toFixed(2)) };
+      });
+    }
+    return eachDayOfInterval({ start: rangeStart, end: now }).map(day => {
+      const label = format(day, range === "7d" ? "EEE d" : "MMM d");
+      const rev = completedAppts
+        .filter(a => format(new Date(a.date), "yyyy-MM-dd") === format(day, "yyyy-MM-dd"))
+        .reduce((s, a) => s + parseFloat(a.totalPaid || "0"), 0);
+      return { date: label, revenue: parseFloat(rev.toFixed(2)) };
+    });
+  }, [completedAppts, rangeStart, range]);
+
+  const paymentBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    completedAppts.forEach(a => {
+      const m = (a as any).paymentMethod || "unknown";
+      map[m] = (map[m] || 0) + parseFloat(a.totalPaid || "0");
+    });
+    return Object.entries(map).map(([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value: parseFloat(value.toFixed(2)),
+    }));
+  }, [completedAppts]);
+
+  // ── Appointments ─────────────────────────────────────────────────────────
+  const cancelled = useMemo(() => periodAppts.filter(a => a.status === "cancelled"), [periodAppts]);
+  const noShow = useMemo(() => periodAppts.filter(a => a.status === "no_show"), [periodAppts]);
+  const pending = useMemo(() => periodAppts.filter(a => a.status === "pending" || a.status === "confirmed"), [periodAppts]);
+
+  const apptsByDay = useMemo(() => {
+    if (range === "12m") {
+      const months = eachMonthOfInterval({ start: subMonths(now, 11), end: now });
+      return months.map(m => {
+        const label = format(m, "MMM yy");
+        return {
+          date: label,
+          completed: completedAppts.filter(a => format(new Date(a.date), "MMM yy") === label).length,
+          cancelled: cancelled.filter(a => format(new Date(a.date), "MMM yy") === label).length,
+        };
+      });
+    }
+    return eachDayOfInterval({ start: rangeStart, end: now }).map(day => {
+      const key = format(day, "yyyy-MM-dd");
+      const label = format(day, range === "7d" ? "EEE d" : "MMM d");
+      return {
+        date: label,
+        completed: completedAppts.filter(a => format(new Date(a.date), "yyyy-MM-dd") === key).length,
+        cancelled: cancelled.filter(a => format(new Date(a.date), "yyyy-MM-dd") === key).length,
+      };
+    });
+  }, [completedAppts, cancelled, rangeStart, range]);
+
+  const statusBreakdown = useMemo(() => [
+    { name: "Completed", value: completedAppts.length },
+    { name: "Cancelled", value: cancelled.length },
+    { name: "No-Show", value: noShow.length },
+    { name: "Pending", value: pending.length },
+  ].filter(x => x.value > 0), [completedAppts, cancelled, noShow, pending]);
+
+  // ── Staff Performance ─────────────────────────────────────────────────────
+  const staffStats = useMemo(() =>
+    staffList.map((s: any) => {
+      const appts = completedAppts.filter(a => (a as any).staffId === s.id);
+      const revenue = appts.reduce((sum, a) => sum + parseFloat(a.totalPaid || "0"), 0);
+      return {
+        id: s.id,
+        name: s.name,
+        appointments: appts.length,
+        revenue,
+        avgTicket: appts.length ? revenue / appts.length : 0,
+      };
+    }).sort((a, b) => b.revenue - a.revenue),
+  [staffList, completedAppts]);
+
+  // ── Services ──────────────────────────────────────────────────────────────
+  const serviceStats = useMemo(() =>
+    services.map((svc: any) => {
+      const appts = completedAppts.filter(a => (a as any).serviceId === svc.id);
+      const revenue = appts.reduce((sum, a) => sum + parseFloat(a.totalPaid || "0"), 0);
+      return {
+        id: svc.id,
+        name: svc.name,
+        bookings: appts.length,
+        revenue,
+        avgTicket: appts.length ? revenue / appts.length : 0,
+      };
+    }).sort((a, b) => b.bookings - a.bookings).slice(0, 10),
+  [services, completedAppts]);
+
+  // ── Customers ─────────────────────────────────────────────────────────────
+  const customerStats = useMemo(() => {
+    return (customers as any[]).map(c => {
+      const appts = completedAppts.filter(a => (a as any).customerId === c.id);
+      const total = appts.reduce((s, a) => s + parseFloat(a.totalPaid || "0"), 0);
+      return { id: c.id, name: c.name, visits: appts.length, totalSpend: total };
+    }).sort((a, b) => b.totalSpend - a.totalSpend).slice(0, 10);
+  }, [customers, completedAppts]);
+
+  const newCustomers = useMemo(() =>
+    (customers as any[]).filter(c => {
+      const d = new Date(c.createdAt || c.created_at || 0);
+      return d >= rangeStart;
+    }), [customers, rangeStart]);
+
+  const returningCount = useMemo(() =>
+    completedAppts.reduce((acc, a) => {
+      const cid = (a as any).customerId;
+      if (cid) acc.add(cid);
+      return acc;
+    }, new Set<number>()).size, [completedAppts]);
+
+  return (
+    <AppLayout>
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Reports</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">Business performance across all key metrics</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={range} onValueChange={v => setRange(v as Range)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 Days</SelectItem>
+                <SelectItem value="30d">Last 30 Days</SelectItem>
+                <SelectItem value="90d">Last 90 Days</SelectItem>
+                <SelectItem value="12m">Last 12 Months</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </div>
+        </div>
+
+        <Tabs defaultValue="revenue">
+          <TabsList className="mb-4">
+            <TabsTrigger value="revenue">Revenue</TabsTrigger>
+            <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="staff">Staff</TabsTrigger>
+            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="customers">Customers</TabsTrigger>
+          </TabsList>
+
+          {/* ── REVENUE TAB ───────────────────────────────────────────────── */}
+          <TabsContent value="revenue" className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard title="Total Revenue" value={fmt(totalRevenue)} icon={DollarSign}
+                trend={pct(totalRevenue, prevRevenue)} sub={rangeLabel(range)} />
+              <StatCard title="Avg Daily Revenue" value={fmt(totalRevenue / Math.max(days, 1))} icon={TrendingUp}
+                sub="per day in period" />
+              <StatCard title="Total Tips" value={fmt(totalTips)} icon={DollarSign}
+                sub={`${completedAppts.length} completed appts`} />
+              <StatCard title="Avg Ticket" value={fmt(avgTicket)} icon={TrendingUp}
+                trend={pct(avgTicket, prevRevenue / Math.max(prevCompleted.length, 1))} />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Revenue Over Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={revenueByDay}>
+                    <defs>
+                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false}
+                      interval={range === "7d" ? 0 : "preserveStartEnd"} />
+                    <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false}
+                      tickFormatter={v => "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "k" : v)} />
+                    <Tooltip formatter={(v: number) => [fmt(v), "Revenue"]} />
+                    <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2}
+                      fill="url(#revGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {paymentBreakdown.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Revenue by Payment Method</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col md:flex-row items-center gap-6">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={paymentBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                        dataKey="value" paddingAngle={3}>
+                        {paymentBreakdown.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => fmt(v)} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="w-full md:w-56 shrink-0 space-y-2">
+                    {paymentBreakdown.map((p, i) => (
+                      <div key={p.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                          {p.name}
+                        </div>
+                        <span className="font-medium">{fmt(p.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ── APPOINTMENTS TAB ──────────────────────────────────────────── */}
+          <TabsContent value="appointments" className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard title="Total Bookings" value={String(periodAppts.length)} icon={Calendar}
+                trend={pct(periodAppts.length, prevAppts.length)} sub={rangeLabel(range)} />
+              <StatCard title="Completed" value={String(completedAppts.length)} icon={UserCheck}
+                sub={`${periodAppts.length ? ((completedAppts.length / periodAppts.length) * 100).toFixed(0) : 0}% completion rate`} />
+              <StatCard title="Cancelled" value={String(cancelled.length)} icon={UserX}
+                sub={`${periodAppts.length ? ((cancelled.length / periodAppts.length) * 100).toFixed(0) : 0}% of bookings`} />
+              <StatCard title="No-Shows" value={String(noShow.length)} icon={AlertCircle}
+                sub={`${periodAppts.length ? ((noShow.length / periodAppts.length) * 100).toFixed(0) : 0}% of bookings`} />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Appointments Over Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={apptsByDay}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false}
+                      interval={range === "7d" ? 0 : "preserveStartEnd"} />
+                    <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="completed" name="Completed" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="cancelled" name="Cancelled" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                    <Legend />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {statusBreakdown.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Status Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col md:flex-row items-center gap-6">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={statusBreakdown} cx="50%" cy="50%" outerRadius={80}
+                        dataKey="value" paddingAngle={3}>
+                        {statusBreakdown.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="w-full md:w-56 shrink-0 space-y-2">
+                    {statusBreakdown.map((s, i) => (
+                      <div key={s.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                          {s.name}
+                        </div>
+                        <span className="font-medium">{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ── STAFF TAB ─────────────────────────────────────────────────── */}
+          <TabsContent value="staff" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <StatCard title="Active Staff" value={String(staffList.length)} icon={Users} sub="total staff members" />
+              <StatCard title="Avg Revenue / Staff" value={fmt(staffList.length ? totalRevenue / staffList.length : 0)}
+                icon={DollarSign} sub={rangeLabel(range)} />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Revenue by Staff Member</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {staffStats.filter(s => s.appointments > 0).length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No completed appointments in this period.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={staffStats.filter(s => s.appointments > 0)} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false}
+                        tickFormatter={v => "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "k" : v)} />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={90} />
+                      <Tooltip formatter={(v: number) => fmt(v)} />
+                      <Bar dataKey="revenue" name="Revenue" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Staff Performance Table</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Staff Member</th>
+                        <th className="text-right py-2 px-4 font-medium">Appointments</th>
+                        <th className="text-right py-2 px-4 font-medium">Revenue</th>
+                        <th className="text-right py-2 pl-4 font-medium">Avg Ticket</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {staffStats.map(s => (
+                        <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                          <td className="py-2.5 pr-4 font-medium">{s.name}</td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{s.appointments}</td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.revenue)}</td>
+                          <td className="py-2.5 pl-4 text-right tabular-nums">{fmt(s.avgTicket)}</td>
+                        </tr>
+                      ))}
+                      {staffStats.length === 0 && (
+                        <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── SERVICES TAB ──────────────────────────────────────────────── */}
+          <TabsContent value="services" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <StatCard title="Total Services" value={String(services.length)} icon={Scissors} sub="in your menu" />
+              <StatCard title="Most Booked" value={serviceStats[0]?.name || "—"} icon={TrendingUp}
+                sub={serviceStats[0] ? `${serviceStats[0].bookings} bookings` : ""} />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Top 10 Services by Bookings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {serviceStats.filter(s => s.bookings > 0).length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No completed appointments in this period.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={serviceStats.filter(s => s.bookings > 0)} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} tickLine={false} axisLine={false}
+                        width={120} tickFormatter={v => v.length > 16 ? v.slice(0, 15) + "…" : v} />
+                      <Tooltip />
+                      <Bar dataKey="bookings" name="Bookings" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Service Revenue Table</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Service</th>
+                        <th className="text-right py-2 px-4 font-medium">Bookings</th>
+                        <th className="text-right py-2 px-4 font-medium">Revenue</th>
+                        <th className="text-right py-2 pl-4 font-medium">Avg Ticket</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {serviceStats.map(s => (
+                        <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                          <td className="py-2.5 pr-4 font-medium">{s.name}</td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{s.bookings}</td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.revenue)}</td>
+                          <td className="py-2.5 pl-4 text-right tabular-nums">{fmt(s.avgTicket)}</td>
+                        </tr>
+                      ))}
+                      {serviceStats.length === 0 && (
+                        <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── CUSTOMERS TAB ─────────────────────────────────────────────── */}
+          <TabsContent value="customers" className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard title="Total Customers" value={String((customers as any[]).length)} icon={Users} sub="all time" />
+              <StatCard title="New This Period" value={String(newCustomers.length)} icon={UserCheck}
+                sub={rangeLabel(range)} />
+              <StatCard title="Active Clients" value={String(returningCount)} icon={TrendingUp}
+                sub="booked in period" />
+              <StatCard title="Avg Spend / Client" value={fmt(returningCount ? totalRevenue / returningCount : 0)}
+                icon={DollarSign} sub="completed appointments" />
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Top 10 Customers by Spend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Customer</th>
+                        <th className="text-right py-2 px-4 font-medium">Visits</th>
+                        <th className="text-right py-2 pl-4 font-medium">Total Spend</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerStats.map((c, i) => (
+                        <tr key={c.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                          <td className="py-2.5 pr-4">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                                {i + 1}
+                              </span>
+                              <span className="font-medium">{c.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{c.visits}</td>
+                          <td className="py-2.5 pl-4 text-right tabular-nums font-semibold">{fmt(c.totalSpend)}</td>
+                        </tr>
+                      ))}
+                      {customerStats.length === 0 && (
+                        <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppLayout>
+  );
+}

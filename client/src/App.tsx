@@ -24,6 +24,7 @@ import CashDrawer from "@/pages/CashDrawer";
 import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
 import Analytics from "@/pages/Analytics";
+import Reports from "@/pages/Reports";
 import Waitlist from "@/pages/Waitlist";
 import GiftCards from "@/pages/GiftCards";
 import IntakeForms from "@/pages/IntakeForms";
@@ -88,6 +89,7 @@ const authenticatedPaths = [
   "/addons",
   "/gift-cards",
   "/intake-forms",
+  "/reports",
   "/commission-report",
   "/calendar-settings",
   "/business-settings",
@@ -175,6 +177,7 @@ function AppRoutes() {
       <Route path="/loyalty" element={<Loyalty />} />
       <Route path="/reviews" element={<Reviews />} />
       <Route path="/google-business" element={<GoogleBusiness />} />
+      <Route path="/reports" element={<Reports />} />
       <Route path="/commission-report" element={<CommissionReport />} />
       <Route path="/calendar-settings" element={<CalendarSettingsPage />} />
       <Route path="/business-settings" element={<BusinessSettings />} />
