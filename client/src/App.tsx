@@ -27,6 +27,10 @@ import Analytics from "@/pages/Analytics";
 import Reports from "@/pages/Reports";
 import IndustriesHub from "@/pages/IndustriesHub";
 import Waitlist from "@/pages/Waitlist";
+import QueueDashboard from "@/pages/queue/QueueDashboard";
+import QueueSettings from "@/pages/queue/QueueSettings";
+import PublicCheckIn from "@/pages/queue/PublicCheckIn";
+import QueueDisplay from "@/pages/queue/QueueDisplay";
 import GiftCards from "@/pages/GiftCards";
 import IntakeForms from "@/pages/IntakeForms";
 import Loyalty from "@/pages/Loyalty";
@@ -126,6 +130,7 @@ const authenticatedPaths = [
   "/cash-drawer",
   "/pro-dashboard",
   "/pro-setup",
+  "/dashboard/queue",
 ];
 
 function App() {
@@ -186,6 +191,8 @@ function AppRoutes() {
       <Route path="/book/:slug" element={<PublicBooking />} />
       <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />
       <Route path="/review/:appointmentId" element={<ReviewSubmit />} />
+      <Route path="/q/:slug" element={<PublicCheckIn />} />
+      <Route path="/q/:slug/display" element={<QueueDisplay />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -211,6 +218,8 @@ function AppRoutes() {
       <Route path="/addons" element={<AddonsPage />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/waitlist" element={<Waitlist />} />
+      <Route path="/dashboard/queue" element={<QueueDashboard />} />
+      <Route path="/dashboard/queue/settings" element={<QueueSettings />} />
       <Route path="/gift-cards" element={<GiftCards />} />
       <Route path="/intake-forms" element={<IntakeForms />} />
       <Route path="/loyalty" element={<Loyalty />} />

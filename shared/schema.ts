@@ -400,8 +400,11 @@ export const waitlist = pgTable("waitlist", {
   preferredTimeStart: text("preferred_time_start"),
   preferredTimeEnd: text("preferred_time_end"),
   notes: text("notes"),
+  partySize: integer("party_size").default(1),
   status: text("status").default("waiting"),
   notifiedAt: timestamp("notified_at"),
+  calledAt: timestamp("called_at"),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

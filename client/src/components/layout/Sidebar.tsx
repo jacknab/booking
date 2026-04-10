@@ -24,6 +24,7 @@ import {
   ThumbsUp,
   MapPin,
   FileText,
+  ListOrdered,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +45,7 @@ const navGroups = [
     items: [
       { to: "/customers", label: "Customers", icon: Users },
       { to: "/waitlist", label: "Waitlist", icon: Clock },
+      { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
       { to: "/loyalty", label: "Loyalty Program", icon: Star },
       { to: "/reviews", label: "Reviews", icon: ThumbsUp },
       { to: "/google-business", label: "Google Reviews", icon: MapPin },

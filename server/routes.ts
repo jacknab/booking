@@ -6,7 +6,7 @@ import { isAuthenticated } from "./auth";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users } from "@shared/models/auth";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, gte, asc } from "drizzle-orm";
 import { sendEmail, sendBookingConfirmationEmail, sendReminderEmail, sendReviewRequestEmail, startEmailReminderScheduler } from "./mail";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
@@ -47,6 +47,7 @@ import {
   intakeFormResponses,
   loyaltyTransactions,
   reviews,
+  storeSettings,
 } from "@shared/schema";
 import {
   GoogleBusinessAPIManager,
@@ -2073,6 +2074,173 @@ If you have any questions, please contact your administrator.
     res.json({ available: !store });
   });
 
+  // === PUBLIC QUEUE ===
+
+  app.get("/api/public/queue/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, slug));
+      if (!store) return res.status(404).json({ error: "Store not found" });
+
+      const [settings] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, store.id));
+      const prefs = settings?.preferences ? JSON.parse(settings.preferences as string) : {};
+      const avgServiceTime: number = prefs.queueAvgServiceTime || 20;
+      const queueEnabled: boolean = prefs.queueEnabled !== false;
+
+      if (!queueEnabled) {
+        return res.json({
+          store: { id: store.id, name: store.name, phone: store.phone, address: store.address },
+          queueEnabled: false, waitingCount: 0, calledCount: 0, servedToday: 0,
+          estimatedWaitMinutes: 0, avgServiceTime, queue: [],
+        });
+      }
+
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+      const activeEntries = await db.select().from(waitlist)
+        .where(and(
+          eq(waitlist.storeId, store.id),
+          gte(waitlist.createdAt, todayStart),
+          sql`${waitlist.status} IN ('waiting', 'called', 'serving')`
+        ))
+        .orderBy(asc(waitlist.createdAt));
+
+      const [{ total: servedToday }] = await db.select({ total: count() }).from(waitlist)
+        .where(and(
+          eq(waitlist.storeId, store.id),
+          gte(waitlist.createdAt, todayStart),
+          eq(waitlist.status, "completed")
+        ));
+
+      const waitingEntries = activeEntries.filter(e => e.status === "waiting");
+
+      const safeQueue = activeEntries.map((e, idx) => {
+        const nameParts = e.customerName.trim().split(" ");
+        const displayName = nameParts.length > 1
+          ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
+          : nameParts[0];
+        return {
+          id: e.id,
+          displayName,
+          status: e.status,
+          partySize: (e as any).partySize || 1,
+          estimatedWaitMinutes: idx * avgServiceTime,
+          isNext: idx === 0 && e.status === "waiting",
+        };
+      });
+
+      res.json({
+        store: { id: store.id, name: store.name, phone: store.phone, address: store.address },
+        queueEnabled: true,
+        waitingCount: waitingEntries.length,
+        calledCount: activeEntries.filter(e => ["called", "serving"].includes(e.status)).length,
+        servedToday: Number(servedToday),
+        estimatedWaitMinutes: waitingEntries.length * avgServiceTime,
+        avgServiceTime,
+        queue: safeQueue,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch queue" });
+    }
+  });
+
+  app.post("/api/public/queue/:slug/checkin", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, slug));
+      if (!store) return res.status(404).json({ error: "Store not found" });
+
+      const [settings] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, store.id));
+      const prefs = settings?.preferences ? JSON.parse(settings.preferences as string) : {};
+      const queueEnabled: boolean = prefs.queueEnabled !== false;
+      const maxQueueSize: number = prefs.queueMaxSize || 30;
+      const avgServiceTime: number = prefs.queueAvgServiceTime || 20;
+
+      if (!queueEnabled) return res.status(400).json({ error: "Queue is not accepting check-ins right now." });
+
+      const { customerName, customerPhone, partySize = 1 } = req.body;
+      if (!customerName?.trim()) return res.status(400).json({ error: "Name is required" });
+
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const [{ total: currentWaiting }] = await db.select({ total: count() }).from(waitlist)
+        .where(and(
+          eq(waitlist.storeId, store.id),
+          gte(waitlist.createdAt, todayStart),
+          eq(waitlist.status, "waiting")
+        ));
+
+      if (Number(currentWaiting) >= maxQueueSize) {
+        return res.status(400).json({ error: "The queue is currently full. Please visit us directly." });
+      }
+
+      const [entry] = await db.insert(waitlist).values({
+        storeId: store.id,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone?.trim() || null,
+        partySize: Math.max(1, Math.min(10, Number(partySize) || 1)),
+        status: "waiting",
+      } as any).returning();
+
+      const before = await db.select({ id: waitlist.id }).from(waitlist)
+        .where(and(
+          eq(waitlist.storeId, store.id),
+          gte(waitlist.createdAt, todayStart),
+          sql`${waitlist.status} IN ('waiting', 'called', 'serving')`,
+          sql`${waitlist.id} <= ${entry.id}`
+        ));
+
+      const position = before.length;
+      const estimatedWaitMinutes = Math.max(0, (position - 1) * avgServiceTime);
+
+      res.json({ id: entry.id, position, estimatedWaitMinutes, storeName: store.name });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to check in" });
+    }
+  });
+
+  app.get("/api/public/queue/:slug/position/:id", async (req, res) => {
+    try {
+      const { slug, id } = req.params;
+      const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, slug));
+      if (!store) return res.status(404).json({ error: "Store not found" });
+
+      const [entry] = await db.select().from(waitlist).where(eq(waitlist.id, parseInt(id)));
+      if (!entry || entry.storeId !== store.id) return res.status(404).json({ error: "Entry not found" });
+
+      const [settings] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, store.id));
+      const prefs = settings?.preferences ? JSON.parse(settings.preferences as string) : {};
+      const avgServiceTime: number = prefs.queueAvgServiceTime || 20;
+
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const before = await db.select({ id: waitlist.id }).from(waitlist)
+        .where(and(
+          eq(waitlist.storeId, store.id),
+          gte(waitlist.createdAt, todayStart),
+          sql`${waitlist.status} IN ('waiting', 'called', 'serving')`,
+          sql`${waitlist.id} <= ${entry.id}`
+        ));
+
+      const position = before.length;
+      res.json({ id: entry.id, status: entry.status, position, estimatedWaitMinutes: Math.max(0, (position - 1) * avgServiceTime) });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to get position" });
+    }
+  });
+
+  // Allow unauthenticated status update for self-cancel
+  app.put("/api/public/queue/cancel/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.update(waitlist).set({ status: "cancelled" }).where(eq(waitlist.id, id));
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to cancel" });
+    }
+  });
+
   // === SMS SETTINGS ===
   const validateStoreOwnership = async (req: any, res: any): Promise<boolean> => {
     const userId = (req.session as any)?.userId;
@@ -3411,6 +3579,56 @@ If you have any questions, please contact your administrator.
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Failed to delete waitlist entry" });
+    }
+  });
+
+  // === QUEUE SETTINGS ===
+
+  app.get("/api/queue/settings", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const storeId = req.query.storeId ? Number(req.query.storeId) : null;
+      if (!storeId) return res.status(400).json({ error: "storeId required" });
+      const store = await db.select().from(locations).where(and(eq(locations.id, storeId), eq(locations.userId, userId)));
+      if (!store.length) return res.status(403).json({ error: "Unauthorized" });
+      const [row] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, storeId));
+      const prefs = row?.preferences ? JSON.parse(row.preferences as string) : {};
+      res.json({
+        queueEnabled: prefs.queueEnabled !== false,
+        queueAvgServiceTime: prefs.queueAvgServiceTime || 20,
+        queueMaxSize: prefs.queueMaxSize || 30,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to get queue settings" });
+    }
+  });
+
+  app.put("/api/queue/settings", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      const storeId = req.query.storeId ? Number(req.query.storeId) : null;
+      if (!storeId) return res.status(400).json({ error: "storeId required" });
+      const storeRows = await db.select().from(locations).where(and(eq(locations.id, storeId), eq(locations.userId, userId)));
+      if (!storeRows.length) return res.status(403).json({ error: "Unauthorized" });
+      const [existing] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, storeId));
+      const currentPrefs = existing?.preferences ? JSON.parse(existing.preferences as string) : {};
+      const { queueEnabled, queueAvgServiceTime, queueMaxSize } = req.body;
+      const newPrefs = {
+        ...currentPrefs,
+        ...(queueEnabled !== undefined ? { queueEnabled } : {}),
+        ...(queueAvgServiceTime !== undefined ? { queueAvgServiceTime } : {}),
+        ...(queueMaxSize !== undefined ? { queueMaxSize } : {}),
+      };
+      if (existing) {
+        await db.update(storeSettings).set({ preferences: JSON.stringify(newPrefs) }).where(eq(storeSettings.storeId, storeId));
+      } else {
+        await db.insert(storeSettings).values({ storeId, preferences: JSON.stringify(newPrefs) });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to save queue settings" });
     }
   });
 

@@ -63,7 +63,20 @@ This is the **Certxa** platform — a full-stack booking and business management
 - SSR only activates in `NODE_ENV=production`; dev uses normal Vite HMR
 - **Important:** SSR bundle outputs as `.cjs` (not `.js`) because `package.json` has `"type": "module"`
 
-**Key dashboard pages:** `/dashboard`, `/calendar`, `/services`, `/staff`, `/customers`, `/products`, `/analytics`, `/reports`, `/commission-report`, `/pos`, `/loyalty`, `/gift-cards`, `/reviews`, `/waitlist`, `/intake-forms`
+**Key dashboard pages:** `/dashboard`, `/calendar`, `/services`, `/staff`, `/customers`, `/products`, `/analytics`, `/reports`, `/commission-report`, `/pos`, `/loyalty`, `/gift-cards`, `/reviews`, `/waitlist`, `/intake-forms`, `/dashboard/queue`, `/dashboard/queue/settings`
+
+**Certxa Queue — Virtual Check-In System (Group 2, Great Clips-style):**
+- **Public customer check-in**: `/q/:slug` — mobile-optimized self-service page; name, phone, party size; shows real-time position + estimated wait; polls every 15s; cancel button
+- **TV display board**: `/q/:slug/display` — full-screen dark queue board; QR code for walk-ins; live queue list with position numbers; "Now Serving" section; auto-refreshes every 10s
+- **Staff queue dashboard**: `/dashboard/queue` — real-time today's queue; Call / Done / Remove actions per entry; add walk-in inline form; auto-refreshes every 15s; stat cards (waiting, serving, served today); link to display board
+- **Queue settings**: `/dashboard/queue/settings` — enable/disable queue; avg service time picker; max queue size limit; copy-ready check-in URL + display board URL; iframe embed code snippets; downloadable QR code
+- **Sidebar nav item**: "Queue" under Clients group with `ListOrdered` icon
+- **Schema additions**: `waitlist.partySize` (integer, default 1), `waitlist.calledAt` (timestamp), `waitlist.completedAt` (timestamp)
+- **Public API routes** (no auth): `GET /api/public/queue/:slug`, `POST /api/public/queue/:slug/checkin`, `GET /api/public/queue/:slug/position/:id`, `PUT /api/public/queue/cancel/:id`
+- **Staff API routes** (authenticated): `GET /api/queue/settings?storeId=X`, `PUT /api/queue/settings?storeId=X`
+- **Queue settings stored in**: `storeSettings.preferences` JSON field (keys: `queueEnabled`, `queueAvgServiceTime`, `queueMaxSize`)
+- **Wait time formula**: `(position - 1) × avgServiceTime` minutes; name on display board shows "First Last." format for privacy
+- **Files**: `client/src/pages/queue/PublicCheckIn.tsx`, `client/src/pages/queue/QueueDisplay.tsx`, `client/src/pages/queue/QueueDashboard.tsx`, `client/src/pages/queue/QueueSettings.tsx`
 
 ## User Preferences
 
