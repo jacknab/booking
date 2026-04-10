@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/src/constants/colors";
@@ -12,11 +12,7 @@ function ActiveBadge() {
     refetchInterval: 15000,
   });
   if (!data?.activeJob) return null;
-  return (
-    <View style={styles.badge}>
-      <View style={styles.badgeDot} />
-    </View>
-  );
+  return <View style={styles.badge} />;
 }
 
 export default function AppLayout() {
@@ -39,8 +35,31 @@ export default function AppLayout() {
         tabBarLabelStyle: { fontFamily: "Inter_600SemiBold", fontSize: 11, marginTop: 2 },
       }}
     >
+      {/* Home dashboard */}
       <Tabs.Screen
         name="index"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Schedule calendar */}
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: "Schedule",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Jobs list */}
+      <Tabs.Screen
+        name="jobs"
         options={{
           title: "Jobs",
           tabBarIcon: ({ color, size }) => (
@@ -51,10 +70,8 @@ export default function AppLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="job/[id]"
-        options={{ href: null }}
-      />
+
+      {/* Profile */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -64,11 +81,18 @@ export default function AppLayout() {
           ),
         }}
       />
+
+      {/* Hidden routes */}
+      <Tabs.Screen name="job/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  badge: { position: "absolute", top: -2, right: -4, width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary, borderWidth: 2, borderColor: Colors.surface },
-  badgeDot: { flex: 1 },
+  badge: {
+    position: "absolute", top: -2, right: -4,
+    width: 9, height: 9, borderRadius: 5,
+    backgroundColor: Colors.primary,
+    borderWidth: 2, borderColor: Colors.surface,
+  },
 });
