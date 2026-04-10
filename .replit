@@ -79,7 +79,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mobile && npx expo start --tunnel"
+args = "cd mobile && npx expo start --tunnel --web --port 8080"
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
