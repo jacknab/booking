@@ -91,6 +91,7 @@ import ReportsPage from "@/pages/pro-dashboard/ReportsPage";
 import SettingsPage from "@/pages/pro-dashboard/SettingsPage";
 import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
+import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -124,6 +125,7 @@ const authenticatedPaths = [
   "/admin",
   "/cash-drawer",
   "/pro-dashboard",
+  "/pro-setup",
 ];
 
 function App() {
@@ -193,6 +195,7 @@ function AppRoutes() {
       <Route path="/staff-calendar" element={<StaffCalendar />} />
       <Route path="/isadmin/*" element={<AdminDashboard />} />
       <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/pro-setup" element={<ProFeaturesSetup />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/services" element={<Services />} />
       <Route path="/staff" element={<Staff />} />

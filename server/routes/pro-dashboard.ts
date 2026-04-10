@@ -5,6 +5,7 @@ import {
   proCustomers, proEstimates, proInvoices,
   insertCrewSchema, insertServiceOrderSchema, insertOrderNoteSchema,
   insertProCustomerSchema, insertProEstimateSchema, insertProInvoiceSchema,
+  storeSettings,
 } from "../../shared/schema";
 import { eq, and, desc, sql, ilike, or } from "drizzle-orm";
 
@@ -338,6 +339,41 @@ router.get("/dispatch", async (req, res) => {
         activeCrews: crewsWithLocations.filter(c => c.location).length,
       },
     });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Failed" }); }
+});
+
+// ─── PRO FEATURES ─────────────────────────────────────────────────────────────
+
+router.get("/features", async (req, res) => {
+  try {
+    const storeId = sid(req);
+    const [row] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, storeId));
+    if (!row) return res.json({ features: [] });
+    try {
+      const prefs = JSON.parse(row.preferences);
+      return res.json({ features: prefs.proFeatures ?? [] });
+    } catch {
+      return res.json({ features: [] });
+    }
+  } catch (err) { console.error(err); res.status(500).json({ error: "Failed" }); }
+});
+
+router.post("/features", async (req, res) => {
+  try {
+    const storeId = sid(req);
+    const { features } = req.body;
+    if (!Array.isArray(features)) return res.status(400).json({ error: "features must be an array" });
+
+    const [existing] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, storeId));
+    if (existing) {
+      let prefs: any = {};
+      try { prefs = JSON.parse(existing.preferences); } catch {}
+      prefs.proFeatures = features;
+      await db.update(storeSettings).set({ preferences: JSON.stringify(prefs) }).where(eq(storeSettings.storeId, storeId));
+    } else if (storeId) {
+      await db.insert(storeSettings).values({ storeId, preferences: JSON.stringify({ proFeatures: features }) });
+    }
+    res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Failed" }); }
 });
 

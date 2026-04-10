@@ -60,15 +60,26 @@ export default function Auth() {
     return () => { document.head.removeChild(link); };
   }, []);
 
+  const postAuthRedirect = (onboardingCompleted: boolean) => {
+    if (!onboardingCompleted) {
+      if (group === "pro") return navigate("/pro-setup");
+      return navigate("/onboarding");
+    }
+    if (group === "pro") return navigate("/pro-dashboard");
+    return navigate("/calendar");
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       if (user && !user.onboardingCompleted) {
-        navigate("/onboarding");
+        if (group === "pro") navigate("/pro-setup");
+        else navigate("/onboarding");
       } else {
-        navigate("/calendar");
+        if (group === "pro") navigate("/pro-dashboard");
+        else navigate("/calendar");
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, group]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +90,7 @@ export default function Auth() {
       } else {
         result = await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
       }
-      if (result && !result.onboardingCompleted) {
-        navigate("/onboarding");
-      } else {
-        navigate("/calendar");
-      }
+      postAuthRedirect(!!(result && result.onboardingCompleted));
     } catch (error: any) {
       const message = error?.message || (mode === "login" ? "Login failed" : "Registration failed");
       let description = message;
