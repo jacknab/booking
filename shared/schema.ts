@@ -26,6 +26,8 @@ export const locations = pgTable("locations", {
   smsTokens: integer("sms_tokens").notNull().default(0),
   userId: text("user_id").references(() => users.id),
   accountStatus: text("account_status").default("Active"),
+  storeLatitude: text("store_latitude"),
+  storeLongitude: text("store_longitude"),
 });
 
 export const businessHours = pgTable("business_hours", {
@@ -405,6 +407,9 @@ export const waitlist = pgTable("waitlist", {
   notifiedAt: timestamp("notified_at"),
   calledAt: timestamp("called_at"),
   completedAt: timestamp("completed_at"),
+  customerLatitude: text("customer_latitude"),
+  customerLongitude: text("customer_longitude"),
+  smsSentAt: timestamp("sms_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

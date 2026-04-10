@@ -7,14 +7,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import {
   Settings, Copy, ExternalLink, Check, ArrowLeft, QrCode,
-  Code2, ToggleLeft, ToggleRight, Clock, Users, Loader2
+  Code2, ToggleLeft, ToggleRight, Clock, Users, Loader2,
+  Navigation, MessageSquare, MapPin, CheckCircle2
 } from "lucide-react";
 
 type QueuePrefs = {
   queueEnabled: boolean;
   queueAvgServiceTime: number;
   queueMaxSize: number;
+  smsTravelBuffer: number;
 };
+
+type CaptureStatus = "idle" | "capturing" | "captured" | "error";
 
 function CodeBlock({ code, label }: { code: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -92,7 +96,11 @@ export default function QueueSettings() {
     queueEnabled: true,
     queueAvgServiceTime: 20,
     queueMaxSize: 30,
+    smsTravelBuffer: 5,
   });
+  const [storeLatitude, setStoreLatitude] = useState<string | null>(null);
+  const [storeLongitude, setStoreLongitude] = useState<string | null>(null);
+  const [captureStatus, setCaptureStatus] = useState<CaptureStatus>("idle");
 
   useEffect(() => {
     if (settingsData) {
@@ -100,12 +108,43 @@ export default function QueueSettings() {
         queueEnabled: settingsData.queueEnabled !== false,
         queueAvgServiceTime: settingsData.queueAvgServiceTime || 20,
         queueMaxSize: settingsData.queueMaxSize || 30,
+        smsTravelBuffer: settingsData.smsTravelBuffer ?? 5,
       });
+      if (settingsData.storeLatitude) setStoreLatitude(settingsData.storeLatitude);
+      if (settingsData.storeLongitude) setStoreLongitude(settingsData.storeLongitude);
     }
   }, [settingsData]);
 
+  const captureStoreLocation = () => {
+    if (!navigator.geolocation) { toast({ title: "Geolocation not supported by this browser", variant: "destructive" }); return; }
+    setCaptureStatus("capturing");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setStoreLatitude(String(pos.coords.latitude));
+        setStoreLongitude(String(pos.coords.longitude));
+        setCaptureStatus("captured");
+        toast({ title: "Store location captured! Save settings to apply." });
+      },
+      (err) => {
+        setCaptureStatus("error");
+        toast({ title: "Location access denied. Please allow location permissions.", variant: "destructive" });
+      },
+      { timeout: 15000, enableHighAccuracy: true }
+    );
+  };
+
+  const clearStoreLocation = () => {
+    setStoreLatitude(null);
+    setStoreLongitude(null);
+    setCaptureStatus("idle");
+  };
+
   const saveMutation = useMutation({
-    mutationFn: () => apiRequest("PUT", `/api/queue/settings?storeId=${selectedStore?.id}`, prefs),
+    mutationFn: () => apiRequest("PUT", `/api/queue/settings?storeId=${selectedStore?.id}`, {
+      ...prefs,
+      storeLatitude,
+      storeLongitude,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pro-dashboard/features"] });
       toast({ title: "Queue settings saved" });
@@ -220,6 +259,32 @@ export default function QueueSettings() {
                     ))}
                   </div>
                 </div>
+
+                {/* SMS early-alert buffer */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                    SMS Head-Start Buffer (minutes)
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Send the travel alert this many minutes <em>before</em> the drive time to add a safety margin
+                  </p>
+                  <div className="flex items-center gap-3">
+                    {[0, 3, 5, 8, 10, 15].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setPrefs(p => ({ ...p, smsTravelBuffer: n }))}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold border-2 transition-all ${
+                          prefs.smsTravelBuffer === n
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-border text-muted-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {n === 0 ? "None" : `+${n}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-5 flex justify-end">
@@ -230,6 +295,97 @@ export default function QueueSettings() {
                 >
                   {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Settings"}
                 </button>
+              </div>
+            </div>
+
+            {/* Smart SMS Dispatch — Store Location */}
+            <div className="bg-card border rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Navigation className="w-5 h-5 text-muted-foreground" />
+                <h2 className="font-semibold text-foreground">Smart SMS Dispatch</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-5">
+                When customers share their location at check-in, the system automatically texts them
+                when it's time to leave — calculated using the real drive time to your store plus how
+                fast the line is moving right now.
+              </p>
+
+              <div className="space-y-4">
+                {/* How it works */}
+                <div className="bg-muted/40 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">How it works</p>
+                  {[
+                    { icon: "📍", text: "Customer shares location when they join the queue" },
+                    { icon: "📊", text: "System tracks real queue speed from today's completions" },
+                    { icon: "🧮", text: "Calculates drive time from customer's location to your store" },
+                    { icon: "💬", text: "Texts them automatically when it's time to head over" },
+                  ].map((step, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span>{step.icon}</span>
+                      <span>{step.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Store location pin */}
+                <div>
+                  <p className="text-sm font-semibold text-foreground mb-1">
+                    Step 1 — Pin Your Store Location
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Open this settings page on a device at your store location, then click below to pin it.
+                    This is required for distance calculations.
+                  </p>
+
+                  {storeLatitude && storeLongitude ? (
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-1 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/40 rounded-xl px-4 py-3">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-300">Location pinned</p>
+                          <p className="text-xs text-green-600 dark:text-green-400 font-mono mt-0.5">
+                            {parseFloat(storeLatitude).toFixed(5)}, {parseFloat(storeLongitude).toFixed(5)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={captureStoreLocation}
+                        disabled={captureStatus === "capturing"}
+                        className="px-3 py-2.5 rounded-xl border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-60"
+                      >
+                        {captureStatus === "capturing" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Re-pin"}
+                      </button>
+                      <button
+                        onClick={clearStoreLocation}
+                        className="px-3 py-2.5 rounded-xl border text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={captureStoreLocation}
+                      disabled={captureStatus === "capturing"}
+                      className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 text-sm font-medium text-muted-foreground hover:text-foreground transition-all disabled:opacity-60 w-full justify-center"
+                    >
+                      {captureStatus === "capturing" ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Getting location…</>
+                      ) : (
+                        <><Navigation className="w-4 h-4" /> Pin Store Location (use this device at your store)</>
+                      )}
+                    </button>
+                  )}
+
+                  {captureStatus === "error" && (
+                    <p className="text-xs text-red-500 mt-2">
+                      Location access was denied. Please allow location permissions in your browser settings.
+                    </p>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground border-t pt-3">
+                  <strong>Note:</strong> SMS travel alerts require Twilio to be configured and the customer to have provided a phone number. The system sends at most one travel alert per queue entry.
+                </p>
               </div>
             </div>
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Users, Clock, CheckCircle, Loader2, ChevronLeft, ChevronRight, MapPin, Phone, X } from "lucide-react";
+import { Users, Clock, CheckCircle, Loader2, MapPin, Phone, X, Navigation, Bell } from "lucide-react";
+
+type LocationStatus = "idle" | "requesting" | "granted" | "denied" | "unsupported";
 
 interface QueueInfo {
   store: { id: number; name: string; phone?: string; address?: string };
@@ -27,6 +29,8 @@ export default function PublicCheckIn() {
   const [form, setForm] = useState({ name: "", phone: "", partySize: 1 });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   const fetchQueue = useCallback(async () => {
     try {
@@ -47,6 +51,22 @@ export default function PublicCheckIn() {
     const interval = setInterval(fetchQueue, 30000);
     return () => clearInterval(interval);
   }, [slug]);
+
+  // Request geolocation when form becomes visible
+  useEffect(() => {
+    if (page !== "form") return;
+    if (!navigator.geolocation) { setLocationStatus("unsupported"); return; }
+    if (locationStatus !== "idle") return;
+    setLocationStatus("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        setLocationStatus("granted");
+      },
+      () => { setLocationStatus("denied"); },
+      { timeout: 12000, maximumAge: 300_000, enableHighAccuracy: false }
+    );
+  }, [page]);
 
   useEffect(() => {
     if (page !== "confirmed" || !positionInfo) return;
@@ -75,6 +95,8 @@ export default function PublicCheckIn() {
           customerName: form.name.trim(),
           customerPhone: form.phone.trim() || null,
           partySize: form.partySize,
+          latitude: coords?.lat ?? null,
+          longitude: coords?.lon ?? null,
         }),
       });
       const data = await res.json();
@@ -193,6 +215,26 @@ export default function PublicCheckIn() {
                 <p className="text-xs text-gray-500 mt-0.5">est. wait</p>
               </div>
             </div>
+
+            {/* Smart SMS location banner */}
+            {locationStatus === "requesting" && (
+              <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 text-sm px-4 py-3 rounded-xl mb-4">
+                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                <span>Getting your location for smart SMS timing…</span>
+              </div>
+            )}
+            {locationStatus === "granted" && (
+              <div className="flex items-center gap-3 bg-teal-50 border border-teal-100 text-teal-700 text-sm px-4 py-3 rounded-xl mb-4">
+                <Navigation className="w-4 h-4 flex-shrink-0" />
+                <span><strong>Location shared!</strong> We'll text you when it's time to head over.</span>
+              </div>
+            )}
+            {locationStatus === "denied" && (
+              <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 text-amber-700 text-sm px-4 py-3 rounded-xl mb-4">
+                <Bell className="w-4 h-4 flex-shrink-0" />
+                <span>Add your phone number below and we'll text you when you're almost up!</span>
+              </div>
+            )}
 
             {/* Check-in form */}
             <form onSubmit={handleSubmit} className="space-y-4">

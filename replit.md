@@ -78,6 +78,18 @@ This is the **Certxa** platform — a full-stack booking and business management
 - **Wait time formula**: `(position - 1) × avgServiceTime` minutes; name on display board shows "First Last." format for privacy
 - **Files**: `client/src/pages/queue/PublicCheckIn.tsx`, `client/src/pages/queue/QueueDisplay.tsx`, `client/src/pages/queue/QueueDashboard.tsx`, `client/src/pages/queue/QueueSettings.tsx`
 
+**Certxa Queue — Smart Location-Based SMS Dispatch:**
+- **Customer geolocation**: PublicCheckIn requests browser geolocation on form load; shows status banners (requesting / granted / denied); lat/lon stored in `waitlist.customerLatitude` + `waitlist.customerLongitude` on check-in
+- **Store location pinning**: QueueSettings "Smart SMS Dispatch" section — owner clicks "Pin Store Location" (uses device geolocation at the store) → saved to `locations.storeLatitude` + `locations.storeLongitude`
+- **Smart SMS scheduler**: `server/queue-sms-scheduler.ts` — runs every 2 min; scans waiting entries with phone + coordinates where `smsSentAt` is null; computes `driveMinutes` via Haversine formula, `timeUntilTurn` from actual queue speed (blended 60% real completions / 40% configured), sends SMS when `timeUntilTurn <= driveTime + smsTravelBuffer`; marks `smsSentAt` to prevent duplicate sends
+- **SMS message**: "Hey {firstName}! You're #{position} in line at {storeName} — time to start heading over!" + Google Maps link
+- **Queue speed tracking**: `getRealAvgServiceTime()` looks at the last 12 `completed` entries today, computes average gap between completion timestamps, blends with configured default
+- **Haversine drive time model**: <0.25 mi = 3 min walk; <1 mi = 6 min/mi (~10 mph); <3 mi = 4 min/mi (~15 mph city); <8 mi = 2.5 min/mi (~24 mph mixed); >8 mi = 1.8 min/mi (~33 mph suburban)
+- **Configurable settings**: `smsTravelBuffer` (0/3/5/8/10/15 min early-alert buffer — saved to `storeSettings.preferences`); store lat/lon saved to `locations` table
+- **Schema additions**: `locations.storeLatitude`, `locations.storeLongitude`; `waitlist.customerLatitude`, `waitlist.customerLongitude`, `waitlist.smsSentAt`
+- **Timestamp tracking**: `PUT /api/waitlist/:id` now auto-stamps `calledAt` when status → called/serving, and `completedAt` when status → completed
+- **Scheduler startup**: Started in `registerRoutes()` alongside SMS/Email/Crew schedulers; logged as `[Queue SMS] Smart travel-alert scheduler started`
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

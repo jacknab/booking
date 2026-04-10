@@ -6,11 +6,12 @@ import { isAuthenticated } from "./auth";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users } from "@shared/models/auth";
-import { eq, and, desc, sql, count, gte, asc } from "drizzle-orm";
+import { eq, and, desc, sql, count, gte, asc, isNull, isNotNull } from "drizzle-orm";
 import { sendEmail, sendBookingConfirmationEmail, sendReminderEmail, sendReviewRequestEmail, startEmailReminderScheduler } from "./mail";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { sendBookingConfirmation, startReminderScheduler } from "./sms";
+import { startQueueSmsScheduler } from "./queue-sms-scheduler";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { 
@@ -2159,7 +2160,7 @@ If you have any questions, please contact your administrator.
 
       if (!queueEnabled) return res.status(400).json({ error: "Queue is not accepting check-ins right now." });
 
-      const { customerName, customerPhone, partySize = 1 } = req.body;
+      const { customerName, customerPhone, partySize = 1, latitude, longitude } = req.body;
       if (!customerName?.trim()) return res.status(400).json({ error: "Name is required" });
 
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
@@ -2179,6 +2180,8 @@ If you have any questions, please contact your administrator.
         customerName: customerName.trim(),
         customerPhone: customerPhone?.trim() || null,
         partySize: Math.max(1, Math.min(10, Number(partySize) || 1)),
+        customerLatitude: latitude != null ? String(latitude) : null,
+        customerLongitude: longitude != null ? String(longitude) : null,
         status: "waiting",
       } as any).returning();
 
@@ -3561,7 +3564,15 @@ If you have any questions, please contact your administrator.
     try {
       const id = parseInt(req.params.id);
       const updates: any = {};
-      if (req.body.status !== undefined) updates.status = req.body.status;
+      if (req.body.status !== undefined) {
+        updates.status = req.body.status;
+        // Auto-stamp timestamps when status changes
+        if (req.body.status === "called" || req.body.status === "serving") {
+          updates.calledAt = new Date();
+        } else if (req.body.status === "completed") {
+          updates.completedAt = new Date();
+        }
+      }
       if (req.body.notifiedAt !== undefined) updates.notifiedAt = new Date(req.body.notifiedAt);
       const [entry] = await db.update(waitlist).set(updates).where(eq(waitlist.id, id)).returning();
       res.json(entry);
@@ -3589,14 +3600,18 @@ If you have any questions, please contact your administrator.
       const userId = (req.session as any)?.userId;
       const storeId = req.query.storeId ? Number(req.query.storeId) : null;
       if (!storeId) return res.status(400).json({ error: "storeId required" });
-      const store = await db.select().from(locations).where(and(eq(locations.id, storeId), eq(locations.userId, userId)));
-      if (!store.length) return res.status(403).json({ error: "Unauthorized" });
+      const storeRows = await db.select().from(locations).where(and(eq(locations.id, storeId), eq(locations.userId, userId)));
+      if (!storeRows.length) return res.status(403).json({ error: "Unauthorized" });
+      const store = storeRows[0];
       const [row] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, storeId));
       const prefs = row?.preferences ? JSON.parse(row.preferences as string) : {};
       res.json({
         queueEnabled: prefs.queueEnabled !== false,
         queueAvgServiceTime: prefs.queueAvgServiceTime || 20,
         queueMaxSize: prefs.queueMaxSize || 30,
+        smsTravelBuffer: prefs.smsTravelBuffer ?? 5,
+        storeLatitude: store.storeLatitude || null,
+        storeLongitude: store.storeLongitude || null,
       });
     } catch (err) {
       console.error(err);
@@ -3613,17 +3628,25 @@ If you have any questions, please contact your administrator.
       if (!storeRows.length) return res.status(403).json({ error: "Unauthorized" });
       const [existing] = await db.select().from(storeSettings).where(eq(storeSettings.storeId, storeId));
       const currentPrefs = existing?.preferences ? JSON.parse(existing.preferences as string) : {};
-      const { queueEnabled, queueAvgServiceTime, queueMaxSize } = req.body;
+      const { queueEnabled, queueAvgServiceTime, queueMaxSize, smsTravelBuffer, storeLatitude, storeLongitude } = req.body;
       const newPrefs = {
         ...currentPrefs,
         ...(queueEnabled !== undefined ? { queueEnabled } : {}),
         ...(queueAvgServiceTime !== undefined ? { queueAvgServiceTime } : {}),
         ...(queueMaxSize !== undefined ? { queueMaxSize } : {}),
+        ...(smsTravelBuffer !== undefined ? { smsTravelBuffer } : {}),
       };
       if (existing) {
         await db.update(storeSettings).set({ preferences: JSON.stringify(newPrefs) }).where(eq(storeSettings.storeId, storeId));
       } else {
         await db.insert(storeSettings).values({ storeId, preferences: JSON.stringify(newPrefs) });
+      }
+      // Save store lat/lng directly on the locations table
+      if (storeLatitude !== undefined || storeLongitude !== undefined) {
+        const locationUpdates: any = {};
+        if (storeLatitude !== undefined) locationUpdates.storeLatitude = storeLatitude ? String(storeLatitude) : null;
+        if (storeLongitude !== undefined) locationUpdates.storeLongitude = storeLongitude ? String(storeLongitude) : null;
+        await db.update(locations).set(locationUpdates).where(eq(locations.id, storeId));
       }
       res.json({ success: true });
     } catch (err) {
@@ -4117,6 +4140,9 @@ If you have any questions, please contact your administrator.
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
   startEmailReminderScheduler();
+
+  // Start the queue smart SMS scheduler
+  startQueueSmsScheduler();
 
   return httpServer;
 }
