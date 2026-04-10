@@ -49,7 +49,10 @@ import {
   loyaltyTransactions,
   reviews,
   storeSettings,
+  seoRegions,
+  insertSeoRegionSchema,
 } from "@shared/schema";
+import { writeRegionPage, deleteRegionPage } from "./seo-page-generator";
 import {
   GoogleBusinessAPIManager,
   createApiManagerFromProfile,
@@ -96,6 +99,7 @@ export async function registerRoutes(
     if (req.path.startsWith("/admin/users")) return next(); // Allow admin users endpoint
     if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
     if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
+    if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
     
     // Require authentication for other endpoints
     const userId = (req.session as any)?.userId;
@@ -4192,6 +4196,116 @@ If you have any questions, please contact your administrator.
       res.status(500).json({ error: "Failed to save lead" });
     }
   });
+
+  // ── SEO Regional Pages API ────────────────────────────────────────────────────
+
+    // List all regions
+    app.get("/api/seo-regions", async (req, res) => {
+      try {
+        const rows = await db.select().from(seoRegions).orderBy(asc(seoRegions.city));
+        res.json(rows);
+      } catch (err) {
+        console.error("SEO regions list error:", err);
+        res.status(500).json({ error: "Failed to list regions" });
+      }
+    });
+
+    // Get single region
+    app.get("/api/seo-regions/:id", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
+        if (!row) return res.status(404).json({ error: "Not found" });
+        res.json(row);
+      } catch (err) {
+        res.status(500).json({ error: "Failed to get region" });
+      }
+    });
+
+    // Create region and auto-generate HTML page
+    app.post("/api/seo-regions", async (req, res) => {
+      try {
+        const data = insertSeoRegionSchema.parse(req.body);
+        const [row] = await db.insert(seoRegions).values(data).returning();
+        try {
+          writeRegionPage(row);
+          await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, row.id));
+          row.pageGenerated = true;
+        } catch (genErr) {
+          console.error("Page gen error:", genErr);
+        }
+        res.json(row);
+      } catch (err: any) {
+        if (err?.code === "23505") return res.status(409).json({ error: "A region with that slug already exists" });
+        res.status(400).json({ error: err?.message ?? "Failed to create region" });
+      }
+    });
+
+    // Update region and regenerate page
+    app.put("/api/seo-regions/:id", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const data = insertSeoRegionSchema.partial().parse(req.body);
+        const [row] = await db.update(seoRegions).set({ ...data, updatedAt: new Date() }).where(eq(seoRegions.id, id)).returning();
+        if (!row) return res.status(404).json({ error: "Not found" });
+        try {
+          writeRegionPage(row);
+          await db.update(seoRegions).set({ pageGenerated: true }).where(eq(seoRegions.id, id));
+          row.pageGenerated = true;
+        } catch (genErr) {
+          console.error("Page gen error:", genErr);
+        }
+        res.json(row);
+      } catch (err: any) {
+        res.status(400).json({ error: err?.message ?? "Failed to update region" });
+      }
+    });
+
+    // Regenerate a single page manually
+    app.post("/api/seo-regions/:id/generate", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
+        if (!row) return res.status(404).json({ error: "Not found" });
+        writeRegionPage(row);
+        await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, id));
+        res.json({ success: true, slug: row.slug, url: `/regions/${row.slug}.html` });
+      } catch (err: any) {
+        res.status(500).json({ error: err?.message ?? "Failed to generate page" });
+      }
+    });
+
+    // Regenerate ALL pages (bulk)
+    app.post("/api/seo-regions/generate-all", async (req, res) => {
+      try {
+        const rows = await db.select().from(seoRegions);
+        let count = 0;
+        for (const row of rows) {
+          try {
+            writeRegionPage(row);
+            await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, row.id));
+            count++;
+          } catch { /* skip failed */ }
+        }
+        res.json({ success: true, generated: count, total: rows.length });
+      } catch (err: any) {
+        res.status(500).json({ error: err?.message ?? "Bulk generation failed" });
+      }
+    });
+
+    // Delete region and its HTML file
+    app.delete("/api/seo-regions/:id", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
+        if (!row) return res.status(404).json({ error: "Not found" });
+        deleteRegionPage(row.slug);
+        await db.delete(seoRegions).where(eq(seoRegions.id, id));
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err?.message ?? "Failed to delete region" });
+      }
+    });
 
   // ── Certxa Pro Dashboard API ─────────────────────────────────────────────────
   const { default: proDashboardRouter } = await import("./routes/pro-dashboard.js");

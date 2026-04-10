@@ -4,6 +4,16 @@
 
 This is the **Certxa** platform — a full-stack booking and business management app for service pros across all industries (salons, spas, home services, gig work, and trades). It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app has a public marketing section targeting 30+ industries and a full management dashboard behind authentication.
 
+**SEO Regional Page Builder:**
+- Admin UI at `/admin/seo-regions` (linked from admin sidebar as "SEO Pages")
+- Add a city/region → a standalone static HTML page is instantly generated at `/regions/[slug].html`
+- Each page includes: `<title>`, `<meta description>`, `<meta keywords>`, Open Graph tags, JSON-LD LocalBusiness schema, JSON-LD FAQ schema, canonical URL, city-specific H1/H2 headings, phone number with `<a href="tel:...">`, features list, industries served, nearby cities for long-tail keywords, FAQ section, CTA
+- Three product templates: `booking`, `queue`, `pro` — each generates fully customized content
+- Files live in `client/public/regions/` and are served as static HTML — Google crawls them with no JavaScript required
+- API routes: `GET/POST/PUT/DELETE /api/seo-regions`, `POST /api/seo-regions/:id/generate`, `POST /api/seo-regions/generate-all`
+- Page generator: `server/seo-page-generator.ts`; schema table: `seo_regions`
+- **Important:** API routes registered BEFORE Vite in `server/index.ts` to prevent Vite catch-all from intercepting `/api/*` requests
+
 **Landing page group visibility:**
 - Controlled by the `ACTIVE_GROUPS` environment variable (set in Replit secrets/env)
 - `ACTIVE_GROUPS=1` → shows only Certxa Booking; hero says "One Way to Run"

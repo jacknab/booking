@@ -121,19 +121,6 @@ app.use((req, res, next) => {
 
 // --- Main Async Boot ---
 (async () => {
-  // Serve static files FIRST — before session/auth middleware — so that CSS/JS
-  // assets are always served correctly even if the database session store has a
-  // momentary connection issue.  The catch-all inside serveStatic skips /api/*
-  // routes so they fall through to registerRoutes below.
-  if (process.env.NODE_ENV === "production") {
-    const { setupSSR } = await import("./ssr");
-    setupSSR(app);
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  }
-
   setupAuth(app);
 
   app.use(passport.initialize());
@@ -170,7 +157,20 @@ app.use((req, res, next) => {
     }
   );
 
+  // Register all API routes BEFORE setting up Vite/static so that the Vite
+  // catch-all never intercepts /api/* requests.
   await registerRoutes(httpServer, app);
+
+  // Serve static files / Vite dev server AFTER API routes are registered.
+  // The catch-all inside serveStatic/Vite skips /api/* routes.
+  if (process.env.NODE_ENV === "production") {
+    const { setupSSR } = await import("./ssr");
+    setupSSR(app);
+    serveStatic(app);
+  } else {
+    const { setupVite } = await import("./vite");
+    await setupVite(httpServer, app);
+  }
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

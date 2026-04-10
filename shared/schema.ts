@@ -508,6 +508,31 @@ export const proLeads = pgTable("pro_leads", {
 
 export const insertProLeadSchema = createInsertSchema(proLeads);
 
+// === SEO REGIONAL PAGES ===
+
+export const seoRegions = pgTable("seo_regions", {
+  id:            serial("id").primaryKey(),
+  city:          varchar("city",           { length: 100 }).notNull(),
+  state:         varchar("state",          { length: 100 }).notNull(),
+  stateCode:     varchar("state_code",     { length: 10 }).notNull(),
+  slug:          varchar("slug",           { length: 200 }).notNull().unique(),
+  phone:         varchar("phone",          { length: 30 }),
+  zip:           varchar("zip",            { length: 20 }),
+  product:       varchar("product",        { length: 20 }).notNull().default("all"),
+  businessTypes: text("business_types"),
+  nearbyCities:  text("nearby_cities"),
+  metaTitle:     text("meta_title"),
+  metaDesc:      text("meta_desc"),
+  h1Override:    text("h1_override"),
+  pageGenerated: boolean("page_generated").default(false),
+  createdAt:     timestamp("created_at").defaultNow(),
+  updatedAt:     timestamp("updated_at").defaultNow(),
+});
+
+export const insertSeoRegionSchema = createInsertSchema(seoRegions).omit({ id: true, createdAt: true, updatedAt: true, pageGenerated: true });
+export type SeoRegion = typeof seoRegions.$inferSelect;
+export type InsertSeoRegion = typeof seoRegions.$inferInsert;
+
 // === RELATIONS ===
 
 export const locationsRelations = relations(locations, ({ many }) => ({

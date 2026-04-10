@@ -15,6 +15,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           <a href="/admin/users" className="block p-4 text-gray-700 hover:bg-gray-200">Users</a>
           <a href="/admin/settings" className="block p-4 text-gray-700 hover:bg-gray-200">Settings</a>
           <a href="/admin/invoices" className="block p-4 text-gray-700 hover:bg-gray-200">Invoices</a>
+          <a href="/admin/seo-regions" className="block p-4 text-gray-700 hover:bg-gray-200">SEO Pages</a>
         </nav>
       </div>
       <main className="flex-1 p-8">
