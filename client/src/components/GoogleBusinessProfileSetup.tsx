@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { GoogleConnectGate } from "@/components/GoogleConnectGate";
 import {
   Card,
   CardContent,
@@ -247,6 +248,25 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
     );
   }
 
+  // Show the full connect gate screen when not yet connected
+  if (step === "initial") {
+    return (
+      <div className="space-y-4">
+        {errorMsg && (
+          <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+        <GoogleConnectGate
+          onConnect={handleStartAuth}
+          loading={loading}
+          subtitle="We only request read access to your reviews. You can disconnect at any time."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -274,39 +294,6 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
           {step === "loading" && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="animate-spin text-gray-400" size={24} />
-            </div>
-          )}
-
-          {/* ── INITIAL / NOT CONNECTED ── */}
-          {step === "initial" && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Click the button below to authorize Certxa to access your Google
-                Business Profile reviews. You will be redirected to Google to
-                approve the connection.
-              </p>
-              <ul className="text-sm text-gray-500 space-y-1 list-disc pl-5">
-                <li>We only request permission to read reviews and post responses</li>
-                <li>We never access Gmail, Calendar or other Google services</li>
-                <li>You can disconnect at any time</li>
-              </ul>
-              <Button onClick={handleStartAuth} disabled={loading} className="w-full gap-2">
-                {loading ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Redirecting to Google…
-                  </>
-                ) : (
-                  "Connect Google Business Profile"
-                )}
-              </Button>
-              <p className="text-xs text-center text-gray-400">
-                By connecting you agree to our{" "}
-                <a href="/privacy-policy" className="underline hover:text-gray-600" target="_blank" rel="noopener noreferrer">
-                  Privacy Policy
-                </a>
-                .
-              </p>
             </div>
           )}
 

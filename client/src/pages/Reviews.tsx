@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Review } from "@shared/schema";
+import { GoogleConnectGate } from "@/components/GoogleConnectGate";
 
 type ReviewStats = {
   total: number;
@@ -48,6 +49,34 @@ export default function Reviews() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [googleSkipped, setGoogleSkipped] = useState(false);
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+
+  const { data: googleProfile, isLoading: googleLoading } = useQuery({
+    queryKey: ["/api/google-business/profile", storeId],
+    queryFn: async () => {
+      if (!storeId) return null;
+      const res = await fetch(`/api/google-business/profile/${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.profile ?? null;
+    },
+    enabled: !!storeId,
+  });
+
+  const isGoogleConnected = !!googleProfile?.isConnected;
+  const showGate = !googleLoading && !isGoogleConnected && !googleSkipped;
+
+  async function handleGoogleConnect() {
+    setGoogleConnecting(true);
+    try {
+      const res = await fetch("/api/google-business/auth-url", { credentials: "include" });
+      const data = await res.json();
+      window.location.href = data.authUrl;
+    } catch {
+      setGoogleConnecting(false);
+    }
+  }
 
   const { data: reviewsData = [] } = useQuery<Review[]>({
     queryKey: ["/api/reviews", storeId],
@@ -117,6 +146,18 @@ export default function Reviews() {
     if (!stats || stats.total === 0) return 0;
     return Math.round(((stats.distribution[star] || 0) / stats.total) * 100);
   };
+
+  if (showGate) {
+    return (
+      <AppLayout>
+        <GoogleConnectGate
+          onConnect={handleGoogleConnect}
+          onSkip={() => setGoogleSkipped(true)}
+          loading={googleConnecting}
+        />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
