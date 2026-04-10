@@ -1,51 +1,145 @@
-import { useContext, useEffect, useState, useCallback } from "react";
+import { useContext, useRef, useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { StoreContext } from "@/hooks/use-store";
-import { Link } from "react-router-dom";
-import { MapPin, Truck, Clock, AlertTriangle, CheckCircle2, Plus, RefreshCw, Navigation } from "lucide-react";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Plus, Filter, Clock, CalendarDays, Zap } from "lucide-react";
 
-// Fix leaflet default icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({ iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png", iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png", shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png" });
+// ─── Grid constants ──────────────────────────────────────────────────────────
+const TIME_COL_W = 56;
+const CREW_COL_W = 152;
+const DAY_START = 6;   // 6 am
+const DAY_END   = 21;  // 9 pm
+const SLOT_H    = 68;  // px per hour
+const TOTAL_H   = (DAY_END - DAY_START) * SLOT_H;
+const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i);
 
-const STATUS_COLOR: Record<string, string> = {
-  new: "#94a3b8", assigned: "#3b82f6", en_route: "#f59e0b",
-  in_progress: "#00D4AA", completed: "#22c55e", cancelled: "#ef4444",
-};
-const STATUS_LABEL: Record<string, string> = {
-  new: "New", assigned: "Assigned", en_route: "En Route",
-  in_progress: "In Progress", completed: "Completed", cancelled: "Cancelled",
-};
-const PRIORITY_COLOR: Record<string, string> = { low: "#64748b", normal: "#3b82f6", high: "#f59e0b", emergency: "#ef4444" };
-
-function crewIcon(color: string) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:36px;height:36px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 19.82A7.06 7.06 0 0 1 3 19.35a5.8 5.8 0 0 1 1-3.65C5.39 13.6 8 10 17 8"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM12 5c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg></div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-  });
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function fmtHour(h: number) {
+  if (h === 0 || h === 24) return "12a";
+  if (h === 12) return "12p";
+  return h < 12 ? `${h}a` : `${h - 12}p`;
 }
 
-function jobIcon(color: string, priority: string) {
-  const isEmergency = priority === "emergency";
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:${isEmergency ? 32 : 26}px;height:${isEmergency ? 32 : 26}px;border-radius:6px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;${isEmergency ? "animation:pulse 1s infinite;" : ""}"><svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`,
-    iconSize: [isEmergency ? 32 : 26, isEmergency ? 32 : 26],
-    iconAnchor: [isEmergency ? 16 : 13, isEmergency ? 16 : 13],
-  });
+function fmtRange(scheduledAt: string, estHours: number | null) {
+  const s = new Date(scheduledAt);
+  const sh = s.getHours(), sm = s.getMinutes();
+  const durH = estHours ?? 1;
+  const totalMin = sh * 60 + sm + durH * 60;
+  const eh = Math.floor(totalMin / 60) % 24, em = totalMin % 60;
+  const f = (h: number, m: number) => {
+    const suffix = h < 12 ? "a" : "p";
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, "0")}${suffix}`;
+  };
+  return `${f(sh, sm)} - ${f(eh, em)}`;
 }
 
+function jobTopPx(scheduledAt: string) {
+  const d = new Date(scheduledAt);
+  const fromStart = (d.getHours() - DAY_START) + d.getMinutes() / 60;
+  return Math.max(0, fromStart * SLOT_H);
+}
+
+function jobHeightPx(estHours: number | null) {
+  return Math.max((estHours ?? 1) * SLOT_H - 4, 28);
+}
+
+// ─── Status palette ───────────────────────────────────────────────────────────
+const STATUS_STYLE: Record<string, { bg: string; border: string; label: string; text: string }> = {
+  new:         { bg: "rgba(59,130,246,0.18)",  border: "#3b82f6", label: "#93c5fd", text: "#bfdbfe" },
+  assigned:    { bg: "rgba(59,130,246,0.28)",  border: "#3b82f6", label: "#dbeafe", text: "#eff6ff" },
+  en_route:    { bg: "rgba(245,158,11,0.22)",  border: "#f59e0b", label: "#fde68a", text: "#fef3c7" },
+  in_progress: { bg: "rgba(0,212,170,0.22)",   border: "#00D4AA", label: "#a7f3d0", text: "#d1fae5" },
+  completed:   { bg: "rgba(34,197,94,0.18)",   border: "#22c55e", label: "#86efac", text: "#dcfce7" },
+  cancelled:   { bg: "rgba(239,68,68,0.14)",   border: "#ef4444", label: "#fca5a5", text: "#fee2e2" },
+};
+
+// ─── Job card ─────────────────────────────────────────────────────────────────
+function JobCard({ job, navigate }: { job: any; navigate: (path: string) => void }) {
+  if (!job.scheduledAt) return null;
+  const top = jobTopPx(job.scheduledAt);
+  const height = jobHeightPx(Number(job.estimatedHours) || null);
+  const s = STATUS_STYLE[job.status] ?? STATUS_STYLE.new;
+  const isUrgent = job.priority === "urgent" || job.priority === "emergency";
+
+  return (
+    <button
+      onClick={() => navigate(`/pro-dashboard/jobs/${job.id}`)}
+      className="absolute text-left rounded-lg overflow-hidden group transition-all hover:scale-[1.02] hover:z-20"
+      style={{ top: top + 2, height, left: 4, right: 4, background: s.bg, borderLeft: `3px solid ${s.border}` }}
+    >
+      <div className="px-2 pt-1.5 pb-1 h-full flex flex-col">
+        <div className="flex items-center gap-1 mb-0.5">
+          <span className="text-[10px] font-bold leading-none" style={{ color: s.label }}>
+            {job.orderNumber}
+          </span>
+          {isUrgent && <Zap className="w-2.5 h-2.5 flex-shrink-0" style={{ color: "#f59e0b" }} />}
+        </div>
+        <p className="text-[11px] font-semibold leading-tight truncate" style={{ color: s.text }}>
+          {job.serviceType}
+        </p>
+        {height > 44 && (
+          <p className="text-[10px] leading-tight mt-0.5 truncate" style={{ color: s.text, opacity: 0.7 }}>
+            {job.customerName}
+          </p>
+        )}
+        {height > 58 && (
+          <p className="text-[9px] mt-auto" style={{ color: s.label, opacity: 0.8 }}>
+            {fmtRange(job.scheduledAt, Number(job.estimatedHours) || null)}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── Crew column ──────────────────────────────────────────────────────────────
+function CrewColumn({ crew, jobs, navigate, isLast }: { crew: any; jobs: any[]; navigate: (s: string) => void; isLast: boolean }) {
+  return (
+    <div className="relative border-l border-white/6 flex-shrink-0" style={{ width: CREW_COL_W }}>
+      {/* Hourly grid lines */}
+      {HOURS.map((_, i) => (
+        <div key={i} className="absolute left-0 right-0 border-t border-white/[0.06]" style={{ top: i * SLOT_H }} />
+      ))}
+      {/* Half-hour dashes */}
+      {HOURS.map((_, i) => (
+        <div key={`h${i}`} className="absolute left-0 right-0 border-t border-dashed border-white/[0.03]"
+          style={{ top: i * SLOT_H + SLOT_H / 2 }} />
+      ))}
+      {/* Job cards */}
+      {jobs.map(job => <JobCard key={job.id} job={job} navigate={navigate} />)}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function DispatchDashboard() {
   const ctx = useContext(StoreContext);
   const storeId = ctx?.selectedStore?.id;
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const { data, isLoading, refetch } = useQuery({
+  const headerRef = useRef<HTMLDivElement>(null);
+  const bodyRef   = useRef<HTMLDivElement>(null);
+
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [nowTime, setNowTime] = useState(() => new Date());
+  const [filter, setFilter] = useState("All");
+
+  // Refresh current time every 30s
+  useEffect(() => {
+    const t = setInterval(() => setNowTime(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Sync crew header horizontal scroll with grid body
+  const onBodyScroll = useCallback(() => {
+    if (headerRef.current && bodyRef.current) {
+      headerRef.current.scrollLeft = bodyRef.current.scrollLeft;
+    }
+  }, []);
+
+  const { data, isLoading } = useQuery({
     queryKey: ["/api/pro-dashboard/dispatch", storeId],
     queryFn: async () => {
       const r = await fetch(`/api/pro-dashboard/dispatch?storeId=${storeId}`);
@@ -57,232 +151,232 @@ export default function DispatchDashboard() {
 
   const simulateLocation = useMutation({
     mutationFn: async (crewId: number) => {
-      // Simulate a random location around a US city center
       const baseLats = [40.7128, 34.0522, 41.8781, 29.7604, 33.4484];
       const baseLngs = [-74.006, -118.2437, -87.6298, -95.3698, -112.074];
       const i = crewId % baseLats.length;
-      const lat = baseLats[i] + (Math.random() - 0.5) * 0.08;
-      const lng = baseLngs[i] + (Math.random() - 0.5) * 0.12;
       await fetch(`/api/pro-dashboard/crews/${crewId}/location`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat, lng }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: baseLats[i] + (Math.random() - 0.5) * 0.08, lng: baseLngs[i] + (Math.random() - 0.5) * 0.12 }),
       });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/pro-dashboard/dispatch", storeId] }),
   });
 
-  const orders = data?.orders ?? [];
-  const crewList = data?.crews ?? [];
-  const stats = data?.stats ?? {};
+  const allOrders = data?.orders ?? [];
+  const crewList  = data?.crews ?? [];
 
-  const mapCenter: [number, number] = crewList.find((c: any) => c.location)
-    ? [Number(crewList.find((c: any) => c.location).location.lat), Number(crewList.find((c: any) => c.location).location.lng)]
-    : [39.8283, -98.5795];
+  // Filter to selected date
+  const dateStr = selectedDate.toDateString();
+  const dayOrders = allOrders.filter((o: any) => {
+    if (!o.scheduledAt) return filter === "Unassigned"; // show unscheduled in unassigned filter
+    return new Date(o.scheduledAt).toDateString() === dateStr;
+  });
 
-  const STAT_CARDS = [
-    { label: "Active Jobs", value: stats.activeJobs ?? 0, icon: Clock, color: "text-blue-400" },
-    { label: "Crews Out", value: stats.activeCrews ?? 0, icon: Truck, color: "text-[#00D4AA]" },
-    { label: "Completed Today", value: stats.completedJobs ?? 0, icon: CheckCircle2, color: "text-green-400" },
-    { label: "Revenue", value: `$${Number(stats.revenue ?? 0).toLocaleString()}`, icon: AlertTriangle, color: "text-yellow-400" },
-  ];
+  const filteredOrders =
+    filter === "All"        ? dayOrders :
+    filter === "Urgent"     ? dayOrders.filter((o: any) => ["urgent","emergency"].includes(o.priority)) :
+    filter === "Unassigned" ? allOrders.filter((o: any) => !o.crewId && !["completed","cancelled"].includes(o.status)) :
+    filter === "Active"     ? dayOrders.filter((o: any) => ["assigned","en_route","in_progress"].includes(o.status)) :
+    dayOrders;
+
+  const jobsFor = (crewId: number | null) =>
+    filteredOrders.filter((o: any) => crewId === null ? !o.crewId : o.crewId === crewId);
+
+  const unassigned = jobsFor(null);
+  const showUnassigned = filter === "Unassigned" || unassigned.length > 0;
+
+  // Current time indicator
+  const nowH = nowTime.getHours(), nowM = nowTime.getMinutes();
+  const nowOffsetH = (nowH - DAY_START) + nowM / 60;
+  const nowPx = nowOffsetH * SLOT_H;
+  const showNowLine = nowTime.toDateString() === dateStr && nowOffsetH >= 0 && nowOffsetH <= (DAY_END - DAY_START);
+
+  // Date label
+  const dateLabel = selectedDate.toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric", year: "numeric",
+  });
+
+  const prevDay  = () => setSelectedDate(d => new Date(d.getTime() - 86400000));
+  const nextDay  = () => setSelectedDate(d => new Date(d.getTime() + 86400000));
+  const goToday  = () => setSelectedDate(new Date());
+
+  const totalCols = crewList.length + (showUnassigned ? 1 : 0);
+  const gridMinW  = TIME_COL_W + totalCols * CREW_COL_W;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-        <div>
-          <h1 className="text-xl font-extrabold text-white">Live Dispatch</h1>
-          <p className="text-white/40 text-xs mt-0.5">Real-time crew tracking and job assignment</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/15 text-white/60 hover:text-white text-xs font-semibold transition-all">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+    <div className="flex flex-col h-full overflow-hidden bg-[#060E1A]">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/8 bg-[#0A1628] flex-wrap gap-y-2 flex-shrink-0">
+        <h1 className="text-white font-extrabold text-lg mr-1">Dispatch</h1>
+
+        <Link to="/pro-dashboard/jobs/new"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00D4AA] text-[#050C18] text-xs font-bold rounded-lg hover:bg-[#00C49A] transition-all">
+          <Plus className="w-3.5 h-3.5" /> Create Job
+        </Link>
+
+        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-white/20 text-white/60 text-xs font-semibold rounded-lg hover:border-[#00D4AA]/40 hover:text-[#00D4AA] transition-all">
+          <Clock className="w-3.5 h-3.5" /> Add Time Off
+        </button>
+
+        {/* Date nav */}
+        <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden ml-1">
+          <button onClick={prevDay} className="px-2 py-1.5 text-white/50 hover:text-white hover:bg-white/8 transition-all">
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <Link to="/pro-dashboard/jobs/new" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-xs transition-all hover:bg-[#00D4AA]/90">
-            <Plus className="w-4 h-4" /> New Job
-          </Link>
+          <div className="flex items-center gap-1.5 px-3">
+            <CalendarDays className="w-3.5 h-3.5 text-white/40" />
+            <span className="text-white text-xs font-semibold whitespace-nowrap">{dateLabel}</span>
+          </div>
+          <button onClick={nextDay} className="px-2 py-1.5 text-white/50 hover:text-white hover:bg-white/8 transition-all">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <button onClick={goToday}
+          className="px-3 py-1.5 border border-white/20 text-white/70 text-xs font-semibold rounded-lg hover:bg-white/6 transition-all">
+          Today
+        </button>
+
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-white/30 text-xs">Dispatch View:</span>
+          <select className="bg-[#0D1F35] border border-white/15 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#00D4AA]/50 cursor-pointer">
+            <option>Day view</option>
+            <option>Week view</option>
+          </select>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3 px-6 py-3 border-b border-white/8">
-        {STAT_CARDS.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white/4 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
-            <Icon className={`w-5 h-5 ${color}`} />
-            <div>
-              <p className="text-white font-bold text-lg leading-none">{value}</p>
-              <p className="text-white/40 text-xs mt-0.5">{label}</p>
-            </div>
-          </div>
+      {/* ── Filter chips ───────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-5 py-2.5 border-b border-white/8 bg-[#0A1628] flex-shrink-0">
+        <Filter className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+        <span className="text-white/30 text-xs flex-shrink-0">Queue filters:</span>
+        {["All", "Active", "Urgent", "Unassigned"].map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-all flex-shrink-0 ${
+              filter === f
+                ? "bg-[#00D4AA]/15 border-[#00D4AA]/50 text-[#00D4AA]"
+                : "border-white/12 text-white/40 hover:border-white/25 hover:text-white/65"
+            }`}>
+            {f}
+          </button>
         ))}
+        <span className="ml-auto text-white/25 text-xs whitespace-nowrap">
+          {filteredOrders.length} job{filteredOrders.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
-      {/* Map + Side panel */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Map */}
-        <div className="flex-1 relative">
-          {isLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#060E1A]">
-              <div className="text-white/40 text-sm">Loading dispatch data…</div>
-            </div>
-          ) : (
-            <MapContainer
-              center={mapCenter}
-              zoom={crewList.find((c: any) => c.location) ? 12 : 4}
-              style={{ height: "100%", width: "100%", background: "#060E1A" }}
-              className="z-0"
-            >
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              />
+      {/* ── Crew header (syncs with grid scroll) ───────────────────────────── */}
+      <div className="bg-[#0A1628] border-b border-white/8 overflow-hidden flex-shrink-0" ref={headerRef}>
+        <div className="flex" style={{ minWidth: gridMinW }}>
+          {/* Time col spacer */}
+          <div className="flex-shrink-0 border-r border-white/6" style={{ width: TIME_COL_W }} />
 
-              {/* Crew markers */}
-              {crewList.map((crew: any) =>
-                crew.location ? (
-                  <Marker key={`crew-${crew.id}`} position={[Number(crew.location.lat), Number(crew.location.lng)]} icon={crewIcon(crew.color)}>
-                    <Popup className="leaflet-dark-popup">
-                      <div style={{ background: "#0D1F35", color: "white", padding: "8px", borderRadius: "8px", minWidth: "160px" }}>
-                        <p style={{ fontWeight: 700, marginBottom: 4 }}>{crew.name}</p>
-                        {orders.find((o: any) => o.crewId === crew.id && ["assigned","en_route","in_progress"].includes(o.status)) ? (
-                          <p style={{ fontSize: 12, color: "#00D4AA" }}>
-                            On job: {orders.find((o: any) => o.crewId === crew.id)?.serviceType}
-                          </p>
-                        ) : (
-                          <p style={{ fontSize: 12, color: "#94a3b8" }}>Available</p>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
-                ) : null
-              )}
-
-              {/* Job markers */}
-              {orders.filter((o: any) => o.lat && o.lng).map((order: any) => (
-                <Marker
-                  key={`job-${order.id}`}
-                  position={[Number(order.lat), Number(order.lng)]}
-                  icon={jobIcon(STATUS_COLOR[order.status] ?? "#94a3b8", order.priority)}
-                >
-                  <Popup>
-                    <div style={{ background: "#0D1F35", color: "white", padding: "8px", borderRadius: "8px", minWidth: "200px" }}>
-                      <p style={{ fontWeight: 700, fontSize: 13 }}>{order.orderNumber}</p>
-                      <p style={{ fontSize: 12, color: "#94a3b8" }}>{order.serviceType}</p>
-                      <p style={{ fontSize: 12, marginTop: 4 }}>{order.customerName}</p>
-                      <p style={{ fontSize: 11, color: "#94a3b8" }}>{order.address}</p>
-                      <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ background: STATUS_COLOR[order.status], borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white" }}>
-                          {STATUS_LABEL[order.status]}
-                        </span>
-                        {order.priority !== "normal" && (
-                          <span style={{ color: PRIORITY_COLOR[order.priority], fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{order.priority}</span>
-                        )}
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
-          )}
-
-          {/* Map legend */}
-          <div className="absolute bottom-4 left-4 z-10 bg-[#0A1628]/90 border border-white/15 rounded-xl px-3 py-2 text-xs space-y-1">
-            <p className="text-white/40 font-semibold uppercase tracking-wider text-[10px] mb-2">Legend</p>
-            {Object.entries(STATUS_LABEL).filter(([k]) => k !== "cancelled").map(([k, v]) => (
-              <div key={k} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ background: STATUS_COLOR[k] }} />
-                <span className="text-white/60">{v}</span>
+          {crewList.map((crew: any) => {
+            const crewJobs = jobsFor(crew.id).length;
+            const isOnline = !!crew.location;
+            return (
+              <div key={crew.id} className="flex flex-col items-center py-3 border-l border-white/6 flex-shrink-0"
+                style={{ width: CREW_COL_W }}>
+                <div className="relative">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm text-white border-2 shadow-md"
+                    style={{ background: crew.color + "33", borderColor: crew.color }}>
+                    {crew.name[0]}
+                  </div>
+                  {isOnline && (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#00D4AA] border border-[#0A1628]" />
+                  )}
+                </div>
+                <p className="text-white/80 text-[11px] font-semibold mt-1.5 truncate px-2 max-w-full">
+                  {crew.name}
+                </p>
+                <p className={`text-[10px] ${crewJobs > 0 ? "text-[#00D4AA]" : "text-white/25"}`}>
+                  {crewJobs > 0 ? `${crewJobs} job${crewJobs > 1 ? "s" : ""}` : "Available"}
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
+            );
+          })}
 
-        {/* Right panel */}
-        <div className="w-80 bg-[#0A1628] border-l border-white/8 flex flex-col overflow-hidden">
-          {/* Crews */}
-          <div className="px-4 py-3 border-b border-white/8">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white font-bold text-sm">Crews ({crewList.length})</h3>
-              <Link to="/pro-dashboard/crews" className="text-[#00D4AA] text-xs hover:underline">Manage</Link>
+          {/* Unassigned column header */}
+          {showUnassigned && (
+            <div className="flex flex-col items-center py-3 border-l border-dashed border-white/10 flex-shrink-0"
+              style={{ width: CREW_COL_W }}>
+              <div className="w-9 h-9 rounded-full bg-white/8 border-2 border-dashed border-white/20 flex items-center justify-center text-white/40 font-bold text-sm">
+                ?
+              </div>
+              <p className="text-white/40 text-[11px] font-semibold mt-1.5">Unassigned</p>
+              <p className="text-[10px] text-white/25">{unassigned.length} job{unassigned.length !== 1 ? "s" : ""}</p>
             </div>
-            {crewList.length === 0 ? (
-              <p className="text-white/30 text-xs">No crews yet. <Link to="/pro-dashboard/crews" className="text-[#00D4AA]">Add one →</Link></p>
-            ) : (
-              <div className="space-y-2">
-                {crewList.map((crew: any) => {
-                  const activeJob = orders.find((o: any) => o.crewId === crew.id && ["assigned","en_route","in_progress"].includes(o.status));
-                  return (
-                    <div key={crew.id} className="flex items-center justify-between bg-white/4 rounded-xl px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ background: crew.color }}>
-                          {crew.name[0]}
-                        </div>
-                        <div>
-                          <p className="text-white text-xs font-semibold">{crew.name}</p>
-                          <p className="text-white/40 text-[10px]">{activeJob ? activeJob.serviceType : "Available"}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {crew.location ? (
-                          <span className="text-[#00D4AA] text-[10px] font-semibold flex items-center gap-1"><Navigation className="w-3 h-3" />Live</span>
-                        ) : (
-                          <button onClick={() => simulateLocation.mutate(crew.id)} className="text-white/30 text-[10px] hover:text-[#00D4AA] transition-colors" title="Simulate GPS">
-                            Ping
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+          )}
+        </div>
+      </div>
+
+      {/* ── Scrollable time grid ─────────────────────────────────────────────── */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center text-white/30 text-sm">Loading dispatch data…</div>
+      ) : (
+        <div className="flex-1 overflow-auto" ref={bodyRef} onScroll={onBodyScroll}>
+          <div className="relative flex" style={{ height: TOTAL_H, minWidth: gridMinW }}>
+
+            {/* ── Time labels (sticky left) ─────────────────────── */}
+            <div className="sticky left-0 z-20 bg-[#060E1A] border-r border-white/6 flex-shrink-0"
+              style={{ width: TIME_COL_W }}>
+              {HOURS.map((h, i) => (
+                <div key={h} className="absolute w-full flex items-start justify-end pr-2.5 pt-1.5"
+                  style={{ top: i * SLOT_H, height: SLOT_H }}>
+                  <span className="text-[11px] font-semibold text-white/25">{fmtHour(h)}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Crew columns ─────────────────────────────────── */}
+            {crewList.map((crew: any, idx: number) => (
+              <CrewColumn
+                key={crew.id}
+                crew={crew}
+                jobs={jobsFor(crew.id)}
+                navigate={navigate}
+                isLast={idx === crewList.length - 1 && !showUnassigned}
+              />
+            ))}
+
+            {/* ── Unassigned column ─────────────────────────────── */}
+            {showUnassigned && (
+              <div className="relative border-l border-dashed border-white/8 flex-shrink-0"
+                style={{ width: CREW_COL_W }}>
+                {HOURS.map((_, i) => (
+                  <div key={i} className="absolute left-0 right-0 border-t border-white/[0.04]"
+                    style={{ top: i * SLOT_H }} />
+                ))}
+                {unassigned.map(job => <JobCard key={job.id} job={job} navigate={navigate} />)}
               </div>
             )}
-          </div>
 
-          {/* Active Jobs */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-              <h3 className="text-white font-bold text-sm">Active Jobs ({orders.length})</h3>
-              <Link to="/pro-dashboard/jobs" className="text-[#00D4AA] text-xs hover:underline">View all</Link>
-            </div>
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-              {orders.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-white/30 text-sm">No active jobs</p>
-                  <Link to="/pro-dashboard/jobs/new" className="text-[#00D4AA] text-xs mt-1 hover:underline block">Create your first job</Link>
+            {/* ── Current time indicator ───────────────────────── */}
+            {showNowLine && (
+              <div className="absolute left-0 right-0 z-30 pointer-events-none flex items-center"
+                style={{ top: nowPx }}>
+                <div className="flex-shrink-0 flex justify-end items-center pr-1.5"
+                  style={{ width: TIME_COL_W }}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
                 </div>
-              ) : (
-                orders.map((order: any) => (
-                  <Link to={`/pro-dashboard/jobs/${order.id}`} key={order.id}
-                    className="block bg-white/4 hover:bg-white/8 border border-white/8 rounded-xl px-3 py-2.5 transition-all">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-xs font-bold truncate">{order.customerName}</p>
-                        <p className="text-white/50 text-[10px] truncate">{order.serviceType}</p>
-                        <p className="text-white/30 text-[10px] truncate mt-0.5">{order.address}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: STATUS_COLOR[order.status] }}>
-                          {STATUS_LABEL[order.status]}
-                        </span>
-                        {order.priority !== "normal" && (
-                          <span className="text-[10px] font-semibold uppercase" style={{ color: PRIORITY_COLOR[order.priority] }}>{order.priority}</span>
-                        )}
-                      </div>
-                    </div>
-                    {order.crew && (
-                      <div className="flex items-center gap-1 mt-1.5">
-                        <div className="w-3.5 h-3.5 rounded-full" style={{ background: order.crew.color }} />
-                        <span className="text-white/40 text-[10px]">{order.crew.name}</span>
-                      </div>
-                    )}
-                  </Link>
-                ))
-              )}
-            </div>
+                <div className="flex-1 h-px bg-red-500 opacity-80" />
+              </div>
+            )}
+
           </div>
         </div>
-      </div>
+      )}
+
+      {/* ── Empty state ──────────────────────────────────────────────────────── */}
+      {!isLoading && crewList.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <p className="text-white/20 text-sm font-semibold">No crews yet</p>
+          <Link to="/pro-dashboard/crews" className="text-[#00D4AA] text-xs mt-1 pointer-events-auto hover:underline">
+            Add your first crew →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
