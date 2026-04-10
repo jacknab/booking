@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Users, Package, Calculator, FileText, Star, MapPin,
-  Clock, BookOpen, RefreshCw, Route, MessageSquareStar,
+  Clock, BookOpen, RefreshCw, Route, ThumbsUp,
   CheckSquare, Briefcase, CalendarClock, Home, Contact,
   ClipboardList, Map, LayoutDashboard, CalendarPlus, CreditCard,
   Check, Zap, ChevronRight, Info,
@@ -94,7 +94,7 @@ const SELECTABLE_FEATURES: Feature[] = [
   {
     id: "request_for_review",
     label: "Request for Review",
-    icon: <MessageSquareStar className="w-5 h-5" />,
+    icon: <ThumbsUp className="w-5 h-5" />,
     description:
       "Enable your customers to easily share their feedback and leave reviews for your service on social media, while safeguarding your online reputation from negative reviews.",
   },
