@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 interface GoogleConnectGateProps {
@@ -15,6 +16,8 @@ export function GoogleConnectGate({
   title = "Connect your Google Business account to auto-collect Google reviews",
   subtitle,
 }: GoogleConnectGateProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   return (
     <div style={{
       display: "flex",
@@ -55,7 +58,7 @@ export function GoogleConnectGate({
           )}
 
           <button
-            onClick={onConnect}
+            onClick={() => setShowConfirm(true)}
             disabled={loading}
             style={{
               display: "inline-flex",
@@ -163,6 +166,67 @@ export function GoogleConnectGate({
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {/* ── Confirmation dialog ─────────────────────────────── */}
+      {showConfirm && (
+        <div
+          onClick={() => setShowConfirm(false)}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: "32px 36px",
+              maxWidth: 500,
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 14px", fontSize: "1.2rem", fontWeight: 700, color: "#111" }}>
+              Connect your Google account
+            </h3>
+            <p style={{ margin: "0 0 32px", fontSize: "0.95rem", color: "#4b5563", lineHeight: 1.65 }}>
+              Link your Google Business Profile to manage key business interactions, like reviews and bookings, directly from your Certxa account.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, alignItems: "center" }}>
+              <button
+                onClick={() => setShowConfirm(false)}
+                style={{
+                  background: "none", border: "none",
+                  color: "#1a73e8", fontWeight: 600,
+                  fontSize: "0.95rem", cursor: "pointer",
+                  padding: "8px 4px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setShowConfirm(false); onConnect(); }}
+                disabled={loading}
+                style={{
+                  background: "#1a73e8", color: "#fff",
+                  border: "none", borderRadius: 999,
+                  padding: "10px 28px", fontSize: "0.95rem",
+                  fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.75 : 1,
+                  display: "flex", alignItems: "center", gap: 8,
+                }}
+              >
+                {loading ? (
+                  <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Connecting…</>
+                ) : "Connect"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
