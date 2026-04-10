@@ -8,7 +8,17 @@ This is the **Certxa** platform — a full-stack booking and business management
 - `/` — Main landing page (salon/spa focus with business type carousel)
 - `/industries` — Industries Hub (all 30+ supported service categories in a grid)
 - `/handyman`, `/house-cleaning`, `/lawn-care`, `/dog-walking`, `/tutoring` — Gig industry landing pages
-- `/barbers`, `/hair-salons`, `/nails`, `/spa`, `/estheticians`, `/tattoo`, `/haircuts`, `/groomers`, `/ride-service`, `/snow-removal` — Beauty & personal service landing pages
+- `/hvac`, `/plumbing`, `/electrical`, `/carpet-cleaning`, `/pressure-washing`, `/window-cleaning`, `/snow-removal` — Home service / trades landing pages
+- `/barbers`, `/hair-salons`, `/nails`, `/spa`, `/estheticians`, `/tattoo`, `/haircuts`, `/groomers`, `/ride-service` — Beauty & personal service landing pages
+
+**SSR (Server-Side Rendering):**
+- All 22 marketing/industry landing pages use SSR in production for SEO
+- `client/src/entry-server.tsx` — SSR entry point using MemoryRouter + renderToString
+- `server/ssr.ts` — Express middleware: loads `dist/server/entry-server.cjs`, renders each marketing route, injects full HTML + per-route meta tags into template
+- `script/build.ts` — Three-step build: (1) Vite client bundle, (2) esbuild SSR bundle → `dist/server/entry-server.cjs`, (3) esbuild server bundle → `dist/index.cjs`
+- `client/src/main.tsx` — Detects SSR'd content and uses `hydrateRoot` instead of `createRoot`
+- SSR only activates in `NODE_ENV=production`; dev uses normal Vite HMR
+- **Important:** SSR bundle outputs as `.cjs` (not `.js`) because `package.json` has `"type": "module"`
 
 **Key dashboard pages:** `/dashboard`, `/calendar`, `/services`, `/staff`, `/customers`, `/products`, `/analytics`, `/reports`, `/commission-report`, `/pos`, `/loyalty`, `/gift-cards`, `/reviews`, `/waitlist`, `/intake-forms`
 

@@ -126,6 +126,8 @@ app.use((req, res, next) => {
   // momentary connection issue.  The catch-all inside serveStatic skips /api/*
   // routes so they fall through to registerRoutes below.
   if (process.env.NODE_ENV === "production") {
+    const { setupSSR } = await import("./ssr");
+    setupSSR(app);
     serveStatic(app);
   } else {
     const { setupVite } = await import("./vite");
