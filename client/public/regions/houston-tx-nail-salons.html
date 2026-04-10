@@ -322,9 +322,9 @@
       margin-bottom: 28px;
     }
     .sitemap-groups {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
     }
     .sitemap-group-label {
       font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
@@ -332,8 +332,8 @@
       margin-bottom: 12px; padding-bottom: 8px;
       border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    .sitemap-links { display: flex; flex-direction: column; gap: 6px; }
-    .sitemap-link {
+    .sitemap-links { columns: 4 180px; column-gap: 20px; }
+    .sitemap-link { display: block; break-inside: avoid; padding: 2px 0;
       font-size: 0.82rem; color: rgba(255,255,255,0.35);
       transition: color 0.15s;
     }

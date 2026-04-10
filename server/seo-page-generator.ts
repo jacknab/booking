@@ -1009,9 +1009,9 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
       margin-bottom: 28px;
     }
     .sitemap-groups {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
     }
     .sitemap-group-label {
       font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
@@ -1019,10 +1019,16 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
       margin-bottom: 12px; padding-bottom: 8px;
       border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    .sitemap-links { display: flex; flex-direction: column; gap: 6px; }
+    .sitemap-links {
+      columns: 4 180px;
+      column-gap: 20px;
+    }
     .sitemap-link {
+      display: block;
+      break-inside: avoid;
       font-size: 0.82rem; color: rgba(255,255,255,0.35);
       transition: color 0.15s;
+      padding: 2px 0;
     }
     .sitemap-link:hover { color: rgba(255,255,255,0.65); }
     .sitemap-link.current { color: rgba(255,255,255,0.5); font-weight: 600; pointer-events: none; }
@@ -1036,10 +1042,14 @@ export function generateRegionPage(region: SeoRegion, siteUrl = "https://certxa.
     footer a { color: rgba(255,255,255,0.3); }
     footer a:hover { color: rgba(255,255,255,0.55); }
 
+    @media (max-width: 768px) {
+      .sitemap-links { columns: 2 140px; }
+    }
     @media (max-width: 640px) {
       .nav-login { display: none; }
       .features-grid { grid-template-columns: 1fr; }
       .trust { gap: 20px; }
+      .sitemap-links { columns: 2 120px; }
     }
   </style>
 </head>
