@@ -93,6 +93,7 @@ import CrewsPage from "@/pages/pro-dashboard/CrewsPage";
 import InvoicesPage from "@/pages/pro-dashboard/InvoicesPage";
 import ReportsPage from "@/pages/pro-dashboard/ReportsPage";
 import SettingsPage from "@/pages/pro-dashboard/SettingsPage";
+import GoogleReviewsPage from "@/pages/pro-dashboard/GoogleReviewsPage";
 import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
@@ -247,6 +248,7 @@ function AppRoutes() {
       <Route path="/pro-dashboard/map" element={<ProDashboardLayout><MapPage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/reports" element={<ProDashboardLayout><ReportsPage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/settings" element={<ProDashboardLayout><SettingsPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/google-reviews" element={<ProDashboardLayout><GoogleReviewsPage /></ProDashboardLayout>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

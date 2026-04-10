@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { StoreContext } from "@/hooks/use-store";
 import {
   Map, ClipboardList, FileText, Users, Receipt,
-  HardHat, BarChart3, Settings, LogOut, Menu, X, ChevronDown, Zap, Navigation2, CalendarClock
+  HardHat, BarChart3, Settings, LogOut, Menu, X, ChevronDown, Zap, Navigation2, CalendarClock, Star
 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ const NAV = [
   { label: "Customers", icon: Users, path: "/pro-dashboard/customers" },
   { label: "Invoices", icon: Receipt, path: "/pro-dashboard/invoices" },
   { label: "Crews", icon: HardHat, path: "/pro-dashboard/crews" },
+  { label: "Google Reviews", icon: Star, path: "/pro-dashboard/google-reviews" },
   { label: "Reports", icon: BarChart3, path: "/pro-dashboard/reports" },
   { label: "Settings", icon: Settings, path: "/pro-dashboard/settings" },
 ];
