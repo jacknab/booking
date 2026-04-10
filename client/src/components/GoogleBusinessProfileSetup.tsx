@@ -60,6 +60,7 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
   const [selectedLocationTitle, setSelectedLocationTitle] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showNoLocModal, setShowNoLocModal] = useState(false);
 
   // Load existing profile on mount — but not if we're about to handle an OAuth callback
   useEffect(() => {
@@ -163,8 +164,10 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
         profileId,
         accountName: selectedAccount,
       });
-      setLocations(response.data.locations ?? []);
+      const locs = response.data.locations ?? [];
+      setLocations(locs);
       setStep("select-location");
+      if (locs.length === 0) setShowNoLocModal(true);
     } catch (error: any) {
       console.error("Failed to load locations:", error);
       setErrorMsg(
@@ -234,6 +237,12 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
       setLoading(false);
     }
   };
+
+  // Derived: display name for the currently-selected Google account (used in the "No Locations" modal)
+  const noLocAcctName = (() => {
+    const acct = accounts.find(a => a.name === selectedAccount);
+    return acct?.accountName ?? acct?.displayName ?? "your Google account";
+  })();
 
   if (!storeId) {
     return (
@@ -346,10 +355,7 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
                 Select the business location to connect:
               </p>
               {locations.length === 0 ? (
-                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">
-                  No locations found for this account. Make sure your Google
-                  Business Profile has at least one verified location.
-                </p>
+                <div />
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {locations.map((location) => (
@@ -491,6 +497,52 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
           )}
         </CardContent>
       </Card>
+
+      {/* ── No Locations Found modal ────────────────────────── */}
+      {showNoLocModal && (
+        <div
+          onClick={() => { setShowNoLocModal(false); setStep("select-account"); }}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: "32px 36px",
+              maxWidth: 520,
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 14px", fontSize: "1.2rem", fontWeight: 700, color: "#111" }}>
+              No Locations Found
+            </h3>
+            <p style={{ margin: "0 0 32px", fontSize: "0.95rem", color: "#4b5563", lineHeight: 1.65 }}>
+              It looks like you don't have any locations associated with{" "}
+              <strong>{noLocAcctName}</strong>. Please add a location to your Google Business Profile to enable bookings and manage your business details.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setShowNoLocModal(false); setStep("select-account"); }}
+                style={{
+                  background: "#1a73e8", color: "#fff",
+                  border: "none", borderRadius: 999,
+                  padding: "10px 28px", fontSize: "0.95rem",
+                  fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
