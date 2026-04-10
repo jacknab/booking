@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import AdminDashboard from "./Dashboard";
 import PublicBooking from "./PublicBooking";
 import Landing from "./Landing";
+import ProductSelector from "./ProductSelector";
 import { Routes, Route } from "react-router-dom";
 
 import type { StoreData } from "./public-booking/types";
@@ -68,7 +69,7 @@ export default function SubdomainRouter() {
           ) : subdomainStore ? (
             <PublicBooking />
           ) : (
-            <Landing />
+            <ProductSelector />
           )
         )}
       />

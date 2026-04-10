@@ -5,7 +5,10 @@
 This is the **Certxa** platform — a full-stack booking and business management app for service pros across all industries (salons, spas, home services, gig work, and trades). It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app has a public marketing section targeting 30+ industries and a full management dashboard behind authentication.
 
 **Key public pages:**
-- `/` — Main landing page (salon/spa focus with business type carousel)
+- `/` — Product Selector (3-group landing: Certxa Booking / Certxa Queue / Certxa Pro)
+- `/booking` — Certxa Booking landing (original salon/spa booking platform)
+- `/queue` — Certxa Queue landing (walk-in queue management for barbershops / haircut studios)
+- Original `/` content (now at `/booking`) — salon/spa focus with business type carousel
 - `/industries` — Industries Hub (all 30+ supported service categories in a grid)
 - `/handyman`, `/house-cleaning`, `/lawn-care`, `/dog-walking`, `/tutoring` — Gig industry landing pages
 - `/hvac`, `/plumbing`, `/electrical`, `/carpet-cleaning`, `/pressure-washing`, `/window-cleaning`, `/snow-removal` — Home service / trades landing pages
