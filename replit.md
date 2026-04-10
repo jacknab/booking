@@ -4,8 +4,16 @@
 
 This is the **Certxa** platform — a full-stack booking and business management app for service pros across all industries (salons, spas, home services, gig work, and trades). It handles appointments, services, staff, customers, products/inventory, and provides a dashboard with analytics. The app has a public marketing section targeting 30+ industries and a full management dashboard behind authentication.
 
+**Landing page group visibility:**
+- Controlled by the `ACTIVE_GROUPS` environment variable (set in Replit secrets/env)
+- `ACTIVE_GROUPS=1` → shows only Certxa Booking; hero says "One Way to Run"
+- `ACTIVE_GROUPS=2` → shows Certxa Booking + Certxa Queue; hero says "Two Ways to Run"
+- `ACTIVE_GROUPS=3` → shows all three groups (default); hero says "Three Ways to Run"
+- Testimonials and trust bar are also filtered to only show reviews for visible groups
+- Config is served via `GET /api/config` → `{ activeGroups: N }` (reads from env at runtime, no rebuild needed)
+
 **Key public pages:**
-- `/` — Product Selector (3-group landing: Certxa Booking / Certxa Queue / Certxa Pro)
+- `/` — Product Selector (landing page, shows 1–3 product groups based on `ACTIVE_GROUPS`)
 - `/booking` — Certxa Booking landing (original salon/spa booking platform)
 - `/queue` — Certxa Queue landing (walk-in queue management for barbershops / haircut studios)
 - Original `/` content (now at `/booking`) — salon/spa focus with business type carousel

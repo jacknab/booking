@@ -66,6 +66,13 @@ export async function registerRoutes(
   // Note: setupAuth(app) is called in server/index.ts before registerRoutes.
   // Auth routes (register, login, logout, user) are registered there via auth.ts.
 
+  // Public config — exposes safe frontend settings from env vars
+  app.get("/api/config", (_req, res) => {
+    const raw = parseInt(process.env.ACTIVE_GROUPS ?? "3", 10);
+    const activeGroups = isNaN(raw) || raw < 1 ? 3 : Math.min(raw, 3);
+    res.json({ activeGroups });
+  });
+
   app.get("/api/trial/status", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });

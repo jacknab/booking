@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   ArrowRight, Calendar, Users, Wrench,
-  CheckCircle2, MapPin, Star, ChevronDown,
+  CheckCircle2, Star, ChevronDown,
 } from "lucide-react";
 
 // ── Video Card ────────────────────────────────────────────────────────────────
@@ -10,7 +11,6 @@ import {
 function VideoCard({ src, accent }: { src: string; accent: string }) {
   return (
     <div className="relative w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl" style={{ boxShadow: `0 0 60px ${accent}22` }}>
-      {/* Top bar like a browser/app chrome */}
       <div className="flex items-center gap-1.5 px-4 py-3" style={{ background: "#000000cc" }}>
         <span className="w-3 h-3 rounded-full bg-red-500/70" />
         <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
@@ -25,15 +25,44 @@ function VideoCard({ src, accent }: { src: string; accent: string }) {
         className="w-full block"
         style={{ aspectRatio: "16/9", objectFit: "cover" }}
       />
-      {/* Accent bottom glow strip */}
       <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
     </div>
   );
 }
 
+// ── Hero subtitle based on active group count ─────────────────────────────────
+
+function heroSubtitle(count: number) {
+  if (count === 1) return "One Way to Run";
+  if (count === 2) return "Two Ways to Run";
+  return "Three Ways to Run";
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ProductSelector() {
+  const [activeGroups, setActiveGroups] = useState<number>(3);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d.activeGroups === "number") setActiveGroups(d.activeGroups);
+      })
+      .catch(() => {});
+  }, []);
+
+  const showQueue = activeGroups >= 2;
+  const showPro   = activeGroups >= 3;
+
+  const ALL_TESTIMONIALS = [
+    { q: "Certxa filled our calendar in the first week. Clients love being able to book at midnight. Our no-shows are basically gone.", name: "Jasmine R.", biz: "Luxe Hair Studio", product: "Booking", accent: "#00D4AA", group: 1 },
+    { q: "Our barbershop used to have people standing outside waiting. Now they wait down the street and walk in when we text them. Game changer.", name: "Marcus T.", biz: "Legacy Cuts", product: "Queue", accent: "#F59E0B", group: 2 },
+    { q: "The office dashboard shows me where every crew is, what job they're on, and what's coming next. The guys love the mobile app — they get their jobs, navigate, and send invoices all from their phone.", name: "Dave K.", biz: "K&Sons HVAC", product: "Pro", accent: "#3B82F6", group: 3 },
+  ];
+
+  const testimonials = ALL_TESTIMONIALS.filter(t => t.group <= activeGroups);
+
   return (
     <div className="min-h-screen bg-[#050C18] text-white font-['Plus_Jakarta_Sans',sans-serif]">
 
@@ -55,7 +84,6 @@ export default function ProductSelector() {
 
       {/* ── Hero ── */}
       <section className="pt-36 pb-16 px-5 text-center relative overflow-hidden">
-        {/* Subtle radial light */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-white/3 rounded-full blur-[120px]" />
         </div>
@@ -65,7 +93,7 @@ export default function ProductSelector() {
           </p>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-6 max-w-3xl mx-auto">
             One Platform.<br />
-            <span className="text-white/30">Three Ways to Run</span><br />
+            <span className="text-white/30">{heroSubtitle(activeGroups)}</span><br />
             <span className="text-white">Your Business.</span>
           </h1>
           <p className="text-white/50 text-lg sm:text-xl max-w-xl mx-auto leading-relaxed mb-10">
@@ -81,33 +109,27 @@ export default function ProductSelector() {
       {/* ── Products ── */}
       <div id="products" className="space-y-0">
 
-        {/* ── 1: Booking (Teal) ── */}
+        {/* ── 1: Booking (Teal) — always visible ── */}
         <section className="relative overflow-hidden">
-          {/* Full-bleed teal background */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#001F1A] via-[#00120F] to-[#050C18]" />
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#00D4AA]/10 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#00D4AA]/5 rounded-full blur-[80px] pointer-events-none" />
 
           <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-              {/* Copy */}
               <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }}>
                 <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#00D4AA]/12 border border-[#00D4AA]/25 mb-6">
                   <Calendar className="w-4 h-4 text-[#00D4AA]" />
                   <span className="text-[#00D4AA] text-sm font-bold">Certxa Booking</span>
                   <span className="text-[#00D4AA]/50 text-xs">· Appointment-Based</span>
                 </div>
-
                 <h2 className="text-4xl sm:text-5xl font-black leading-[1.1] tracking-tight mb-5">
                   Your calendar,<br />
                   <span className="text-[#00D4AA]">fully booked.</span>
                 </h2>
-
                 <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-lg">
                   Built for businesses that run on appointments. Let clients book online 24/7, automate your reminders, and manage your entire team's schedule from one dashboard.
                 </p>
-
                 <ul className="space-y-3 mb-10">
                   {[
                     "24/7 online booking — clients book themselves",
@@ -122,13 +144,11 @@ export default function ProductSelector() {
                     </li>
                   ))}
                 </ul>
-
                 <div className="flex flex-wrap gap-2 mb-8">
                   {["Hair Salons", "Spas", "Nail Salons", "Estheticians", "Pet Groomers", "Tattoo Artists", "Tutors"].map(t => (
                     <span key={t} className="text-xs px-3 py-1.5 rounded-full bg-[#00D4AA]/10 text-[#00D4AA]/80 border border-[#00D4AA]/15 font-medium">{t}</span>
                   ))}
                 </div>
-
                 <Link to="/booking">
                   <button className="inline-flex items-center gap-2.5 bg-[#00D4AA] text-[#050C18] font-bold text-base px-8 py-4 rounded-2xl hover:bg-[#00BF99] transition-colors shadow-lg shadow-[#00D4AA]/20">
                     Explore Certxa Booking <ArrowRight className="w-5 h-5" />
@@ -136,7 +156,6 @@ export default function ProductSelector() {
                 </Link>
               </motion.div>
 
-              {/* Video */}
               <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-end">
                 <VideoCard src="/videos/salon_booking.mp4" accent="#00D4AA" />
               </motion.div>
@@ -144,141 +163,127 @@ export default function ProductSelector() {
           </div>
         </section>
 
-        {/* ── 2: Queue (Amber) ── */}
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-bl from-[#1A0E00] via-[#100800] to-[#050C18]" />
-          <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-[#F59E0B]/8 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#F59E0B]/5 rounded-full blur-[80px] pointer-events-none" />
+        {/* ── 2: Queue (Amber) — visible when activeGroups >= 2 ── */}
+        {showQueue && (
+          <section className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-bl from-[#1A0E00] via-[#100800] to-[#050C18]" />
+            <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-[#F59E0B]/8 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#F59E0B]/5 rounded-full blur-[80px] pointer-events-none" />
 
-          <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-start order-2 lg:order-1">
+                  <VideoCard src="/videos/barbershop_queue.mp4" accent="#F59E0B" />
+                </motion.div>
 
-              {/* Video first on this row */}
-              <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-start order-2 lg:order-1">
-                <VideoCard src="/videos/barbershop_queue.mp4" accent="#F59E0B" />
-              </motion.div>
-
-              {/* Copy */}
-              <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }} className="order-1 lg:order-2">
-                <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#F59E0B]/12 border border-[#F59E0B]/25 mb-6">
-                  <Users className="w-4 h-4 text-[#F59E0B]" />
-                  <span className="text-[#F59E0B] text-sm font-bold">Certxa Queue</span>
-                  <span className="text-[#F59E0B]/50 text-xs">· Walk-In Management</span>
-                </div>
-
-                <h2 className="text-4xl sm:text-5xl font-black leading-[1.1] tracking-tight mb-5">
-                  No appointments.<br />
-                  <span className="text-[#F59E0B]">No problem.</span>
-                </h2>
-
-                <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-lg">
-                  Built for walk-in businesses. Customers hold their spot from their phone, a live display shows the queue in your shop, and automated texts bring them back in right on time.
-                </p>
-
-                <ul className="space-y-3 mb-10">
-                  {[
-                    "QR code check-in — customers join from any phone, no app needed",
-                    "Live queue display on your shop TV or tablet",
-                    "Auto-SMS 'you're next' alerts keep customers nearby",
-                    "Digital loyalty punch cards that actually work",
-                    "POS & payments built into the same system",
-                  ].map(f => (
-                    <li key={f} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
-                      <span className="text-white/70 text-sm leading-relaxed">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="flex flex-wrap gap-2 mb-8">
-                  {["Barbershops", "Haircut Studios", "Walk-In Salons"].map(t => (
-                    <span key={t} className="text-xs px-3 py-1.5 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]/80 border border-[#F59E0B]/15 font-medium">{t}</span>
-                  ))}
-                </div>
-
-                <Link to="/queue">
-                  <button className="inline-flex items-center gap-2.5 bg-[#F59E0B] text-[#050C18] font-bold text-base px-8 py-4 rounded-2xl hover:bg-[#E08D00] transition-colors shadow-lg shadow-[#F59E0B]/20">
-                    Explore Certxa Queue <ArrowRight className="w-5 h-5" />
-                  </button>
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 3: Pro (Blue) ── */}
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#00091F] via-[#000B1A] to-[#050C18]" />
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#3B82F6]/8 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3B82F6]/5 rounded-full blur-[80px] pointer-events-none" />
-
-          <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-              {/* Copy */}
-              <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }}>
-                <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#3B82F6]/12 border border-[#3B82F6]/25 mb-6">
-                  <Wrench className="w-4 h-4 text-[#3B82F6]" />
-                  <span className="text-[#3B82F6] text-sm font-bold">Certxa Pro</span>
-                  <span className="text-[#3B82F6]/50 text-xs">· Field Service Management</span>
-                </div>
-
-                <h2 className="text-4xl sm:text-5xl font-black leading-[1.1] tracking-tight mb-5">
-                  Run the office.<br />
-                  <span className="text-[#3B82F6]">Empower the crew.</span>
-                </h2>
-
-                <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-lg">
-                  Two tools, one system. Your office gets a full dispatch dashboard to schedule jobs, assign crews, and track everything in real time. Your crew gets a mobile app to receive jobs, navigate to sites, log time, and collect payment — right from their phone.
-                </p>
-
-                {/* Two-part callout */}
-                <div className="grid grid-cols-2 gap-3 mb-8">
-                  <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-4">
-                    <p className="text-[#3B82F6] font-bold text-sm mb-1">🖥️ Office Dashboard</p>
-                    <p className="text-white/50 text-xs leading-relaxed">Schedule jobs, assign crews, monitor progress, and manage invoicing — all from one screen.</p>
+                <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }} className="order-1 lg:order-2">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#F59E0B]/12 border border-[#F59E0B]/25 mb-6">
+                    <Users className="w-4 h-4 text-[#F59E0B]" />
+                    <span className="text-[#F59E0B] text-sm font-bold">Certxa Queue</span>
+                    <span className="text-[#F59E0B]/50 text-xs">· Walk-In Management</span>
                   </div>
-                  <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-4">
-                    <p className="text-[#3B82F6] font-bold text-sm mb-1">📱 Crew Mobile App</p>
-                    <p className="text-white/50 text-xs leading-relaxed">Crew members see their jobs, get turn-by-turn routing, check in on-site, and send invoices from the field.</p>
+                  <h2 className="text-4xl sm:text-5xl font-black leading-[1.1] tracking-tight mb-5">
+                    No appointments.<br />
+                    <span className="text-[#F59E0B]">No problem.</span>
+                  </h2>
+                  <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-lg">
+                    Built for walk-in businesses. Customers hold their spot from their phone, a live display shows the queue in your shop, and automated texts bring them back in right on time.
+                  </p>
+                  <ul className="space-y-3 mb-10">
+                    {[
+                      "QR code check-in — customers join from any phone, no app needed",
+                      "Live queue display on your shop TV or tablet",
+                      "Auto-SMS 'you're next' alerts keep customers nearby",
+                      "Digital loyalty punch cards that actually work",
+                      "POS & payments built into the same system",
+                    ].map(f => (
+                      <li key={f} className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                        <span className="text-white/70 text-sm leading-relaxed">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {["Barbershops", "Haircut Studios", "Walk-In Salons"].map(t => (
+                      <span key={t} className="text-xs px-3 py-1.5 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]/80 border border-[#F59E0B]/15 font-medium">{t}</span>
+                    ))}
                   </div>
-                </div>
-
-                <ul className="space-y-3 mb-10">
-                  {[
-                    "Drag-and-drop job scheduling with GPS-optimized routing",
-                    "Real-time crew location & job status from the office",
-                    "Crew app: accept jobs, navigate, check in & clock out",
-                    "Mobile invoicing & card payments collected on-site",
-                    "QuickBooks sync — books stay clean automatically",
-                  ].map(f => (
-                    <li key={f} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-[#3B82F6] flex-shrink-0 mt-0.5" />
-                      <span className="text-white/70 text-sm leading-relaxed">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="flex flex-wrap gap-2 mb-8">
-                  {["HVAC", "Plumbing", "Electrical", "Lawn Care", "Roofing", "Pest Control", "Pool Service", "+18 more"].map(t => (
-                    <span key={t} className="text-xs px-3 py-1.5 rounded-full bg-[#3B82F6]/10 text-[#3B82F6]/80 border border-[#3B82F6]/15 font-medium">{t}</span>
-                  ))}
-                </div>
-
-                <Link to="/pro">
-                  <button className="inline-flex items-center gap-2.5 bg-[#3B82F6] text-white font-bold text-base px-8 py-4 rounded-2xl hover:bg-[#2563EB] transition-colors shadow-lg shadow-[#3B82F6]/25">
-                    Explore Certxa Pro <ArrowRight className="w-5 h-5" />
-                  </button>
-                </Link>
-              </motion.div>
-
-              {/* Video */}
-              <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-end">
-                <VideoCard src="/videos/handyman_pro.mp4" accent="#3B82F6" />
-              </motion.div>
+                  <Link to="/queue">
+                    <button className="inline-flex items-center gap-2.5 bg-[#F59E0B] text-[#050C18] font-bold text-base px-8 py-4 rounded-2xl hover:bg-[#E08D00] transition-colors shadow-lg shadow-[#F59E0B]/20">
+                      Explore Certxa Queue <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </Link>
+                </motion.div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* ── 3: Pro (Blue) — visible when activeGroups >= 3 ── */}
+        {showPro && (
+          <section className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#00091F] via-[#000B1A] to-[#050C18]" />
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#3B82F6]/8 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3B82F6]/5 rounded-full blur-[80px] pointer-events-none" />
+
+            <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }}>
+                  <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#3B82F6]/12 border border-[#3B82F6]/25 mb-6">
+                    <Wrench className="w-4 h-4 text-[#3B82F6]" />
+                    <span className="text-[#3B82F6] text-sm font-bold">Certxa Pro</span>
+                    <span className="text-[#3B82F6]/50 text-xs">· Field Service Management</span>
+                  </div>
+                  <h2 className="text-4xl sm:text-5xl font-black leading-[1.1] tracking-tight mb-5">
+                    Run the office.<br />
+                    <span className="text-[#3B82F6]">Empower the crew.</span>
+                  </h2>
+                  <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-lg">
+                    Two tools, one system. Your office gets a full dispatch dashboard to schedule jobs, assign crews, and track everything in real time. Your crew gets a mobile app to receive jobs, navigate to sites, log time, and collect payment — right from their phone.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 mb-8">
+                    <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-4">
+                      <p className="text-[#3B82F6] font-bold text-sm mb-1">🖥️ Office Dashboard</p>
+                      <p className="text-white/50 text-xs leading-relaxed">Schedule jobs, assign crews, monitor progress, and manage invoicing — all from one screen.</p>
+                    </div>
+                    <div className="bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-xl p-4">
+                      <p className="text-[#3B82F6] font-bold text-sm mb-1">📱 Crew Mobile App</p>
+                      <p className="text-white/50 text-xs leading-relaxed">Crew members see their jobs, get turn-by-turn routing, check in on-site, and send invoices from the field.</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-3 mb-10">
+                    {[
+                      "Drag-and-drop job scheduling with GPS-optimized routing",
+                      "Real-time crew location & job status from the office",
+                      "Crew app: accept jobs, navigate, check in & clock out",
+                      "Mobile invoicing & card payments collected on-site",
+                      "QuickBooks sync — books stay clean automatically",
+                    ].map(f => (
+                      <li key={f} className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-[#3B82F6] flex-shrink-0 mt-0.5" />
+                        <span className="text-white/70 text-sm leading-relaxed">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {["HVAC", "Plumbing", "Electrical", "Lawn Care", "Roofing", "Pest Control", "Pool Service", "+18 more"].map(t => (
+                      <span key={t} className="text-xs px-3 py-1.5 rounded-full bg-[#3B82F6]/10 text-[#3B82F6]/80 border border-[#3B82F6]/15 font-medium">{t}</span>
+                    ))}
+                  </div>
+                  <Link to="/pro">
+                    <button className="inline-flex items-center gap-2.5 bg-[#3B82F6] text-white font-bold text-base px-8 py-4 rounded-2xl hover:bg-[#2563EB] transition-colors shadow-lg shadow-[#3B82F6]/25">
+                      Explore Certxa Pro <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </Link>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="flex justify-center lg:justify-end">
+                  <VideoCard src="/videos/handyman_pro.mp4" accent="#3B82F6" />
+                </motion.div>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
       {/* ── Trust Bar ── */}
@@ -299,13 +304,9 @@ export default function ProductSelector() {
             ))}
           </div>
 
-          {/* Testimonials */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              { q: "Certxa filled our calendar in the first week. Clients love being able to book at midnight. Our no-shows are basically gone.", name: "Jasmine R.", biz: "Luxe Hair Studio", product: "Booking", accent: "#00D4AA" },
-              { q: "Our barbershop used to have people standing outside waiting. Now they wait down the street and walk in when we text them. Game changer.", name: "Marcus T.", biz: "Legacy Cuts",      product: "Queue",   accent: "#F59E0B" },
-              { q: "The office dashboard shows me where every crew is, what job they're on, and what's coming next. The guys love the mobile app — they get their jobs, navigate, and send invoices all from their phone.", name: "Dave K.",    biz: "K&Sons HVAC",    product: "Pro",     accent: "#3B82F6" },
-            ].map(t => (
+          {/* Testimonials — filtered to match visible groups */}
+          <div className={`grid grid-cols-1 gap-5 ${testimonials.length === 2 ? "md:grid-cols-2" : testimonials.length >= 3 ? "md:grid-cols-3" : ""}`}>
+            {testimonials.map(t => (
               <div key={t.name} className="bg-white/4 border border-white/8 rounded-2xl p-6">
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-white/60 text-white/60" />)}
@@ -330,10 +331,10 @@ export default function ProductSelector() {
       <section className="py-24 px-5 text-center border-t border-white/8">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <h2 className="text-4xl sm:text-5xl font-black tracking-tight mb-4">
-            Not sure which one fits?
+            {activeGroups > 1 ? "Not sure which one fits?" : "Ready to get started?"}
           </h2>
           <p className="text-white/50 text-lg mb-10 max-w-md mx-auto">
-            Start a free 60-day trial on any product. No credit card. Switch plans anytime.
+            Start a free 60-day trial. No credit card. Cancel anytime.
           </p>
           <Link to="/get-started">
             <button className="inline-flex items-center gap-3 bg-white text-[#050C18] font-bold text-lg px-10 py-5 rounded-2xl hover:bg-white/90 transition-colors shadow-2xl">
