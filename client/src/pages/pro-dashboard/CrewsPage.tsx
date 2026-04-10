@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { StoreContext } from "@/hooks/use-store";
-import { Plus, HardHat, Navigation, Edit2, Trash2, Navigation2 } from "lucide-react";
+import { Plus, HardHat, Navigation, Edit2, Trash2, Navigation2, Smartphone, KeyRound, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -9,7 +9,12 @@ const CREW_COLORS = ["#00D4AA","#3b82f6","#f59e0b","#ef4444","#8b5cf6","#ec4899"
 
 function CrewModal({ storeId, crew, onClose, onSaved }: any) {
   const [form, setForm] = useState({ name: crew?.name ?? "", color: crew?.color ?? CREW_COLORS[0], notes: crew?.notes ?? "" });
+  const [pinForm, setPinForm] = useState({ phone: crew?.phone ?? "", pin: "", confirm: "" });
+  const [pinSaved, setPinSaved] = useState(false);
+  const [pinError, setPinError] = useState("");
+  const [savingPin, setSavingPin] = useState(false);
   const set = (k: string, v: string) => setForm(p => ({...p, [k]:v}));
+
   const save = useMutation({
     mutationFn: async () => {
       const url = crew ? `/api/pro-dashboard/crews/${crew.id}?storeId=${storeId}` : `/api/pro-dashboard/crews?storeId=${storeId}`;
@@ -18,10 +23,29 @@ function CrewModal({ storeId, crew, onClose, onSaved }: any) {
     },
     onSuccess: () => { onSaved(); onClose(); },
   });
+
+  const savePin = async () => {
+    setPinError("");
+    if (!pinForm.phone) { setPinError("Phone number required"); return; }
+    if (!pinForm.pin || pinForm.pin.length < 4) { setPinError("PIN must be at least 4 digits"); return; }
+    if (pinForm.pin !== pinForm.confirm) { setPinError("PINs do not match"); return; }
+    setSavingPin(true);
+    try {
+      const r = await fetch("/api/crew/set-pin", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ crewId: crew?.id, storeId, phone: pinForm.phone.replace(/\D/g, ""), pin: pinForm.pin }) });
+      const data = await r.json();
+      if (!r.ok) { setPinError(data.error ?? "Failed to set PIN"); return; }
+      setPinSaved(true);
+      setTimeout(() => setPinSaved(false), 3000);
+      onSaved();
+    } finally {
+      setSavingPin(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0A1628] border border-white/15 rounded-2xl w-full max-w-sm">
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+      <div className="bg-[#0A1628] border border-white/15 rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
+        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between sticky top-0 bg-[#0A1628] z-10">
           <h2 className="text-white font-bold">{crew ? "Edit Crew" : "Add Crew"}</h2>
           <button onClick={onClose} className="text-white/40 hover:text-white">✕</button>
         </div>
@@ -53,6 +77,41 @@ function CrewModal({ storeId, crew, onClose, onSaved }: any) {
               {save.isPending ? "Saving…" : crew ? "Save Changes" : "Add Crew"}
             </button>
           </div>
+
+          {crew && (
+            <>
+              <div className="border-t border-white/10 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone className="w-4 h-4 text-[#00D4AA]" />
+                  <span className="text-white text-sm font-semibold">Mobile App Login</span>
+                  {crew.phone && <span className="text-[10px] text-[#00D4AA] bg-[#00D4AA]/10 px-2 py-0.5 rounded-full">Configured</span>}
+                </div>
+                <p className="text-white/40 text-xs mb-3">Set phone + PIN so this crew member can log in to the Certxa Crew mobile app.</p>
+                <div className="space-y-2.5">
+                  <div>
+                    <Label className="text-white/50 text-[10px] uppercase tracking-wider mb-1 block">Phone Number</Label>
+                    <Input value={pinForm.phone} onChange={e=>setPinForm(p=>({...p,phone:e.target.value}))} placeholder="555-555-5555"
+                      className="bg-white/6 border-white/15 text-white h-9 rounded-xl text-sm" type="tel" />
+                  </div>
+                  <div>
+                    <Label className="text-white/50 text-[10px] uppercase tracking-wider mb-1 block">New PIN (4–8 digits)</Label>
+                    <Input value={pinForm.pin} onChange={e=>setPinForm(p=>({...p,pin:e.target.value.replace(/\D/g,"")}))} placeholder="4–8 digit PIN"
+                      className="bg-white/6 border-white/15 text-white h-9 rounded-xl text-sm" type="password" maxLength={8} />
+                  </div>
+                  <div>
+                    <Label className="text-white/50 text-[10px] uppercase tracking-wider mb-1 block">Confirm PIN</Label>
+                    <Input value={pinForm.confirm} onChange={e=>setPinForm(p=>({...p,confirm:e.target.value.replace(/\D/g,"")}))} placeholder="Repeat PIN"
+                      className="bg-white/6 border-white/15 text-white h-9 rounded-xl text-sm" type="password" maxLength={8} />
+                  </div>
+                  {pinError && <p className="text-red-400 text-xs">{pinError}</p>}
+                  <button onClick={savePin} disabled={savingPin}
+                    className="w-full py-2 border border-[#00D4AA]/30 text-[#00D4AA] rounded-xl text-sm font-semibold hover:bg-[#00D4AA]/10 transition-all flex items-center justify-center gap-2 disabled:opacity-40">
+                    {pinSaved ? <><Check className="w-4 h-4" /> Saved!</> : savingPin ? "Saving…" : <><KeyRound className="w-4 h-4" /> Set Mobile PIN</>}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -149,7 +208,14 @@ export default function CrewsPage() {
                       </div>
                       <div>
                         <p className="text-white font-bold">{crew.name}</p>
-                        <p className="text-white/40 text-xs">{activeJobs.length} active job{activeJobs.length !== 1 ? "s" : ""}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-white/40 text-xs">{activeJobs.length} active job{activeJobs.length !== 1 ? "s" : ""}</p>
+                          {crew.phone && (
+                            <span className="flex items-center gap-1 text-[#00D4AA] text-[10px]">
+                              <Smartphone className="w-2.5 h-2.5" /> Mobile
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">

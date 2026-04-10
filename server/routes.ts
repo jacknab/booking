@@ -3891,6 +3891,11 @@ If you have any questions, please contact your administrator.
   const { default: proDashboardRouter } = await import("./routes/pro-dashboard.js");
   app.use("/api/pro-dashboard", proDashboardRouter);
 
+  // ── Certxa Crew Mobile API ────────────────────────────────────────────────────
+  const { default: crewMobileRouter, startOvertimeDetector } = await import("./routes/crew-mobile.js");
+  app.use("/api/crew", crewMobileRouter);
+  startOvertimeDetector();
+
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
   startEmailReminderScheduler();

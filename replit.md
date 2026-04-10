@@ -21,6 +21,22 @@ This is the **Certxa** platform — a full-stack booking and business management
 - Lead captures stored in `pro_leads` DB table via `POST /api/pro/leads`
 - Files: `client/src/pages/pro/ProHub.tsx`, `client/src/pages/pro/ProIndustryPage.tsx`, `client/src/pages/pro/proIndustries.ts`
 
+**Certxa Crew Mobile App (Expo React Native, `mobile/` directory):**
+- Field crew members can log in with phone number + 4–8 digit PIN (set by office manager in the Crews dashboard)
+- JWT authentication stored in SecureStore; token sent as `Authorization: Bearer <token>` on all requests
+- **Login Screen** — Phone number input + PIN numpad, Certxa brand dark theme
+- **Jobs List** — All assigned service orders sorted by priority/schedule; live active-job banner with elapsed timer; 4-hour window display; pull to refresh
+- **Job Detail** — Customer info, address (opens Google Maps), live timer for in-progress jobs, status advancement (New → En Route → In Progress → Completed), add notes, overtime warning alert
+- **Profile** — Crew stats, status indicator (available/on the job), today's summary, sign out
+- **Active job badge** — Tab bar Jobs icon shows a green dot when a job is in progress
+- **Overtime detection** — Server checks every 5 min; if a job exceeds estimated hours, flags it and adds a system note to the job
+- **GPS pinging** — `POST /api/crew/location` updates crew location in real-time for the Dispatch map
+- **API routes**: `/api/crew/login`, `/api/crew/me`, `/api/crew/orders`, `/api/crew/orders/:id`, `/api/crew/orders/:id/status`, `/api/crew/orders/:id/timer/start|stop`, `/api/crew/orders/:id/notes`, `/api/crew/location`
+- **Workflow**: "Start mobile" (console output, port 8080) — `cd mobile && npx expo start --web --port 8080`; user can scan QR code in workflow logs with Expo Go
+- **API URL config**: Set `EXPO_PUBLIC_API_URL` env var to the backend URL for mobile device access
+- **PIN setup in dashboard**: Edit any crew member → "Mobile App Login" section → set phone + PIN
+- **Files**: `mobile/app/_layout.tsx`, `mobile/app/login.tsx`, `mobile/app/(app)/index.tsx`, `mobile/app/(app)/job/[id].tsx`, `mobile/app/(app)/profile.tsx`, `mobile/src/context/AuthContext.tsx`, `mobile/src/lib/api.ts`, `mobile/src/lib/storage.ts`, `mobile/src/constants/colors.ts`, `server/routes/crew-mobile.ts`
+
 **Certxa Pro Dashboard (full Housecall Pro clone, authenticated at `/pro-dashboard`):**
 - Dark sidebar layout with Certxa Pro branding; routes: Dispatch, Jobs, Estimates, Customers, Invoices, Crews, Reports, Settings
 - **Dispatch** (`/pro-dashboard`) — Live Leaflet map (CartoDB dark tiles, no API key needed) showing crew GPS markers + job location pins. Right panel with crew status and active jobs. Auto-refreshes every 15s. "Ping" button simulates GPS for demo.

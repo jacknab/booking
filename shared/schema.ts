@@ -828,6 +828,8 @@ export const crews = pgTable("pro_crews", {
   color: text("color").notNull().default("#00D4AA"),
   active: boolean("active").notNull().default(true),
   notes: text("notes"),
+  phone: text("phone"),
+  pinHash: text("pin_hash"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -861,6 +863,7 @@ export const serviceOrders = pgTable("pro_service_orders", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   estimatedHours: decimal("estimated_hours", { precision: 4, scale: 1 }),
+  overtimeFlagged: boolean("overtime_flagged").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
