@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { StoreContext } from "@/hooks/use-store";
 import {
   Map, ClipboardList, FileText, Users, Receipt,
-  HardHat, BarChart3, Settings, LogOut, Menu, X, ChevronDown, Zap
+  HardHat, BarChart3, Settings, LogOut, Menu, X, ChevronDown, Zap, Navigation2
 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 const NAV = [
   { label: "Dispatch", icon: Map, path: "/pro-dashboard" },
+  { label: "Map", icon: Navigation2, path: "/pro-dashboard/map" },
   { label: "Jobs", icon: ClipboardList, path: "/pro-dashboard/jobs" },
   { label: "Estimates", icon: FileText, path: "/pro-dashboard/estimates" },
   { label: "Customers", icon: Users, path: "/pro-dashboard/customers" },

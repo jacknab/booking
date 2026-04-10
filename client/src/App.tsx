@@ -89,6 +89,7 @@ import CrewsPage from "@/pages/pro-dashboard/CrewsPage";
 import InvoicesPage from "@/pages/pro-dashboard/InvoicesPage";
 import ReportsPage from "@/pages/pro-dashboard/ReportsPage";
 import SettingsPage from "@/pages/pro-dashboard/SettingsPage";
+import MapPage from "@/pages/pro-dashboard/MapPage";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -229,6 +230,7 @@ function AppRoutes() {
       <Route path="/pro-dashboard/customers" element={<ProDashboardLayout><CustomersPage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/invoices" element={<ProDashboardLayout><InvoicesPage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/crews" element={<ProDashboardLayout><CrewsPage /></ProDashboardLayout>} />
+      <Route path="/pro-dashboard/map" element={<ProDashboardLayout><MapPage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/reports" element={<ProDashboardLayout><ReportsPage /></ProDashboardLayout>} />
       <Route path="/pro-dashboard/settings" element={<ProDashboardLayout><SettingsPage /></ProDashboardLayout>} />
 
