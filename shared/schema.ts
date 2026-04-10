@@ -483,6 +483,23 @@ export const loyaltyTransactions = pgTable("loyalty_transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// === PRO HUB TABLES ===
+
+export const proLeads = pgTable("pro_leads", {
+  id:           serial("id").primaryKey(),
+  name:         varchar("name",          { length: 255 }).notNull(),
+  email:        varchar("email",         { length: 255 }).notNull(),
+  phone:        varchar("phone",         { length: 50 }),
+  businessName: varchar("business_name", { length: 255 }),
+  industry:     varchar("industry",      { length: 100 }),
+  teamSize:     varchar("team_size",     { length: 50 }),
+  message:      text("message"),
+  source:       varchar("source",        { length: 100 }).default("pro-hub"),
+  createdAt:    timestamp("created_at").defaultNow(),
+});
+
+export const insertProLeadSchema = createInsertSchema(proLeads);
+
 // === RELATIONS ===
 
 export const locationsRelations = relations(locations, ({ many }) => ({

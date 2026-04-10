@@ -73,6 +73,8 @@ import ElectricalLanding from "@/pages/ElectricalLanding";
 import CarpetCleaningLanding from "@/pages/CarpetCleaningLanding";
 import PressureWashingLanding from "@/pages/PressureWashingLanding";
 import WindowCleaningLanding from "@/pages/WindowCleaningLanding";
+import ProHub from "@/pages/pro/ProHub";
+import ProIndustryPage from "@/pages/pro/ProIndustryPage";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -153,6 +155,8 @@ function AppRoutes() {
       <Route path="/carpet-cleaning" element={<CarpetCleaningLanding />} />
       <Route path="/pressure-washing" element={<PressureWashingLanding />} />
       <Route path="/window-cleaning" element={<WindowCleaningLanding />} />
+      <Route path="/pro" element={<ProHub />} />
+      <Route path="/pro/:industry" element={<ProIndustryPage />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />

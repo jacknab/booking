@@ -11,6 +11,13 @@ This is the **Certxa** platform — a full-stack booking and business management
 - `/hvac`, `/plumbing`, `/electrical`, `/carpet-cleaning`, `/pressure-washing`, `/window-cleaning`, `/snow-removal` — Home service / trades landing pages
 - `/barbers`, `/hair-salons`, `/nails`, `/spa`, `/estheticians`, `/tattoo`, `/haircuts`, `/groomers`, `/ride-service` — Beauty & personal service landing pages
 
+**Pro Hub (HouseCallPro-inspired field service sub-app):**
+- `/pro` — Main field service hub with hero, 25-industry grid with category filters, feature sections (scheduling/invoicing/CRM), stats bar, testimonials, and lead capture form
+- `/pro/:industry` — Individual industry pages (25 total: HVAC, Plumbing, Electrical, Roofing, Pest Control, Pool Service, House Cleaning, Carpet Cleaning, Window Cleaning, Pressure Washing, Handyman, Lawn Care, Snow Removal, Landscaping, Tree Service, Junk Removal, Gutter Cleaning, Painting, Appliance Repair, Garage Door, Chimney, Moving, General Contracting, Flooring, Drywall)
+- Each industry page: hero + badge + testimonial, 4 feature cards, 3-step how-it-works, comparison table, FAQ accordion, inline lead form, related industries
+- Lead captures stored in `pro_leads` DB table via `POST /api/pro/leads`
+- Files: `client/src/pages/pro/ProHub.tsx`, `client/src/pages/pro/ProIndustryPage.tsx`, `client/src/pages/pro/proIndustries.ts`
+
 **SSR (Server-Side Rendering):**
 - All 22 marketing/industry landing pages use SSR in production for SEO
 - `client/src/entry-server.tsx` — SSR entry point using MemoryRouter + renderToString

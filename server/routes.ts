@@ -3862,6 +3862,31 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // ── Pro Hub Lead Capture ────────────────────────────────────────────────────
+  app.post("/api/pro/leads", async (req, res) => {
+    try {
+      const { name, email, phone, businessName, industry, teamSize, message } = req.body;
+      if (!name || !email) {
+        return res.status(400).json({ error: "Name and email are required" });
+      }
+      const { proLeads } = await import("@shared/schema");
+      const [lead] = await db.insert(proLeads).values({
+        name: String(name),
+        email: String(email),
+        phone: phone ? String(phone) : null,
+        businessName: businessName ? String(businessName) : null,
+        industry: industry ? String(industry) : null,
+        teamSize: teamSize ? String(teamSize) : null,
+        message: message ? String(message) : null,
+        source: "pro-hub",
+      }).returning();
+      res.json({ success: true, id: lead.id });
+    } catch (err) {
+      console.error("Pro lead error:", err);
+      res.status(500).json({ error: "Failed to save lead" });
+    }
+  });
+
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
   startEmailReminderScheduler();
