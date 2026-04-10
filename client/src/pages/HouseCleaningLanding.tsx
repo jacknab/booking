@@ -1,251 +1,132 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Calendar, Users, DollarSign, Clock, Building2,  Smartphone, Star, ShieldCheck, MapPin, Repeat, CheckCircle, BarChart3 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { Calendar, Users, DollarSign, Smartphone, MapPin, Repeat, CheckCircle, BarChart3, Building2, Globe } from "lucide-react";
+import IndustryLandingTemplate, { type IndustryConfig } from "./components/IndustryLandingTemplate";
 import HouseCleaningHeroVideo from "./components/HouseCleaningHeroVideo";
-import BusinessTypeMenu from "./components/BusinessTypeMenu";
+
+const config: IndustryConfig = {
+  badge: "🧹 Built for House Cleaning Businesses",
+  headlineLine1: "Your Schedule.",
+  headlineLine2: "Always Full.",
+  subheadline: "Certxa lets clients book your cleaning services online, sends automatic reminders, and tracks every job and payment — so you can focus on the clean, not the paperwork.",
+  heroVideo: <HouseCleaningHeroVideo />,
+  trustText: "Trusted by thousands of cleaning businesses",
+  competitors: ["Jobber Alternative", "HouseCall Pro Alternative", "Square Alternative"],
+  stats: [
+    { value: "8,000+", label: "Cleaning Businesses" },
+    { value: "500K+",  label: "Jobs Booked" },
+    { value: "96%",    label: "Client Retention Rate" },
+    { value: "4.9★",   label: "Average Rating" },
+  ],
+  featuresLabel: "BUILT FOR CLEANERS",
+  featuresTitle: "Everything Your Cleaning Business Needs",
+  featuresSubtitle: "From your first booking to your hundredth regular client — Certxa keeps it simple.",
+  features: [
+    { icon: <Calendar className="w-6 h-6 text-[#00D4AA]" />,    title: "Online Booking",                 desc: "Clients book cleaning appointments from your public booking link 24/7. Specify home size, service type, and any special requests so you arrive fully prepared." },
+    { icon: <Repeat className="w-6 h-6 text-[#00D4AA]" />,      title: "Recurring Job Scheduling",       desc: "Lock in weekly, bi-weekly, or monthly cleaning schedules with one booking. Recurring clients are your most valuable — Certxa keeps them on the calendar automatically." },
+    { icon: <MapPin className="w-6 h-6 text-[#00D4AA]" />,      title: "Client Address & Property Notes", desc: "Store each client's address, entry instructions, pets, allergies, and special cleaning preferences. No more scrambling to remember the details before every visit." },
+    { icon: <Smartphone className="w-6 h-6 text-[#00D4AA]" />,  title: "SMS & Email Reminders",          desc: "Automated reminders go out before every job so clients are home and ready. Post-job review requests build your reputation and bring in new customers." },
+    { icon: <DollarSign className="w-6 h-6 text-[#00D4AA]" />,  title: "Job Invoicing & Payments",       desc: "Send digital invoices after every job. Clients pay online by card. Track paid, outstanding, and overdue balances without chasing anyone down." },
+    { icon: <CheckCircle className="w-6 h-6 text-[#00D4AA]" />, title: "Job Status Tracking",            desc: "Mark jobs as confirmed, in-progress, and completed. Clients get automatic updates so they know exactly when you're on the way and when you're done." },
+    { icon: <Users className="w-6 h-6 text-[#00D4AA]" />,       title: "Client Profiles & History",      desc: "Every client has a profile with all past jobs, total spend, preferred frequency, and notes. Build the kind of service that keeps people coming back year after year." },
+    { icon: <BarChart3 className="w-6 h-6 text-[#00D4AA]" />,   title: "Revenue Reports",                desc: "See your weekly and monthly income at a glance. Know your busiest days, top clients, and average job value to plan your schedule for maximum earnings." },
+    { icon: <Building2 className="w-6 h-6 text-[#00D4AA]" />,   title: "Multi-Staff Support",            desc: "Hiring a helper or running a small crew? Add staff to your account, assign jobs to team members, and track who completed what — all from one place." },
+  ],
+  featureTabs: [
+    {
+      label: "Scheduling",
+      icon: <Calendar className="w-4 h-4" />,
+      heading: "Fill your cleaning calendar automatically",
+      subheading: "Set your available days, add recurring clients, and let Certxa handle the rest.",
+      bullets: [
+        "View all jobs, crew assignments, and recurring bookings in one calendar",
+        "One-tap scheduling for weekly, bi-weekly, or monthly cleaning rotations",
+        "Color-code by cleaning type, crew member, or client zone",
+      ],
+      mockType: "calendar",
+    },
+    {
+      label: "Online Booking",
+      icon: <Globe className="w-4 h-4" />,
+      heading: "New clients find you and book instantly",
+      subheading: "Share your booking link anywhere — social media, Nextdoor, Google — and clients book themselves.",
+      bullets: [
+        "Clients select home size, cleaning type, and any special requests when booking",
+        "Instant confirmation sent by text or email with full job details",
+        "Accept deposits or full payment at the time of booking",
+      ],
+      mockType: "booking",
+    },
+    {
+      label: "Invoicing",
+      icon: <DollarSign className="w-4 h-4" />,
+      heading: "Get paid the same day, every time",
+      subheading: "Send an invoice by text the moment you finish a job. No more chasing payments.",
+      bullets: [
+        "One-tap invoice from your phone with job details pre-filled",
+        "Clients pay by card online — money in your account within 1–2 days",
+        "Track outstanding balances and send payment reminders automatically",
+      ],
+      mockType: "invoice",
+    },
+    {
+      label: "Client Management",
+      icon: <Users className="w-4 h-4" />,
+      heading: "Know every client before you walk in the door",
+      subheading: "Entry codes, pets, allergies, preferences — all stored in each client's profile.",
+      bullets: [
+        "Property notes: address, lockbox code, pets, preferred products",
+        "Full history of every past clean with dates and amounts",
+        "Flag VIP regulars and see top-spending clients at a glance",
+      ],
+      mockType: "clients",
+    },
+    {
+      label: "SMS Reminders",
+      icon: <Smartphone className="w-4 h-4" />,
+      heading: "Zero no-shows, zero wasted drives",
+      subheading: "Clients get reminders, you get a heads-up if they need to reschedule — before you're in the car.",
+      bullets: [
+        "Automatic reminder texts 24 hrs and 2 hrs before every appointment",
+        "Post-clean review requests sent automatically to build your reputation",
+        "Two-way SMS so clients can confirm or reschedule without calling",
+      ],
+      mockType: "sms",
+    },
+  ],
+  howItWorksSteps: [
+    { step: "01", title: "Create Your Cleaning Profile", desc: "Add your services (standard clean, deep clean, move-in/out), pricing, and availability. Our onboarding takes under 5 minutes and auto-fills common cleaning service types." },
+    { step: "02", title: "Share Your Booking Link",      desc: "Get your own branded booking page instantly. Share it on Nextdoor, Facebook, Google, or text it directly to neighbors — they can book and pay online any time." },
+    { step: "03", title: "Show Up and Get Paid",         desc: "Your calendar fills automatically. Reminders go out on their own. After each job, Certxa sends the invoice and a review request while you're already on to the next one." },
+  ],
+  testimonials: [
+    { quote: "I used to lose so much time texting back and forth to schedule jobs. Now clients just book online and I get a notification. It's been a game changer for my side hustle.", name: "Maria G.", role: "Owner, Sparkle Clean Co." },
+    { quote: "The recurring bookings feature alone is worth it. I set up 12 weekly regulars and my calendar is basically full without me doing anything.", name: "James T.", role: "Solo Cleaner" },
+    { quote: "Getting paid used to be awkward — now I just send an invoice from my phone and they pay by card. Professional and fast.", name: "Lisa R.", role: "Owner, Fresh Home Cleaning" },
+  ],
+  compareTitle: "Why Cleaners Choose Certxa",
+  compareSubtitle: "Built for solo operators and small cleaning crews.",
+  compareRows: [
+    ["Recurring job scheduling",         true,  false],
+    ["Client address & property notes",  true,  false],
+    ["Online invoicing & card payments", true,  false],
+    ["SMS reminders included",           true,  false],
+    ["Job status tracking",              true,  false],
+    ["Multi-staff support",              true,  true ],
+    ["Online booking page",              true,  true ],
+    ["60-day free trial",                true,  false],
+  ],
+  faqs: [
+    { q: "Can clients book recurring cleaning schedules online?", a: "Yes. When clients book through your link they can select weekly, bi-weekly, or monthly frequency and Certxa automatically locks in all future appointments." },
+    { q: "Do I need a card reader to accept payments?", a: "No. Clients pay through a secure online link — no hardware needed. The money goes directly to your bank account within 1–2 business days." },
+    { q: "Can I manage a team of cleaners?", a: "Yes. You can add multiple cleaners to your account, assign specific jobs to each person, and view everyone's schedule from one calendar." },
+    { q: "What if a client needs to reschedule?", a: "Clients can request a reschedule through their confirmation text. You'll be notified immediately and can approve a new time with one tap." },
+    { q: "How do I share my booking page?", a: "Certxa gives you a custom booking link (e.g., certxa.com/book/your-business). You can share it on social media, Nextdoor, Google Business Profile, or text it directly to customers." },
+    { q: "Is there a limit to how many clients I can have?", a: "No limits. Whether you have 5 or 500 clients, Certxa handles all of them at no extra cost per client." },
+  ],
+  ctaHeadline: "Ready to Fill Your Calendar?",
+  ctaSub: "Start your 60-day free trial. No credit card required. Cancel any time.",
+  ctaContext: "Join thousands of cleaning businesses already using Certxa.",
+};
 
 export default function HouseCleaningLanding() {
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-[#00D4AA]/30" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <nav className="fixed w-full z-50 bg-[#060E1A]/80 backdrop-blur-md border-b border-white/10 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            <Link to="/" className="flex items-center gap-3">
-              <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-xl shadow-lg" />
-              <span className="font-bold text-2xl tracking-tight text-white">Certxa</span>
-            </Link>
-            <div className="flex items-center gap-6">
-              <BusinessTypeMenu />
-              <Link to="/pricing"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Pricing</Button></Link>
-              <Link to="/auth"><Button variant="ghost" className="font-medium text-white/90 hover:text-white hover:bg-white/10">Log in</Button></Link>
-              <Link to="/auth?mode=register"><Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full">Get Started</Button></Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#060E1A]">
-        <div className="absolute inset-0 z-0"><HouseCleaningHeroVideo /></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1A]/30 via-[#060E1A]/10 to-[#060E1A]/60 z-10" />
-        <div className="relative z-20 text-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-8">
-            <span className="flex h-2 w-2 rounded-full bg-[#00D4AA] animate-pulse" />
-            <span className="text-sm font-medium text-white/90">🧹 Built for House Cleaning Businesses</span>
-          </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 tracking-tight leading-[1.1]">
-            Your Schedule.<br /><span className="text-[#00D4AA]">Always Full.</span>
-          </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="text-lg md:text-xl text-white/80 mb-10 max-w-3xl mx-auto leading-relaxed font-light">
-            Certxa lets clients book your cleaning services online, sends automatic reminders, and tracks every job and payment — so you can focus on the clean, not the paperwork.
-          </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link to="/auth?mode=register"><Button size="lg" className="h-14 px-8 text-lg rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_30px_rgba(0,212,170,0.3)] transition-all hover:scale-105">Start Free Trial<ArrowRight className="ml-2 w-5 h-5" /></Button></Link>
-          </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.8 }} className="flex flex-wrap justify-center gap-3 text-sm font-medium text-white/70">
-            <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">✅ No credit card required</span>
-            <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">✅ 60-day free trial</span>
-            <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">✅ Set up in under 5 minutes</span>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="bg-[#0A2540] py-6 border-y border-white/10 relative z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <p className="text-white/80 font-medium text-lg flex items-center gap-3"><span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-3 w-3 bg-[#00D4AA]" /></span>Trusted by thousands of cleaning businesses</p>
-            <div className="flex flex-wrap justify-center gap-8 text-white/60 font-medium text-sm md:text-base">
-              <div className="flex items-center gap-2"><span className="text-[#00D4AA] font-bold">✓</span> Jobber Alternative</div>
-              <div className="flex items-center gap-2"><span className="text-[#00D4AA] font-bold">✓</span> HouseCall Pro Alternative</div>
-              <div className="flex items-center gap-2"><span className="text-[#00D4AA] font-bold">✓</span> Square Alternative</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-[#060E1A] py-20 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[{ value: "8,000+", label: "Cleaning Businesses" }, { value: "500K+", label: "Jobs Booked" }, { value: "96%", label: "Client Retention Rate" }, { value: "4.9★", label: "Average Rating" }].map((s) => (
-              <div key={s.label}><p className="text-4xl md:text-5xl font-black text-[#00D4AA] mb-2">{s.value}</p><p className="text-white/60 font-medium">{s.label}</p></div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="py-32 bg-slate-50 text-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#00D4AA]/10 text-[#00D4AA] text-sm font-semibold mb-4">BUILT FOR CLEANERS</span>
-            <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-[#0A2540]">Everything Your Cleaning Business Needs</h2>
-            <p className="text-slate-500 text-xl max-w-2xl mx-auto font-light">From your first booking to your hundredth regular client — Certxa keeps it simple.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { icon: <Calendar className="w-6 h-6 text-[#00D4AA]" />, title: "Online Booking", desc: "Clients book cleaning appointments from your public booking link 24/7. Specify home size, service type, and any special requests so you arrive fully prepared." },
-              { icon: <Repeat className="w-6 h-6 text-[#00D4AA]" />, title: "Recurring Job Scheduling", desc: "Lock in weekly, bi-weekly, or monthly cleaning schedules with one booking. Recurring clients are your most valuable — Certxa keeps them on the calendar automatically." },
-              { icon: <MapPin className="w-6 h-6 text-[#00D4AA]" />, title: "Client Address & Property Notes", desc: "Store each client's address, entry instructions, pets, allergies, and special cleaning preferences. No more scrambling to remember the details before every visit." },
-              { icon: <Smartphone className="w-6 h-6 text-[#00D4AA]" />, title: "SMS & Email Reminders", desc: "Automated reminders go out before every job so clients are home and ready. Post-job review requests build your reputation and bring in new customers." },
-              { icon: <DollarSign className="w-6 h-6 text-[#00D4AA]" />, title: "Job Invoicing & Payments", desc: "Send digital invoices after every job. Clients pay online by card. Track paid, outstanding, and overdue balances without chasing anyone down." },
-              { icon: <CheckCircle className="w-6 h-6 text-[#00D4AA]" />, title: "Job Status Tracking", desc: "Mark jobs as confirmed, in-progress, and completed. Clients get automatic updates so they know exactly when you're on the way and when you're done." },
-              { icon: <Users className="w-6 h-6 text-[#00D4AA]" />, title: "Client Profiles & History", desc: "Every client has a profile with all past jobs, total spend, preferred frequency, and notes. Build the kind of service that keeps people coming back year after year." },
-              { icon: <BarChart3 className="w-6 h-6 text-[#00D4AA]" />, title: "Revenue Reports", desc: "See your weekly and monthly income at a glance. Know your busiest days, top clients, and average job value to plan your schedule for maximum earnings." },
-              { icon: <Building2 className="w-6 h-6 text-[#00D4AA]" />, title: "Multi-Staff Support", desc: "Hiring a helper or running a small crew? Add staff to your account, assign jobs to team members, and track who completed what — all from one place." },
-            ].map((f) => <FeatureCard key={f.title} {...f} />)}
-          </div>
-        </div>
-      </div>
-
-      <HowItWorks steps={[
-        { step: "01", title: "Create Your Cleaning Profile", desc: "Add your services (standard clean, deep clean, move-in/out), pricing, and availability. Our onboarding takes under 5 minutes and auto-fills common cleaning service types." },
-        { step: "02", title: "Share Your Booking Link", desc: "Get your own branded booking page instantly. Share it on Nextdoor, Facebook, Google, or text it directly to neighbors — they can book and pay online any time." },
-        { step: "03", title: "Show Up and Get Paid", desc: "Your calendar fills automatically. Reminders go out on their own. After each job, Certxa sends the invoice and a review request while you're already on to the next one." },
-      ]} />
-
-      <div className="py-32 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-[#0A2540]">What Cleaners Are Saying</h2>
-            <p className="text-slate-500 text-xl max-w-2xl mx-auto font-light">Real feedback from real cleaning business owners.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <TestimonialCard quote="I used to lose so much time texting back and forth to schedule jobs. Now clients just book online and I get a notification. It's been a game changer for my side hustle." name="Maria G." role="Owner, Sparkle Clean Co." />
-            <TestimonialCard quote="The recurring bookings feature alone is worth it. I set up 12 weekly regulars and my calendar is basically full without me doing anything." name="James T." role="Solo Cleaner" />
-            <TestimonialCard quote="Getting paid used to be awkward — now I just send an invoice from my phone and they pay by card. Professional and fast." name="Lisa R." role="Owner, Fresh Home Cleaning" />
-          </div>
-        </div>
-      </div>
-
-      <CompareTable title="Why Cleaners Choose Certxa" subtitle="Built for solo operators and small cleaning crews." rows={[
-        ["Recurring job scheduling", true, false],
-        ["Client address & property notes", true, false],
-        ["Online invoicing & card payments", true, false],
-        ["SMS reminders included", true, false],
-        ["Job status tracking", true, false],
-        ["Multi-staff support", true, true],
-        ["Online booking page", true, true],
-        ["60-day free trial", true, false],
-      ]} />
-
-      <CTASection headline="Ready to Fill Your Calendar?" sub="Start your 60-day free trial. No credit card required. Cancel any time." context="Join thousands of cleaning businesses already using Certxa." />
-
-      <PageFooter />
-    </div>
-  );
-}
-
-function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
-  return (
-    <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-      <div className="w-12 h-12 rounded-xl bg-[#00D4AA]/10 flex items-center justify-center mb-5">{icon}</div>
-      <h3 className="text-lg font-bold text-[#0A2540] mb-3">{title}</h3>
-      <p className="text-slate-500 font-light leading-relaxed">{desc}</p>
-    </div>
-  );
-}
-
-function HowItWorks({ steps }: { steps: { step: string; title: string; desc: string }[] }) {
-  return (
-    <div className="py-32 bg-[#0A2540] text-white relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00D4AA]/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-20">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[#00D4AA]/10 text-[#00D4AA] text-sm font-semibold mb-4">SIMPLE SETUP</span>
-          <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">Up and Running in Minutes</h2>
-          <p className="text-white/70 text-xl max-w-2xl mx-auto font-light">No tech skills needed. If you can use a phone, you can set up Certxa.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {steps.map(({ step, title, desc }) => (
-            <div key={step} className="flex flex-col items-start gap-4">
-              <span className="text-6xl font-black text-[#00D4AA]/20">{step}</span>
-              <h3 className="text-2xl font-bold text-white">{title}</h3>
-              <p className="text-white/60 font-light leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TestimonialCard({ quote, name, role }: { quote: string; name: string; role: string }) {
-  return (
-    <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-      <div className="flex gap-1 mb-4">{[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-[#00D4AA] text-[#00D4AA]" />)}</div>
-      <p className="text-slate-700 font-light leading-relaxed mb-6 italic">"{quote}"</p>
-      <div><p className="font-bold text-[#0A2540]">{name}</p><p className="text-slate-500 text-sm">{role}</p></div>
-    </div>
-  );
-}
-
-function CompareTable({ title, subtitle, rows }: { title: string; subtitle: string; rows: [string, boolean, boolean][] }) {
-  return (
-    <div className="py-32 bg-[#060E1A] text-white">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">{title}</h2>
-          <p className="text-white/70 text-xl max-w-2xl mx-auto font-light">{subtitle}</p>
-        </div>
-        <div className="rounded-3xl overflow-hidden border border-white/10">
-          <div className="grid grid-cols-3 bg-[#0A2540] text-sm font-bold text-white/60 uppercase tracking-wider">
-            <div className="p-5 border-b border-white/10">Feature</div>
-            <div className="p-5 border-b border-l border-white/10 text-[#00D4AA] text-center">Certxa</div>
-            <div className="p-5 border-b border-l border-white/10 text-center">Others</div>
-          </div>
-          {rows.map(([feature, certxa, others]) => (
-            <div key={feature} className="grid grid-cols-3 border-b border-white/10 hover:bg-white/5 transition-colors">
-              <div className="p-5 text-white/80 font-medium">{feature}</div>
-              <div className="p-5 border-l border-white/10 text-center">{certxa ? <span className="text-[#00D4AA] font-bold text-lg">✓</span> : <span className="text-white/20">—</span>}</div>
-              <div className="p-5 border-l border-white/10 text-center">{others ? <span className="text-white/60 font-bold">✓</span> : <span className="text-white/20">—</span>}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CTASection({ headline, sub, context }: { headline: string; sub: string; context: string }) {
-  return (
-    <div className="py-32 relative overflow-hidden bg-gradient-to-br from-[#0A2540] to-[#00D4AA]/20">
-      <div className="absolute inset-0 bg-[#060E1A]/80 mix-blend-overlay" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-full bg-[#00D4AA]/10 blur-[100px] rounded-full" />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-        <div className="flex justify-center mb-6"><ShieldCheck className="w-14 h-14 text-[#00D4AA]" /></div>
-        <h2 className="text-5xl md:text-6xl font-black text-white mb-6 tracking-tight">{headline}</h2>
-        <p className="text-white/80 text-xl mb-4 max-w-2xl mx-auto font-light">{sub}</p>
-        <p className="text-white/50 text-base mb-12 max-w-xl mx-auto">{context}</p>
-        <Link to="/auth?mode=register"><Button size="lg" className="h-16 px-10 text-xl rounded-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold shadow-[0_0_40px_rgba(0,212,170,0.4)] transition-all hover:scale-105">Start Free — No Credit Card Required<ArrowRight className="ml-3 w-6 h-6" /></Button></Link>
-        <p className="mt-6 text-white/40 text-sm">Questions? <a href="mailto:hello@certxa.com" className="underline hover:text-white/70 transition-colors">hello@certxa.com</a></p>
-      </div>
-    </div>
-  );
-}
-
-function PageFooter() {
-  return (
-    <footer className="bg-[#060E1A] py-12 border-t border-white/10 relative z-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-3"><img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-xl grayscale opacity-70" /><span className="font-bold text-2xl text-white/80 tracking-tight">Certxa</span></div>
-          <p className="text-white/40 text-sm">© 2025 Certxa. All rights reserved.</p>
-        </div>
-        <div className="mt-8 pt-8 border-t border-white/10 flex flex-wrap items-center justify-center md:justify-end gap-8">
-          <Link to="/" className="text-sm text-white/50 hover:text-white transition-colors">Home</Link>
-          <Link to="/pricing" className="text-sm text-white/50 hover:text-white transition-colors">Pricing</Link>
-          <Link to="/privacy-policy" className="text-sm text-white/50 hover:text-white transition-colors">Privacy Policy</Link>
-          <Link to="/staff-auth" className="text-sm text-white/50 hover:text-white transition-colors">Staff Login</Link>
-        </div>
-      </div>
-    </footer>
-  );
+  return <IndustryLandingTemplate config={config} />;
 }
