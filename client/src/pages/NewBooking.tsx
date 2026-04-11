@@ -481,9 +481,11 @@ export default function NewBooking() {
         <>
           <div className="flex-1 overflow-y-auto">
             <div className="p-4 border-b flex items-center gap-3 bg-card">
-              <Button variant="ghost" size="icon" onClick={() => setStep("services")} data-testid="button-back-services">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
+              {!editAppointmentId && (
+                <Button variant="ghost" size="icon" onClick={() => setStep("services")} data-testid="button-back-services">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              )}
               <div>
                 <h2 className="font-semibold text-lg" data-testid="text-extras-heading">Extras</h2>
                 <p className="text-xs text-muted-foreground" data-testid="text-extras-subheading">for {selectedService?.name}</p>
