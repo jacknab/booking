@@ -767,6 +767,7 @@ export default function NewBooking() {
                         const timePart = formatInTz(slot.time, timezone, "h:mm");
                         const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
                         const isSelected = selectedSlot?.time === slot.time;
+                        const slotStaffColor = staffList?.find((s: Staff) => s.id === slot.staffId)?.color || "#3b82f6";
 
                         return (
                           <button
@@ -790,9 +791,13 @@ export default function NewBooking() {
                             )}>{periodPart}</span>
                             {staffMode === "specific" && (
                               <span className={cn(
-                                "text-[10px] truncate max-w-full mt-0.5",
+                                "flex items-center gap-1 text-[10px] truncate max-w-full mt-0.5",
                                 isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
                               )}>
+                                <span
+                                  className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.7)" : slotStaffColor }}
+                                />
                                 {slot.staffName}
                               </span>
                             )}
