@@ -400,6 +400,7 @@ export default function Calendar() {
                     const h = START_HOUR + Math.floor(totalMins / 60);
                     const m = totalMins % 60;
                     if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+                    if (m !== 0 && m !== 30) return null;
                     const isHour = m === 0;
                     const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
                     const ampm = h >= 12 ? "PM" : "AM";
@@ -492,7 +493,7 @@ export default function Calendar() {
                               <div
                                 key={`${slot.hour}-${slot.minute}`}
                                 className={cn(
-                                  "absolute left-0 right-0 border-b-[6px] cursor-pointer transition-colors border-border",
+                                  "absolute left-0 right-0 border-b-[4px] cursor-pointer transition-colors border-border",
                                   isSlotSelected
                                     ? "bg-blue-100 dark:bg-blue-950/60"
                                     : "hover:bg-primary/5"
