@@ -319,7 +319,7 @@ export default function NewBooking() {
       {step === "services" && (
         <>
           <div className="flex flex-1 overflow-hidden">
-            <div className="w-[180px] flex-shrink-0 border-r bg-card flex flex-col">
+            <div className="w-[180px] flex-shrink-0 border-r bg-card flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.1)] z-10">
               <div className="p-4 border-b flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")} data-testid="button-back-calendar">
                   <ArrowLeft className="w-4 h-4" />
@@ -531,7 +531,7 @@ export default function NewBooking() {
       {step === "details" && (
         <>
           <div className="flex-1 overflow-hidden flex">
-            <div className="w-[300px] flex-shrink-0 border-r bg-card flex flex-col">
+            <div className="w-[300px] flex-shrink-0 border-r bg-card flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.1)] z-10">
               <div className="p-4 border-b flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => {
                   if (availableAddons && availableAddons.length > 0) setStep("addons");
@@ -905,7 +905,7 @@ function BookingSummaryPanel({
   const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   return (
-    <div className="w-[420px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="booking-summary-panel">
+    <div className="w-[420px] flex-shrink-0 border-l bg-card flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.1)] z-10" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
         <Avatar className="w-10 h-10">
           <AvatarFallback className="text-sm font-bold bg-slate-200 text-slate-700">
