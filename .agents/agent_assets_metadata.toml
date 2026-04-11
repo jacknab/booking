@@ -137,3 +137,9 @@ id = "lS1Wz02VC0cYPUtf-Ir6m"
 uri = "file://docs/facebook-reviews-integration.md"
 type = "text"
 title = "Facebook Reviews Integration — Complete Setup Guide"
+
+[[outputs]]
+id = "LUzxNf6o_jvVMpuuhKUci"
+uri = "file://docs/calendar-staff-column-width.md"
+type = "text"
+title = "Calendar Staff Column Width"
