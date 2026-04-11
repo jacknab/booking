@@ -102,11 +102,13 @@ export default function GetStarted() {
                 {/* Badge */}
                 <div className="absolute top-4 left-4">
                   <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold shadow-lg"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg"
                     style={{
-                      background: g.accent,
-                      color: "#050C18",
-                      boxShadow: `0 2px 12px ${g.accent}80`,
+                      background: "rgba(255,255,255,0.12)",
+                      color: "#ffffff",
+                      border: `1px solid rgba(255,255,255,0.25)`,
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                      textShadow: "0 1px 2px rgba(0,0,0,0.4)",
                     }}
                   >
                     {g.icon}
