@@ -67,7 +67,7 @@ export default function ReportsPage() {
     if (o.serviceType) acc[o.serviceType] = (acc[o.serviceType] || 0) + 1;
     return acc;
   }, {});
-  const topServices = Object.entries(serviceTypes).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topServices = (Object.entries(serviceTypes) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const maxServiceCount = topServices[0]?.[1] ?? 1;
 
   const SUMMARY = [

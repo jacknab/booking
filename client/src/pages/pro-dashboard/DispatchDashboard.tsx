@@ -348,7 +348,7 @@ export default function DispatchDashboard() {
                   <div key={i} className="absolute left-0 right-0 border-t border-white/[0.04]"
                     style={{ top: i * SLOT_H }} />
                 ))}
-                {unassigned.map(job => <JobCard key={job.id} job={job} navigate={navigate} />)}
+                {unassigned.map((job: any) => <JobCard key={job.id} job={job} navigate={navigate} />)}
               </div>
             )}
 

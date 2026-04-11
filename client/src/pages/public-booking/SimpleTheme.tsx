@@ -317,10 +317,7 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
           </p>
           {selectedSlot && (
             <p className="text-gray-700 font-medium">
-                    onChange={(e) => {
-                      setReturningPhone(e.target.value);
-                      if (phoneError) setPhoneError("");
-                    }}
+              {new Date(selectedSlot.time).toLocaleString()}
             </p>
           )}
                   {phoneError && (

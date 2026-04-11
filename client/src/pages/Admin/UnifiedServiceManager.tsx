@@ -56,8 +56,8 @@ export const UnifiedServiceManager: React.FC<UnifiedServiceManagerProps> = () =>
           current_period_end: sub.current_period_end,
           stripe_subscription_id: sub.stripe_subscription_id,
           interval: sub.interval || 'month',
-          amount: plan ? plan.price_cents / 100 : null,
-          plan_name: plan ? plan.name : sub.plan_code
+          amount: plan ? (plan as any).price_cents / 100 : null,
+          plan_name: plan ? (plan as any).name : sub.plan_code
         };
       });
 

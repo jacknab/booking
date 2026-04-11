@@ -8,6 +8,5 @@ export { StockItemManager } from './StockItemManager';
 export { UnifiedServiceManager } from './UnifiedServiceManager';
 export { CategoriesManager } from './CategoriesManager';
 export { AddOnsManager } from './AddOnsManager';
-export { GridManager } from './GridManager';
 export { ServiceManager } from './ServiceManager';
 export { default as StoreManager } from './StoreManager';

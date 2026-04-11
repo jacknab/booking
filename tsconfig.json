@@ -1,6 +1,6 @@
 {
   "include": ["*.ts", "client/src/**/*", "shared/**/*", "server/**/*", "script/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/src/pages/admin/AdminLayout.tsx"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

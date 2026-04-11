@@ -76,7 +76,7 @@ export const AdminDashboard: React.FC = () => {
         />} />
         <Route 
           path="/stock-items" 
-          element={<StockItemManager storeId={storeId} businessType={businessType} />} 
+          element={<StockItemManager />} 
         />
         <Route 
           path="/store-entry/:storeNumber" 

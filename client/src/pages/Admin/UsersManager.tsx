@@ -32,7 +32,7 @@ export const UsersManager: React.FC = () => {
   const [db_access_enabled, setDbAccessEnabled] = useState(true);
 
   useEffect(() => {
-    setStoreIdState(getStoreId());
+    setStoreIdState(String(getStoreId()));
   }, []);
 
   const fetchStoreData = useCallback(async () => {
@@ -44,7 +44,7 @@ export const UsersManager: React.FC = () => {
         'store',
         ['store_number', 'storeid', 'store_name', 'phone_number', 'email', 'password_hash', 'password_salt', 'db_access_enabled'],
         { eq: { store_number: id } }
-      ) as StoreRow | undefined;
+      ) as unknown as StoreRow | undefined;
 
       if (fetchedRow) {
         setRow(fetchedRow);

@@ -2215,7 +2215,7 @@ If you have any questions, please contact your administrator.
         store: { id: store.id, name: store.name, phone: store.phone, address: store.address },
         queueEnabled: true,
         waitingCount: waitingEntries.length,
-        calledCount: activeEntries.filter(e => ["called", "serving"].includes(e.status)).length,
+        calledCount: activeEntries.filter(e => e.status !== null && ["called", "serving"].includes(e.status)).length,
         servedToday: Number(servedToday),
         estimatedWaitMinutes: waitingEntries.length * avgServiceTime,
         avgServiceTime,
@@ -2317,7 +2317,7 @@ If you have any questions, please contact your administrator.
   // Allow unauthenticated status update for self-cancel
   app.put("/api/public/queue/cancel/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await db.update(waitlist).set({ status: "cancelled" }).where(eq(waitlist.id, id));
       res.json({ success: true });
     } catch (err) {
@@ -3768,7 +3768,7 @@ If you have any questions, please contact your administrator.
 
   app.put("/api/waitlist/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const updates: any = {};
       if (req.body.status !== undefined) {
         updates.status = req.body.status;
@@ -3790,7 +3790,7 @@ If you have any questions, please contact your administrator.
 
   app.delete("/api/waitlist/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await db.delete(waitlist).where(eq(waitlist.id, id));
       res.json({ success: true });
     } catch (err) {
@@ -3959,7 +3959,7 @@ If you have any questions, please contact your administrator.
 
   app.put("/api/gift-cards/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const [updated] = await db.update(giftCards).set(req.body).where(eq(giftCards.id, id)).returning();
       res.json(updated);
     } catch (err) {
@@ -4024,7 +4024,7 @@ If you have any questions, please contact your administrator.
 
   app.put("/api/intake-forms/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const { name, description, requireBeforeBooking, isActive, fields } = req.body;
       const updates: any = {};
       if (name !== undefined) updates.name = name;
@@ -4055,7 +4055,7 @@ If you have any questions, please contact your administrator.
 
   app.delete("/api/intake-forms/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await db.delete(intakeFormFields).where(eq(intakeFormFields.formId, id));
       await db.delete(intakeForms).where(eq(intakeForms.id, id));
       res.json({ success: true });
@@ -4284,7 +4284,7 @@ If you have any questions, please contact your administrator.
   // Authenticated: update review (toggle public/featured)
   app.put("/api/reviews/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const { isPublic, isFeatured } = req.body;
       const update: Partial<typeof reviews.$inferInsert> = {};
       if (isPublic !== undefined) update.isPublic = isPublic;
@@ -4300,7 +4300,7 @@ If you have any questions, please contact your administrator.
   // Authenticated: delete review
   app.delete("/api/reviews/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await db.delete(reviews).where(eq(reviews.id, id));
       res.json({ success: true });
     } catch (err) {
@@ -4358,7 +4358,7 @@ If you have any questions, please contact your administrator.
     // Get single region
     app.get("/api/seo-regions/:id", async (req, res) => {
       try {
-        const id = parseInt(req.params.id);
+        const id = parseInt(req.params.id as string);
         const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
         if (!row) return res.status(404).json({ error: "Not found" });
         res.json(row);
@@ -4390,7 +4390,7 @@ If you have any questions, please contact your administrator.
     // Update region and regenerate page
     app.put("/api/seo-regions/:id", async (req, res) => {
       try {
-        const id = parseInt(req.params.id);
+        const id = parseInt(req.params.id as string);
         const data = insertSeoRegionSchema.partial().parse(req.body);
         const [row] = await db.update(seoRegions).set({ ...data, updatedAt: new Date() }).where(eq(seoRegions.id, id)).returning();
         if (!row) return res.status(404).json({ error: "Not found" });
@@ -4411,7 +4411,7 @@ If you have any questions, please contact your administrator.
     // Regenerate a single page manually
     app.post("/api/seo-regions/:id/generate", async (req, res) => {
       try {
-        const id = parseInt(req.params.id);
+        const id = parseInt(req.params.id as string);
         const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
         if (!row) return res.status(404).json({ error: "Not found" });
         // Fetch all regions so the sitemap in the footer can link to them all
@@ -4512,7 +4512,7 @@ If you have any questions, please contact your administrator.
     // Delete region and its HTML file
     app.delete("/api/seo-regions/:id", async (req, res) => {
       try {
-        const id = parseInt(req.params.id);
+        const id = parseInt(req.params.id as string);
         const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
         if (!row) return res.status(404).json({ error: "Not found" });
         deleteRegionPage(row.slug);

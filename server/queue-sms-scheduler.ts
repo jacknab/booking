@@ -92,7 +92,7 @@ async function runQueueSmsCheck(): Promise<void> {
   if (candidates.length === 0) return;
 
   // Group by store so we only fetch each store's data once
-  const storeIds = [...new Set(candidates.map(e => e.storeId))];
+  const storeIds = Array.from(new Set(candidates.map(e => e.storeId)));
 
   for (const storeId of storeIds) {
     // Fetch store data
@@ -133,7 +133,7 @@ async function runQueueSmsCheck(): Promise<void> {
 
     // Only count waiting + called + serving entries for position calculation
     const queuedIds = activeQueue
-      .filter(e => ["waiting", "called", "serving"].includes(e.status))
+      .filter(e => e.status !== null && ["waiting", "called", "serving"].includes(e.status))
       .map(e => e.id);
 
     // Process each candidate for this store

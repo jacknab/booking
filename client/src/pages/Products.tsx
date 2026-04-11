@@ -42,7 +42,7 @@ export default function Products() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading ? (
           <div>Loading...</div>
-        ) : products?.map((product) => (
+        ) : products?.map((product: any) => (
           <div key={product.id} className="bg-card rounded-xl border p-5 shadow-sm hover:shadow-md transition-shadow relative group">
             <Button 
               variant="ghost" 

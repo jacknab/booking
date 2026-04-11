@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { AdminLayout } from "./AdminLayout";
+import { AdminLayout } from "./PlatformAdminLayout";
 
 interface Account {
   id: string;

@@ -256,7 +256,7 @@ export default function ProFeaturesSetup() {
 
   // Persist to localStorage immediately
   useEffect(() => {
-    localStorage.setItem("proFeatures", JSON.stringify([...selected]));
+    localStorage.setItem("proFeatures", JSON.stringify(Array.from(selected)));
   }, [selected]);
 
   const toggleFeature = (id: string) => {
@@ -274,7 +274,7 @@ export default function ProFeaturesSetup() {
   const handleDone = async () => {
     setSaving(true);
     try {
-      const features = [...selected, ...CORE_FEATURES.map((f) => f.id)];
+      const features = [...Array.from(selected), ...CORE_FEATURES.map((f) => f.id)];
       await fetch("/api/pro-dashboard/features", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

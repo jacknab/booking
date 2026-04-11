@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { dbAdapter as supabase } from '../../lib/db-adapter';
 import { Trash2, Edit2, Plus, Check, X } from 'lucide-react';
 

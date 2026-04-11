@@ -60,6 +60,7 @@ interface TrialStatus {
   planType: string;
   trialStartedAt: string;
   trialEndsAt: string;
+  subscriptionStatus?: string;
 }
 
 interface StoreAnalytics {
