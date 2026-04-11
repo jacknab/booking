@@ -434,7 +434,7 @@ export default function Calendar() {
                 </div>
               </div>
 
-              <div className="flex flex-1 relative bg-slate-50">
+              <div className="flex flex-1 relative" style={{ backgroundColor: "#d9e2ea" }}>
 
                 {filteredStaff.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
