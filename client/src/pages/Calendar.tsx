@@ -410,7 +410,7 @@ export default function Calendar() {
                       >
                         <span className="flex items-baseline gap-0.5">
                           <span className="text-sm font-bold text-foreground">{timePart}</span>
-                          <span className="text-[9px] font-semibold text-foreground/60">{ampm}</span>
+                          <span className="text-[9px] font-semibold text-foreground">{ampm}</span>
                         </span>
                       </div>
                     );
