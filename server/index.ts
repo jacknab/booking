@@ -3,13 +3,14 @@ import cors from "cors";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
-import { serveStatic } from "./static";
 import { subdomainMiddleware } from "./middleware/subdomain";
 import { createServer } from "http";
 import compression from "compression";
 import passport from "./passport";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
+import path from "path";
+import fs from "fs";
 
 // Replace with your actual DB functions
 import { storage } from "./storage";
@@ -164,9 +165,16 @@ app.use((req, res, next) => {
   // Serve static files / Vite dev server AFTER API routes are registered.
   // The catch-all inside serveStatic/Vite skips /api/* routes.
   if (process.env.NODE_ENV === "production") {
-    const { setupSSR } = await import("./ssr");
-    setupSSR(app);
-    serveStatic(app);
+    const distPath = path.resolve(process.cwd(), "dist/public");
+    if (!fs.existsSync(distPath)) {
+      console.error(`Build directory not found: ${distPath}. Run 'npm run build' first.`);
+    } else {
+      app.use(express.static(distPath));
+      app.use((req: Request, res: Response, next: NextFunction) => {
+        if (req.path.startsWith("/api/")) return next();
+        res.sendFile(path.resolve(distPath, "index.html"));
+      });
+    }
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);

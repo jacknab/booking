@@ -52,7 +52,6 @@ import {
   seoRegions,
   insertSeoRegionSchema,
 } from "@shared/schema";
-import { writeRegionPage, deleteRegionPage } from "./seo-page-generator";
 import { buildRegionSlug, ALL_CITIES, BOOKING_BUSINESS_TYPES } from "./seo-cities";
 import {
   GoogleBusinessAPIManager,
@@ -4372,14 +4371,6 @@ If you have any questions, please contact your administrator.
       try {
         const data = insertSeoRegionSchema.parse(req.body);
         const [row] = await db.insert(seoRegions).values(data).returning();
-        try {
-          const allRows = await db.select().from(seoRegions);
-          writeRegionPage(row, undefined, allRows);
-          await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, row.id));
-          row.pageGenerated = true;
-        } catch (genErr) {
-          console.error("Page gen error:", genErr);
-        }
         res.json(row);
       } catch (err: any) {
         if (err?.code === "23505") return res.status(409).json({ error: "A region with that slug already exists" });
@@ -4394,14 +4385,6 @@ If you have any questions, please contact your administrator.
         const data = insertSeoRegionSchema.partial().parse(req.body);
         const [row] = await db.update(seoRegions).set({ ...data, updatedAt: new Date() }).where(eq(seoRegions.id, id)).returning();
         if (!row) return res.status(404).json({ error: "Not found" });
-        try {
-          const allRows = await db.select().from(seoRegions);
-          writeRegionPage(row, undefined, allRows);
-          await db.update(seoRegions).set({ pageGenerated: true }).where(eq(seoRegions.id, id));
-          row.pageGenerated = true;
-        } catch (genErr) {
-          console.error("Page gen error:", genErr);
-        }
         res.json(row);
       } catch (err: any) {
         res.status(400).json({ error: err?.message ?? "Failed to update region" });
@@ -4414,11 +4397,7 @@ If you have any questions, please contact your administrator.
         const id = parseInt(req.params.id as string);
         const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
         if (!row) return res.status(404).json({ error: "Not found" });
-        // Fetch all regions so the sitemap in the footer can link to them all
-        const allRows = await db.select().from(seoRegions);
-        writeRegionPage(row, undefined, allRows);
-        await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, id));
-        res.json({ success: true, slug: row.slug, url: `/regions/${row.slug}.html` });
+        res.json({ success: true, slug: row.slug });
       } catch (err: any) {
         res.status(500).json({ error: err?.message ?? "Failed to generate page" });
       }
@@ -4429,20 +4408,6 @@ If you have any questions, please contact your administrator.
       try {
         const rows = await db.select().from(seoRegions);
         let count = 0;
-        // Mark all as generated first so the sitemap shows every page
-        for (const row of rows) {
-          try {
-            await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, row.id));
-          } catch { /* skip failed */ }
-        }
-        // Fetch updated rows so pageGenerated flags are correct for sitemap links
-        const updatedRows = await db.select().from(seoRegions);
-        for (const row of updatedRows) {
-          try {
-            writeRegionPage(row, undefined, updatedRows);
-            count++;
-          } catch { /* skip failed */ }
-        }
         res.json({ success: true, generated: count, total: rows.length });
       } catch (err: any) {
         res.status(500).json({ error: err?.message ?? "Bulk generation failed" });
@@ -4485,24 +4450,6 @@ If you have any questions, please contact your administrator.
           }
         }
 
-        // Bulk generate all HTML pages
-        if (newRows.length > 0) {
-          const allRows = await db.select().from(seoRegions);
-          // Mark all as generated
-          for (const r of newRows) {
-            try {
-              await db.update(seoRegions).set({ pageGenerated: true, updatedAt: new Date() }).where(eq(seoRegions.id, r.id));
-            } catch { /* skip */ }
-          }
-          const updatedAllRows = await db.select().from(seoRegions);
-          for (const r of newRows) {
-            try {
-              const fresh = updatedAllRows.find(x => x.id === r.id);
-              if (fresh) writeRegionPage(fresh, undefined, updatedAllRows);
-            } catch { /* skip */ }
-          }
-        }
-
         res.json({ success: true, created, skipped, total: cities.length * businessTypes.length });
       } catch (err: any) {
         res.status(500).json({ error: err?.message ?? "Bulk seed failed" });
@@ -4515,7 +4462,6 @@ If you have any questions, please contact your administrator.
         const id = parseInt(req.params.id as string);
         const [row] = await db.select().from(seoRegions).where(eq(seoRegions.id, id));
         if (!row) return res.status(404).json({ error: "Not found" });
-        deleteRegionPage(row.slug);
         await db.delete(seoRegions).where(eq(seoRegions.id, id));
         res.json({ success: true });
       } catch (err: any) {
