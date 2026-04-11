@@ -77,7 +77,7 @@ This is the **Certxa** platform — a full-stack booking and business management
 
 **Key dashboard pages:** `/dashboard`, `/calendar`, `/services`, `/staff`, `/customers`, `/products`, `/analytics`, `/reports`, `/commission-report`, `/pos`, `/loyalty`, `/gift-cards`, `/reviews`, `/waitlist`, `/intake-forms`, `/dashboard/queue`, `/dashboard/queue/settings`
 
-**Calendar layout:** `/calendar` uses a global fixed staff column width (`STAFF_CALENDAR_COLUMN_WIDTH` in `client/src/pages/Calendar.tsx`). Staff columns must remain the same width for every account and staff count, including single-staff calendars. Vertical staff column grid lines are intentionally thicker between staff columns and should remain consistent across the calendar.
+**Calendar layout:** `/calendar` uses a global fixed staff column width (`STAFF_CALENDAR_COLUMN_WIDTH` in `client/src/pages/Calendar.tsx`). Staff columns must remain the same width for every account and staff count, including single-staff calendars. Vertical staff column grid lines use an explicit thicker light-gray separator so staff boundaries remain visually clear and consistent with the horizontal calendar grid.
 
 **Certxa Queue — Virtual Check-In System (Group 2, Great Clips-style):**
 - **Public customer check-in**: `/q/:slug` — mobile-optimized self-service page; name, phone, party size; shows real-time position + estimated wait; polls every 15s; cancel button

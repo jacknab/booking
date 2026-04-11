@@ -20,6 +20,7 @@ import type { AppointmentWithDetails } from "@shared/schema";
 
 const HOUR_HEIGHT = 360;
 const STAFF_CALENDAR_COLUMN_WIDTH = 180;
+const CALENDAR_COLUMN_SEPARATOR_COLOR = "#d9e2ea";
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
 
@@ -446,11 +447,13 @@ export default function Calendar() {
                     return (
                       <div
                         key={member.id}
-                        className="flex-none border-l-2 border-border last:border-r-2"
+                        className="flex-none border-l-[3px] last:border-r-[3px]"
                         style={{
                           width: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                           minWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                           maxWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
+                          borderLeftColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
+                          borderRightColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
                         }}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
