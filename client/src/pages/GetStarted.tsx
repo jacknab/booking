@@ -104,35 +104,35 @@ export default function GetStarted() {
                 {/* Booking card only: full glass + center strip */}
                 {g.key === "booking" && (
                   <>
-                    {/* Full frosted glass over entire video */}
+                    {/* Full frosted glass over entire video — very light */}
                     <div
                       className="absolute inset-0"
                       style={{
-                        backdropFilter: "blur(6px)",
-                        WebkitBackdropFilter: "blur(6px)",
-                        background: "rgba(255,255,255,0.04)",
+                        backdropFilter: "blur(2px)",
+                        WebkitBackdropFilter: "blur(2px)",
+                        background: "rgba(255,255,255,0.02)",
                       }}
                     />
-                    {/* Center frosted strip */}
+                    {/* Center frosted strip — thin and subtle */}
                     <div
                       className="absolute inset-x-0 flex items-center justify-center"
                       style={{
                         top: "50%",
                         transform: "translateY(-50%)",
-                        padding: "20px 28px",
-                        backdropFilter: "blur(20px)",
-                        WebkitBackdropFilter: "blur(20px)",
-                        background: "rgba(5, 10, 22, 0.52)",
-                        borderTop: "1px solid rgba(255,255,255,0.11)",
-                        borderBottom: "1px solid rgba(255,255,255,0.11)",
+                        padding: "10px 28px",
+                        backdropFilter: "blur(10px)",
+                        WebkitBackdropFilter: "blur(10px)",
+                        background: "rgba(5, 10, 22, 0.28)",
+                        borderTop: "1px solid rgba(255,255,255,0.08)",
+                        borderBottom: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
                       <span
                         style={{
                           fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: "26px",
+                          fontSize: "22px",
                           fontWeight: "500",
-                          color: "rgba(255,255,255,0.90)",
+                          color: "rgba(255,255,255,0.88)",
                           letterSpacing: "0.06em",
                         }}
                       >
