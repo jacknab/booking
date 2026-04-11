@@ -428,14 +428,16 @@ export default function Calendar() {
                     {staffLoading ? "Loading staff..." : "No staff members found for this store."}
                   </div>
                 ) : (
-                  filteredStaff.map((member: any) => {
+                  filteredStaff.map((member: any, idx: number) => {
                     const staffApts = getAppointmentsForStaff(member.id);
                     const color = getStaffColor(member);
 
                     return (
                       <div
                         key={member.id}
-                        className={filteredStaff.length === 1 ? "w-1/5 min-w-[180px] border-r" : "flex-1 min-w-[180px] border-r last:border-r-0"}
+                        className={filteredStaff.length === 1
+                          ? "w-1/5 min-w-[180px] border-x border-border/60"
+                          : `flex-1 min-w-[180px] border-r border-border/60${idx === 0 ? " border-l" : ""}`}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
                             <Avatar className="w-7 h-7">
