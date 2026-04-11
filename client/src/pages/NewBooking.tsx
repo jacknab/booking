@@ -13,6 +13,8 @@ import { useStaffList } from "@/hooks/use-staff";
 import { useCustomers } from "@/hooks/use-customers";
 import { useCreateAppointment } from "@/hooks/use-appointments";
 import { useAddonsForService, useSetAppointmentAddons, useServiceCategories } from "@/hooks/use-addons";
+import { useAvailableTime } from "@/hooks/use-available-time";
+import { AvailableTimeBanner } from "@/components/AvailableTimeBanner";
 import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
 import { getTimezoneAbbr, formatInTz, storeLocalToUtc, getNowInTimezone } from "@/lib/timezone";
@@ -46,6 +48,7 @@ export default function NewBooking() {
   const { data: customers } = useCustomers();
   const createAppointment = useCreateAppointment();
   const setAppointmentAddons = useSetAppointmentAddons();
+  const { data: editAvailableTimeData } = useAvailableTime(editAppointmentId);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   // Category order state (loaded from localStorage for display)
@@ -491,7 +494,10 @@ export default function NewBooking() {
                 <p className="text-xs text-muted-foreground" data-testid="text-extras-subheading">for {selectedService?.name}</p>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-6 space-y-5">
+              {editAppointmentId && editAvailableTimeData && (
+                <AvailableTimeBanner availableMinutes={editAvailableTimeData.availableMinutes} />
+              )}
               {addonsLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

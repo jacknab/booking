@@ -13,6 +13,8 @@ import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AvailableTimeBanner } from "@/components/AvailableTimeBanner";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
@@ -698,6 +700,16 @@ function AppointmentDetailsPanel({
   const dateStr = formatInTz(appointment.date, timezone, "EEEE, d MMM yyyy");
   const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
 
+  const { data: availableTimeData } = useQuery<{ availableMinutes: number }>({
+    queryKey: ["/api/appointments", appointment.id, "available-time"],
+    queryFn: async () => {
+      const res = await fetch(`/api/appointments/${appointment.id}/available-time`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch available time");
+      return res.json();
+    },
+    staleTime: 30 * 1000,
+  });
+
   const statusMap: Record<string, { label: string; variant: "destructive" | "secondary"; color: string }> = {
     pending: { label: "Booked", variant: "secondary", color: "#3b82f6" },
     confirmed: { label: "Booked", variant: "secondary", color: "#3b82f6" },
@@ -803,6 +815,10 @@ function AppointmentDetailsPanel({
             </div>
           )}
         </div>
+
+        {availableTimeData && (
+          <AvailableTimeBanner availableMinutes={availableTimeData.availableMinutes} />
+        )}
 
         {appointment.notes && (
           <div className="pt-2 border-t">

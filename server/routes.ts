@@ -694,6 +694,51 @@ export async function registerRoutes(
     }
   });
 
+  // === APPOINTMENT AVAILABLE TIME ===
+  app.get("/api/appointments/:id/available-time", async (req, res) => {
+    const appointmentId = Number(req.params.id);
+    const appointment = await storage.getAppointment(appointmentId);
+    if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+    if (!appointment.staffId) return res.json({ availableMinutes: 0 });
+
+    const appointmentEndMs = new Date(appointment.date).getTime() + appointment.duration * 60000;
+
+    const dayStart = new Date(appointment.date);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(appointment.date);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+
+    const dayAppointments = await storage.getAppointments({
+      from: dayStart,
+      to: dayEnd,
+      staffId: appointment.staffId,
+      storeId: appointment.storeId || undefined,
+    });
+
+    let nextStartMs: number | null = null;
+    for (const other of dayAppointments) {
+      if (other.id === appointmentId || other.status === "cancelled") continue;
+      const otherStartMs = new Date(other.date).getTime();
+      if (otherStartMs >= appointmentEndMs) {
+        if (nextStartMs === null || otherStartMs < nextStartMs) {
+          nextStartMs = otherStartMs;
+        }
+      }
+    }
+
+    let availableMinutes: number;
+    if (nextStartMs !== null) {
+      availableMinutes = Math.max(0, Math.floor((nextStartMs - appointmentEndMs) / 60000) - 5);
+    } else {
+      const eodMs = new Date(appointment.date);
+      eodMs.setUTCHours(20, 0, 0, 0);
+      availableMinutes = Math.max(0, Math.floor((eodMs.getTime() - appointmentEndMs) / 60000) - 5);
+    }
+
+    res.json({ availableMinutes });
+  });
+
   // === APPOINTMENT ADDONS ===
   app.get(api.appointmentAddons.forAppointment.path, async (req, res) => {
     const appointmentId = Number(req.params.id);
