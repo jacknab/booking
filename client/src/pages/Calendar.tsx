@@ -392,7 +392,7 @@ export default function Calendar() {
                   <div className="w-full" style={{ height: "3px", backgroundColor: "#2563eb" }} />
                 </div>
               )}
-              <div className="w-[72px] flex-shrink-0 bg-card z-30 sticky left-0">
+              <div className="w-[90px] flex-shrink-0 bg-card z-30 sticky left-0">
                 <div className="h-[60px] border-b sticky top-0 bg-card z-40" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
                   {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
