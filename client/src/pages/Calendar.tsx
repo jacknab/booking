@@ -395,7 +395,7 @@ export default function Calendar() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* Icon-only navigation sidebar */}
         <TooltipProvider delayDuration={200}>
-          <nav className="w-11 flex-shrink-0 border-r bg-card flex flex-col items-center py-2 gap-1 z-30">
+          <nav className="w-16 flex-shrink-0 border-r bg-card flex flex-col items-center py-3 gap-1.5 z-30">
             {calendarSidebarItems.map((item) => {
               const isActive = location.pathname === item.to;
               return (
@@ -404,13 +404,13 @@ export default function Calendar() {
                     <Link
                       to={item.to}
                       className={cn(
-                        "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+                        "flex items-center justify-center w-11 h-11 rounded-xl transition-colors",
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       )}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent side="right">{item.label}</TooltipContent>
