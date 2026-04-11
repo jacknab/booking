@@ -446,7 +446,7 @@ export default function Calendar() {
                     return (
                       <div
                         key={member.id}
-                        className="flex-none border-l border-border last:border-r"
+                        className="flex-none border-l-2 border-border last:border-r-2"
                         style={{
                           width: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                           minWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
