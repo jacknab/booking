@@ -426,7 +426,7 @@ export default function Calendar() {
                       style={{ top: `${timeLinePosition}px` }}
                       data-testid="current-time-label"
                     >
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm" style={{ color: "#fff", backgroundColor: "#2563eb" }}>
+                      <span className="text-[30px] font-bold px-[18px] py-[6px] rounded-md" style={{ color: "#fff", backgroundColor: "#2563eb" }}>
                         {timeLineLabel}
                       </span>
                     </div>
