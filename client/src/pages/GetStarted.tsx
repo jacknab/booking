@@ -44,6 +44,7 @@ const GROUPS = [
 export default function GetStarted() {
   return (
     <div className="min-h-screen bg-[#050C18] text-white font-['Plus_Jakarta_Sans',sans-serif]">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap');`}</style>
 
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050C18]/90 backdrop-blur-xl border-b border-white/8 h-16 flex items-center px-5 sm:px-8">
@@ -99,6 +100,48 @@ export default function GetStarted() {
                 />
                 {/* Dark overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628] via-[#0A1628]/30 to-transparent" />
+
+                {/* Booking card only: full glass + center strip */}
+                {g.key === "booking" && (
+                  <>
+                    {/* Full frosted glass over entire video */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backdropFilter: "blur(6px)",
+                        WebkitBackdropFilter: "blur(6px)",
+                        background: "rgba(255,255,255,0.04)",
+                      }}
+                    />
+                    {/* Center frosted strip */}
+                    <div
+                      className="absolute inset-x-0 flex items-center justify-center"
+                      style={{
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        padding: "20px 28px",
+                        backdropFilter: "blur(20px)",
+                        WebkitBackdropFilter: "blur(20px)",
+                        background: "rgba(5, 10, 22, 0.52)",
+                        borderTop: "1px solid rgba(255,255,255,0.11)",
+                        borderBottom: "1px solid rgba(255,255,255,0.11)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontSize: "26px",
+                          fontWeight: "500",
+                          color: "rgba(255,255,255,0.90)",
+                          letterSpacing: "0.06em",
+                        }}
+                      >
+                        Certxa Booking
+                      </span>
+                    </div>
+                  </>
+                )}
+
                 {/* Badge */}
                 <div className="absolute top-4 left-4">
                   <span
