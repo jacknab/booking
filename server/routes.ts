@@ -704,10 +704,21 @@ export async function registerRoutes(
 
     const appointmentEndMs = new Date(appointment.date).getTime() + appointment.duration * 60000;
 
-    const dayStart = new Date(appointment.date);
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayEnd = new Date(appointment.date);
-    dayEnd.setUTCHours(23, 59, 59, 999);
+    // Get store timezone for local-time calculations
+    const store = appointment.storeId ? await storage.getStore(appointment.storeId) : null;
+    const timezone = (store as any)?.timezone || "UTC";
+
+    // Determine day boundaries in local store time
+    const localApptDate = toZonedTime(new Date(appointment.date), timezone);
+    const dayOfWeek = localApptDate.getDay();
+
+    // Start = midnight local, End = 23:59:59 local (UTC equivalents)
+    const localMidnight = new Date(localApptDate);
+    localMidnight.setHours(0, 0, 0, 0);
+    const localEndOfDay = new Date(localApptDate);
+    localEndOfDay.setHours(23, 59, 59, 999);
+    const dayStart = fromZonedTime(localMidnight, timezone);
+    const dayEnd = fromZonedTime(localEndOfDay, timezone);
 
     const dayAppointments = await storage.getAppointments({
       from: dayStart,
@@ -716,6 +727,7 @@ export async function registerRoutes(
       storeId: appointment.storeId || undefined,
     });
 
+    // Find the next appointment starting at or after this one ends
     let nextStartMs: number | null = null;
     for (const other of dayAppointments) {
       if (other.id === appointmentId || other.status === "cancelled") continue;
@@ -729,11 +741,18 @@ export async function registerRoutes(
 
     let availableMinutes: number;
     if (nextStartMs !== null) {
+      // Gap to next appointment minus 5-minute buffer
       availableMinutes = Math.max(0, Math.floor((nextStartMs - appointmentEndMs) / 60000) - 5);
     } else {
-      const eodMs = new Date(appointment.date);
-      eodMs.setUTCHours(20, 0, 0, 0);
-      availableMinutes = Math.max(0, Math.floor((eodMs.getTime() - appointmentEndMs) / 60000) - 5);
+      // Use store's business close time for this day of week
+      const storeHours = appointment.storeId ? await storage.getBusinessHours(appointment.storeId) : [];
+      const dayHours = storeHours.find((h: any) => h.dayOfWeek === dayOfWeek);
+      const closeTimeStr = dayHours?.closeTime || "22:00";
+      const [closeH, closeM] = closeTimeStr.split(":").map(Number);
+      const localClose = new Date(localApptDate);
+      localClose.setHours(closeH, closeM, 0, 0);
+      const eodMs = fromZonedTime(localClose, timezone).getTime();
+      availableMinutes = Math.max(0, Math.floor((eodMs - appointmentEndMs) / 60000) - 5);
     }
 
     res.json({ availableMinutes });
