@@ -633,63 +633,40 @@ export default function NewBooking() {
                   data-testid="calendar-date-picker"
                 />
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Staff Preference</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={staffMode === "any" ? "default" : "outline"}
-                      className="flex-1 gap-1.5"
-                      onClick={() => handleStaffModeChange("any")}
-                      data-testid="button-staff-any"
-                    >
-                      <Users className="w-4 h-4" />
-                      Any Staff
-                    </Button>
-                    <Button
-                      variant={staffMode === "specific" ? "default" : "outline"}
-                      className="flex-1 gap-1.5"
-                      onClick={() => handleStaffModeChange("specific")}
-                      data-testid="button-staff-specific"
-                    >
-                      <User className="w-4 h-4" />
-                      Specific
-                    </Button>
+                {staffMode === "specific" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Select Staff</Label>
+                    {staffList?.map((member: Staff) => (
+                      <button
+                        key={member.id}
+                        onClick={() => handleSpecificStaffSelect(member.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-2.5 rounded-md text-left transition-colors",
+                          specificStaffId === member.id
+                            ? "bg-primary/10 ring-1 ring-primary"
+                            : "hover-elevate"
+                        )}
+                        data-testid={`button-select-staff-${member.id}`}
+                      >
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback
+                            style={{ backgroundColor: (member.color || "#3b82f6") + "22", color: member.color || "#3b82f6" }}
+                            className="text-xs font-bold"
+                          >
+                            {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">{member.role}</p>
+                        </div>
+                        {specificStaffId === member.id && (
+                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
                   </div>
-
-                  {staffMode === "specific" && (
-                    <div className="space-y-2">
-                      {staffList?.map((member: Staff) => (
-                        <button
-                          key={member.id}
-                          onClick={() => handleSpecificStaffSelect(member.id)}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-2.5 rounded-md text-left transition-colors",
-                            specificStaffId === member.id
-                              ? "bg-primary/10 ring-1 ring-primary"
-                              : "hover-elevate"
-                          )}
-                          data-testid={`button-select-staff-${member.id}`}
-                        >
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback
-                              style={{ backgroundColor: (member.color || "#3b82f6") + "22", color: member.color || "#3b82f6" }}
-                              className="text-xs font-bold"
-                            >
-                              {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{member.name}</p>
-                            <p className="text-xs text-muted-foreground">{member.role}</p>
-                          </div>
-                          {specificStaffId === member.id && (
-                            <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {!selectedCustomer && (
                   <div className="space-y-2">
@@ -723,7 +700,7 @@ export default function NewBooking() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="p-4 border-b bg-card flex items-center justify-between gap-2 flex-wrap">
+              <div className="p-4 border-b bg-card flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-muted-foreground" />
                   <span className="font-semibold">
@@ -732,9 +709,31 @@ export default function NewBooking() {
                       : "Select a date"}
                   </span>
                 </div>
-                <Badge variant="secondary" className="no-default-active-elevate text-xs">
-                  {tzAbbr} &middot; {timezone}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={staffMode === "any" ? "default" : "outline"}
+                    className="gap-1.5 h-8 px-3 text-xs"
+                    onClick={() => handleStaffModeChange("any")}
+                    data-testid="button-staff-any"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Any Staff
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={staffMode === "specific" ? "default" : "outline"}
+                    className="gap-1.5 h-8 px-3 text-xs"
+                    onClick={() => handleStaffModeChange("specific")}
+                    data-testid="button-staff-specific"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    Specific
+                  </Button>
+                  <Badge variant="secondary" className="no-default-active-elevate text-xs">
+                    {tzAbbr} &middot; {timezone}
+                  </Badge>
+                </div>
               </div>
 
               <div className="p-6">
@@ -765,7 +764,8 @@ export default function NewBooking() {
                     </p>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                       {slots.map((slot) => {
-                        const timeLabel = formatInTz(slot.time, timezone, "h:mm a");
+                        const timePart = formatInTz(slot.time, timezone, "h:mm");
+                        const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
                         const isSelected = selectedSlot?.time === slot.time;
 
                         return (
@@ -776,17 +776,21 @@ export default function NewBooking() {
                               setSelectedStaff(staffList?.find((s: Staff) => s.id === slot.staffId) || null);
                             }}
                             className={cn(
-                              "flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-md border text-sm transition-colors",
+                              "flex flex-col items-center justify-center gap-0 px-3 py-3 rounded-md border text-sm transition-colors",
                               isSelected
                                 ? "bg-primary text-primary-foreground border-primary"
                                 : "hover-elevate"
                             )}
                             data-testid={`button-slot-${slot.time}`}
                           >
-                            <span className="font-semibold">{timeLabel}</span>
+                            <span className="font-semibold leading-tight">{timePart}</span>
+                            <span className={cn(
+                              "text-[11px] font-medium leading-tight",
+                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                            )}>{periodPart}</span>
                             {staffMode === "specific" && (
                               <span className={cn(
-                                "text-[10px] truncate max-w-full",
+                                "text-[10px] truncate max-w-full mt-0.5",
                                 isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
                               )}>
                                 {slot.staffName}
