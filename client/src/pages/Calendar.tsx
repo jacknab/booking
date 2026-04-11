@@ -433,7 +433,7 @@ export default function Calendar() {
                 </div>
               )}
               <div className="w-[90px] flex-shrink-0 bg-card z-30 sticky left-0">
-                <div className="h-[60px] border-b sticky top-0 bg-card z-40" />
+                <div className="h-[80px] border-b sticky top-0 bg-card z-40" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
                   {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
                     const totalMins = i * 15;
@@ -496,7 +496,7 @@ export default function Calendar() {
                           maxWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                         }}
                       >
-                          <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
+                          <div className="h-[80px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
                             <Avatar className="w-10 h-10">
                               {member.avatarUrl && (
                                 <AvatarImage src={member.avatarUrl} alt={member.name} className="object-cover" />
@@ -673,7 +673,7 @@ export default function Calendar() {
                       </div>
                     );
                   })}
-                  <div className="flex-1 sticky top-0 h-[60px] bg-card border-b z-[5] self-start" />
+                  <div className="flex-1 sticky top-0 h-[80px] bg-card border-b z-[5] self-start" />
                   </>
                 )}
               </div>
