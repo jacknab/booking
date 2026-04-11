@@ -18,7 +18,7 @@ import { AvailableTimeBanner } from "@/components/AvailableTimeBanner";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
-const HOUR_HEIGHT = 360;
+const HOUR_HEIGHT = 180;
 const STAFF_CALENDAR_COLUMN_WIDTH = 180;
 const CALENDAR_COLUMN_SEPARATOR_COLOR = "#d9e2ea";
 const DEFAULT_BUSINESS_START = 9;
