@@ -340,8 +340,8 @@ export default function NewBooking() {
                       className={cn(
                         "w-full text-left px-5 py-3 text-sm font-semibold font-display transition-colors flex items-center gap-2",
                         activeCategory === cat
-                          ? "text-foreground border-l-[3px] border-gray-900 bg-gray-200/60"
-                          : "text-gray-500 border-l-[3px] border-transparent hover:text-foreground hover:bg-gray-100"
+                          ? "text-gray-900 border-l-[3px] border-gray-900 bg-gray-200/60"
+                          : "text-gray-700 border-l-[3px] border-transparent hover:text-gray-900 hover:bg-gray-100"
                       )}
                       data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
                     >
