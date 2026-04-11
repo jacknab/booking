@@ -16,7 +16,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
-const HOUR_HEIGHT = 480;
+const HOUR_HEIGHT = 360;
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
 
@@ -436,7 +436,7 @@ export default function Calendar() {
                       <div
                         key={member.id}
                         className={filteredStaff.length === 1
-                          ? "w-1/5 min-w-[180px] border-x border-border/60"
+                          ? "w-[14%] min-w-[160px] border-x border-border/60"
                           : `flex-1 min-w-[180px] border-r border-border/60${idx === 0 ? " border-l" : ""}`}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
