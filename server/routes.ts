@@ -1109,17 +1109,20 @@ If you have any questions, please contact your administrator.
       const businessEndUtc = fromZonedTime(new Date(`${date}T${String(closeHour).padStart(2, "0")}:${String(closeMin).padStart(2, "0")}:00`), tz);
       const nowUtc = new Date();
 
-      for (let hour = openHour; hour < closeHour; hour++) {
+      for (let hour = openHour; hour <= closeHour; hour++) {
         for (let min = 0; min < 60; min += slotInterval) {
           // Skip slots before opening time on the first hour
           if (hour === openHour && min < openMin) {
             continue;
           }
-          // Skip slots at or after closing time on the last hour
-          if (hour === closeHour - 1 && min >= closeMin) {
-            continue;
+          // Stop once we've passed the closing hour
+          if (hour === closeHour && min >= closeMin) {
+            break;
           }
-          
+          if (hour > closeHour) {
+            break;
+          }
+
           const slotStart = fromZonedTime(new Date(`${date}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`), tz);
           const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
@@ -1127,6 +1130,7 @@ If you have any questions, please contact your administrator.
             continue;
           }
 
+          // Slot must finish by closing time
           if (slotEnd > businessEndUtc) {
             continue;
           }
@@ -1157,15 +1161,16 @@ If you have any questions, please contact your administrator.
                 const dayAvailability = staffAvailRules.find(r => r.dayOfWeek === slotDayOfWeek);
                 
                 if (dayAvailability) {
-                  const [slotHour, slotMin] = [hour, min];
                   const [availStartHour, availStartMin] = dayAvailability.startTime.split(":").map(Number);
                   const [availEndHour, availEndMin] = dayAvailability.endTime.split(":").map(Number);
-                  
-                  const slotTimeInMin = slotHour * 60 + slotMin;
-                  const slotEndTimeInMin = slotEnd.getHours() * 60 + slotEnd.getMinutes();
+
+                  const slotTimeInMin = hour * 60 + min;
+                  // Convert slotEnd (UTC) to store-local time before extracting hours/minutes
+                  const slotEndLocal = toZonedTime(slotEnd, tz);
+                  const slotEndTimeInMin = slotEndLocal.getHours() * 60 + slotEndLocal.getMinutes();
                   const availStartInMin = availStartHour * 60 + availStartMin;
                   const availEndInMin = availEndHour * 60 + availEndMin;
-                  
+
                   // Check if slot falls outside staff availability
                   if (slotTimeInMin < availStartInMin || slotEndTimeInMin > availEndInMin) {
                     hasConflict = true;
