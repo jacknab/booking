@@ -157,6 +157,11 @@ export default function NewBooking() {
           });
 
           setEditInitialized(true);
+
+          // If appointment already has addons, open directly on the addons step
+          if (apt.appointmentAddons && apt.appointmentAddons.length > 0) {
+            setStep("addons");
+          }
         })
         .catch(() => {});
     }
@@ -262,6 +267,14 @@ export default function NewBooking() {
     } else {
       setStep("details");
     }
+  };
+
+  const handleSaveEdit = () => {
+    if (!editAppointmentId) return;
+    setAppointmentAddons.mutate(
+      { appointmentId: editAppointmentId, addonIds: selectedAddons.map(a => a.id) },
+      { onSuccess: () => navigate("/calendar") }
+    );
   };
 
   const handleDateChange = (date: Date | undefined) => {
@@ -426,17 +439,38 @@ export default function NewBooking() {
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
             footerContent={
-              <Button
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
-                onClick={handleContinueToAddons}
-                disabled={!selectedService}
-                data-testid="button-request-booking"
-              >
-                <span className="flex flex-col items-center leading-tight">
-                  <span className="font-semibold">Request Booking</span>
-                  <span className="text-[10px] opacity-80">{totalDuration} min</span>
-                </span>
-              </Button>
+              editAppointmentId ? (
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 border-2 border-gray-400 text-gray-800 font-semibold hover:bg-gray-50"
+                    onClick={() => navigate("/calendar")}
+                    data-testid="button-edit-checkout"
+                  >
+                    Checkout
+                  </Button>
+                  <Button
+                    className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold"
+                    onClick={handleSaveEdit}
+                    disabled={setAppointmentAddons.isPending}
+                    data-testid="button-save-edit"
+                  >
+                    {setAppointmentAddons.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
+                  onClick={handleContinueToAddons}
+                  disabled={!selectedService}
+                  data-testid="button-request-booking"
+                >
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="font-semibold">Request Booking</span>
+                    <span className="text-[10px] opacity-80">{totalDuration} min</span>
+                  </span>
+                </Button>
+              )
             }
           />
         </>
@@ -530,16 +564,37 @@ export default function NewBooking() {
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
             footerContent={
-              <Button
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
-                onClick={handleContinueToDetails}
-                data-testid="button-request-booking-addons"
-              >
-                <span className="flex flex-col items-center leading-tight">
-                  <span className="font-semibold">Request Booking</span>
-                  <span className="text-[10px] opacity-80">{totalDuration} min</span>
-                </span>
-              </Button>
+              editAppointmentId ? (
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 border-2 border-gray-400 text-gray-800 font-semibold hover:bg-gray-50"
+                    onClick={() => navigate("/calendar")}
+                    data-testid="button-edit-checkout-addons"
+                  >
+                    Checkout
+                  </Button>
+                  <Button
+                    className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold"
+                    onClick={handleSaveEdit}
+                    disabled={setAppointmentAddons.isPending}
+                    data-testid="button-save-edit-addons"
+                  >
+                    {setAppointmentAddons.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
+                  onClick={handleContinueToDetails}
+                  data-testid="button-request-booking-addons"
+                >
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="font-semibold">Request Booking</span>
+                    <span className="text-[10px] opacity-80">{totalDuration} min</span>
+                  </span>
+                </Button>
+              )
             }
           />
         </>
