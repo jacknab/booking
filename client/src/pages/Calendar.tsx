@@ -381,11 +381,11 @@ export default function Calendar() {
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
                 <div
-                  className="absolute right-0 z-[10] pointer-events-none"
-                  style={{ top: `${timeLinePosition + 60}px`, left: "72px" }}
+                  className="absolute right-0 left-0 z-[10] pointer-events-none"
+                  style={{ top: `${timeLinePosition + 60}px` }}
                   data-testid="current-time-line-full"
                 >
-                  <div className="w-full" style={{ height: "2px", backgroundColor: "#2563eb" }} />
+                  <div className="w-full" style={{ height: "3px", backgroundColor: "#2563eb" }} />
                 </div>
               )}
               <div className="w-[72px] flex-shrink-0 border-r bg-card z-30 sticky left-0">
@@ -445,8 +445,8 @@ export default function Calendar() {
                       <div
                         key={member.id}
                         className={filteredStaff.length === 1
-                          ? "w-[14%] min-w-[160px] border-x border-border/60"
-                          : `flex-1 min-w-[180px] border-r border-border/60${idx === 0 ? " border-l" : ""}`}
+                          ? "w-[14%] min-w-[160px] border-x border-border"
+                          : `flex-1 min-w-[180px] border-r border-border${idx === 0 ? " border-l" : ""}`}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
                             <Avatar className="w-7 h-7">
@@ -463,7 +463,7 @@ export default function Calendar() {
                           </div>
 
                         <div
-                          className="relative"
+                          className="relative bg-slate-50"
                           style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
                         >
                           {timeSlots.map((slot) => {
@@ -481,7 +481,7 @@ export default function Calendar() {
                               <div
                                 key={`${slot.hour}-${slot.minute}`}
                                 className={cn(
-                                  "absolute left-0 right-0 border-b-[6px] cursor-pointer transition-colors border-border/60",
+                                  "absolute left-0 right-0 border-b-[6px] cursor-pointer transition-colors border-border",
                                   isSlotSelected
                                     ? "bg-blue-100 dark:bg-blue-950/60"
                                     : "hover:bg-primary/5"
