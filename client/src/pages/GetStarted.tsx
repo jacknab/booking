@@ -44,7 +44,7 @@ const GROUPS = [
 export default function GetStarted() {
   return (
     <div className="min-h-screen bg-[#050C18] text-white font-['Plus_Jakarta_Sans',sans-serif]">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300&display=swap');`}</style>
 
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050C18]/90 backdrop-blur-xl border-b border-white/8 h-16 flex items-center px-5 sm:px-8">
@@ -129,11 +129,11 @@ export default function GetStarted() {
                     >
                       <span
                         style={{
-                          fontFamily: "'Raleway', sans-serif",
-                          fontSize: "15px",
-                          fontWeight: "200",
+                          fontFamily: "'Josefin Sans', sans-serif",
+                          fontSize: "14px",
+                          fontWeight: "100",
                           color: "rgba(255,255,255,0.82)",
-                          letterSpacing: "0.18em",
+                          letterSpacing: "0.22em",
                         }}
                       >
                         Certxa Booking
