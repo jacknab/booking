@@ -328,12 +328,9 @@ export default function NewBooking() {
       {step === "services" && (
         <>
           <div className="flex flex-1 overflow-hidden">
-            <div className="w-[180px] flex-shrink-0 border-r bg-card flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.1)] z-10">
-              <div className="p-4 border-b flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")} data-testid="button-back-calendar">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <span className="font-semibold text-lg">Services</span>
+            <div className="w-[180px] flex-shrink-0 border-r bg-gray-50 flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.1)] z-10">
+              <div className="px-5 py-4 border-b">
+                <span className="font-bold text-lg tracking-tight font-display">Services</span>
               </div>
               <nav className="flex-1 overflow-y-auto py-2">
                 {categoryNames.map((cat) => (
@@ -341,10 +338,10 @@ export default function NewBooking() {
                     <button
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "w-full text-left px-5 py-3 text-sm font-medium transition-colors flex items-center gap-2",
+                        "w-full text-left px-5 py-3 text-sm font-semibold font-display transition-colors flex items-center gap-2",
                         activeCategory === cat
-                          ? "text-primary border-l-[3px] border-primary bg-primary/5"
-                          : "text-muted-foreground border-l-[3px] border-transparent"
+                          ? "text-foreground border-l-[3px] border-gray-900 bg-gray-200/60"
+                          : "text-gray-500 border-l-[3px] border-transparent hover:text-foreground hover:bg-gray-100"
                       )}
                       data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
                     >
