@@ -769,39 +769,35 @@ function AppointmentDetailsPanel({
           <div className="h-full rounded-full" style={{ width: "100%", backgroundColor: progressColor }} />
         </div>
 
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h4 className="font-semibold text-sm" data-testid="text-detail-service">{appointment.service?.name || "Service"}</h4>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted-foreground">{appointment.service?.duration || appointment.duration} min</span>
-                {appointment.staff && (
-                  <>
-                    <span className="text-xs text-muted-foreground">&middot;</span>
-                    <Badge variant="outline" className="no-default-active-elevate text-[10px] px-1.5" data-testid="badge-detail-staff">
-                      {appointment.staff.name}
-                    </Badge>
-                  </>
-                )}
-              </div>
+        <div className="space-y-2 mt-[25px]">
+          {/* Staff tag above service line */}
+          {appointment.staff && (
+            <Badge variant="outline" className="no-default-active-elevate text-[10px] px-1.5" data-testid="badge-detail-staff">
+              {appointment.staff.name}
+            </Badge>
+          )}
+
+          {/* Service row: name · duration on left, price on right */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h4 className="font-semibold text-sm truncate" data-testid="text-detail-service">{appointment.service?.name || "Service"}</h4>
+              <span className="text-xs text-muted-foreground flex-shrink-0">({appointment.service?.duration || appointment.duration}m)</span>
             </div>
-            <span className="font-semibold text-sm" data-testid="text-detail-price">
+            <span className="text-sm font-normal text-gray-800" data-testid="text-detail-price">
               ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
             </span>
           </div>
 
+          {/* Addons — same font size as service */}
           {aptAddons.length > 0 && (
             <div className="space-y-1.5 pl-3 border-l-2 border-muted" data-testid="detail-addons-list">
               {aptAddons.map((addon: any) => (
                 <div key={addon.id} className="flex items-center justify-between gap-2" data-testid={`detail-addon-${addon.id}`}>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">+</span>
-                    <span className="text-xs font-medium">{addon.name}</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-sm font-medium truncate">+ {addon.name}</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">({addon.duration}m)</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{addon.duration} min</span>
-                    <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
-                  </div>
+                  <span className="text-sm font-normal text-gray-800">${Number(addon.price).toFixed(2)}</span>
                 </div>
               ))}
             </div>
