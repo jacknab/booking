@@ -411,7 +411,7 @@ export default function NewBooking() {
             isCalendarBooking={isCalendarBooking}
             footerContent={
               <Button
-                className="w-full bg-pink-500 text-white h-12"
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
                 onClick={handleContinueToAddons}
                 disabled={!selectedService}
                 data-testid="button-request-booking"
@@ -514,7 +514,7 @@ export default function NewBooking() {
             isCalendarBooking={isCalendarBooking}
             footerContent={
               <Button
-                className="w-full bg-pink-500 text-white h-12"
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
                 onClick={handleContinueToDetails}
                 data-testid="button-request-booking-addons"
               >
@@ -905,10 +905,10 @@ function BookingSummaryPanel({
   const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   return (
-    <div className="w-[320px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="booking-summary-panel">
+    <div className="w-[420px] flex-shrink-0 border-l bg-card flex flex-col" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
-        <Avatar className="w-8 h-8">
-          <AvatarFallback className="text-xs font-bold bg-muted">
+        <Avatar className="w-10 h-10">
+          <AvatarFallback className="text-sm font-bold bg-slate-200 text-slate-700">
             {selectedCustomer ? selectedCustomer.name.slice(0, 1).toUpperCase() : "W"}
           </AvatarFallback>
         </Avatar>
@@ -917,7 +917,7 @@ function BookingSummaryPanel({
             <div className="flex items-center gap-2">
               <Link
                 to={`/client/${selectedCustomer.id}`}
-                className="text-sm font-medium text-primary underline-offset-4 hover:underline cursor-pointer"
+                className="text-xl font-bold text-foreground underline-offset-4 hover:underline cursor-pointer"
                 data-testid="link-client-profile"
               >
                 {selectedCustomer.name}
