@@ -260,6 +260,7 @@ Sidebar uses grouped `navGroups` structure (OVERVIEW / CLIENTS / BUSINESS / FINA
 
 ### Build & Run
 - **Dev**: `npm run dev` — runs tsx with Vite dev middleware
+- **Replit Preview**: development runs on `PORT=5000` and binds to `0.0.0.0`
 - **Build**: `npm run build` — Vite builds client to `dist/public`, esbuild bundles server to `dist/index.cjs`
 - **Production**: `npm start` — runs the bundled `dist/index.cjs`
 - **DB Push**: `npm run db:push` — pushes schema changes to PostgreSQL

@@ -193,7 +193,7 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  const port = parseInt(process.env.PORT || "5005", 10);
+  const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
       port,
