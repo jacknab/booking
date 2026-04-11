@@ -1,9 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import type { SeoRegion } from "@shared/schema";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const REGIONS_DIR = path.join(__dirname, "../client/public/regions");
 
