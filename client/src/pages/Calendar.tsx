@@ -815,7 +815,6 @@ function AppointmentDetailsPanel({
         <div className="flex items-center justify-between">
           <div>
             <span className="font-semibold">Total</span>
-            <p className="text-xs text-muted-foreground">{appointment.duration} min</p>
           </div>
           <div className="text-right">
             <span className="font-bold text-lg" data-testid="text-detail-total">
@@ -829,7 +828,7 @@ function AppointmentDetailsPanel({
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 border-2 border-gray-400 text-gray-800 hover:border-gray-600 hover:bg-gray-50 font-semibold"
                 onClick={onEdit}
                 data-testid="button-edit-appointment"
               >
