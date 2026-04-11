@@ -399,7 +399,7 @@ export default function Calendar() {
                     const isHour = m === 0;
                     const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
                     const ampm = h >= 12 ? "PM" : "AM";
-                    const label = h === 0 ? `12:${String(m).padStart(2, "0")} AM` : h === 12 ? `12:${String(m).padStart(2, "0")} PM` : `${displayH}:${String(m).padStart(2, "0")} ${ampm}`;
+                    const timePart = h === 0 ? `12:${String(m).padStart(2, "0")}` : h === 12 ? `12:${String(m).padStart(2, "0")}` : `${displayH}:${String(m).padStart(2, "0")}`;
                     const topPx = (totalMins / 60) * HOUR_HEIGHT;
                     const slotHeight = HOUR_HEIGHT / 4;
                     return (
@@ -408,8 +408,9 @@ export default function Calendar() {
                         className="absolute left-0 right-0 flex items-center justify-end pr-2"
                         style={{ top: `${topPx}px`, height: `${slotHeight}px` }}
                       >
-                        <span className="text-xs font-bold text-foreground/75">
-                          {label}
+                        <span className="flex items-baseline gap-0.5">
+                          <span className="text-sm font-bold text-foreground">{timePart}</span>
+                          <span className="text-[9px] font-semibold text-foreground/60">{ampm}</span>
                         </span>
                       </div>
                     );
