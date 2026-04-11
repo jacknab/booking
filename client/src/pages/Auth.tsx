@@ -260,7 +260,7 @@ export default function Auth() {
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
                     placeholder="Jane"
-                    className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-white/40 h-12 rounded-xl"
+                    className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -271,7 +271,7 @@ export default function Auth() {
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
                     placeholder="Doe"
-                    className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-white/40 h-12 rounded-xl"
+                    className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
                   />
                 </div>
               </div>
@@ -287,7 +287,7 @@ export default function Auth() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
                 required
-                className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-white/40 h-12 rounded-xl"
+                className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
               />
             </div>
 

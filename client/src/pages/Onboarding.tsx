@@ -455,7 +455,7 @@ export default function Onboarding() {
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="e.g. Bella's Hair Studio"
                     autoFocus
-                    className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl"
+                    className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl"
                   />
                 </div>
 
@@ -468,7 +468,7 @@ export default function Onboarding() {
                     value={email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="e.g. info@bellashair.com"
-                    className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${emailError ? "border-red-500/50" : ""}`}
+                    className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${emailError ? "border-red-500/50" : ""}`}
                   />
                   {emailError && <p className="text-xs text-red-400 mt-1">{emailError}</p>}
                   <p className="text-xs text-white/30">Used for booking confirmations and customer contact</p>
@@ -482,7 +482,7 @@ export default function Onboarding() {
                     value={address}
                     onChange={(e) => handleAddressChange(e.target.value)}
                     placeholder="e.g. 123 Main St"
-                    className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${addressError ? "border-red-500/50" : ""}`}
+                    className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${addressError ? "border-red-500/50" : ""}`}
                   />
                   {addressError && <p className="text-xs text-red-400 mt-1">{addressError}</p>}
                 </div>
@@ -496,7 +496,7 @@ export default function Onboarding() {
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="New York"
-                      className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl"
+                      className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -524,7 +524,7 @@ export default function Onboarding() {
                       placeholder="10001"
                       inputMode="numeric"
                       maxLength={5}
-                      className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${postcodeError ? "border-red-500/50" : ""}`}
+                      className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${postcodeError ? "border-red-500/50" : ""}`}
                     />
                     {postcodeError && <p className="text-xs text-red-400 mt-1">{postcodeError}</p>}
                   </div>
@@ -541,7 +541,7 @@ export default function Onboarding() {
                     placeholder="(555) 123-4567"
                     inputMode="numeric"
                     maxLength={10}
-                    className={`bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl ${phoneError ? "border-red-500/50" : ""}`}
+                    className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${phoneError ? "border-red-500/50" : ""}`}
                   />
                   {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
                 </div>
@@ -681,7 +681,7 @@ export default function Onboarding() {
                       placeholder={i === 0 ? "Your name / Owner" : `Staff member ${i + 1}`}
                       data-testid={`input-staff-name-${i}`}
                       autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
-                      className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-[#00D4AA]/50 h-11 rounded-xl"
+                      className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl"
                     />
                   </div>
                 ))}
