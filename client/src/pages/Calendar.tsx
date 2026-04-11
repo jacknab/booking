@@ -410,7 +410,7 @@ export default function Calendar() {
                         className="absolute left-0 right-0 flex items-center justify-end pr-2"
                         style={{ top: `${topPx}px`, height: `${slotHeight}px` }}
                       >
-                        <span className={isHour ? "text-xs font-bold text-foreground/90" : "text-[10px] font-medium text-foreground/55"}>
+                        <span className="text-xs font-medium text-foreground/75">
                           {label}
                         </span>
                       </div>
