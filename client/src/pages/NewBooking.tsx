@@ -1011,43 +1011,26 @@ function BookingSummaryPanel({
           >
             <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
               <div className="flex-1">
-                <h4 className="font-semibold text-sm" data-testid="text-summary-service">{selectedService.name}</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {selectedService.duration} min
-                  {selectedStaff && (
-                    <> &middot; <Badge variant="outline" className="no-default-active-elevate text-[10px] px-1.5 py-0 ml-0.5">{selectedStaff.name}</Badge></>
-                  )}
-                </p>
+                <h4 className="font-bold text-base leading-snug" data-testid="text-summary-service">
+                  {selectedService.name} <span className="font-medium text-sm text-muted-foreground">({selectedService.duration}m)</span>
+                </h4>
+                {selectedStaff && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    <Badge variant="outline" className="no-default-active-elevate text-[10px] px-1.5 py-0">{selectedStaff.name}</Badge>
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm" data-testid="text-summary-service-price">${Number(selectedService.price).toFixed(2)}</span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onRemoveService(); }}
-                  className="text-muted-foreground"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
+              <span className="font-bold text-base" data-testid="text-summary-service-price">${Number(selectedService.price).toFixed(2)}</span>
             </div>
 
             {selectedAddons.length > 0 && (
               <div className="px-4 pb-3 space-y-1.5 border-t border-dashed border-gray-300">
                 {selectedAddons.map((addon) => (
                   <div key={addon.id} className="flex items-center justify-between gap-2 pt-2" data-testid={`summary-addon-${addon.id}`}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted-foreground">+</span>
-                      <span className="text-xs font-medium">{addon.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{addon.duration} min</span>
-                      <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onRemoveAddon(addon.id); }}
-                        className="text-muted-foreground"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
+                    <span className="text-sm font-semibold text-gray-800">
+                      + {addon.name} <span className="font-medium text-muted-foreground">({addon.duration}m)</span>
+                    </span>
+                    <span className="text-sm font-bold text-gray-800">${Number(addon.price).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
