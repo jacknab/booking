@@ -399,9 +399,7 @@ export default function Calendar() {
                     const isHour = m === 0;
                     const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
                     const ampm = h >= 12 ? "PM" : "AM";
-                    const label = isHour
-                      ? (h === 0 ? "12 AM" : h === 12 ? "12 PM" : `${displayH}:00 ${ampm}`)
-                      : `${displayH}:${String(m).padStart(2, "0")}`;
+                    const label = h === 0 ? `12:${String(m).padStart(2, "0")} AM` : h === 12 ? `12:${String(m).padStart(2, "0")} PM` : `${displayH}:${String(m).padStart(2, "0")} ${ampm}`;
                     const topPx = (totalMins / 60) * HOUR_HEIGHT;
                     const slotHeight = HOUR_HEIGHT / 4;
                     return (
