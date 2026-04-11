@@ -287,7 +287,7 @@ export default function Calendar() {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background">
+    <div className="h-screen w-full overflow-x-hidden flex flex-col bg-background">
       <div className="flex items-center justify-between gap-2 flex-wrap py-2 px-3 border-b bg-card" data-testid="calendar-header">
         <div className="flex items-center gap-2">
           <Link to="/dashboard">
