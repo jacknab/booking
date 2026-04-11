@@ -18,7 +18,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { getTimezoneAbbr, formatInTz, storeLocalToUtc, getNowInTimezone } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer, AlertCircle } from "lucide-react";
+import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer, AlertCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
 
@@ -422,6 +422,7 @@ export default function NewBooking() {
             onSetCustomer={setSelectedCustomer}
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
+            onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
             footerContent={
@@ -525,6 +526,7 @@ export default function NewBooking() {
             onSetCustomer={setSelectedCustomer}
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
+            onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
             footerContent={
@@ -746,6 +748,7 @@ export default function NewBooking() {
             onSetCustomer={setSelectedCustomer}
             onRemoveService={handleRemoveService}
             onRemoveAddon={handleRemoveAddon}
+            onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
             footerContent={
@@ -930,6 +933,7 @@ function BookingSummaryPanel({
   onSetCustomer,
   onRemoveService,
   onRemoveAddon,
+  onEditAddons,
   footerContent,
   availableMinutes,
   isCalendarBooking,
@@ -944,6 +948,7 @@ function BookingSummaryPanel({
   onSetCustomer: (c: Customer | null) => void;
   onRemoveService: () => void;
   onRemoveAddon: (id: number) => void;
+  onEditAddons?: () => void;
   footerContent: React.ReactNode;
   availableMinutes?: number | null;
   isCalendarBooking?: boolean;
@@ -959,20 +964,25 @@ function BookingSummaryPanel({
             {selectedCustomer ? selectedCustomer.name.slice(0, 1).toUpperCase() : "W"}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {selectedCustomer ? (
-            <div className="flex items-center gap-2">
-              <Link
-                to={`/client/${selectedCustomer.id}`}
-                className="text-xl font-bold text-foreground underline-offset-4 hover:underline cursor-pointer"
-                data-testid="link-client-profile"
-              >
-                {selectedCustomer.name}
-              </Link>
-              <button onClick={() => onSetCustomer(null)} className="text-muted-foreground">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/client/${selectedCustomer.id}`}
+                  className="text-xl font-bold text-foreground underline-offset-4 hover:underline cursor-pointer truncate"
+                  data-testid="link-client-profile"
+                >
+                  {selectedCustomer.name}
+                </Link>
+                <button onClick={() => onSetCustomer(null)} className="text-muted-foreground flex-shrink-0">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              {selectedCustomer.phone && (
+                <p className="text-xs text-muted-foreground mt-0.5">{selectedCustomer.phone}</p>
+              )}
+            </>
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium" data-testid="text-walk-in">Walk-In</span>
@@ -992,6 +1002,15 @@ function BookingSummaryPanel({
             </div>
           )}
         </div>
+        {highlightedServiceId !== null && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemoveService(); setHighlightedServiceId(null); }}
+            className="flex-shrink-0 p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+            data-testid="button-remove-service-trash"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -1003,11 +1022,15 @@ function BookingSummaryPanel({
                 ? "bg-yellow-100 border-yellow-300"
                 : "bg-gray-50 hover:bg-yellow-50"
             )}
-            onClick={() =>
-              setHighlightedServiceId(
-                highlightedServiceId === selectedService.id ? null : selectedService.id
-              )
-            }
+            onClick={() => {
+              if (selectedAddons.length > 0 && onEditAddons) {
+                onEditAddons();
+              } else {
+                setHighlightedServiceId(
+                  highlightedServiceId === selectedService.id ? null : selectedService.id
+                );
+              }
+            }}
           >
             <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
               <div className="flex-1">
