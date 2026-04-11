@@ -92,8 +92,16 @@ const defaultHours = dayNames.map((_, i) => ({
   dayOfWeek: i,
   openTime: "09:00",
   closeTime: "17:00",
-  isClosed: i === 0,
+  isClosed: true,
 }));
+
+function formatTime(t: string): string {
+  const [hStr, mStr] = t.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${mStr} ${ampm}`;
+}
 
 const staffColors = ["#f472b6", "#a78bfa", "#60a5fa", "#34d399", "#fbbf24", "#f87171", "#818cf8", "#fb923c", "#2dd4bf", "#e879f9"];
 
@@ -216,6 +224,9 @@ export default function Onboarding() {
   const [emailError, setEmailError] = useState("");
   const [timezone, setTimezone] = useState(() => detectTimezone());
   const [hours, setHours] = useState(defaultHours);
+  const [addOpenTime, setAddOpenTime] = useState("09:00");
+  const [addCloseTime, setAddCloseTime] = useState("17:00");
+  const [addDays, setAddDays] = useState<number[]>([]);
   const [staffCount, setStaffCount] = useState(1);
   const [staffNames, setStaffNames] = useState<string[]>(["Owner"]);
 
@@ -577,65 +588,149 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 3 && (
-          <div>
-            <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step3-title">Set your business hours</h2>
-            <p className="text-sm text-white/45 text-center mb-6">These will be your default staff hours too</p>
+        {step === 3 && (() => {
+          const openDayIndices = hours.filter(h => !h.isClosed).map(h => h.dayOfWeek);
+          const allDaysSet = openDayIndices.length === 7;
 
-            <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-4 space-y-1">
-              {hours.map((day, i) => (
-                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-white/6 last:border-0" data-testid={`row-day-${i}`}>
-                  <div className="w-24 flex-shrink-0">
-                    <span className="text-sm font-semibold text-white/80">{dayNames[i]}</span>
-                  </div>
-                  <Switch
-                    checked={!day.isClosed}
-                    onCheckedChange={(checked) => updateHour(i, "isClosed", !checked)}
-                    data-testid={`switch-day-${i}`}
-                  />
-                  {day.isClosed ? (
-                    <span className="text-sm text-white/30">Closed</span>
-                  ) : (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Select value={day.openTime} onValueChange={(v) => updateHour(i, "openTime", v)}>
-                        <SelectTrigger className="w-[110px] bg-white/6 border-white/15 text-white h-9 rounded-lg text-xs" data-testid={`select-open-${i}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
-                          {timeOptions.map(t => (
-                            <SelectItem key={t.value} value={t.value} className="text-white focus:bg-white/10 focus:text-white text-xs">{t.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <span className="text-xs text-white/30">to</span>
-                      <Select value={day.closeTime} onValueChange={(v) => updateHour(i, "closeTime", v)}>
-                        <SelectTrigger className="w-[110px] bg-white/6 border-white/15 text-white h-9 rounded-lg text-xs" data-testid={`select-close-${i}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
-                          {timeOptions.map(t => (
-                            <SelectItem key={t.value} value={t.value} className="text-white focus:bg-white/10 focus:text-white text-xs">{t.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+          const toggleAddDay = (idx: number) => {
+            if (openDayIndices.includes(idx)) return;
+            setAddDays(prev => prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]);
+          };
+
+          const handleAddHours = () => {
+            if (addDays.length === 0) return;
+            const newHours = [...hours];
+            addDays.forEach(dayIdx => {
+              newHours[dayIdx] = { ...newHours[dayIdx], openTime: addOpenTime, closeTime: addCloseTime, isClosed: false };
+            });
+            setHours(newHours);
+            setAddDays([]);
+          };
+
+          const handleRemoveDay = (dayIdx: number) => {
+            const newHours = [...hours];
+            newHours[dayIdx] = { ...newHours[dayIdx], isClosed: true };
+            setHours(newHours);
+            setAddDays(prev => prev.filter(d => d !== dayIdx));
+          };
+
+          const dayAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+          return (
+            <div>
+              <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step3-title">Set your business hours</h2>
+              <p className="text-sm text-white/45 text-center mb-6">These will be your default staff hours too</p>
+
+              {/* Builder card */}
+              {!allDaysSet && (
+                <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-5 mb-4">
+                  <p className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Add hours</p>
+
+                  {/* Time inputs */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs text-white/50 font-semibold uppercase tracking-wider">Open</label>
+                      <input
+                        type="time"
+                        value={addOpenTime}
+                        onChange={e => setAddOpenTime(e.target.value)}
+                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#00D4AA]/50"
+                        style={{ colorScheme: "dark" }}
+                      />
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <span className="text-white/30 text-sm mt-5">to</span>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs text-white/50 font-semibold uppercase tracking-wider">Close</label>
+                      <input
+                        type="time"
+                        value={addCloseTime}
+                        onChange={e => setAddCloseTime(e.target.value)}
+                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#00D4AA]/50"
+                        style={{ colorScheme: "dark" }}
+                      />
+                    </div>
+                  </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(2)} data-testid="button-back-step"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              <button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
-                Next <ArrowRight className="w-4 h-4" />
-              </button>
+                  {/* Day toggles */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {dayAbbr.map((abbr, idx) => {
+                      const alreadySet = openDayIndices.includes(idx);
+                      const selected = addDays.includes(idx);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={alreadySet}
+                          onClick={() => toggleAddDay(idx)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            alreadySet
+                              ? "bg-white/4 border-white/8 text-white/20 cursor-not-allowed"
+                              : selected
+                              ? "bg-[#00D4AA] border-[#00D4AA] text-[#050C18]"
+                              : "bg-white/6 border-white/15 text-white/70 hover:bg-white/10"
+                          }`}
+                        >
+                          {abbr}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add button */}
+                  <button
+                    type="button"
+                    onClick={handleAddHours}
+                    disabled={addDays.length === 0}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-30"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add {addDays.length > 0 ? `${addDays.length} day${addDays.length > 1 ? "s" : ""}` : "days"}
+                  </button>
+                </div>
+              )}
+
+              {/* Schedule preview — always Sun–Sat order */}
+              <div className="bg-[#0D1F35] border border-white/10 rounded-2xl overflow-hidden">
+                <p className="text-xs text-white/50 font-semibold uppercase tracking-wider px-5 pt-4 pb-2">Your schedule</p>
+                {hours.map((day, i) => (
+                  <div key={i} className="flex items-center justify-between px-5 py-3 border-t border-white/6 first:border-0" data-testid={`row-day-${i}`}>
+                    <span className={`text-sm font-semibold w-24 ${day.isClosed ? "text-white/30" : "text-white"}`}>
+                      {dayNames[i]}
+                    </span>
+                    {day.isClosed ? (
+                      <span className="text-sm text-white/25 italic flex-1">Closed</span>
+                    ) : (
+                      <span className="text-sm text-[#00D4AA] flex-1 font-medium">
+                        {formatTime(day.openTime)} – {formatTime(day.closeTime)}
+                      </span>
+                    )}
+                    {!day.isClosed && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDay(i)}
+                        className="ml-3 w-6 h-6 rounded-full flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/10 transition-all text-xs"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-center justify-between gap-3">
+                <button onClick={() => setStep(2)} data-testid="button-back-step"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
+                  Next <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {step === 4 && (
           <div>
