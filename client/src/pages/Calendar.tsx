@@ -715,25 +715,35 @@ function AppointmentDetailsPanel({
   const addonTotal = aptAddons.reduce((sum, a) => sum + Number(a!.price), 0);
   const grandTotal = Number(appointment.service?.price || 0) + addonTotal;
 
+  const formatPhone = (phone: string | null | undefined) => {
+    if (!phone) return "";
+    const d = phone.replace(/\D/g, "");
+    if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+    if (d.length === 11 && d[0] === "1") return `(${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;
+    return phone;
+  };
+
   return (
     <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="appointment-details-panel">
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs font-bold bg-muted">
+          <Avatar className="w-9 h-9">
+            <AvatarFallback className="text-sm font-bold bg-muted">
               {appointment.customer?.name?.[0]?.toUpperCase() || "W"}
             </AvatarFallback>
           </Avatar>
-          <span className="font-medium text-sm" data-testid="text-detail-customer">
-            {appointment.customer?.name || "Walk-In"}
-          </span>
+          <div>
+            <p className="font-bold text-base leading-tight" data-testid="text-detail-customer">
+              {appointment.customer?.name || "Walk-In"}
+            </p>
+            {appointment.customer?.phone && (
+              <p className="text-xs text-muted-foreground mt-0.5">{formatPhone(appointment.customer.phone)}</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={statusVariant} className="no-default-active-elevate text-[10px]" data-testid="badge-detail-status">
             {statusLabel}
-          </Badge>
-          <Badge variant="outline" className="no-default-active-elevate text-[10px]" data-testid="badge-detail-id">
-            #{appointment.id}
           </Badge>
           <button onClick={onClose} className="text-muted-foreground ml-1" data-testid="button-close-details">
             <X className="w-4 h-4" />
@@ -742,11 +752,16 @@ function AppointmentDetailsPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div>
-          <p className="text-sm font-medium" data-testid="text-detail-date">{dateStr}</p>
-          <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            <span className="text-xs" data-testid="text-detail-time">{timeStr}</span>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-base font-bold" data-testid="text-detail-date">{dateStr}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-sm font-bold text-foreground" data-testid="text-detail-time">{timeStr}</span>
+            </div>
+          </div>
+          <div className="flex-shrink-0 border-2 border-gray-200 rounded-lg px-3 py-1.5 bg-white">
+            <span className="text-sm font-bold text-gray-900">{appointment.duration}m</span>
           </div>
         </div>
 
