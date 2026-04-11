@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
 const HOUR_HEIGHT = 180;
-const STAFF_CALENDAR_COLUMN_WIDTH = 140;
+const STAFF_CALENDAR_COLUMN_WIDTH = 180;
 const CALENDAR_COLUMN_SEPARATOR_COLOR = "#d9e2ea";
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
