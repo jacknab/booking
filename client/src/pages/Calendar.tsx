@@ -391,7 +391,7 @@ export default function Calendar() {
                   <div className="w-full" style={{ height: "3px", backgroundColor: "#2563eb" }} />
                 </div>
               )}
-              <div className="w-[72px] flex-shrink-0 border-r bg-card z-30 sticky left-0">
+              <div className="w-[72px] flex-shrink-0 bg-card z-30 sticky left-0">
                 <div className="h-[60px] border-b sticky top-0 bg-card z-40" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
                   {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
@@ -446,7 +446,7 @@ export default function Calendar() {
                     return (
                       <div
                         key={member.id}
-                        className={`flex-none border-r border-border${idx === 0 ? " border-l" : ""}`}
+                        className="flex-none border-l border-border last:border-r"
                         style={{
                           width: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                           minWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
