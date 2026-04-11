@@ -470,8 +470,8 @@ export default function Calendar() {
                               <div
                                 key={`${slot.hour}-${slot.minute}`}
                                 className={cn(
-                                  "absolute left-0 right-0 border-b cursor-pointer transition-colors",
-                                  slot.isHour ? "border-border/70" : "border-border/40",
+                                  "absolute left-0 right-0 border-b-[3px] cursor-pointer transition-colors",
+                                  slot.isHour ? "border-border" : "border-border/60",
                                   isSlotSelected
                                     ? "bg-blue-100 dark:bg-blue-950/60"
                                     : "hover:bg-primary/5"
