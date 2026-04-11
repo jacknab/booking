@@ -1557,7 +1557,7 @@ function ChooseClientPanel({
 
   if (showNameEntry) {
     return (
-      <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="enter-name-panel">
+      <div className="w-[560px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="enter-name-panel">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
@@ -1579,34 +1579,34 @@ function ChooseClientPanel({
           </p>
 
           <div className="w-full mt-6 space-y-2">
-            <div className="flex justify-center gap-1">
+            <div className="flex justify-center gap-1.5">
               {kbRow1.map((k) => (
                 <button
                   key={k}
                   onClick={() => handleNameKey(k)}
-                  className="w-[32px] h-[42px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2"
+                  className="w-[46px] h-[52px] rounded-md bg-muted text-base font-semibold text-foreground hover-elevate active-elevate-2"
                   data-testid={`kb-${k.toLowerCase()}`}
                 >
                   {shiftActive ? k : k.toLowerCase()}
                 </button>
               ))}
             </div>
-            <div className="flex justify-center gap-1">
+            <div className="flex justify-center gap-1.5">
               {kbRow2.map((k) => (
                 <button
                   key={k}
                   onClick={() => handleNameKey(k)}
-                  className="w-[34px] h-[42px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2"
+                  className="w-[52px] h-[52px] rounded-md bg-muted text-base font-semibold text-foreground hover-elevate active-elevate-2"
                   data-testid={`kb-${k.toLowerCase()}`}
                 >
                   {shiftActive ? k : k.toLowerCase()}
                 </button>
               ))}
             </div>
-            <div className="flex justify-center gap-1">
+            <div className="flex justify-center gap-1.5">
               <button
                 onClick={() => setShiftActive(prev => !prev)}
-                className={`w-[38px] h-[42px] rounded-md text-sm font-semibold flex items-center justify-center hover-elevate active-elevate-2 ${shiftActive ? "bg-foreground text-background" : "bg-muted text-foreground"}`}
+                className={`w-[56px] h-[52px] rounded-md text-sm font-semibold flex items-center justify-center hover-elevate active-elevate-2 ${shiftActive ? "bg-foreground text-background" : "bg-muted text-foreground"}`}
                 data-testid="kb-shift"
               >
                 <ArrowUp className="w-4 h-4" />
@@ -1615,7 +1615,7 @@ function ChooseClientPanel({
                 <button
                   key={k}
                   onClick={() => handleNameKey(k)}
-                  className="w-[34px] h-[42px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2"
+                  className="w-[52px] h-[52px] rounded-md bg-muted text-base font-semibold text-foreground hover-elevate active-elevate-2"
                   data-testid={`kb-${k.toLowerCase()}`}
                 >
                   {shiftActive ? k : k.toLowerCase()}
@@ -1623,37 +1623,37 @@ function ChooseClientPanel({
               ))}
               <button
                 onClick={handleNameBackspace}
-                className="w-[38px] h-[42px] rounded-md bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                className="w-[56px] h-[52px] rounded-md bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
                 data-testid="kb-backspace"
               >
-                <Delete className="w-4 h-4" />
+                <Delete className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex justify-center gap-1">
+            <div className="flex justify-center gap-1.5">
               <button
                 onClick={handleGuestDone}
-                className="h-[42px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                className="h-[52px] px-4 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
                 data-testid="kb-guest"
               >
                 Guest
               </button>
               <button
                 onClick={() => handleNameKey("@")}
-                className="h-[42px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                className="h-[52px] px-4 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
                 data-testid="kb-at"
               >
                 @
               </button>
               <button
                 onClick={() => { handleNameKey(" "); setShiftActive(true); }}
-                className="flex-1 h-[42px] rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                className="flex-1 h-[52px] rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
                 data-testid="kb-space"
               >
                 Spacebar
               </button>
               <button
                 onClick={handleNameDone}
-                className="h-[42px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                className="h-[52px] px-4 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
                 data-testid="kb-return"
               >
                 Return
@@ -1662,7 +1662,7 @@ function ChooseClientPanel({
           </div>
 
           <Button
-            className="mt-4 w-40 bg-green-600 text-white"
+            className="mt-4 w-full bg-green-600 text-white h-[52px] text-base font-semibold"
             onClick={handleNameDone}
             disabled={!clientName.trim() || isCreating}
             data-testid="button-name-done"
