@@ -10,13 +10,39 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AvailableTimeBanner } from "@/components/AvailableTimeBanner";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const calendarSidebarItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/analytics", label: "Analytics", icon: TrendingUp },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { to: "/customers", label: "Customers", icon: Users },
+  { to: "/waitlist", label: "Waitlist", icon: Clock },
+  { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
+  { to: "/loyalty", label: "Loyalty", icon: Star },
+  { to: "/reviews", label: "Reviews", icon: ThumbsUp },
+  { to: "/google-business", label: "Google Reviews", icon: MapPin },
+  { to: "/services", label: "Services", icon: Scissors },
+  { to: "/staff", label: "Staff", icon: UserCircle },
+  { to: "/products", label: "Products", icon: ShoppingBag },
+  { to: "/gift-cards", label: "Gift Cards", icon: Gift },
+  { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList },
+  { to: "/reports", label: "Reports", icon: FileText },
+  { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
+  { to: "/commission-report", label: "Commissions", icon: BarChart3 },
+  { to: "/online-booking", label: "Online Booking", icon: Globe },
+  { to: "/sms-settings", label: "SMS", icon: MessageSquare },
+  { to: "/mail-settings", label: "Email", icon: Mail },
+  { to: "/business-settings", label: "Business", icon: Building2 },
+  { to: "/calendar-settings", label: "Cal. Settings", icon: Settings },
+];
 
 const HOUR_HEIGHT = 180;
 const STAFF_CALENDAR_COLUMN_WIDTH = 180;
@@ -64,6 +90,7 @@ export default function Calendar() {
   const { isLoading: authLoading, user } = useAuth();
   const isStaffUser = user?.role === "staff" && !!user?.staffId;
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const tzAbbr = getTimezoneAbbr(timezone);
@@ -380,6 +407,35 @@ export default function Calendar() {
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
+        {/* Icon-only navigation sidebar */}
+        <TooltipProvider delayDuration={200}>
+          <nav className="w-11 flex-shrink-0 border-r bg-card flex flex-col items-center py-2 gap-0.5 overflow-y-auto z-30">
+            {calendarSidebarItems.map((item) => {
+              const isActive = location.pathname === item.to;
+              return (
+                <Tooltip key={item.to}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={item.to}
+                      className={cn(
+                        "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </nav>
+        </TooltipProvider>
+
         <div className="flex-1 overflow-hidden">
           <div ref={scrollContainerRef} className="h-full overflow-auto">
             <div className="flex min-w-[600px] relative">
