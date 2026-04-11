@@ -113,14 +113,17 @@ export default function GetStarted() {
                         background: "rgba(255,255,255,0.02)",
                       }}
                     />
-                    {/* Top frosted strip */}
+                    {/* Center frosted strip */}
                     <div
-                      className="absolute inset-x-0 top-0 flex items-center justify-center"
+                      className="absolute inset-x-0 flex items-center justify-center"
                       style={{
+                        top: "50%",
+                        transform: "translateY(-50%)",
                         padding: "11px 28px",
                         backdropFilter: "blur(12px)",
                         WebkitBackdropFilter: "blur(12px)",
                         background: "rgba(8, 14, 28, 0.32)",
+                        borderTop: "1px solid rgba(255,255,255,0.09)",
                         borderBottom: "1px solid rgba(255,255,255,0.09)",
                       }}
                     >
@@ -139,8 +142,8 @@ export default function GetStarted() {
                   </>
                 )}
 
-                {/* Badge — hidden on booking card since strip serves as label */}
-                <div className={`absolute top-4 left-4 ${g.key === "booking" ? "hidden" : ""}`}>
+                {/* Badge */}
+                <div className="absolute top-4 left-4">
                   <span
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg"
                     style={{
