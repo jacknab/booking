@@ -44,7 +44,7 @@ const GROUPS = [
 export default function GetStarted() {
   return (
     <div className="min-h-screen bg-[#050C18] text-white font-['Plus_Jakarta_Sans',sans-serif]">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100;200;300&display=swap');`}</style>
 
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050C18]/90 backdrop-blur-xl border-b border-white/8 h-16 flex items-center px-5 sm:px-8">
@@ -113,27 +113,24 @@ export default function GetStarted() {
                         background: "rgba(255,255,255,0.02)",
                       }}
                     />
-                    {/* Center frosted strip — thin and subtle */}
+                    {/* Top frosted strip */}
                     <div
-                      className="absolute inset-x-0 flex items-center justify-center"
+                      className="absolute inset-x-0 top-0 flex items-center justify-center"
                       style={{
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        padding: "10px 28px",
-                        backdropFilter: "blur(10px)",
-                        WebkitBackdropFilter: "blur(10px)",
-                        background: "rgba(5, 10, 22, 0.28)",
-                        borderTop: "1px solid rgba(255,255,255,0.08)",
-                        borderBottom: "1px solid rgba(255,255,255,0.08)",
+                        padding: "11px 28px",
+                        backdropFilter: "blur(12px)",
+                        WebkitBackdropFilter: "blur(12px)",
+                        background: "rgba(8, 14, 28, 0.32)",
+                        borderBottom: "1px solid rgba(255,255,255,0.09)",
                       }}
                     >
                       <span
                         style={{
-                          fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: "22px",
-                          fontWeight: "500",
-                          color: "rgba(255,255,255,0.88)",
-                          letterSpacing: "0.06em",
+                          fontFamily: "'Raleway', sans-serif",
+                          fontSize: "15px",
+                          fontWeight: "200",
+                          color: "rgba(255,255,255,0.82)",
+                          letterSpacing: "0.18em",
                         }}
                       >
                         Certxa Booking
@@ -142,8 +139,8 @@ export default function GetStarted() {
                   </>
                 )}
 
-                {/* Badge */}
-                <div className="absolute top-4 left-4">
+                {/* Badge — hidden on booking card since strip serves as label */}
+                <div className={`absolute top-4 left-4 ${g.key === "booking" ? "hidden" : ""}`}>
                   <span
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg"
                     style={{
