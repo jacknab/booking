@@ -309,8 +309,7 @@ export default function Auth() {
                 placeholder="At least 6 characters"
                 required
                 minLength={6}
-                className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-white/40 h-12 rounded-xl"
-                style={{ colorScheme: "dark" }}
+                className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
               />
             </div>
 
