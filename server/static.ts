@@ -1,6 +1,10 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const ASSET_EXT_RE = /\.(js|css|map|woff|woff2|ttf|eot|svg|png|jpg|jpeg|webp|ico|json|txt|xml|gz|br)$/i;
 
