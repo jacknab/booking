@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 
 const HOUR_HEIGHT = 360;
+const STAFF_CALENDAR_COLUMN_WIDTH = 180;
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
 
@@ -445,9 +446,12 @@ export default function Calendar() {
                     return (
                       <div
                         key={member.id}
-                        className={filteredStaff.length === 1
-                          ? "w-[14%] min-w-[160px] border-x border-border"
-                          : `flex-1 min-w-[180px] border-r border-border${idx === 0 ? " border-l" : ""}`}
+                        className={`flex-none border-r border-border${idx === 0 ? " border-l" : ""}`}
+                        style={{
+                          width: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
+                          minWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
+                          maxWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
+                        }}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
                             <Avatar className="w-7 h-7">
