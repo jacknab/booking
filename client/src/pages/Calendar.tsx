@@ -530,10 +530,27 @@ export default function Calendar() {
 
                           {staffApts.map((apt: any) => {
                             const style = getAppointmentStyle(apt);
-                            const timeRange = `${formatInTz(apt.date, timezone, "h:mm")} - ${formatInTz(addMinutes(new Date(apt.date), apt.duration), timezone, "h:mm a")}`;
+                            const startTime = formatInTz(apt.date, timezone, "h:mm");
+                            const endTime = formatInTz(addMinutes(new Date(apt.date), apt.duration), timezone, "h:mm a");
                             const isSelected = selectedAppointment?.id === apt.id;
-                            const statusColor = apt.status === "cancelled" ? "#fecaca" : apt.status === "confirmed" ? "#dcfce7" : "#dbeafe";
-                            const borderColor = apt.status === "cancelled" ? "#ef4444" : apt.status === "confirmed" ? "#22c55e" : "#3b82f6";
+
+                            // Band color by status
+                            const bandColor =
+                              apt.status === "started" || apt.status === "completed" ? "#22c55e"
+                              : apt.status === "late" ? "#fb923c"
+                              : apt.status === "no-show" ? "#fb7185"
+                              : "#3b82f6"; // pending / confirmed / default = booked (blue)
+
+                            // Background tint by status
+                            const bgColor =
+                              apt.status === "started" || apt.status === "completed" ? "#f0fdf4"
+                              : apt.status === "late" ? "#fff7ed"
+                              : apt.status === "no-show" ? "#fff1f2"
+                              : "#eff6ff";
+
+                            // Band side: left = staff/store booked, right = online booked
+                            // apt.source === "online" would indicate online booking (stub: always left for now)
+                            const isOnlineBooking = apt.source === "online";
 
                             const aptAddons = apt.appointmentAddons?.map((aa: any) => aa.addon).filter(Boolean) || [];
                             const addonTotal = aptAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
@@ -542,32 +559,57 @@ export default function Calendar() {
                             return (
                               <div
                                 key={apt.id}
-                                className="absolute left-1 right-1 rounded-md border-l-[3px] px-2 py-1 overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md"
+                                className="absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md flex"
                                 style={{
                                   ...style,
-                                  backgroundColor: statusColor,
-                                  borderLeftColor: borderColor,
-                                  borderTop: `1px solid ${borderColor}33`,
-                                  borderRight: `1px solid ${borderColor}33`,
-                                  borderBottom: `1px solid ${borderColor}33`,
-                                  ...(isSelected ? { boxShadow: `0 0 0 2px ${borderColor}` } : {}),
+                                  backgroundColor: bgColor,
+                                  border: `1px solid ${bandColor}40`,
+                                  ...(isSelected ? { boxShadow: `0 0 0 2px ${bandColor}` } : {}),
                                 }}
                                 onClick={() => { setSelectedAppointment(apt); setShowCheckout(false); setShowCancelFlow(false); }}
                                 data-testid={`appointment-block-${apt.id}`}
                               >
-                                <div className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">{timeRange}</div>
-                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
-                                  {apt.service?.name || "Service"}
-                                </div>
-                                {aptAddons.length > 0 && aptAddons.map((addon: any) => (
-                                  <div key={addon.id} className="text-[10px] text-gray-600 dark:text-gray-400 truncate" data-testid={`calendar-addon-${addon.id}`}>
-                                    + {addon.name}
+                                {/* Left band: staff/store booked */}
+                                {!isOnlineBooking && (
+                                  <div className="w-[4px] flex-shrink-0" style={{ backgroundColor: bandColor }} />
+                                )}
+
+                                <div className="flex-1 px-2 py-1 overflow-hidden flex flex-col min-h-0">
+                                  {/* Row 1: time range + duration */}
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-[10px] font-semibold text-gray-700 leading-tight">{startTime} – {endTime}</span>
+                                    <span className="text-[10px] font-medium text-gray-500 flex-shrink-0">{apt.duration}m</span>
                                   </div>
-                                ))}
-                                <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
-                                  #{apt.id} {apt.customer?.name ? `\u00B7 ${apt.customer.name}` : ""}
+
+                                  {/* Service name */}
+                                  <div className="text-xs font-bold text-gray-900 truncate leading-tight mt-0.5">
+                                    {apt.service?.name || "Service"}
+                                  </div>
+
+                                  {/* Addons */}
+                                  {aptAddons.map((addon: any) => (
+                                    <div key={addon.id} className="text-[10px] text-gray-500 truncate leading-tight" data-testid={`calendar-addon-${addon.id}`}>
+                                      + {addon.name}
+                                    </div>
+                                  ))}
+
+                                  {/* Customer name (no ID) */}
+                                  {apt.customer?.name && (
+                                    <div className="text-[10px] text-gray-600 truncate leading-tight">
+                                      {apt.customer.name}
+                                    </div>
+                                  )}
+
+                                  {/* Amount — pushed to bottom */}
+                                  <div className="mt-auto pt-0.5">
+                                    <span className="text-[10px] font-bold text-gray-700">${serviceTotal.toFixed(2)}</span>
+                                  </div>
                                 </div>
-                                <div className="text-[10px] font-medium text-gray-700 dark:text-gray-300">${serviceTotal.toFixed(2)}</div>
+
+                                {/* Right band: online booked */}
+                                {isOnlineBooking && (
+                                  <div className="w-[4px] flex-shrink-0" style={{ backgroundColor: bandColor }} />
+                                )}
                               </div>
                             );
                           })}
