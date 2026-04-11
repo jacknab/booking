@@ -950,6 +950,7 @@ function BookingSummaryPanel({
 }) {
   const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
+  const [highlightedServiceId, setHighlightedServiceId] = useState<number | null>(null);
   return (
     <div className="w-[420px] flex-shrink-0 border-l bg-card flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.1)] z-10" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
@@ -996,7 +997,19 @@ function BookingSummaryPanel({
       <div className="flex-1 overflow-y-auto p-4">
         {selectedService ? (
           <div className="space-y-3">
-            <div className="flex items-start justify-between gap-2">
+            <div
+              className={cn(
+                "flex items-start justify-between gap-2 rounded-xl px-3 py-3 border cursor-pointer transition-colors duration-150 select-none",
+                highlightedServiceId === selectedService.id
+                  ? "bg-yellow-100 border-yellow-300"
+                  : "bg-gray-50 border-gray-200 hover:bg-yellow-50 hover:border-yellow-200"
+              )}
+              onClick={() =>
+                setHighlightedServiceId(
+                  highlightedServiceId === selectedService.id ? null : selectedService.id
+                )
+              }
+            >
               <div className="flex-1">
                 <h4 className="font-semibold text-sm" data-testid="text-summary-service">{selectedService.name}</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -1008,7 +1021,10 @@ function BookingSummaryPanel({
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm" data-testid="text-summary-service-price">${Number(selectedService.price).toFixed(2)}</span>
-                <button onClick={onRemoveService} className="text-muted-foreground">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRemoveService(); }}
+                  className="text-muted-foreground"
+                >
                   <X className="w-3 h-3" />
                 </button>
               </div>
