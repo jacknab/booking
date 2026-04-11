@@ -104,13 +104,13 @@ export default function GetStarted() {
                 {/* Booking card only: full glass + center strip */}
                 {g.key === "booking" && (
                   <>
-                    {/* Full frosted glass over entire video — very light */}
+                    {/* Full frosted glass over entire video — barely there */}
                     <div
                       className="absolute inset-0"
                       style={{
-                        backdropFilter: "blur(2px)",
-                        WebkitBackdropFilter: "blur(2px)",
-                        background: "rgba(255,255,255,0.02)",
+                        backdropFilter: "blur(1px)",
+                        WebkitBackdropFilter: "blur(1px)",
+                        background: "rgba(255,255,255,0.01)",
                       }}
                     />
                     {/* Center frosted strip */}
@@ -120,11 +120,11 @@ export default function GetStarted() {
                         top: "50%",
                         transform: "translateY(-50%)",
                         padding: "11px 28px",
-                        backdropFilter: "blur(12px)",
-                        WebkitBackdropFilter: "blur(12px)",
-                        background: "rgba(8, 14, 28, 0.32)",
-                        borderTop: "1px solid rgba(255,255,255,0.09)",
-                        borderBottom: "1px solid rgba(255,255,255,0.09)",
+                        backdropFilter: "blur(6px)",
+                        WebkitBackdropFilter: "blur(6px)",
+                        background: "rgba(8, 14, 28, 0.15)",
+                        borderTop: "1px solid rgba(255,255,255,0.06)",
+                        borderBottom: "1px solid rgba(255,255,255,0.06)",
                       }}
                     >
                       <span
