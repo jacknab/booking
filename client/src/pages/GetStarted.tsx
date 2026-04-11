@@ -142,28 +142,46 @@ export default function GetStarted() {
                   </>
                 )}
 
-                {/* Badge */}
-                <div className="absolute top-4 left-4">
-                  <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg"
-                    style={{
-                      background: "rgba(255,255,255,0.12)",
-                      color: "#ffffff",
-                      border: `1px solid rgba(255,255,255,0.25)`,
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
-                      textShadow: "0 1px 2px rgba(0,0,0,0.4)",
-                    }}
-                  >
-                    {g.icon}
-                    {g.tag}
-                  </span>
-                </div>
+                {/* Badge — only show on video for non-booking cards */}
+                {g.key !== "booking" && (
+                  <div className="absolute top-4 left-4">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg"
+                      style={{
+                        background: "rgba(255,255,255,0.12)",
+                        color: "#ffffff",
+                        border: `1px solid rgba(255,255,255,0.25)`,
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                      }}
+                    >
+                      {g.icon}
+                      {g.tag}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Content */}
               <div className="flex flex-col flex-1 p-6 gap-4">
                 <div>
-                  <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">{g.label}</p>
+                  {g.key === "booking" ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg mb-1"
+                      style={{
+                        background: "rgba(255,255,255,0.12)",
+                        color: "#ffffff",
+                        border: "1px solid rgba(255,255,255,0.25)",
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                      }}
+                    >
+                      {g.icon}
+                      {g.tag}
+                    </span>
+                  ) : (
+                    <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">{g.label}</p>
+                  )}
                   <h2 className="text-xl font-black text-white leading-tight mb-2">{g.headline}</h2>
                   <p className="text-white/50 text-sm leading-relaxed">{g.sub}</p>
                 </div>
