@@ -724,7 +724,7 @@ function AppointmentDetailsPanel({
   };
 
   return (
-    <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="appointment-details-panel">
+    <div className="w-[460px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="appointment-details-panel">
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Avatar className="w-9 h-9">
