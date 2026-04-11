@@ -26,7 +26,7 @@ error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 hdr()     { echo -e "\n${BOLD}${CYAN}━━━  $*  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"; }
 
 # ─── GLOBAL CONFIGURATION ─────────────────────────────────────────────────────
-APP_PORT=5000
+APP_PORT=5059
 DB_USER="certxa_user"
 DB_NAME="certxa_db"
 SERVICE_NAME="certxa"
@@ -925,8 +925,46 @@ do_step_8() {
 do_step_9() {
     hdr "Step 9/10  Production build"
     cd "${APP_DIR}"
-    npm run build
-    success "Build complete → ${APP_DIR}/dist/"
+
+    info "Cleaning old build artifacts..."
+    rm -rf "${APP_DIR}/dist"
+
+    info "Running production build (this may take 2-3 minutes)..."
+    if ! npm run build; then
+        error "Build failed — check the output above for errors."
+    fi
+
+    # Verify the critical output files exist
+    local BUILD_OK=true
+
+    if [ ! -f "${APP_DIR}/dist/index.cjs" ]; then
+        warn "MISSING: dist/index.cjs (server bundle)"
+        BUILD_OK=false
+    else
+        success "dist/index.cjs created ($(du -sh "${APP_DIR}/dist/index.cjs" | cut -f1))"
+    fi
+
+    if [ ! -f "${APP_DIR}/dist/public/index.html" ]; then
+        warn "MISSING: dist/public/index.html (frontend entry)"
+        BUILD_OK=false
+    else
+        success "dist/public/index.html created"
+    fi
+
+    local ASSET_COUNT
+    ASSET_COUNT=$(find "${APP_DIR}/dist/public/assets" -type f 2>/dev/null | wc -l)
+    if [ "${ASSET_COUNT:-0}" -eq 0 ]; then
+        warn "MISSING: dist/public/assets/ is empty — CSS/JS files not built"
+        BUILD_OK=false
+    else
+        success "dist/public/assets/ contains ${ASSET_COUNT} file(s)"
+    fi
+
+    if [ "${BUILD_OK}" = false ]; then
+        error "Build completed but output files are missing. Check for errors above."
+    fi
+
+    success "Build complete and verified → ${APP_DIR}/dist/"
 }
 
 # ── Step 10 – PM2 + Nginx (booking.conf) + SSL ───────────────────────────────
@@ -1273,6 +1311,151 @@ NGINXEOF
     sudo systemctl reload nginx
     sudo systemctl enable certbot.timer 2>/dev/null || true
     success "Nginx configured and reloaded — booking.conf active."
+}
+
+# ── Diagnose / Fix 502 Bad Gateway ───────────────────────────────────────────
+do_diagnose() {
+    hdr "Diagnosing 502 / static-asset errors"
+
+    local ISSUES=()
+    local FIXES=()
+
+    # ── 1. Check dist/index.cjs (server bundle) ──────────────────────────────
+    if [ ! -f "${APP_DIR}/dist/index.cjs" ]; then
+        ISSUES+=("✗ dist/index.cjs NOT FOUND — production build is missing")
+        FIXES+=("Run Step 9 (Production build) to create it")
+    else
+        success "dist/index.cjs exists"
+    fi
+
+    # ── 2. Check dist/public/index.html (frontend build) ─────────────────────
+    if [ ! -f "${APP_DIR}/dist/public/index.html" ]; then
+        ISSUES+=("✗ dist/public/index.html NOT FOUND — frontend build is missing")
+        FIXES+=("Run Step 9 (Production build) to create it")
+    else
+        success "dist/public/index.html exists"
+    fi
+
+    # ── 3. Check dist/public/assets/ (CSS/JS assets) ─────────────────────────
+    local ASSET_COUNT
+    ASSET_COUNT=$(find "${APP_DIR}/dist/public/assets" -type f 2>/dev/null | wc -l)
+    if [ "${ASSET_COUNT:-0}" -eq 0 ]; then
+        ISSUES+=("✗ dist/public/assets/ is empty or missing — CSS/JS assets not built")
+        FIXES+=("Run Step 9 (Production build) to rebuild the frontend")
+    else
+        success "dist/public/assets/ has ${ASSET_COUNT} file(s)"
+    fi
+
+    # ── 4. Check PM2 status ───────────────────────────────────────────────────
+    if ! command -v pm2 &>/dev/null; then
+        ISSUES+=("✗ PM2 not installed")
+        FIXES+=("Run Step 2 (System packages) to install PM2")
+    else
+        local PM2_STATUS
+        PM2_STATUS=$(pm2 list 2>/dev/null | grep "${SERVICE_NAME}" | awk '{print $10}' || echo "not found")
+        if echo "$PM2_STATUS" | grep -q "online"; then
+            success "PM2 process '${SERVICE_NAME}' is online"
+        elif pm2 list 2>/dev/null | grep -q "${SERVICE_NAME}"; then
+            ISSUES+=("✗ PM2 process '${SERVICE_NAME}' is NOT online (status: ${PM2_STATUS})")
+            FIXES+=("Check PM2 logs: pm2 logs ${SERVICE_NAME} --lines 50")
+            FIXES+=("Then re-run Step 10 to restart PM2")
+        else
+            ISSUES+=("✗ PM2 process '${SERVICE_NAME}' does not exist")
+            FIXES+=("Run Step 10 to start it with PM2")
+        fi
+    fi
+
+    # ── 5. Detect what port the app is actually listening on ──────────────────
+    local ACTUAL_PORT=""
+    if command -v ss &>/dev/null; then
+        ACTUAL_PORT=$(ss -tlnp 2>/dev/null | awk '/node/{print $4}' | grep -oP ':\d+$' | tr -d ':' | head -1 || true)
+    fi
+    if [ -n "${ACTUAL_PORT:-}" ]; then
+        success "App appears to be listening on port ${ACTUAL_PORT}"
+        if [ "${ACTUAL_PORT}" != "${APP_PORT}" ]; then
+            ISSUES+=("✗ App is on port ${ACTUAL_PORT} but this script is configured for port ${APP_PORT}")
+            FIXES+=("Use option 2 (Configuration Variables) to update APP_PORT to ${ACTUAL_PORT}, then re-run Step 10")
+        fi
+    else
+        warn "Could not detect which port the app is listening on (it may not be running)"
+    fi
+
+    # ── 6. Check Nginx config port vs APP_PORT ────────────────────────────────
+    local NGINX_CONF="/etc/nginx/sites-available/booking.conf"
+    if [ -f "${NGINX_CONF}" ]; then
+        local NGINX_PORT
+        NGINX_PORT=$(grep -oP '(?<=proxy_pass http://127\.0\.0\.1:)\d+' "${NGINX_CONF}" | head -1 || echo "")
+        if [ -n "${NGINX_PORT:-}" ]; then
+            success "Nginx booking.conf proxies to port ${NGINX_PORT}"
+            if [ "${NGINX_PORT}" != "${APP_PORT}" ]; then
+                ISSUES+=("✗ PORT MISMATCH: Nginx proxies to ${NGINX_PORT} but APP_PORT is ${APP_PORT}")
+                FIXES+=("Re-run Step 10 to regenerate booking.conf with the correct port (${APP_PORT})")
+            fi
+        fi
+    else
+        ISSUES+=("✗ /etc/nginx/sites-available/booking.conf not found")
+        FIXES+=("Run Step 10 to generate and install the Nginx config")
+    fi
+
+    # ── 7. Check .env has required keys ──────────────────────────────────────
+    if [ ! -f "${APP_DIR}/.env" ]; then
+        ISSUES+=("✗ .env file not found")
+        FIXES+=("Run Step 6 (.env configuration) to create it")
+    else
+        for KEY in DATABASE_URL NODE_ENV PORT SESSION_SECRET; do
+            if ! grep -q "^${KEY}=" "${APP_DIR}/.env" 2>/dev/null; then
+                ISSUES+=("✗ .env is missing: ${KEY}")
+                FIXES+=("Run Step 6 (.env configuration) to set ${KEY}")
+            fi
+        done
+        local ENV_NODE
+        ENV_NODE=$(grep "^NODE_ENV=" "${APP_DIR}/.env" | cut -d= -f2-)
+        if [ "${ENV_NODE}" != "production" ]; then
+            ISSUES+=("✗ NODE_ENV in .env is '${ENV_NODE}' — must be 'production'")
+            FIXES+=("Run Step 6 to set NODE_ENV=production")
+        fi
+    fi
+
+    # ── 8. Check Nginx is running ─────────────────────────────────────────────
+    if ! sudo systemctl is-active --quiet nginx 2>/dev/null; then
+        ISSUES+=("✗ Nginx is NOT running")
+        FIXES+=("sudo systemctl start nginx && sudo systemctl enable nginx")
+    else
+        success "Nginx is running"
+    fi
+
+    # ── Print summary ─────────────────────────────────────────────────────────
+    echo ""
+    if [ ${#ISSUES[@]} -eq 0 ]; then
+        echo -e "${GREEN}${BOLD}All checks passed!${RESET}"
+        echo ""
+        echo "If you still see 502 or missing assets, try:"
+        echo "  1. Pull the latest code and re-run Step 9 (rebuild)"
+        echo "  2. Re-run Step 10 (restart PM2 + Nginx)"
+        echo "  3. Check PM2 logs: pm2 logs ${SERVICE_NAME} --lines 50"
+        echo "  4. Check Nginx error log: sudo tail -40 /var/log/nginx/booking_error.log"
+    else
+        echo -e "${RED}${BOLD}Found ${#ISSUES[@]} issue(s):${RESET}"
+        echo ""
+        for ISSUE in "${ISSUES[@]}"; do
+            echo -e "  ${RED}${ISSUE}${RESET}"
+        done
+        echo ""
+        echo -e "${YELLOW}${BOLD}Suggested fixes:${RESET}"
+        for FIX in "${FIXES[@]}"; do
+            echo -e "  → ${FIX}"
+        done
+        echo ""
+        echo -e "${YELLOW}Useful debug commands:${RESET}"
+        echo "  pm2 logs ${SERVICE_NAME} --lines 50"
+        echo "  pm2 list"
+        echo "  sudo tail -40 /var/log/nginx/booking_error.log"
+        echo "  sudo nginx -t"
+        echo "  ls -la ${APP_DIR}/dist/public/assets/ 2>/dev/null | head -20"
+    fi
+
+    echo ""
+    read -r -p "Press Enter to return to the menu..."
 }
 
 # ─── RUN FROM A GIVEN STEP ────────────────────────────────────────────────────
