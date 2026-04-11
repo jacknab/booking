@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useAppointments, useUpdateAppointment } from "@/hooks/use-appointments";
@@ -457,7 +457,10 @@ export default function Calendar() {
                         }}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
-                            <Avatar className="w-7 h-7">
+                            <Avatar className="w-8 h-8">
+                              {member.avatarUrl && (
+                                <AvatarImage src={member.avatarUrl} alt={member.name} className="object-cover" />
+                              )}
                               <AvatarFallback
                                 style={{ backgroundColor: color + "22", color }}
                                 className="text-xs font-bold"
@@ -465,7 +468,7 @@ export default function Calendar() {
                                 {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs font-medium truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
+                            <span className="text-sm font-bold truncate max-w-full" data-testid={`text-staff-name-${member.id}`}>
                               {member.name}
                             </span>
                           </div>
