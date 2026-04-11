@@ -441,7 +441,8 @@ export default function Calendar() {
                     {staffLoading ? "Loading staff..." : "No staff members found for this store."}
                   </div>
                 ) : (
-                  filteredStaff.map((member: any, idx: number) => {
+                  <>
+                  {filteredStaff.map((member: any, idx: number) => {
                     const staffApts = getAppointmentsForStaff(member.id);
                     const color = getStaffColor(member);
 
@@ -456,7 +457,7 @@ export default function Calendar() {
                         }}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
-                            <Avatar className="w-8 h-8">
+                            <Avatar className="w-10 h-10">
                               {member.avatarUrl && (
                                 <AvatarImage src={member.avatarUrl} alt={member.name} className="object-cover" />
                               )}
@@ -631,7 +632,9 @@ export default function Calendar() {
                         </div>
                       </div>
                     );
-                  })
+                  })}
+                  <div className="flex-1 sticky top-0 h-[60px] bg-card border-b z-[5] self-start" />
+                  </>
                 )}
               </div>
             </div>
