@@ -438,6 +438,7 @@ export default function NewBooking() {
             onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
+            isEditMode={!!editAppointmentId}
             footerContent={
               editAppointmentId ? (
                 <div className="flex gap-3">
@@ -563,6 +564,7 @@ export default function NewBooking() {
             onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
+            isEditMode={!!editAppointmentId}
             footerContent={
               editAppointmentId ? (
                 <div className="flex gap-3">
@@ -806,6 +808,7 @@ export default function NewBooking() {
             onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
             isCalendarBooking={isCalendarBooking}
+            isEditMode={!!editAppointmentId}
             footerContent={
               <div className="space-y-2">
                 {selectedSlot && (
@@ -992,6 +995,7 @@ function BookingSummaryPanel({
   footerContent,
   availableMinutes,
   isCalendarBooking,
+  isEditMode,
 }: {
   selectedService: Service | null;
   selectedAddons: Addon[];
@@ -1007,12 +1011,13 @@ function BookingSummaryPanel({
   footerContent: React.ReactNode;
   availableMinutes?: number | null;
   isCalendarBooking?: boolean;
+  isEditMode?: boolean;
 }) {
   const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   const [highlightedServiceId, setHighlightedServiceId] = useState<number | null>(null);
   return (
-    <div className="w-[420px] flex-shrink-0 border-l bg-card flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.1)] z-10" data-testid="booking-summary-panel">
+    <div className="w-[460px] flex-shrink-0 border-l bg-card flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.1)] z-10" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
         <Avatar className="w-10 h-10">
           <AvatarFallback className="text-sm font-bold bg-slate-200 text-slate-700">
@@ -1147,13 +1152,20 @@ function BookingSummaryPanel({
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="font-semibold">Total</span>
-            {totalDuration > 0 && <p className="text-xs text-muted-foreground">{totalDuration} min</p>}
+        {isEditMode ? (
+          <p className="text-sm text-muted-foreground text-center">
+            Total: <span className="font-semibold text-foreground">${totalPrice.toFixed(2)}</span>
+            {totalDuration > 0 && <span> ({totalDuration} mins)</span>}
+          </p>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-semibold">Total</span>
+              {totalDuration > 0 && <p className="text-xs text-muted-foreground">{totalDuration} min</p>}
+            </div>
+            <span className="font-bold text-lg" data-testid="text-summary-total">${totalPrice.toFixed(2)}</span>
           </div>
-          <span className="font-bold text-lg" data-testid="text-summary-total">${totalPrice.toFixed(2)}</span>
-        </div>
+        )}
         {footerContent}
       </div>
     </div>
