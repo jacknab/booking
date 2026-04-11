@@ -434,7 +434,7 @@ export default function Calendar() {
                 </div>
               </div>
 
-              <div className="flex flex-1 relative">
+              <div className="flex flex-1 relative bg-slate-50">
 
                 {filteredStaff.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-20">
@@ -448,13 +448,11 @@ export default function Calendar() {
                     return (
                       <div
                         key={member.id}
-                        className="flex-none border-l-[3px] last:border-r-[3px]"
+                        className="flex-none"
                         style={{
                           width: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                           minWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
                           maxWidth: `${STAFF_CALENDAR_COLUMN_WIDTH}px`,
-                          borderLeftColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
-                          borderRightColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
                         }}
                       >
                           <div className="h-[60px] border-b flex flex-col items-center justify-center gap-1 px-2 sticky top-0 bg-card z-20">
@@ -475,8 +473,12 @@ export default function Calendar() {
                           </div>
 
                         <div
-                          className="relative bg-slate-50"
-                          style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
+                          className="relative bg-slate-50 border-l-[3px] last:border-r-[3px]"
+                          style={{
+                            height: `${TOTAL_HOURS * HOUR_HEIGHT}px`,
+                            borderLeftColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
+                            borderRightColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
+                          }}
                         >
                           {timeSlots.map((slot) => {
                             const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
