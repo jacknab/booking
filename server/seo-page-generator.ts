@@ -3,10 +3,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import type { SeoRegion } from "@shared/schema";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const _dirname: string =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : path.dirname(fileURLToPath(import.meta.url));
 
-export const REGIONS_DIR = path.join(__dirname, "../client/public/regions");
+export const REGIONS_DIR = path.join(_dirname, "../client/public/regions");
 
 function ensureDir() {
   if (!fs.existsSync(REGIONS_DIR)) fs.mkdirSync(REGIONS_DIR, { recursive: true });

@@ -4,8 +4,14 @@ import path from "path";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const _filename: string =
+  typeof __filename !== "undefined"
+    ? __filename
+    : fileURLToPath(import.meta.url);
+const _dirname: string =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : path.dirname(fileURLToPath(import.meta.url));
 
 export const MARKETING_ROUTES = [
   "/industries",
@@ -79,8 +85,8 @@ export function setupSSR(app: Express): void {
 
   let render: RenderFn | null = null;
   try {
-    const bundlePath = path.resolve(__dirname, "server", "entry-server.cjs");
-    const req = createRequire(__filename);
+    const bundlePath = path.resolve(_dirname, "server", "entry-server.cjs");
+    const req = createRequire(_filename);
     const mod = req(bundlePath) as { render: RenderFn };
     render = mod.render;
     console.log("[SSR] Bundle loaded successfully");
@@ -89,7 +95,7 @@ export function setupSSR(app: Express): void {
     return;
   }
 
-  const templatePath = path.resolve(__dirname, "public", "index.html");
+  const templatePath = path.resolve(_dirname, "public", "index.html");
   let template: string;
   try {
     template = readFileSync(templatePath, "utf-8");
