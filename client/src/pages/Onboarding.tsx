@@ -414,7 +414,7 @@ export default function Onboarding() {
       );
     }
     if (s === 3) return true;
-    if (s === 4) return staffNames.some(n => n.trim().length > 0);
+    if (s === 4) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
     return false;
   };
 
@@ -738,53 +738,68 @@ export default function Onboarding() {
             <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
 
             <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-6">
-              <div className="flex items-center justify-center gap-5 mb-6">
-                <button
-                  onClick={() => updateStaffCount(staffCount - 1)}
-                  disabled={staffCount <= 1}
-                  data-testid="button-staff-minus"
-                  className="w-10 h-10 rounded-xl border border-white/15 flex items-center justify-center text-white/70 hover:bg-white/8 disabled:opacity-30 transition-all"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-white/40" />
-                  <span className="text-4xl font-black text-white tabular-nums" data-testid="text-staff-count">{staffCount}</span>
-                </div>
-                <button
-                  onClick={() => updateStaffCount(staffCount + 1)}
-                  disabled={staffCount >= 20}
-                  data-testid="button-staff-plus"
-                  className="w-10 h-10 rounded-xl border border-white/15 flex items-center justify-center text-white/70 hover:bg-white/8 disabled:opacity-30 transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
               <div className="space-y-3">
                 {staffNames.map((name, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow"
-                      style={{ backgroundColor: staffColors[i % staffColors.length] }}
-                    >
-                      {(name.trim() || `S${i + 1}`).charAt(0).toUpperCase()}
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow"
+                        style={{ backgroundColor: staffColors[i % staffColors.length] }}
+                      >
+                        {(name.trim() || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <Input
+                        value={name}
+                        onChange={(e) => updateStaffName(i, e.target.value)}
+                        placeholder={i === 0 ? "Owner name" : "Staff member name"}
+                        data-testid={`input-staff-name-${i}`}
+                        autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
+                        className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${name.trim() === "" ? "border-red-500/50" : ""}`}
+                      />
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newNames = staffNames.filter((_, idx) => idx !== i);
+                            setStaffNames(newNames);
+                            setStaffCount(newNames.length);
+                          }}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 border border-white/10 transition-all shrink-0"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      )}
+                      {i === 0 && (
+                        <div className="w-9 h-9 shrink-0 flex items-center justify-center">
+                          <span className="text-[10px] text-[#00D4AA] font-bold border border-[#00D4AA]/30 rounded px-1.5 py-0.5 bg-[#00D4AA]/10">YOU</span>
+                        </div>
+                      )}
                     </div>
-                    <Input
-                      value={name}
-                      onChange={(e) => updateStaffName(i, e.target.value)}
-                      placeholder={i === 0 ? "Your name / Owner" : `Staff member ${i + 1}`}
-                      data-testid={`input-staff-name-${i}`}
-                      autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
-                      className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl"
-                    />
+                    {name.trim() === "" && (
+                      <p className="text-xs text-red-400 ml-12">Name is required</p>
+                    )}
                   </div>
                 ))}
               </div>
 
+              {/* Add staff member button */}
+              {staffNames.length < 20 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStaffNames(prev => [...prev, ""]);
+                    setStaffCount(prev => prev + 1);
+                  }}
+                  className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/20 text-white/50 hover:border-[#00D4AA]/40 hover:text-[#00D4AA] text-sm font-semibold transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Add staff member
+                </button>
+              )}
+
               <div className="bg-white/4 border border-white/8 rounded-xl px-4 py-3 mt-4">
                 <p className="text-xs text-white/40">
-                  Setting up as a <span className="font-semibold text-white/70">{selectedType}</span> — you can customize services, hours, and staff further in your dashboard.
+                  Setting up as a <span className="font-semibold text-white/70">{selectedType}</span> — you can add more staff and customize further in your dashboard.
                 </p>
               </div>
             </div>
