@@ -310,6 +310,7 @@ export default function Auth() {
                 required
                 minLength={6}
                 className="bg-white/6 border-white/15 text-white placeholder:text-white/25 focus:border-white/40 h-12 rounded-xl"
+                style={{ colorScheme: "dark" }}
               />
             </div>
 
