@@ -391,17 +391,27 @@ export default function Calendar() {
               <div className="w-[72px] flex-shrink-0 border-r bg-card z-30 sticky left-0">
                 <div className="h-[60px] border-b sticky top-0 bg-card z-40" />
                 <div className="relative" style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}>
-                  {timeSlots.filter(slot => slot.isHour).map((slot) => {
-                    // Position label at the center of the hour block (hour + 30 minutes)
-                    const topPx = ((slot.hour - START_HOUR) + 0.5) * HOUR_HEIGHT;
+                  {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
+                    const totalMins = i * 15;
+                    const h = START_HOUR + Math.floor(totalMins / 60);
+                    const m = totalMins % 60;
+                    if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+                    const isHour = m === 0;
+                    const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+                    const ampm = h >= 12 ? "PM" : "AM";
+                    const label = isHour
+                      ? (h === 0 ? "12 AM" : h === 12 ? "12 PM" : `${displayH}:00 ${ampm}`)
+                      : `${displayH}:${String(m).padStart(2, "0")}`;
+                    const topPx = (totalMins / 60) * HOUR_HEIGHT;
+                    const slotHeight = HOUR_HEIGHT / 4;
                     return (
                       <div
-                        key={`${slot.hour}-${slot.minute}`}
-                        className="absolute left-0 right-0 flex items-center justify-end pr-3"
-                        style={{ top: `${topPx}px` }}
+                        key={`label-${h}-${m}`}
+                        className="absolute left-0 right-0 flex items-center justify-end pr-2"
+                        style={{ top: `${topPx}px`, height: `${slotHeight}px` }}
                       >
-                        <span className="text-xs font-bold text-foreground/90">
-                          {slot.label}
+                        <span className={isHour ? "text-xs font-bold text-foreground/90" : "text-[10px] font-medium text-foreground/55"}>
+                          {label}
                         </span>
                       </div>
                     );
