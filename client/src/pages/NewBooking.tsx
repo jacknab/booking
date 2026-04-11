@@ -18,7 +18,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { getTimezoneAbbr, formatInTz, storeLocalToUtc, getNowInTimezone } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer } from "lucide-react";
+import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
 
@@ -73,6 +73,15 @@ export default function NewBooking() {
   const [specificStaffId, setSpecificStaffId] = useState<number | null>(calStaffId);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [calendarSlotInitialized, setCalendarSlotInitialized] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const handleCancel = () => {
+    if (!selectedService) {
+      navigate("/calendar");
+    } else {
+      setShowCancelConfirm(true);
+    }
+  };
 
   useEffect(() => {
     if (isCalendarBooking && staffList && !calendarSlotInitialized) {
@@ -344,6 +353,15 @@ export default function NewBooking() {
                   </div>
                 ))}
               </nav>
+              <div className="p-3 border-t">
+                <Button
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
+                  onClick={handleCancel}
+                  data-testid="button-cancel-booking"
+                >
+                  <span className="font-semibold">Cancel</span>
+                </Button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
@@ -798,6 +816,37 @@ export default function NewBooking() {
             >
               OK
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <DialogContent className="max-w-sm text-center" data-testid="cancel-confirm-dialog">
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="w-14 h-14 rounded-full border-[3px] border-amber-400 flex items-center justify-center">
+              <AlertCircle className="w-7 h-7 text-amber-400" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Service not saved</h3>
+              <p className="text-sm text-muted-foreground mt-1">Are you sure you want to leave the page?</p>
+            </div>
+            <div className="flex gap-3 w-full pt-1">
+              <Button
+                variant="outline"
+                className="flex-1 h-11"
+                onClick={() => setShowCancelConfirm(false)}
+                data-testid="button-cancel-no"
+              >
+                No
+              </Button>
+              <Button
+                className="flex-1 h-11 bg-gray-900 hover:bg-gray-800 text-white"
+                onClick={() => navigate("/calendar")}
+                data-testid="button-cancel-yes"
+              >
+                Yes
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
