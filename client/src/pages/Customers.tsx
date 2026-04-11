@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import { Plus, Search, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCustomerSchema } from "@shared/schema";
+import { insertCustomerSchema, type Customer } from "@shared/schema";
 import { z } from "zod";
 
 export default function Customers() {
@@ -18,7 +18,7 @@ export default function Customers() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredCustomers = customers?.filter((c: any) => 
+  const filteredCustomers = customers?.filter((c: Customer) => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -75,7 +75,7 @@ export default function Customers() {
               ) : filteredCustomers?.length === 0 ? (
                 <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No clients found.</td></tr>
               ) : (
-                filteredCustomers?.map((customer: any) => (
+                filteredCustomers?.map((customer: Customer) => (
                   <tr key={customer.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

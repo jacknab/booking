@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import type { InsertCustomer } from "@shared/schema";
+import type { Customer, InsertCustomer } from "@shared/schema";
 import { useSelectedStore } from "@/hooks/use-store";
 
 export function useCustomers() {
   const { selectedStore } = useSelectedStore();
   const storeId = selectedStore?.id;
 
-  return useQuery({
+  return useQuery<Customer[]>({
     queryKey: [api.customers.list.path, storeId],
     queryFn: async () => {
       const url = storeId
@@ -15,7 +15,7 @@ export function useCustomers() {
         : api.customers.list.path;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch customers");
-      return res.json();
+      return res.json() as Promise<Customer[]>;
     },
     enabled: !!storeId,
   });
