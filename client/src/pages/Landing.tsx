@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import HeroVideo from "./components/HeroVideo";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const businessTypeCards = [
   { id: "Hair Salon",     label: "Hair Salons",    description: "Haircuts, color & styling",           videoUrl: "/videos/hair_salon.mp4",     fallbackGradient: "from-rose-400 via-pink-500 to-fuchsia-600",    route: "/hair-salons" },
@@ -21,6 +21,7 @@ const businessTypeCards = [
 
 export default function Landing() {
   const { isAuthenticated } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     // Inject Plus Jakarta Sans font
@@ -31,6 +32,12 @@ export default function Landing() {
     return () => { document.head.removeChild(link); }
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   if (isAuthenticated) {
     window.location.href = "/calendar";
     return null;
@@ -38,24 +45,83 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-body selection:bg-[#00D4AA]/30">
-      <nav className="fixed w-full z-50 bg-[#060E1A]/80 backdrop-blur-md border-b border-white/10 text-white">
+      <nav
+        className="fixed w-full z-50 text-white transition-all duration-500"
+        style={{
+          background: scrolled
+            ? "rgba(6, 14, 26, 0.72)"
+            : "rgba(6, 14, 26, 0.35)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          borderBottom: scrolled
+            ? "1px solid rgba(255,255,255,0.10)"
+            : "1px solid rgba(255,255,255,0.06)",
+          boxShadow: scrolled
+            ? "0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)"
+            : "inset 0 1px 0 rgba(255,255,255,0.04)",
+        }}
+      >
+        {/* Top luminous accent line */}
+        <div
+          className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(0,212,170,0.5) 30%, rgba(255,255,255,0.15) 50%, rgba(0,212,170,0.5) 70%, transparent 100%)",
+            opacity: scrolled ? 0.6 : 0.35,
+            transition: "opacity 0.5s",
+          }}
+        />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            <div className="flex items-center gap-3">
-              <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-xl shadow-lg" />
-              <span className="font-bold text-2xl tracking-tight text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Certxa</span>
-            </div>
-            <div className="flex items-center gap-6">
+          <div className="flex justify-between h-[72px] items-center">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="relative">
+                <div
+                  className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: "radial-gradient(circle, rgba(0,212,170,0.25) 0%, transparent 70%)", filter: "blur(8px)" }}
+                />
+                <img src="/web-app.png" alt="Certxa" className="relative w-9 h-9 rounded-xl shadow-lg" />
+              </div>
+              <span
+                className="font-black text-xl tracking-tight text-white"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+              >
+                Certxa
+              </span>
+            </Link>
+
+            {/* Nav links */}
+            <div className="flex items-center gap-1">
               <Link to="/pricing">
-                <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10" data-testid="link-pricing">Pricing</Button>
+                <button
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white transition-all duration-200 hover:bg-white/[0.06]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  data-testid="link-pricing"
+                >
+                  Pricing
+                </button>
               </Link>
               <Link to="/auth">
-                <Button variant="ghost" className="font-bold text-base text-white/90 hover:text-white hover:bg-white/10" data-testid="link-login">Log in</Button>
+                <button
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white transition-all duration-200 hover:bg-white/[0.06]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  data-testid="link-login"
+                >
+                  Log in
+                </button>
               </Link>
               <Link to="/auth?mode=register">
-                <Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#0A2540] font-bold px-6 rounded-full" data-testid="link-get-started">
-                  Get Started
-                </Button>
+                <button
+                  className="ml-2 px-5 py-2.5 rounded-full text-sm font-bold text-[#0A2540] transition-all duration-200 hover:scale-[1.03] active:scale-[0.98]"
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    background: "linear-gradient(135deg, #00D4AA 0%, #00bfa5 100%)",
+                    boxShadow: "0 0 20px rgba(0,212,170,0.35), 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)",
+                  }}
+                  data-testid="link-get-started"
+                >
+                  Get Started Free
+                </button>
               </Link>
             </div>
           </div>
