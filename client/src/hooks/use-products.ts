@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import type { InsertProduct } from "@shared/schema";
+import type { Product, InsertProduct } from "@shared/schema";
 import { useSelectedStore } from "@/hooks/use-store";
 
 export function useProducts() {
   const { selectedStore } = useSelectedStore();
   const storeId = selectedStore?.id;
 
-  return useQuery({
+  return useQuery<Product[]>({
     queryKey: [api.products.list.path, storeId],
     queryFn: async () => {
       const url = storeId
@@ -15,7 +15,7 @@ export function useProducts() {
         : api.products.list.path;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch products");
-      return res.json();
+      return res.json() as Promise<Product[]>;
     },
     enabled: !!storeId,
   });

@@ -8,7 +8,7 @@ import { useProducts, useCreateProduct, useDeleteProduct } from "@/hooks/use-pro
 import { Plus, Trash2, Package } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertProductSchema } from "@shared/schema";
+import { insertProductSchema, type Product } from "@shared/schema";
 import { z } from "zod";
 
 export default function Products() {
@@ -42,7 +42,7 @@ export default function Products() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading ? (
           <div>Loading...</div>
-        ) : products?.map((product: any) => (
+        ) : products?.map((product: Product) => (
           <div key={product.id} className="bg-card rounded-xl border p-5 shadow-sm hover:shadow-md transition-shadow relative group">
             <Button 
               variant="ghost" 
