@@ -101,8 +101,14 @@ export default function GetStarted() {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628] via-[#0A1628]/30 to-transparent" />
                 {/* Badge */}
                 <div className="absolute top-4 left-4">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm border"
-                    style={{ background: g.accent + "20", color: g.accent, borderColor: g.accent + "40" }}>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold shadow-lg"
+                    style={{
+                      background: g.accent,
+                      color: "#050C18",
+                      boxShadow: `0 2px 12px ${g.accent}80`,
+                    }}
+                  >
                     {g.icon}
                     {g.tag}
                   </span>
