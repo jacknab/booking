@@ -994,22 +994,22 @@ function BookingSummaryPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto">
         {selectedService ? (
-          <div className="space-y-3">
-            <div
-              className={cn(
-                "flex items-start justify-between gap-2 rounded-xl px-3 py-3 border cursor-pointer transition-colors duration-150 select-none",
-                highlightedServiceId === selectedService.id
-                  ? "bg-yellow-100 border-yellow-300"
-                  : "bg-gray-50 border-gray-200 hover:bg-yellow-50 hover:border-yellow-200"
-              )}
-              onClick={() =>
-                setHighlightedServiceId(
-                  highlightedServiceId === selectedService.id ? null : selectedService.id
-                )
-              }
-            >
+          <div
+            className={cn(
+              "w-full border-b cursor-pointer transition-colors duration-150 select-none",
+              highlightedServiceId === selectedService.id
+                ? "bg-yellow-100 border-yellow-300"
+                : "bg-gray-50 hover:bg-yellow-50"
+            )}
+            onClick={() =>
+              setHighlightedServiceId(
+                highlightedServiceId === selectedService.id ? null : selectedService.id
+              )
+            }
+          >
+            <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
               <div className="flex-1">
                 <h4 className="font-semibold text-sm" data-testid="text-summary-service">{selectedService.name}</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -1031,9 +1031,9 @@ function BookingSummaryPanel({
             </div>
 
             {selectedAddons.length > 0 && (
-              <div className="space-y-1.5 pl-3 border-l-2 border-muted">
+              <div className="px-4 pb-3 space-y-1.5 border-t border-dashed border-gray-300">
                 {selectedAddons.map((addon) => (
-                  <div key={addon.id} className="flex items-center justify-between gap-2" data-testid={`summary-addon-${addon.id}`}>
+                  <div key={addon.id} className="flex items-center justify-between gap-2 pt-2" data-testid={`summary-addon-${addon.id}`}>
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs text-muted-foreground">+</span>
                       <span className="text-xs font-medium">{addon.name}</span>
@@ -1041,7 +1041,10 @@ function BookingSummaryPanel({
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">{addon.duration} min</span>
                       <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
-                      <button onClick={() => onRemoveAddon(addon.id)} className="text-muted-foreground">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onRemoveAddon(addon.id); }}
+                        className="text-muted-foreground"
+                      >
                         <X className="w-2.5 h-2.5" />
                       </button>
                     </div>
