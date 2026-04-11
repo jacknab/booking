@@ -26,7 +26,7 @@ error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 hdr()     { echo -e "\n${BOLD}${CYAN}━━━  $*  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"; }
 
 # ─── GLOBAL CONFIGURATION ─────────────────────────────────────────────────────
-APP_PORT=5059
+APP_PORT=5000
 DB_USER="certxa_user"
 DB_NAME="certxa_db"
 SERVICE_NAME="certxa"
@@ -273,9 +273,10 @@ show_menu() {
         --title "  Certxa – VPS Setup Wizard  " \
         --backtitle "${BACKTITLE}" \
         --menu "\n${INFO}\n\nWhat would you like to do?" \
-        26 76 14 \
+        28 76 16 \
         "1"  "  Full Setup  (all 10 steps from the beginning)" \
         "2"  "  Configuration Variables Setup" \
+        "D"  "  Diagnose / Fix 502 Bad Gateway" \
         ""   "  ─────────────────────────────────────────────────" \
         "3"  "  Resume from Step 1  –  Swap space" \
         "4"  "  Resume from Step 2  –  System packages & Node.js" \
@@ -302,6 +303,7 @@ show_menu() {
         0)   clear; echo "Exiting."; exit 0 ;;
         1)   run_from 1 ;;
         2)   do_step_0 ;;
+        D|d) do_diagnose ;;
         3)   run_from 1 ;;
         4)   run_from 2 ;;
         5)   run_from 3 ;;
