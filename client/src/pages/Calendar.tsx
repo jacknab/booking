@@ -90,9 +90,8 @@ export default function Calendar() {
     autoCompleteAppointments: calSettings?.autoCompleteAppointments ?? DEFAULT_CALENDAR_SETTINGS.autoCompleteAppointments,
   };
 
-  const START_HOUR = Math.max(0, DEFAULT_BUSINESS_START - settings.nonWorkingHoursDisplay);
-  const END_HOUR = Math.min(24, DEFAULT_BUSINESS_END + settings.nonWorkingHoursDisplay);
-  const TOTAL_HOURS = END_HOUR - START_HOUR;
+  const baseStartHour = Math.max(0, DEFAULT_BUSINESS_START - settings.nonWorkingHoursDisplay);
+  const baseEndHour = Math.min(24, DEFAULT_BUSINESS_END + settings.nonWorkingHoursDisplay);
 
   const storeNow = getNowInTimezone(timezone);
   const [currentDate, setCurrentDate] = useState(storeNow);
@@ -104,8 +103,42 @@ export default function Calendar() {
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
   const updateAppointment = useUpdateAppointment();
+
+  const { data: appointments } = useAppointments();
+  const { data: staffList, isLoading: staffLoading } = useStaffList();
+
+  const displayedDayAppointments = useMemo(() => {
+    if (!appointments) return [];
+    return appointments.filter((apt: any) => {
+      if (selectedStaffId !== "all" && apt.staffId !== selectedStaffId) return false;
+      const localDate = toStoreLocal(apt.date, timezone);
+      return isSameDay(localDate, currentDate);
+    });
+  }, [appointments, selectedStaffId, timezone, currentDate]);
+
+  const { START_HOUR, END_HOUR } = useMemo(() => {
+    let startHour = baseStartHour;
+    let endHour = baseEndHour;
+
+    for (const apt of displayedDayAppointments) {
+      const localDate = toStoreLocal(apt.date, timezone);
+      const startMinutes = localDate.getHours() * 60 + localDate.getMinutes();
+      const duration = Number(apt.duration || 0);
+      const endMinutes = Math.min(24 * 60, startMinutes + Math.max(duration, 15));
+
+      startHour = Math.min(startHour, Math.floor(startMinutes / 60));
+      endHour = Math.max(endHour, Math.ceil(endMinutes / 60));
+    }
+
+    startHour = Math.max(0, startHour);
+    endHour = Math.min(24, Math.max(endHour, startHour + 1));
+
+    return { START_HOUR: startHour, END_HOUR: endHour };
+  }, [baseStartHour, baseEndHour, displayedDayAppointments, timezone]);
+
+  const TOTAL_HOURS = END_HOUR - START_HOUR;
+  const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
 
   // Auto-select the staff column for staff users once auth resolves
   useEffect(() => {
@@ -135,9 +168,6 @@ export default function Calendar() {
       container.scrollTop = scrollTarget;
     }
   }, [timeLinePosition, selectedStore?.id]);
-
-  const { data: appointments } = useAppointments();
-  const { data: staffList, isLoading: staffLoading } = useStaffList();
 
   const filteredStaff = useMemo(() => {
     if (!staffList) return [];
@@ -176,10 +206,15 @@ export default function Calendar() {
 
   const getAppointmentStyle = (apt: any) => {
     const localDate = toStoreLocal(apt.date, timezone);
-    const hours = localDate.getHours();
-    const minutes = localDate.getMinutes();
-    const topOffset = (hours - START_HOUR + minutes / 60) * HOUR_HEIGHT;
-    const height = (apt.duration / 60) * HOUR_HEIGHT;
+    const startMinutes = localDate.getHours() * 60 + localDate.getMinutes();
+    const duration = Number(apt.duration || 0);
+    const endMinutes = startMinutes + Math.max(duration, 15);
+    const visibleStartMinutes = START_HOUR * 60;
+    const visibleEndMinutes = END_HOUR * 60;
+    const clampedStartMinutes = Math.max(startMinutes, visibleStartMinutes);
+    const clampedEndMinutes = Math.min(endMinutes, visibleEndMinutes);
+    const topOffset = ((clampedStartMinutes - visibleStartMinutes) / 60) * HOUR_HEIGHT;
+    const height = ((clampedEndMinutes - clampedStartMinutes) / 60) * HOUR_HEIGHT;
     return {
       top: `${topOffset}px`,
       height: `${Math.max(height, 30)}px`,
@@ -514,7 +549,7 @@ export default function Calendar() {
                           </div>
 
                         <div
-                          className="relative bg-slate-50 border-l last:border-r"
+                          className="relative bg-slate-50 border-l last:border-r overflow-hidden"
                           style={{
                             height: `${TOTAL_HOURS * HOUR_HEIGHT}px`,
                             borderLeftColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
