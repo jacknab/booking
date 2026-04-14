@@ -495,9 +495,6 @@ export default function NewBooking() {
               </div>
             </div>
             <div className="p-6 space-y-5">
-              {editAppointmentId && editAvailableTimeData && (
-                <AvailableTimeBanner availableMinutes={editAvailableTimeData.availableMinutes} />
-              )}
               {addonsLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -571,6 +568,7 @@ export default function NewBooking() {
             onRemoveAddon={handleRemoveAddon}
             onEditAddons={() => setStep("addons")}
             availableMinutes={availableMinutes}
+            editAvailableMinutes={editAvailableTimeData?.availableMinutes}
             isCalendarBooking={isCalendarBooking}
             isEditMode={!!editAppointmentId}
             footerContent={
@@ -1011,6 +1009,7 @@ function BookingSummaryPanel({
   onEditAddons,
   footerContent,
   availableMinutes,
+  editAvailableMinutes,
   isCalendarBooking,
   isEditMode,
 }: {
@@ -1027,6 +1026,7 @@ function BookingSummaryPanel({
   onEditAddons?: () => void;
   footerContent: React.ReactNode;
   availableMinutes?: number | null;
+  editAvailableMinutes?: number | null;
   isCalendarBooking?: boolean;
   isEditMode?: boolean;
 }) {
@@ -1143,6 +1143,12 @@ function BookingSummaryPanel({
           </div>
         )}
       </div>
+
+      {isEditMode && editAvailableMinutes != null && (
+        <div className="px-4 pb-3">
+          <AvailableTimeBanner availableMinutes={editAvailableMinutes} />
+        </div>
+      )}
 
       <div className="border-t p-4 space-y-3">
         {isCalendarBooking && availableMinutes != null && (
