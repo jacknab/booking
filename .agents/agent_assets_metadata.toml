@@ -143,3 +143,9 @@ id = "LUzxNf6o_jvVMpuuhKUci"
 uri = "file://docs/calendar-staff-column-width.md"
 type = "text"
 title = "Calendar Staff Column Width"
+
+[[outputs]]
+id = "J8nE3ES9kPaLBCgKhCr_q"
+uri = "file://docs/chatbot-dialer-api.md"
+type = "text"
+title = "AI Chatbot & Twilio Dialer — API Reference"
