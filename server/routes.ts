@@ -100,6 +100,8 @@ export async function registerRoutes(
     if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
     if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
     if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
+    if (req.path.startsWith("/chatbot/")) return next(); // Chatbot API — uses own X-Chatbot-Key auth
+    if (req.path.startsWith("/dialer/")) return next();  // Twilio dialer — uses own X-Dialer-Key auth + Twilio webhooks
     
     // Require authentication for other endpoints
     const userId = (req.session as any)?.userId;
@@ -4477,6 +4479,14 @@ If you have any questions, please contact your administrator.
   const { default: crewMobileRouter, startOvertimeDetector } = await import("./routes/crew-mobile.js");
   app.use("/api/crew", crewMobileRouter);
   startOvertimeDetector();
+
+  // ── AI Chatbot API ───────────────────────────────────────────────────────────
+  const { default: chatbotRouter } = await import("./chatbot.js");
+  app.use("/api/chatbot", chatbotRouter);
+
+  // ── Twilio Outbound Dialer ───────────────────────────────────────────────────
+  const { default: dialerRouter } = await import("./dialer.js");
+  app.use("/api/dialer", dialerRouter);
 
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
