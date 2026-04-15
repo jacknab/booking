@@ -1210,7 +1210,7 @@ function CheckoutPOSPanel({
 
   if (phase === "cart") {
     return (
-      <div className="w-[420px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="checkout-pos-panel">
+      <div className="w-[420px] flex-shrink-0 absolute left-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r" data-testid="checkout-pos-panel">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-muted-foreground" />
@@ -1389,7 +1389,7 @@ function CheckoutPOSPanel({
   }
 
   return (
-    <div className="w-[680px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="checkout-payment-panel">
+    <div className="w-[680px] flex-shrink-0 absolute left-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r" data-testid="checkout-payment-panel">
       <div className="p-3 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-muted-foreground" />
