@@ -59,10 +59,39 @@ function buildGreeting(appt: AppointmentWithDetails): string {
   return (
     `Hello ${customerName}, this is a reminder call from ${storeName}. ` +
     `You have ${svcName} scheduled for ${dateStr}. ` +
-    `Press 1 to confirm your appointment. ` +
-    `Press 2 to cancel your appointment. ` +
-    `Press 3 to hear this message again.`
+    `You can say "confirm", "cancel", or "repeat". ` +
+    `Or press 1 to confirm, 2 to cancel, or 3 to hear this again.`
   );
+}
+
+/**
+ * Resolve a spoken phrase or DTMF digit into one of three intents:
+ * "confirm" | "cancel" | "repeat" | "unknown"
+ */
+function resolveIntent(digits: string, speechResult: string): "confirm" | "cancel" | "repeat" | "unknown" {
+  // DTMF takes priority if present
+  if (digits === "1") return "confirm";
+  if (digits === "2") return "cancel";
+  if (digits === "3") return "repeat";
+
+  // Speech intent matching
+  const speech = speechResult.toLowerCase().trim();
+  if (!speech) return "unknown";
+
+  const confirmWords = ["confirm", "yes", "yeah", "yep", "sure", "ok", "okay", "correct",
+    "right", "definitely", "absolutely", "sounds good", "i'll be there", "will be there",
+    "i will", "i'm coming", "keep it", "keep the", "confirmed", "that's right"];
+  const cancelWords = ["cancel", "no", "nope", "nah", "can't", "cannot", "won't", "not going",
+    "not coming", "don't", "decline", "remove", "delete", "i can't", "i won't",
+    "i'm not", "unable", "cancel it", "please cancel"];
+  const repeatWords = ["repeat", "again", "what", "pardon", "sorry", "huh", "didn't hear",
+    "say again", "come again", "one more time", "repeat that"];
+
+  if (confirmWords.some((w) => speech.includes(w))) return "confirm";
+  if (cancelWords.some((w) => speech.includes(w))) return "cancel";
+  if (repeatWords.some((w) => speech.includes(w))) return "repeat";
+
+  return "unknown";
 }
 
 function dialerAuth(req: Request, res: Response, next: () => void) {
@@ -215,14 +244,19 @@ router.post("/voice", async (req: Request, res: Response) => {
 
     const greeting = buildGreeting(appt);
     const gather = twiml.gather({
+      input: ["speech", "dtmf"] as any,
       numDigits: "1",
       action: `${baseUrl}/api/dialer/gather?appointmentId=${appointmentId}`,
       method: "POST",
-      timeout: 10,
+      timeout: 5,
+      speechTimeout: "auto",
+      speechModel: "phone_call",
+      hints: "confirm, yes, cancel, no, repeat, again",
+      language: "en-US",
     });
     gather.say({ voice: "Polly.Joanna", language: "en-US" }, greeting);
 
-    twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "We did not receive your input. Please call us back to confirm or cancel your appointment. Goodbye.");
+    twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "We did not receive your response. Please call us back to confirm or cancel your appointment. Goodbye.");
     twiml.hangup();
   } catch {
     twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "An error occurred. Please contact us directly. Goodbye.");
@@ -235,16 +269,17 @@ router.post("/voice", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // POST /api/dialer/gather
 // Query: appointmentId
-// Body: Digits (from Twilio Gather)
+// Body: Digits (DTMF) and/or SpeechResult (spoken words) from Twilio Gather
 //
-// Handles the customer's DTMF key press.
-//   1 → confirm appointment
-//   2 → cancel appointment
-//   3 → repeat message
+// Handles the customer's spoken response or key press.
+//   "confirm" / "yes" / 1 → confirm appointment
+//   "cancel"  / "no"  / 2 → cancel appointment
+//   "repeat"  / "again"/ 3 → repeat message
 // ---------------------------------------------------------------------------
 router.post("/gather", async (req: Request, res: Response) => {
   const appointmentId = parseInt((req.query.appointmentId as string) ?? "0");
   const digits: string = req.body?.Digits ?? "";
+  const speechResult: string = req.body?.SpeechResult ?? "";
   const baseUrl = getBaseUrl(req);
 
   res.setHeader("Content-Type", "text/xml");
@@ -254,6 +289,24 @@ router.post("/gather", async (req: Request, res: Response) => {
     twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "Sorry, we could not find your appointment. Goodbye.");
     twiml.hangup();
     return res.send(twiml.toString());
+  }
+
+  const intent = resolveIntent(digits, speechResult);
+
+  // Helper: build a repeat Gather with speech + DTMF
+  function buildRepeatGather(prompt: string) {
+    const g = twiml.gather({
+      input: ["speech", "dtmf"] as any,
+      numDigits: "1",
+      action: `${baseUrl}/api/dialer/gather?appointmentId=${appointmentId}`,
+      method: "POST",
+      timeout: 5,
+      speechTimeout: "auto",
+      speechModel: "phone_call",
+      hints: "confirm, yes, cancel, no, repeat, again",
+      language: "en-US",
+    });
+    g.say({ voice: "Polly.Joanna", language: "en-US" }, prompt);
   }
 
   try {
@@ -268,8 +321,7 @@ router.post("/gather", async (req: Request, res: Response) => {
     const svcName = appt.service?.name ?? "your appointment";
     const dateStr = format(new Date(appt.date), "EEEE, MMMM do 'at' h:mm a");
 
-    if (digits === "1") {
-      // Confirm
+    if (intent === "confirm") {
       await storage.updateAppointment(appointmentId, { status: "confirmed" });
 
       if (appt.customer?.phone && appt.storeId) {
@@ -279,11 +331,11 @@ router.post("/gather", async (req: Request, res: Response) => {
 
       twiml.say(
         { voice: "Polly.Joanna", language: "en-US" },
-        `Thank you! Your appointment has been confirmed. We look forward to seeing you on ${dateStr}. You will also receive a text message confirmation. Goodbye.`
+        `Perfect! Your ${svcName} on ${dateStr} is confirmed. We look forward to seeing you. You will also receive a text message confirmation. Goodbye.`
       );
       twiml.hangup();
-    } else if (digits === "2") {
-      // Cancel
+
+    } else if (intent === "cancel") {
       await storage.updateAppointment(appointmentId, {
         status: "cancelled",
         cancellationReason: "Cancelled by customer via automated reminder call",
@@ -300,29 +352,19 @@ router.post("/gather", async (req: Request, res: Response) => {
         `Your appointment has been cancelled. If you would like to rebook, please contact ${storeName} directly. Thank you. Goodbye.`
       );
       twiml.hangup();
-    } else if (digits === "3") {
-      // Repeat
-      const gather = twiml.gather({
-        numDigits: "1",
-        action: `${baseUrl}/api/dialer/gather?appointmentId=${appointmentId}`,
-        method: "POST",
-        timeout: 10,
-      });
-      gather.say({ voice: "Polly.Joanna", language: "en-US" }, buildGreeting(appt));
-      twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "We did not receive your input. Please call us back. Goodbye.");
+
+    } else if (intent === "repeat") {
+      buildRepeatGather(buildGreeting(appt));
+      twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "We did not receive your response. Please call us back. Goodbye.");
       twiml.hangup();
+
     } else {
-      // Unrecognised key
-      const gather = twiml.gather({
-        numDigits: "1",
-        action: `${baseUrl}/api/dialer/gather?appointmentId=${appointmentId}`,
-        method: "POST",
-        timeout: 10,
-      });
-      gather.say(
-        { voice: "Polly.Joanna", language: "en-US" },
-        "Sorry, I did not understand that. Press 1 to confirm, press 2 to cancel, or press 3 to hear this message again."
+      // Unknown — re-prompt once with a simpler ask
+      buildRepeatGather(
+        `Sorry, I didn't catch that. Please say "confirm" to keep your ${svcName}, ` +
+        `or say "cancel" to cancel it. You can also press 1 to confirm or 2 to cancel.`
       );
+      twiml.say({ voice: "Polly.Joanna", language: "en-US" }, "We did not receive your response. Please call us back. Goodbye.");
       twiml.hangup();
     }
   } catch (err: any) {
