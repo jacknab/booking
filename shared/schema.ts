@@ -247,6 +247,16 @@ export const mailSettings = pgTable("mail_settings", {
 <p><a href="{reviewUrl}">Leave us a review</a></p>`),
 });
 
+export const stripeSettings = pgTable("stripe_settings", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  publishableKey: text("publishable_key"),
+  secretKey: text("secret_key"),
+  testMagstripeEnabled: boolean("test_magstripe_enabled").notNull().default(true),
+}, (table) => ({
+  storeIdIdx: uniqueIndex("stripe_settings_store_id_uidx").on(table.storeId),
+}));
+
 
 
 // === PERMISSIONS (from osx) ===
@@ -727,6 +737,7 @@ export const insertDrawerActionSchema = createInsertSchema(drawerActions).omit({
 export const insertSmsSettingsSchema = createInsertSchema(smsSettings).omit({ id: true });
 export const insertSmsLogSchema = createInsertSchema(smsLog).omit({ id: true });
 export const insertMailSettingsSchema = createInsertSchema(mailSettings).omit({ id: true });
+export const insertStripeSettingsSchema = createInsertSchema(stripeSettings).omit({ id: true });
 
 export const insertPermissionsSchema = createInsertSchema(permissions).omit({ id: true });
 export const insertRolesSchema = createInsertSchema(roles).omit({ id: true });
@@ -808,6 +819,9 @@ export type InsertSmsLog = z.infer<typeof insertSmsLogSchema>;
 
 export type MailSettings = typeof mailSettings.$inferSelect;
 export type InsertMailSettings = z.infer<typeof insertMailSettingsSchema>;
+
+export type StripeSettings = typeof stripeSettings.$inferSelect;
+export type InsertStripeSettings = z.infer<typeof insertStripeSettingsSchema>;
 
 export type Permissions = typeof permissions.$inferSelect;
 export type InsertPermissions = z.infer<typeof insertPermissionsSchema>;

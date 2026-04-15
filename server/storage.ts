@@ -2,7 +2,7 @@ import {
   locations, services, staff, customers, appointments, products,
   serviceCategories, addons, serviceAddons, appointmentAddons, staffServices, staffAvailability,
   calendarSettings, cashDrawerSessions, drawerActions, businessHours,
-  smsSettings, smsLog, mailSettings,
+  smsSettings, smsLog, mailSettings, stripeSettings,
   type Store, type InsertStore,
   type ServiceCategory, type InsertServiceCategory,
   type Service, type InsertService,
@@ -21,7 +21,8 @@ import {
   type DrawerAction, type InsertDrawerAction,
   type SmsSettings, type InsertSmsSettings,
   type SmsLogEntry, type InsertSmsLog,
-  type MailSettings, type InsertMailSettings
+  type MailSettings, type InsertMailSettings,
+  type StripeSettings, type InsertStripeSettings
 } from "@shared/schema";
 import { users, type User, type UpsertUser } from "@shared/models/auth";
 import { db } from "./db";
@@ -120,6 +121,9 @@ export interface IStorage {
 
   getMailSettings(storeId: number): Promise<MailSettings | undefined>;
   upsertMailSettings(storeId: number, settings: Partial<InsertMailSettings>): Promise<MailSettings>;
+
+  getStripeSettings(storeId: number): Promise<StripeSettings | undefined>;
+  upsertStripeSettings(storeId: number, settings: Partial<InsertStripeSettings>): Promise<StripeSettings>;
 
   // User Auth
   getUser(id: string): Promise<User | undefined>;
@@ -600,6 +604,21 @@ export class DatabaseStorage implements IStorage {
       return result;
     }
     const [result] = await db.insert(mailSettings).values({ ...settings, storeId }).returning();
+    return result;
+  }
+
+  async getStripeSettings(storeId: number): Promise<StripeSettings | undefined> {
+    const result = await db.select().from(stripeSettings).where(eq(stripeSettings.storeId, storeId));
+    return result[0];
+  }
+
+  async upsertStripeSettings(storeId: number, settings: Partial<InsertStripeSettings>): Promise<StripeSettings> {
+    const existing = await this.getStripeSettings(storeId);
+    if (existing) {
+      const [result] = await db.update(stripeSettings).set(settings).where(eq(stripeSettings.storeId, storeId)).returning();
+      return result;
+    }
+    const [result] = await db.insert(stripeSettings).values({ ...settings, storeId }).returning();
     return result;
   }
 

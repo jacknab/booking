@@ -18,6 +18,7 @@ import { AvailableTimeBanner } from "@/components/AvailableTimeBanner";
 import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 const calendarSidebarItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -1079,8 +1080,31 @@ const TAX_RATE = 0.07;
 const PAYMENT_METHODS = [
   { id: "cash", label: "Cash", icon: Banknote },
   { id: "card", label: "Card", icon: CreditCard },
+  { id: "stripe", label: "Stripe Test", icon: CreditCard },
   { id: "mobile", label: "Mobile", icon: Smartphone },
 ] as const;
+
+const STRIPE_TEST_CARD_MAP: Record<string, { testPaymentMethod: string; cardBrand: string }> = {
+  "4242424242424242": { testPaymentMethod: "pm_card_visa", cardBrand: "Visa" },
+  "5555555555554444": { testPaymentMethod: "pm_card_mastercard", cardBrand: "Mastercard" },
+  "378282246310005": { testPaymentMethod: "pm_card_amex", cardBrand: "American Express" },
+  "6011111111111117": { testPaymentMethod: "pm_card_discover", cardBrand: "Discover" },
+  "4000000000000002": { testPaymentMethod: "pm_card_chargeDeclined", cardBrand: "Declined test card" },
+};
+
+function parseStripeTestSwipe(input: string) {
+  const cleaned = input.trim();
+  const trackTwo = cleaned.match(/;(\d{12,19})=(\d{4})/);
+  const trackOne = cleaned.match(/%B(\d{12,19})\^/);
+  const keyedDigits = cleaned.replace(/\D/g, "");
+  const cardNumber = trackTwo?.[1] || trackOne?.[1] || keyedDigits;
+  const testCard = STRIPE_TEST_CARD_MAP[cardNumber];
+  if (!testCard) return null;
+  return {
+    ...testCard,
+    cardLast4: cardNumber.slice(-4),
+  };
+}
 
 const TIP_PRESETS = [
   { label: "No Tip", value: 0 },
@@ -1109,6 +1133,8 @@ function CheckoutPOSPanel({
   onFinalize: (data: { paymentMethod: string; tip: number; discount: number; totalPaid: number }) => void;
   isUpdating: boolean;
 }) {
+  const { selectedStore } = useSelectedStore();
+  const { toast } = useToast();
   const [phase, setPhase] = useState<"cart" | "payment">("cart");
   const [tipMode, setTipMode] = useState<"preset" | "custom">("preset");
   const [selectedTipIndex, setSelectedTipIndex] = useState(0);
@@ -1120,6 +1146,11 @@ function CheckoutPOSPanel({
   const [keypadDisplay, setKeypadDisplay] = useState("0");
   const [nextTenderId, setNextTenderId] = useState(1);
   const [showComplete, setShowComplete] = useState(false);
+  const [stripeReaderActive, setStripeReaderActive] = useState(false);
+  const [stripeSwipeAmount, setStripeSwipeAmount] = useState(0);
+  const [stripeSwipeInput, setStripeSwipeInput] = useState("");
+  const [stripeSwipeStatus, setStripeSwipeStatus] = useState("");
+  const [stripeProcessing, setStripeProcessing] = useState(false);
 
   const aptAddons = appointment.appointmentAddons?.map(aa => aa.addon).filter(Boolean) || [];
   const servicePrice = Number(appointment.service?.price || 0);
@@ -1182,6 +1213,69 @@ function CheckoutPOSPanel({
     setTenders(prev => [...prev, { id: nextTenderId, method, amount }]);
     setNextTenderId(prev => prev + 1);
     setKeypadDisplay("0");
+  };
+
+  const handleStartStripeSwipe = () => {
+    const amount = Number(keypadDisplay);
+    if (amount <= 0) return;
+    setStripeSwipeAmount(amount);
+    setStripeReaderActive(true);
+    setStripeSwipeInput("");
+    setStripeSwipeStatus("Swipe a Stripe test card now.");
+  };
+
+  const handleStripeSwipeInput = async (value: string) => {
+    setStripeSwipeInput(value);
+    if (!value.includes("?") && !value.includes("\n") && value.replace(/\D/g, "").length < 15) return;
+
+    const parsed = parseStripeTestSwipe(value);
+    setStripeSwipeInput("");
+
+    if (!parsed) {
+      setStripeSwipeStatus("Only Stripe test cards are accepted here.");
+      return;
+    }
+
+    if (!selectedStore?.id) {
+      setStripeSwipeStatus("Select a store before taking a Stripe payment.");
+      return;
+    }
+
+    try {
+      setStripeProcessing(true);
+      setStripeSwipeStatus(`Processing ${parsed.cardBrand} ending in ${parsed.cardLast4}...`);
+      const res = await fetch(`/api/stripe-settings/${selectedStore.id}/test-magstripe-payment`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: stripeSwipeAmount,
+          testPaymentMethod: parsed.testPaymentMethod,
+          appointmentId: appointment.id,
+          cardLast4: parsed.cardLast4,
+          cardBrand: parsed.cardBrand,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Stripe test payment failed");
+      }
+
+      setTenders(prev => [...prev, { id: nextTenderId, method: "stripe", amount: data.amount || stripeSwipeAmount }]);
+      setNextTenderId(prev => prev + 1);
+      setKeypadDisplay("0");
+      setStripeReaderActive(false);
+      setStripeSwipeStatus("");
+      toast({
+        title: "Stripe test payment approved",
+        description: `${parsed.cardBrand} ending in ${parsed.cardLast4} charged for $${(data.amount || stripeSwipeAmount).toFixed(2)}.`,
+      });
+    } catch (error: any) {
+      setStripeSwipeStatus(error.message || "Stripe test payment failed.");
+      toast({ title: "Stripe payment failed", description: error.message || "Try another test card.", variant: "destructive" });
+    } finally {
+      setStripeProcessing(false);
+    }
   };
 
   const handleRemoveTender = (id: number) => {
@@ -1555,9 +1649,10 @@ function CheckoutPOSPanel({
                       "h-auto py-3 flex flex-col items-center gap-1",
                       method.id === "cash" && "bg-green-600 text-white",
                       method.id === "card" && "bg-blue-600 text-white",
+                      method.id === "stripe" && "bg-indigo-600 text-white",
                       method.id === "mobile" && "bg-purple-600 text-white"
                     )}
-                    onClick={() => handleApplyTender(method.id)}
+                    onClick={() => method.id === "stripe" ? handleStartStripeSwipe() : handleApplyTender(method.id)}
                     disabled={Number(keypadDisplay) <= 0}
                     data-testid={`tender-${method.id}`}
                   >
@@ -1567,6 +1662,49 @@ function CheckoutPOSPanel({
                 );
               })}
             </div>
+
+            {stripeReaderActive && (
+              <div className="rounded-md border p-3 space-y-2 bg-indigo-50 dark:bg-indigo-950/20">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Stripe test swipe</p>
+                    <p className="text-xs text-muted-foreground">Amount: ${stripeSwipeAmount.toFixed(2)}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setStripeReaderActive(false);
+                      setStripeSwipeInput("");
+                      setStripeSwipeStatus("");
+                    }}
+                    disabled={stripeProcessing}
+                    data-testid="button-cancel-stripe-swipe"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                <Input
+                  type="password"
+                  autoFocus
+                  value={stripeSwipeInput}
+                  onChange={(e) => handleStripeSwipeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleStripeSwipeInput(stripeSwipeInput + "\n");
+                    }
+                  }}
+                  disabled={stripeProcessing}
+                  placeholder={stripeProcessing ? "Processing..." : "Swipe reader input lands here"}
+                  data-testid="input-stripe-test-swipe"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {stripeSwipeStatus || "Use a Stripe test card track, like Visa 4242."}
+                </p>
+              </div>
+            )}
           </div>
 
           {showComplete && (

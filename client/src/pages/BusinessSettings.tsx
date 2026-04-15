@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CreditCard } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,6 +56,12 @@ type DayHours = {
   openTime: string;
   closeTime: string;
   isClosed: boolean;
+};
+
+type StripeSettingsForm = {
+  publishableKey: string;
+  secretKey: string;
+  testMagstripeEnabled: boolean;
 };
 
 const CATEGORIES = [
@@ -296,6 +302,134 @@ function BusinessProfile({ store }: { store: Store }) {
         </Card>
       </form>
     </Form>
+  );
+}
+
+function StripePaymentsSettings({ store }: { store: Store }) {
+  const { toast } = useToast();
+  const [formState, setFormState] = useState<StripeSettingsForm>({
+    publishableKey: "",
+    secretKey: "",
+    testMagstripeEnabled: true,
+  });
+
+  const { data: settings, isLoading } = useQuery<any>({
+    queryKey: ["/api/stripe-settings", store.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/stripe-settings/${store.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load Stripe settings");
+      return res.json();
+    },
+    enabled: !!store.id,
+  });
+
+  useEffect(() => {
+    if (!settings) {
+      setFormState({ publishableKey: "", secretKey: "", testMagstripeEnabled: true });
+      return;
+    }
+    setFormState({
+      publishableKey: settings.publishableKey || "",
+      secretKey: settings.secretKey || "",
+      testMagstripeEnabled: settings.testMagstripeEnabled !== false,
+    });
+  }, [settings]);
+
+  const saveSettings = useMutation({
+    mutationFn: async (data: StripeSettingsForm) => {
+      const res = await apiRequest("PUT", `/api/stripe-settings/${store.id}`, {
+        publishableKey: data.publishableKey.trim() || null,
+        secretKey: data.secretKey.trim() || null,
+        testMagstripeEnabled: data.testMagstripeEnabled,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stripe-settings", store.id] });
+      toast({ title: "Stripe saved", description: "Stripe payment settings have been updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save Stripe settings.", variant: "destructive" });
+    },
+  });
+
+  const modeLabel = settings?.mode === "test" ? "Test mode" : settings?.mode === "live" ? "Live mode" : "Not connected";
+  const connected = settings?.connected;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2" data-testid="text-stripe-settings-title">
+            <CreditCard className="w-5 h-5 text-muted-foreground" />
+            Stripe Payments
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Save this store&apos;s Stripe keys for POS test payments.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => saveSettings.mutate(formState)}
+          disabled={saveSettings.isPending || isLoading}
+          data-testid="button-save-stripe"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {saveSettings.isPending ? "Saving..." : "Save"}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-6 space-y-5">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-medium">Status:</span>
+            <span className={connected ? "text-green-600" : "text-muted-foreground"}>{modeLabel}</span>
+            {settings?.mode === "live" && (
+              <span className="text-xs text-amber-600">Mag-stripe test payments are blocked for live keys.</span>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="stripe-publishable-key">Publishable key</Label>
+              <Input
+                id="stripe-publishable-key"
+                value={formState.publishableKey}
+                onChange={(e) => setFormState(prev => ({ ...prev, publishableKey: e.target.value }))}
+                placeholder="pk_test_..."
+                data-testid="input-stripe-publishable-key"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="stripe-secret-key">Secret key</Label>
+              <Input
+                id="stripe-secret-key"
+                type="password"
+                value={formState.secretKey}
+                onChange={(e) => setFormState(prev => ({ ...prev, secretKey: e.target.value }))}
+                placeholder="sk_test_..."
+                data-testid="input-stripe-secret-key"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+            <Checkbox
+              checked={formState.testMagstripeEnabled}
+              onCheckedChange={(checked) => setFormState(prev => ({ ...prev, testMagstripeEnabled: checked === true }))}
+              data-testid="checkbox-test-magstripe-enabled"
+            />
+            <span>
+              <span className="block text-sm font-medium">Enable USB mag-stripe reader test mode</span>
+              <span className="block text-xs text-muted-foreground mt-1">
+                This only accepts Stripe test card swipes and only runs with an sk_test key.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -547,6 +681,7 @@ export default function BusinessSettings() {
       </div>
       <div className="space-y-8">
         <BusinessProfile store={store} />
+        <StripePaymentsSettings store={store} />
         <BusinessHoursEditor store={store} />
       </div>
     </AppLayout>

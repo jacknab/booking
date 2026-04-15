@@ -2452,6 +2452,119 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  const safeStripeSettings = (settings: any) => {
+    const secretKey = settings.secretKey || "";
+    return {
+      ...settings,
+      secretKey: secretKey ? "••••••••" : null,
+      mode: secretKey.startsWith("sk_test_") ? "test" : secretKey.startsWith("sk_live_") ? "live" : null,
+      connected: Boolean(settings.publishableKey && secretKey),
+    };
+  };
+
+  app.get("/api/stripe-settings/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    const settings = await storage.getStripeSettings(Number(req.params.storeId));
+    res.json(settings ? safeStripeSettings(settings) : null);
+  });
+
+  app.put("/api/stripe-settings/:storeId", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    try {
+      const storeId = Number(req.params.storeId);
+      const stripeSettingsInput = z.object({
+        publishableKey: z.string().optional().nullable(),
+        secretKey: z.string().optional().nullable(),
+        testMagstripeEnabled: z.boolean().optional(),
+      }).parse(req.body);
+
+      if (stripeSettingsInput.secretKey === "••••••••") {
+        delete stripeSettingsInput.secretKey;
+      }
+
+      const settings = await storage.upsertStripeSettings(storeId, { ...stripeSettingsInput, storeId });
+      res.json(safeStripeSettings(settings));
+    } catch (error) {
+      console.error("Stripe settings update error:", error);
+      res.status(400).json({ message: "Invalid Stripe settings" });
+    }
+  });
+
+  app.post("/api/stripe-settings/:storeId/test-magstripe-payment", async (req, res) => {
+    if (!(await validateStoreOwnership(req, res))) return;
+    try {
+      const storeId = Number(req.params.storeId);
+      const settings = await storage.getStripeSettings(storeId);
+
+      if (!settings?.secretKey) {
+        return res.status(400).json({ message: "Stripe secret key is not configured." });
+      }
+
+      if (!settings.secretKey.startsWith("sk_test_")) {
+        return res.status(400).json({ message: "Mag-stripe test payments are only allowed with Stripe test keys." });
+      }
+
+      if (settings.testMagstripeEnabled === false) {
+        return res.status(400).json({ message: "Mag-stripe test mode is disabled in Stripe settings." });
+      }
+
+      const paymentInput = z.object({
+        amount: z.number().positive().max(999999),
+        testPaymentMethod: z.string(),
+        appointmentId: z.number().optional().nullable(),
+        cardLast4: z.string().optional().nullable(),
+        cardBrand: z.string().optional().nullable(),
+      }).parse(req.body);
+
+      const allowedPaymentMethods: Record<string, string> = {
+        pm_card_visa: "Visa",
+        pm_card_mastercard: "Mastercard",
+        pm_card_amex: "American Express",
+        pm_card_discover: "Discover",
+        pm_card_chargeDeclined: "Declined card",
+      };
+
+      if (!allowedPaymentMethods[paymentInput.testPaymentMethod]) {
+        return res.status(400).json({ message: "Only Stripe test card swipes are accepted." });
+      }
+
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(settings.secretKey);
+      const amountInCents = Math.round(paymentInput.amount * 100);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: "usd",
+        payment_method: paymentInput.testPaymentMethod,
+        confirm: true,
+        payment_method_types: ["card"],
+        metadata: {
+          storeId: String(storeId),
+          appointmentId: paymentInput.appointmentId ? String(paymentInput.appointmentId) : "",
+          cardLast4: paymentInput.cardLast4 || "",
+          cardBrand: paymentInput.cardBrand || allowedPaymentMethods[paymentInput.testPaymentMethod],
+          source: "certxa_test_magstripe",
+        },
+      });
+
+      if (paymentIntent.status !== "succeeded") {
+        return res.status(400).json({ message: `Stripe payment status: ${paymentIntent.status}` });
+      }
+
+      res.json({
+        success: true,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount / 100,
+        cardLast4: paymentInput.cardLast4 || null,
+        cardBrand: paymentInput.cardBrand || allowedPaymentMethods[paymentInput.testPaymentMethod],
+      });
+    } catch (error: any) {
+      const message = error?.raw?.message || error?.message || "Stripe test payment failed";
+      res.status(400).json({ success: false, message });
+    }
+  });
+
   // === ADMIN ENDPOINTS ===
   app.get("/api/admin/accounts", async (req, res) => {
     const userId = (req.session as any)?.userId;

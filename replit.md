@@ -145,6 +145,7 @@ Preferred communication style: Simple, everyday language.
 - `cashDrawerSessions` — Cash drawer shift sessions (storeId, openedAt, closedAt, openingBalance, closingBalance, status, openedBy, closedBy, notes)
 - `drawerActions` — Actions within a drawer session (sessionId, type [open_drawer/close_drawer/cash_in/cash_out], amount, reason, performedBy, performedAt)
 - `smsSettings` — Per-store Twilio SMS configuration (credentials, enabled flags for confirmation/reminder/review, message templates, Google review URL)
+- `stripeSettings` — Per-store Stripe POS configuration (publishable key, masked secret key handling, test mag-stripe toggle for local test-mode POS payments)
 - `smsLog` — SMS message log (storeId, appointmentId, phone, messageType, status, twilioSid, sentAt)
 - `users` — Auth users (email/password, onboardingCompleted flag)
 - `sessions` — Session storage for authentication
@@ -211,6 +212,11 @@ script/build.ts   — Production build script (Vite + esbuild)
 3. **Storage Interface**: `server/storage.ts` defines an `IStorage` interface, abstracting database operations for potential swapping
 4. **Custom Hooks Pattern**: Each data domain (appointments, services, staff, etc.) has its own hook file with CRUD mutations and queries. All hooks use `useSelectedStore()` to scope queries by store.
 5. **Dev/Prod Split**: In dev, Vite middleware serves the frontend with HMR. In production, pre-built static files are served from `dist/public`
+
+### Stripe POS Test Payments
+- Business Settings includes a "Stripe Payments" section that saves per-store Stripe publishable/secret keys and returns masked secret keys to the frontend.
+- Calendar checkout POS and the standalone POS page include a "Stripe Test" swipe option. It listens for keyboard-style USB mag-stripe swipes, accepts only known Stripe test card numbers, sends only the mapped Stripe test payment method to the backend, and creates a confirmed Stripe test PaymentIntent.
+- Mag-stripe test payments are blocked unless the saved secret key starts with `sk_test_`; live keys must use safer production payment methods such as Stripe Terminal or Stripe-hosted card entry.
 
 ### Business-Type Landing Pages
 Marketing landing pages targeting specific industries, each with a hero video background, feature grid, testimonials, comparison table, and CTA:
