@@ -926,16 +926,15 @@ CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "sessions" ("expire");
 SESSIONSQL
     success "Sessions table ready."
 
-    # Verify a core table exists
-    local TABLE_CHECK
-    TABLE_CHECK=$(psql "${DB_URL}" -tAc \
-        "SELECT COUNT(*) FROM information_schema.tables
-         WHERE table_schema='public' AND table_name='users';" 2>/dev/null || echo "0")
-    if [[ "${TABLE_CHECK:-0}" == "0" ]]; then
-        error "Schema push appeared to succeed but the 'users' table was not created. Check your DATABASE_URL and re-run Step 8."
+    # ── Full table verification + auto-repair ────────────────────────────────
+    # db:check --fix confirms all 48 required tables exist and repairs any that
+    # are still missing (runs drizzle-kit push again + sessions DDL as needed).
+    info "Running full database integrity check..."
+    if ! ./node_modules/.bin/tsx "${APP_DIR}/scripts/check-db.ts" --fix; then
+        error "Database check failed — one or more tables could not be created. Check the output above and re-run Step 8."
     fi
 
-    success "Schema pushed and verified."
+    success "Schema pushed and all tables verified."
 }
 
 # ── Step 9 – Production build ─────────────────────────────────────────────────
