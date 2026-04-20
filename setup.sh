@@ -909,6 +909,23 @@ do_step_8() {
         error "Schema push failed — check the error above and re-run Step 8."
     fi
 
+    # ── Create sessions table (connect-pg-simple — not managed by Drizzle) ───
+    # connect-pg-simple has createTableIfMissing:true but that only fires at
+    # runtime. Creating it here guarantees it exists before PM2 starts the app
+    # so the first login never fails with "relation sessions does not exist".
+    info "Ensuring sessions table exists (express-session store)..."
+    psql "${DB_URL}" -v ON_ERROR_STOP=0 <<SESSIONSQL 2>/dev/null || true
+CREATE TABLE IF NOT EXISTS "sessions" (
+  "sid"    varchar      NOT NULL COLLATE "default",
+  "sess"   json         NOT NULL,
+  "expire" timestamp(6) NOT NULL,
+  CONSTRAINT "sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+) WITH (OIDS=FALSE);
+
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "sessions" ("expire");
+SESSIONSQL
+    success "Sessions table ready."
+
     # Verify a core table exists
     local TABLE_CHECK
     TABLE_CHECK=$(psql "${DB_URL}" -tAc \
@@ -1616,7 +1633,23 @@ do_diagnose() {
         fi
     fi
 
-    # ── 8. Check Nginx is running ─────────────────────────────────────────────
+    # ── 8. Check sessions table exists ───────────────────────────────────────
+    if [ -f "${APP_DIR}/.env" ] && grep -q "^DATABASE_URL=" "${APP_DIR}/.env"; then
+        local DIAG_DB_URL
+        DIAG_DB_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" | head -1 | cut -d= -f2-)
+        local SESS_CHECK
+        SESS_CHECK=$(psql "${DIAG_DB_URL}" -tAc \
+            "SELECT COUNT(*) FROM information_schema.tables
+             WHERE table_schema='public' AND table_name='sessions';" 2>/dev/null || echo "0")
+        if [[ "${SESS_CHECK:-0}" == "0" ]]; then
+            ISSUES+=("✗ 'sessions' table missing — all logins will fail (relation does not exist)")
+            FIXES+=("Re-run Step 8 (Database schema) to create the sessions table")
+        else
+            success "sessions table exists (express-session store)"
+        fi
+    fi
+
+    # ── 9. Check Nginx is running ─────────────────────────────────────────────
     if ! sudo systemctl is-active --quiet nginx 2>/dev/null; then
         ISSUES+=("✗ Nginx is NOT running")
         FIXES+=("sudo systemctl start nginx && sudo systemctl enable nginx")
