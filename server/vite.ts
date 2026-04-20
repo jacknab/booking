@@ -8,6 +8,32 @@ import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
+// Routes handled by entry-server.tsx SSR rendering
+const SSR_ROUTES = new Set([
+  "/industries",
+  "/handyman",
+  "/house-cleaning",
+  "/lawn-care",
+  "/snow-removal",
+  "/dog-walking",
+  "/tutoring",
+  "/hvac",
+  "/plumbing",
+  "/electrical",
+  "/carpet-cleaning",
+  "/pressure-washing",
+  "/window-cleaning",
+  "/barbers",
+  "/spa",
+  "/nails",
+  "/tattoo",
+  "/haircuts",
+  "/hair-salons",
+  "/groomers",
+  "/estheticians",
+  "/ride-service",
+]);
+
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,
@@ -36,6 +62,7 @@ export async function setupVite(server: Server, app: Express) {
     if (req.path.startsWith("/api/")) return next();
 
     const url = req.originalUrl;
+    const urlPath = url.split("?")[0];
 
     try {
       const clientTemplate = path.resolve(
@@ -45,13 +72,30 @@ export async function setupVite(server: Server, app: Express) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
+      // Always reload the index.html file from disk in case it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
+
+      // SSR: pre-render landing pages into the HTML shell
+      if (SSR_ROUTES.has(urlPath)) {
+        try {
+          const { render } = await vite.ssrLoadModule("/src/entry-server.tsx");
+          const { html: appHtml } = render(url);
+          const rendered = page.replace("<!--ssr-outlet-->", appHtml);
+          res.status(200).set({ "Content-Type": "text/html" }).end(rendered);
+          return;
+        } catch (ssrError) {
+          // If SSR fails for any reason, fall back to the client-side shell
+          // so the page still loads — React will hydrate it on the client
+          console.warn(`[SSR] Failed to render ${urlPath}, falling back to CSR:`, ssrError);
+        }
+      }
+
+      // Default: serve the client-side shell (React takes over in the browser)
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
