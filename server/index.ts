@@ -11,6 +11,10 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+// In the esbuild CJS production bundle, __dirname is a real global that points
+// to the dist/ directory. Capture it here before any async code runs.
+// (globalThis cast avoids TypeScript errors in ESM source mode.)
+const _cjsDirname: string | undefined = (globalThis as any).__dirname;
 
 // Replace with your actual DB functions
 import { storage } from "./storage";
@@ -162,7 +166,12 @@ app.use((req, res, next) => {
   // /assets/* requests are always handled by express.static and never reach
   // any route handler (which would return JSON and trigger MIME-type errors).
   if (process.env.NODE_ENV === "production") {
-    const distPath = path.resolve(process.cwd(), "dist/public");
+    // Resolve relative to the compiled file's directory (_cjsDirname = dist/).
+    // This is immune to PM2 setting a different working directory than the project root.
+    // Falls back to process.cwd()/dist/public for non-bundle environments.
+    const distPath = _cjsDirname
+      ? path.resolve(_cjsDirname, "public")
+      : path.resolve(process.cwd(), "dist/public");
     if (!fs.existsSync(distPath)) {
       console.error(`Build directory not found: ${distPath}. Run 'npm run build' first.`);
     } else {
@@ -209,7 +218,9 @@ app.use((req, res, next) => {
 
   // Development: use Vite middleware. Production: SPA catch-all for client routing.
   if (process.env.NODE_ENV === "production") {
-    const distPath = path.resolve(process.cwd(), "dist/public");
+    const distPath = _cjsDirname
+      ? path.resolve(_cjsDirname, "public")
+      : path.resolve(process.cwd(), "dist/public");
     if (fs.existsSync(distPath)) {
       app.use((req: Request, res: Response, next: NextFunction) => {
         if (req.path.startsWith("/api/")) return next();
