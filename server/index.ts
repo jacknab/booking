@@ -11,6 +11,35 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+import { createRequire } from "module";
+
+const _require = createRequire(import.meta.url);
+
+// Landing page routes that get server-side rendered for SEO
+const SSR_ROUTES = new Set([
+  "/industries",
+  "/handyman",
+  "/house-cleaning",
+  "/lawn-care",
+  "/snow-removal",
+  "/dog-walking",
+  "/tutoring",
+  "/hvac",
+  "/plumbing",
+  "/electrical",
+  "/carpet-cleaning",
+  "/pressure-washing",
+  "/window-cleaning",
+  "/barbers",
+  "/spa",
+  "/nails",
+  "/tattoo",
+  "/haircuts",
+  "/hair-salons",
+  "/groomers",
+  "/estheticians",
+  "/ride-service",
+]);
 // In the esbuild CJS production bundle, __dirname is a real global that points
 // to the dist/ directory. Capture it here before any async code runs.
 // (globalThis cast avoids TypeScript errors in ESM source mode.)
@@ -185,15 +214,58 @@ app.use((req, res, next) => {
   // Register all API routes AFTER static assets so /assets/* never hits a route.
   await registerRoutes(httpServer, app);
 
-  // Development: use Vite middleware. Production: SPA catch-all for client routing.
+  // Development: use Vite middleware. Production: SSR for landing pages + SPA catch-all.
   if (process.env.NODE_ENV === "production") {
     const distPath = _cjsDirname
       ? path.resolve(_cjsDirname, "public")
       : path.resolve(process.cwd(), "dist/public");
+
     if (fs.existsSync(distPath)) {
+      const ssrBundlePath = _cjsDirname
+        ? path.resolve(_cjsDirname, "server/entry-server.cjs")
+        : path.resolve(process.cwd(), "dist/server/entry-server.cjs");
+
+      const indexHtmlPath = path.resolve(distPath, "index.html");
+
+      // Load SSR render function and template once at startup (not per-request)
+      let ssrRender: ((url: string) => { html: string }) | null = null;
+      let indexTemplate: string | null = null;
+
+      if (fs.existsSync(ssrBundlePath) && fs.existsSync(indexHtmlPath)) {
+        try {
+          ssrRender = _require(ssrBundlePath).render;
+          indexTemplate = fs.readFileSync(indexHtmlPath, "utf-8");
+          log("SSR bundle loaded — landing pages will be server-rendered");
+        } catch (err) {
+          console.warn("[SSR] Failed to load SSR bundle, falling back to SPA-only:", err);
+        }
+      } else {
+        log("SSR bundle not found — run npm run build to enable SSR in production");
+      }
+
+      // SSR handler — runs before the SPA catch-all
       app.use((req: Request, res: Response, next: NextFunction) => {
         if (req.path.startsWith("/api/")) return next();
-        res.sendFile(path.resolve(distPath, "index.html"));
+        if (!SSR_ROUTES.has(req.path)) return next();
+        if (!ssrRender || !indexTemplate) return next();
+
+        try {
+          const { html: appHtml } = ssrRender(req.originalUrl);
+          const rendered = indexTemplate.replace("<!--ssr-outlet-->", appHtml);
+          res
+            .status(200)
+            .set({ "Content-Type": "text/html", "Cache-Control": "no-cache" })
+            .end(rendered);
+        } catch (err) {
+          console.warn(`[SSR] Render failed for ${req.path}, falling back to SPA:`, err);
+          next();
+        }
+      });
+
+      // SPA catch-all — handles all non-SSR, non-API routes
+      app.use((req: Request, res: Response, next: NextFunction) => {
+        if (req.path.startsWith("/api/")) return next();
+        res.sendFile(indexHtmlPath);
       });
     }
   } else {
