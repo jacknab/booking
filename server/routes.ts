@@ -1628,7 +1628,10 @@ If you have any questions, please contact your administrator.
 
       console.log("Onboarding: Validating request body:", req.body);
       const onboardingSchema = z.object({
-        businessType: z.enum(["Hair Salon", "Nail Salon", "Spa", "Barbershop"]),
+        businessType: z.enum([
+          "Hair Salon", "Nail Salon", "Spa", "Barbershop",
+          "Esthetician", "Pet Groomer", "Tattoo Studio", "Other",
+        ]),
         businessName: z.string().min(1).max(100),
         email: z.string().email().optional().or(z.literal('')),
         timezone: z.string().min(1).default("America/New_York"),
@@ -1696,11 +1699,9 @@ If you have any questions, please contact your administrator.
       } = parsed.data;
 
       console.log("Onboarding: Looking up template for business type:", businessType);
-      const template = businessTemplates[businessType];
-      if (!template) {
-        console.log("Onboarding: Template not found for business type:", businessType);
-        return res.status(400).json({ message: "Invalid business type" });
-      }
+      // Fall back to empty template for types without predefined services.
+      // Staff and availability are still created correctly from businessHours.
+      const template = businessTemplates[businessType] ?? { categories: [] };
 
       console.log("Onboarding: Creating store...");
       const store = await storage.createStore({

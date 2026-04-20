@@ -104,7 +104,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
           </Link>
         </div>
         
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
           <nav className="px-2 text-sm font-medium lg:px-4 pb-4">
             {navGroups.map((group) => (
               <div key={group.label} className="mb-2">
