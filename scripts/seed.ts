@@ -16,37 +16,13 @@ import {
 import { businessTemplates } from "../server/onboarding-data";
 import { eq } from "drizzle-orm";
 
-async function seed() {
-  console.log("🌱 Seeding database...");
-
-  // --- Clean up any previous seed data ---
-  const existing = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, "demo@certxa.com"));
-  if (existing.length > 0) {
-    console.log("ℹ️  Demo data already exists — skipping.");
-    process.exit(0);
-  }
-
-  // --- Demo user ---
-  const hashedPw = await bcrypt.hash("demo1234", 10);
-  const [owner] = await db
-    .insert(users)
-    .values({
-      email: "demo@certxa.com",
-      password: hashedPw,
-      firstName: "Demo",
-      lastName: "Owner",
-      role: "admin",
-      onboardingCompleted: true,
-    })
-    .returning();
-  console.log(`✅ Created user: ${owner.email}`);
-
-  // --- Store definitions ---
-  const storeDefs = [
-    {
+const DEMO_ACCOUNTS = [
+  {
+    email: "demo@certxa.com",
+    password: "demo1234",
+    firstName: "Demo",
+    lastName: "Owner",
+    store: {
       name: "Luxe Nail Studio",
       category: "Nail Salon",
       address: "123 Main St",
@@ -60,7 +36,13 @@ async function seed() {
       staffNames: ["Emma Wilson", "Lily Chen", "Sofia Martinez"],
       template: "Nail Salon",
     },
-    {
+  },
+  {
+    email: "demo2@certxa.com",
+    password: "demo1234",
+    firstName: "Demo",
+    lastName: "Owner2",
+    store: {
       name: "Uptown Hair Bar",
       category: "Hair Salon",
       address: "456 Oak Ave",
@@ -74,9 +56,45 @@ async function seed() {
       staffNames: ["Jake Thompson", "Mia Rodriguez"],
       template: "Hair Salon",
     },
-  ];
+  },
+];
 
-  for (const def of storeDefs) {
+async function seed() {
+  console.log("🌱 Seeding database...\n");
+
+  const hashedPw = await bcrypt.hash("demo1234", 10);
+
+  for (const account of DEMO_ACCOUNTS) {
+    // Skip if user OR store already exists (idempotent)
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, account.email));
+    const existingStore = await db
+      .select()
+      .from(locations)
+      .where(eq(locations.bookingSlug, account.store.bookingSlug));
+    if (existingUser.length > 0 || existingStore.length > 0) {
+      console.log(`ℹ️  ${account.email} / ${account.store.bookingSlug} already exists — skipping.`);
+      continue;
+    }
+
+    // --- Create owner ---
+    const [owner] = await db
+      .insert(users)
+      .values({
+        email: account.email,
+        password: hashedPw,
+        firstName: account.firstName,
+        lastName: account.lastName,
+        role: "admin",
+        onboardingCompleted: true,
+      })
+      .returning();
+    console.log(`✅ Created user: ${owner.email}`);
+
+    const def = account.store;
+
     // --- Create store ---
     const [store] = await db
       .insert(locations)
@@ -104,7 +122,7 @@ async function seed() {
         dayOfWeek: day,
         openTime: "09:00",
         closeTime: "18:00",
-        isClosed: day === 0, // Sunday closed
+        isClosed: day === 0,
       });
     }
 
@@ -127,13 +145,12 @@ async function seed() {
     }
     console.log(`  👤 Created ${createdStaff.length} staff members`);
 
-    // --- Services from template (first 3 categories only to keep it concise) ---
+    // --- Services (first 3 categories from template) ---
     const template = businessTemplates[def.template];
     if (!template) continue;
 
     let serviceCount = 0;
-    const categoriesToSeed = template.categories.slice(0, 3);
-    for (const catDef of categoriesToSeed) {
+    for (const catDef of template.categories.slice(0, 3)) {
       const [cat] = await db
         .insert(serviceCategories)
         .values({ name: catDef.name, storeId: store.id })
@@ -154,7 +171,6 @@ async function seed() {
           .returning();
         serviceCount++;
 
-        // Seed up to 2 addons per service
         if (svcDef.addons) {
           for (const addonDef of svcDef.addons.slice(0, 2)) {
             const [addon] = await db
@@ -175,7 +191,9 @@ async function seed() {
         }
       }
     }
-    console.log(`  💅 Created ${serviceCount} services across ${categoriesToSeed.length} categories`);
+    console.log(
+      `  💅 Created ${serviceCount} services across 3 categories`
+    );
 
     // --- Sample customers ---
     const customerData = [
@@ -192,7 +210,7 @@ async function seed() {
       createdCustomers.push(cust.id);
     }
 
-    // --- A few sample appointments (upcoming) ---
+    // --- 3 upcoming appointments ---
     const [firstService] = await db
       .select()
       .from(services)
@@ -217,10 +235,22 @@ async function seed() {
       }
       console.log(`  📅 Created 3 upcoming appointments`);
     }
+
+    console.log("");
   }
 
-  console.log("\n✅ Seed complete!");
-  console.log("   Login: demo@certxa.com / demo1234");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("✅ Seed complete! Demo accounts:");
+  console.log("");
+  console.log("  Store 1 — Luxe Nail Studio");
+  console.log("    Email    : demo@certxa.com");
+  console.log("    Password : demo1234");
+  console.log("");
+  console.log("  Store 2 — Uptown Hair Bar");
+  console.log("    Email    : demo2@certxa.com");
+  console.log("    Password : demo1234");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
   process.exit(0);
 }
 
