@@ -1212,72 +1212,6 @@ SSLOPT
         success "options-ssl-nginx.conf created."
     fi
 
-    # ── Wildcard cert for booking subdomains (*.${DOMAIN}) ───────────────────
-    WILDCARD_CERT_BASE=""
-    for CANDIDATE in \
-        "/etc/letsencrypt/live/${DOMAIN}" \
-        "/etc/letsencrypt/live/${DOMAIN}-0001" \
-        "/etc/letsencrypt/live/wildcard.${DOMAIN}" \
-        "/etc/letsencrypt/live/${DOMAIN}-wildcard"; do
-        if [ -f "${CANDIDATE}/fullchain.pem" ] && [ -s "${CANDIDATE}/fullchain.pem" ]; then
-            # Check if this cert covers *.${DOMAIN}
-            if sudo openssl x509 -in "${CANDIDATE}/fullchain.pem" -text -noout 2>/dev/null \
-                    | grep -q "\*\.${DOMAIN}"; then
-                WILDCARD_CERT_BASE="$CANDIDATE"
-                break
-            fi
-        fi
-    done
-
-    if [ -z "$WILDCARD_CERT_BASE" ]; then
-        set +e
-        whiptail \
-            --title "  Wildcard SSL — Booking Subdomains  " \
-            --backtitle "$BACKTITLE" \
-            --yesno "\
-Booking pages run on subdomains like:
-  https://mysalon.${DOMAIN}
-
-A wildcard SSL certificate (*.${DOMAIN}) is required for HTTPS
-on those pages. This requires a DNS challenge — you will need
-to add a TXT record to your DNS provider when prompted.
-
-Would you like to attempt to obtain a wildcard certificate now?
-(You can skip this and booking pages will redirect to the main
-domain instead of using their own subdomain.)" \
-            18 66
-        WILDCARD_CHOICE=$?
-        set -e
-
-        if [ $WILDCARD_CHOICE -eq 0 ]; then
-            info "Running certbot DNS-01 challenge for *.${DOMAIN}..."
-            sudo certbot certonly \
-                --manual \
-                --preferred-challenges dns \
-                -d "*.${DOMAIN}" \
-                --non-interactive --agree-tos -m "${CERT_EMAIL}" 2>/dev/null || true
-
-            for CANDIDATE in \
-                "/etc/letsencrypt/live/${DOMAIN}" \
-                "/etc/letsencrypt/live/${DOMAIN}-0001" \
-                "/etc/letsencrypt/live/${DOMAIN}-0002"; do
-                if [ -f "${CANDIDATE}/fullchain.pem" ] && [ -s "${CANDIDATE}/fullchain.pem" ]; then
-                    if sudo openssl x509 -in "${CANDIDATE}/fullchain.pem" -text -noout 2>/dev/null \
-                            | grep -q "\*\.${DOMAIN}"; then
-                        WILDCARD_CERT_BASE="$CANDIDATE"
-                        success "Wildcard certificate obtained: ${CANDIDATE}"
-                        break
-                    fi
-                fi
-            done
-            [ -z "$WILDCARD_CERT_BASE" ] && warn "Wildcard certificate not obtained — booking subdomains will redirect to main domain."
-        else
-            warn "Wildcard cert skipped — booking subdomain HTTPS won't work until a *.${DOMAIN} cert is issued."
-        fi
-    else
-        success "Existing wildcard certificate found: ${WILDCARD_CERT_BASE}"
-    fi
-
     # ── Write booking.conf ───────────────────────────────────────────────────
     local NGINX_SITE="/etc/nginx/sites-available/booking.conf"
     sudo tee "${NGINX_SITE}" > /dev/null <<NGINXEOF
@@ -1292,11 +1226,10 @@ domain instead of using their own subdomain.)" \
 # =============================================================================
 
 # ── HTTP → HTTPS redirect ─────────────────────────────────────────────────────
-# Covers root, www, and all booking subdomains (*.${DOMAIN})
 server {
     listen 80;
     listen [::]:80;
-    server_name ${DOMAIN} www.${DOMAIN} *.${DOMAIN};
+    server_name ${DOMAIN} www.${DOMAIN};
     return 301 https://\$host\$request_uri;
 }
 
@@ -1459,61 +1392,6 @@ server {
     error_log  /var/log/nginx/booking_error.log warn;
 }
 NGINXEOF
-
-    # ── Wildcard server block (appended if wildcard cert is available) ───────
-    if [ -n "${WILDCARD_CERT_BASE:-}" ]; then
-        sudo tee -a "${NGINX_SITE}" > /dev/null <<WILDCARDEOF
-
-# ── Wildcard HTTPS — booking subdomain pages (*.${DOMAIN}) ───────────────────
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name *.${DOMAIN};
-
-    client_max_body_size 50M;
-
-    ssl_certificate     ${WILDCARD_CERT_BASE}/fullchain.pem;
-    ssl_certificate_key ${WILDCARD_CERT_BASE}/privkey.pem;
-    ssl_trusted_certificate ${WILDCARD_CERT_BASE}/chain.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    ssl_stapling on;
-    ssl_stapling_verify on;
-    resolver 8.8.8.8 8.8.4.4 valid=300s;
-    resolver_timeout 5s;
-
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
-
-    location / {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-
-        proxy_set_header Upgrade           \$http_upgrade;
-        proxy_set_header Connection        "upgrade";
-        proxy_set_header Host              \$host;
-        proxy_set_header X-Real-IP         \$remote_addr;
-        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        # Critical: lets subdomain middleware resolve booking slug from hostname.
-        proxy_set_header X-Forwarded-Host  \$host;
-
-        proxy_read_timeout 30s;
-        proxy_connect_timeout 10s;
-        proxy_send_timeout 30s;
-
-        proxy_pass_header Set-Cookie;
-    }
-
-    access_log /var/log/nginx/booking_access.log;
-    error_log  /var/log/nginx/booking_error.log warn;
-}
-WILDCARDEOF
-        success "Wildcard server block added (*.${DOMAIN} → port ${APP_PORT})."
-    else
-        warn "No wildcard cert — booking subdomains (*.${DOMAIN}) will only work over HTTP (redirected from port 80)."
-        warn "To enable HTTPS on booking subdomains, run: sudo certbot certonly --manual --preferred-challenges dns -d '*.${DOMAIN}' then re-run Step 10."
-    fi
 
     sudo ln -sf "${NGINX_SITE}" "/etc/nginx/sites-enabled/booking.conf"
 
