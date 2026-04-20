@@ -6,7 +6,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   // Dynamic callback URL based on environment
   const callbackURL = process.env.GOOGLE_AUTH_CALLBACK_URL || (
     process.env.NODE_ENV === "production"
-      ? "https://dashboard.certxa.com/api/auth/google/callback"
+      ? "https://certxa.com/api/auth/google/callback"
       : `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
   );
 
