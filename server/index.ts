@@ -11,9 +11,9 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
-import { createRequire } from "module";
-
-const _require = createRequire(import.meta.url);
+// In the esbuild CJS bundle, require is a real global — grab it the same
+// way __dirname is grabbed above so it's available for loading the SSR bundle.
+const _require: NodeRequire = (globalThis as any).require;
 
 // Landing page routes that get server-side rendered for SEO
 const SSR_ROUTES = new Set([
