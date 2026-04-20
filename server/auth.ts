@@ -103,7 +103,13 @@ export function setupAuth(app: Express) {
         if (valid) {
           (req.session as any).userId = user.id;
           const { password: _, ...safeUser } = user;
-          return res.json(safeUser);
+          return req.session.save((err) => {
+            if (err) {
+              console.error("Session save error after login:", err);
+              return res.status(500).json({ message: "Session could not be saved" });
+            }
+            return res.json(safeUser);
+          });
         }
 
         // User exists but password is wrong — don't fall through to staff table
@@ -119,8 +125,7 @@ export function setupAuth(app: Express) {
         if (validStaffPw) {
           (req.session as any).staffId = staffMember.id;
           const { password: _pw, ...safeStaff } = staffMember;
-          // Return a user-compatible shape so the client can work normally
-          return res.json({
+          const staffResponse = {
             id: `staff-${staffMember.id}`,
             email: staffMember.email ?? "",
             role: "staff",
@@ -136,6 +141,13 @@ export function setupAuth(app: Express) {
             trialEndsAt: null,
             createdAt: null,
             updatedAt: null,
+          };
+          return req.session.save((err) => {
+            if (err) {
+              console.error("Session save error after staff login:", err);
+              return res.status(500).json({ message: "Session could not be saved" });
+            }
+            return res.json(staffResponse);
           });
         }
       }
