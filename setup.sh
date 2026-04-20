@@ -591,8 +591,7 @@ do_step_3() {
         sudo systemctl enable fail2ban --now
     fi
     F2B_JAIL="/etc/fail2ban/jail.d/certxa.conf"
-    if [ ! -f "$F2B_JAIL" ]; then
-        sudo tee "$F2B_JAIL" > /dev/null <<F2BEOF
+    sudo tee "$F2B_JAIL" > /dev/null <<F2BEOF
 [DEFAULT]
 bantime  = 1h
 findtime = 10m
@@ -601,8 +600,7 @@ maxretry = 5
 [sshd]
 enabled = true
 F2BEOF
-        sudo systemctl reload fail2ban 2>/dev/null || sudo systemctl restart fail2ban
-    fi
+    sudo systemctl reload fail2ban 2>/dev/null || sudo systemctl restart fail2ban
     success "fail2ban active — SSH brute-force protection enabled."
 
     if [ ! -f /etc/apt/apt.conf.d/50unattended-upgrades ]; then
@@ -616,8 +614,16 @@ do_step_4() {
     hdr "Step 4/10  Node.js dependencies"
     cd "${APP_DIR}"
     info "Installing npm packages (this may take a minute)..."
-    rm -rf node_modules
-    npm install
+    # Only wipe node_modules if package.json is newer than the modules directory
+    # or if node_modules is missing entirely — avoids a slow full reinstall on re-runs.
+    if [ ! -d "${APP_DIR}/node_modules" ] \
+        || [ "${APP_DIR}/package.json" -nt "${APP_DIR}/node_modules/.package-lock.json" ]; then
+        rm -rf node_modules
+        npm install
+    else
+        info "node_modules is up to date — skipping full reinstall."
+        npm install --prefer-offline --silent 2>/dev/null || npm install
+    fi
     success "npm install complete."
 }
 
@@ -751,13 +757,14 @@ PYEOF
     }
 
     if [ -f "${APP_DIR}/.env" ]; then
-        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, CORS_ORIGINS, GOOGLE_REDIRECT_URI."
-        upsert_env "DATABASE_URL"        "${NEW_DB_URL}"
-        upsert_env "PORT"                "${APP_PORT}"
-        upsert_env "NODE_ENV"            "production"
-        upsert_env "CORS_ALLOW_ALL"      "false"
-        upsert_env "CORS_ORIGINS"        "https://${DOMAIN},https://www.${DOMAIN}"
-        upsert_env "GOOGLE_REDIRECT_URI" "https://${DOMAIN}/google-business"
+        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, CORS_ORIGINS, GOOGLE_REDIRECT_URI, GOOGLE_AUTH_CALLBACK_URL."
+        upsert_env "DATABASE_URL"             "${NEW_DB_URL}"
+        upsert_env "PORT"                     "${APP_PORT}"
+        upsert_env "NODE_ENV"                 "production"
+        upsert_env "CORS_ALLOW_ALL"           "false"
+        upsert_env "CORS_ORIGINS"             "https://${DOMAIN},https://www.${DOMAIN}"
+        upsert_env "GOOGLE_REDIRECT_URI"      "https://${DOMAIN}/google-business"
+        upsert_env "GOOGLE_AUTH_CALLBACK_URL" "https://${DOMAIN}/api/auth/google/callback"
         if ! grep -q "^SESSION_SECRET=" "${APP_DIR}/.env"; then
             local SESSION_SECRET
             SESSION_SECRET=$(openssl rand -hex 32 2>/dev/null || echo "change-me-$(date +%s)")
@@ -790,6 +797,7 @@ TRIAL_PERIOD_DAYS=60
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=https://${DOMAIN}/google-business
+GOOGLE_AUTH_CALLBACK_URL=https://${DOMAIN}/api/auth/google/callback
 
 # ─── Mailgun ─────────────────────────────────────────────────────────────────
 MAILGUN_API_KEY=
@@ -905,8 +913,11 @@ do_step_8() {
     info "Pre-migration fixes complete. Pushing Drizzle schema..."
     echo ""
 
-    if ! ./node_modules/.bin/drizzle-kit push --force; then
-        error "Schema push failed — check the error above and re-run Step 8."
+    if ! ./node_modules/.bin/drizzle-kit push; then
+        warn "Schema push reported issues — retrying with --force to apply safe changes..."
+        if ! ./node_modules/.bin/drizzle-kit push --force; then
+            error "Schema push failed — check the error above and re-run Step 8."
+        fi
     fi
 
     # ── Create sessions table (connect-pg-simple — not managed by Drizzle) ───
@@ -1023,7 +1034,8 @@ module.exports = {
         CORS_ALLOW_ALL: 'false',
         CORS_ORIGINS: '${ENV_CORS_ORIGINS}',
         TRIAL_PERIOD_DAYS: '${ENV_TRIAL_DAYS}',
-        GOOGLE_REDIRECT_URI: 'https://${DOMAIN}/google-business'
+        GOOGLE_REDIRECT_URI: 'https://${DOMAIN}/google-business',
+        GOOGLE_AUTH_CALLBACK_URL: 'https://${DOMAIN}/api/auth/google/callback'
       },
       error_file: '${APP_DIR}/logs/pm2-error.log',
       out_file: '${APP_DIR}/logs/pm2-out.log',
@@ -1064,28 +1076,8 @@ ECOEOF
     hdr "Step 10b/10  Nginx booking.conf + SSL"
 
     info "Checking for existing certificates for '${DOMAIN}'..."
-    EXISTING_CERTS=()
-    for CANDIDATE in \
-        "/etc/letsencrypt/live/${DOMAIN}" \
-        "/etc/letsencrypt/live/${DOMAIN}-0001" \
-        "/etc/letsencrypt/live/${DOMAIN}-0002" \
-        "/etc/letsencrypt/live/${DOMAIN}-0003"; do
-        [ -d "${CANDIDATE}" ] && EXISTING_CERTS+=("$(basename "${CANDIDATE}")")
-    done
 
-    if [ ${#EXISTING_CERTS[@]} -gt 0 ]; then
-        warn "Found ${#EXISTING_CERTS[@]} existing certificate(s) — removing for clean re-issue."
-        for CERT_NAME in "${EXISTING_CERTS[@]}"; do
-            info "Deleting certificate: ${CERT_NAME}"
-            sudo certbot delete --cert-name "${CERT_NAME}" --non-interactive 2>/dev/null \
-                || sudo rm -rf \
-                    "/etc/letsencrypt/live/${CERT_NAME}" \
-                    "/etc/letsencrypt/archive/${CERT_NAME}" \
-                    "/etc/letsencrypt/renewal/${CERT_NAME}.conf"
-        done
-        success "Old certificate(s) removed."
-    fi
-
+    # Find the most recent valid cert for this domain (valid = not expired within 24h)
     local CERT_BASE=""
     for CANDIDATE in \
         "/etc/letsencrypt/live/${DOMAIN}" \
@@ -1093,9 +1085,41 @@ ECOEOF
         "/etc/letsencrypt/live/${DOMAIN}-0002" \
         "/etc/letsencrypt/live/${DOMAIN}-0003"; do
         if [ -f "${CANDIDATE}/fullchain.pem" ] && [ -f "${CANDIDATE}/privkey.pem" ]; then
-            CERT_BASE="$CANDIDATE"; break
+            if sudo openssl x509 -checkend 86400 -noout \
+                    -in "${CANDIDATE}/fullchain.pem" 2>/dev/null; then
+                CERT_BASE="$CANDIDATE"
+                info "Found valid existing certificate at ${CERT_BASE} — will reuse it."
+                break
+            else
+                warn "Certificate at ${CANDIDATE} is expired or expiring within 24h."
+            fi
         fi
     done
+
+    # Only delete and re-issue if no valid cert exists
+    if [ -z "$CERT_BASE" ]; then
+        EXISTING_CERTS=()
+        for CANDIDATE in \
+            "/etc/letsencrypt/live/${DOMAIN}" \
+            "/etc/letsencrypt/live/${DOMAIN}-0001" \
+            "/etc/letsencrypt/live/${DOMAIN}-0002" \
+            "/etc/letsencrypt/live/${DOMAIN}-0003"; do
+            [ -d "${CANDIDATE}" ] && EXISTING_CERTS+=("$(basename "${CANDIDATE}")")
+        done
+
+        if [ ${#EXISTING_CERTS[@]} -gt 0 ]; then
+            warn "Removing expired/invalid certificate(s) before re-issue..."
+            for CERT_NAME in "${EXISTING_CERTS[@]}"; do
+                info "Deleting certificate: ${CERT_NAME}"
+                sudo certbot delete --cert-name "${CERT_NAME}" --non-interactive 2>/dev/null \
+                    || sudo rm -rf \
+                        "/etc/letsencrypt/live/${CERT_NAME}" \
+                        "/etc/letsencrypt/archive/${CERT_NAME}" \
+                        "/etc/letsencrypt/renewal/${CERT_NAME}.conf"
+            done
+            success "Expired certificate(s) removed."
+        fi
+    fi
 
     # Clean up default site and broken symlinks
     [ -L /etc/nginx/sites-enabled/default ] \
