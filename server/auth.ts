@@ -1,4 +1,4 @@
-import type { Express, RequestHandler } from "express";
+import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
@@ -8,6 +8,7 @@ import { users } from "@shared/models/auth";
 import { locations, staff, passwordResetTokens } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { sendEmail } from "./mail";
+import passport from "./passport";
 
 export function setupAuth(app: Express) {
   app.set("trust proxy", 1);
@@ -32,6 +33,39 @@ export function setupAuth(app: Express) {
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       },
     })
+  );
+
+  // --- Google OAuth Routes ---
+  // Registered immediately after session middleware so the session is
+  // guaranteed to be populated before the OAuth callback handler runs.
+  app.get("/api/auth/google", (req: Request, res: Response, next: NextFunction) => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(500).send("Google OAuth is not configured on the server. Please check environment variables.");
+    }
+    console.log("Google OAuth: Initiating authentication...");
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  });
+
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+    (req: Request, res: Response) => {
+      console.log("Google OAuth: Callback received, user:", (req.user as any)?.email);
+      if (req.user) {
+        (req.session as any).userId = (req.user as any).id;
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.redirect("/login");
+          }
+          console.log("Google OAuth: User logged in successfully, redirecting to /");
+          res.redirect("/");
+        });
+      } else {
+        console.error("Google OAuth: No user in request");
+        res.redirect("/login");
+      }
+    }
   );
 
   app.post("/api/auth/register", async (req, res) => {
