@@ -99,6 +99,7 @@ import GoogleReviewsPage from "@/pages/pro-dashboard/GoogleReviewsPage";
 import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
+import SeoManager from "@/components/SeoManager";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -158,6 +159,8 @@ function AppRoutes() {
   ) && !isPublicConfirmation;
 
   const routes = (
+    <>
+    <SeoManager />
     <Routes>
       <Route path="/" element={<SubdomainRouter />} />
       <Route path="/barbers" element={<BarberLanding />} />
@@ -256,6 +259,7 @@ function AppRoutes() {
 
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 
   if (isAuthenticatedRoute) {
