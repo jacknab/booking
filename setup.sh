@@ -26,7 +26,7 @@ error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 hdr()     { echo -e "\n${BOLD}${CYAN}━━━  $*  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"; }
 
 # ─── GLOBAL CONFIGURATION ─────────────────────────────────────────────────────
-APP_PORT=5059
+APP_PORT=6050
 DB_USER="certxa_user"
 DB_NAME="certxa_db"
 SERVICE_NAME="certxa"

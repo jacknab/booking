@@ -29,7 +29,7 @@ const rawCorsOrigins =
   process.env.CORS_ORIGIN ||
   "";
 const allowAllCorsOrigins = process.env.CORS_ALLOW_ALL === "true";
-const defaultCorsOrigins = ["https://dashboard.certxa.com"];
+const defaultCorsOrigins = ["https://certxa.com", "https://www.certxa.com"];
 if (process.env.NODE_ENV !== "production") {
   defaultCorsOrigins.push("http://localhost:5173", "http://localhost:3000");
 }
