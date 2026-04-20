@@ -158,18 +158,59 @@ app.use((req, res, next) => {
     }
   );
 
-  // Register all API routes BEFORE setting up Vite/static so that the Vite
-  // catch-all never intercepts /api/* requests.
-  await registerRoutes(httpServer, app);
-
-  // Serve static files / Vite dev server AFTER API routes are registered.
-  // The catch-all inside serveStatic/Vite skips /api/* routes.
+  // In production, serve static assets BEFORE registering API routes so that
+  // /assets/* requests are always handled by express.static and never reach
+  // any route handler (which would return JSON and trigger MIME-type errors).
   if (process.env.NODE_ENV === "production") {
     const distPath = path.resolve(process.cwd(), "dist/public");
     if (!fs.existsSync(distPath)) {
       console.error(`Build directory not found: ${distPath}. Run 'npm run build' first.`);
     } else {
-      app.use(express.static(distPath));
+      // Serve pre-compressed .gz files transparently when the client supports it.
+      app.use((req: Request, res: Response, next: NextFunction) => {
+        const acceptEncoding = req.headers["accept-encoding"] || "";
+        if (
+          acceptEncoding.includes("gzip") &&
+          req.path.match(/\.(js|css|html|json|svg|ico|woff2?)$/)
+        ) {
+          const gzPath = path.resolve(distPath, req.path.slice(1) + ".gz");
+          if (fs.existsSync(gzPath)) {
+            res.setHeader("Content-Encoding", "gzip");
+            // Set correct Content-Type based on original extension
+            if (req.path.endsWith(".js")) res.setHeader("Content-Type", "application/javascript");
+            else if (req.path.endsWith(".css")) res.setHeader("Content-Type", "text/css");
+            req.url = req.url + ".gz";
+          }
+        }
+        next();
+      });
+
+      app.use(express.static(distPath, {
+        setHeaders(res, filePath) {
+          // Ensure correct MIME types for assets
+          if (filePath.endsWith(".js") || filePath.endsWith(".js.gz")) {
+            res.setHeader("Content-Type", "application/javascript");
+          } else if (filePath.endsWith(".css") || filePath.endsWith(".css.gz")) {
+            res.setHeader("Content-Type", "text/css");
+          }
+          // Cache hashed assets for 1 year, everything else no-cache
+          if (filePath.includes("/assets/")) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          } else {
+            res.setHeader("Cache-Control", "no-cache");
+          }
+        },
+      }));
+    }
+  }
+
+  // Register all API routes AFTER static assets so /assets/* never hits a route.
+  await registerRoutes(httpServer, app);
+
+  // Development: use Vite middleware. Production: SPA catch-all for client routing.
+  if (process.env.NODE_ENV === "production") {
+    const distPath = path.resolve(process.cwd(), "dist/public");
+    if (fs.existsSync(distPath)) {
       app.use((req: Request, res: Response, next: NextFunction) => {
         if (req.path.startsWith("/api/")) return next();
         res.sendFile(path.resolve(distPath, "index.html"));
