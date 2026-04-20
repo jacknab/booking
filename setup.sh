@@ -26,9 +26,9 @@ error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 hdr()     { echo -e "\n${BOLD}${CYAN}━━━  $*  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"; }
 
 # ─── GLOBAL CONFIGURATION ─────────────────────────────────────────────────────
-APP_PORT=6050
+APP_PORT=5080
 DB_USER="certxa_user"
-DB_NAME="certxa_db"
+DB_NAME="certxabooking_data"
 SERVICE_NAME="certxa"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="${APP_DIR}/.setup_config"
