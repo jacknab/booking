@@ -1149,6 +1149,7 @@ export default function Calendar() {
           <MonthCalendarOverlay
             selectedDate={currentDate}
             timezone={timezone}
+            appointments={appointments || []}
             onSelectDate={(date) => {
               setCurrentDate(date);
               setShowDatePicker(false);
@@ -2780,17 +2781,20 @@ const DOW_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 function MonthCalendarOverlay({
   selectedDate,
   timezone,
+  appointments,
   onSelectDate,
   onClose,
 }: {
   selectedDate: Date;
   timezone: string;
+  appointments: any[];
   onSelectDate: (date: Date) => void;
   onClose: () => void;
 }) {
   const storeNow = getNowInTimezone(timezone);
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
+  const [previewDay, setPreviewDay] = useState<Date>(selectedDate);
 
   const nowMonth = storeNow.getMonth();
   const nowYear = storeNow.getFullYear();
@@ -2814,6 +2818,12 @@ function MonthCalendarOverlay({
   const weeks: (Date | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
+  const dayAppts = appointments
+    .filter((apt: any) => isSameDay(toStoreLocal(apt.date, timezone), previewDay))
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const previewDayLabel = format(previewDay, "EEE, MMM d");
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" data-testid="month-calendar-overlay">
       <button
@@ -2824,9 +2834,9 @@ function MonthCalendarOverlay({
       />
       <div
         className="relative z-10 bg-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-border"
-        style={{ width: "min(660px, 96vw)", height: "min(94vh, 94dvh)" }}
+        style={{ width: "min(1020px, 96vw)", height: "min(94vh, 94dvh)" }}
       >
-        {/* Header */}
+        {/* Top header: month/year + close */}
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <span className="text-xl font-bold tracking-tight">
             {MONTH_NAMES[viewMonth]} {viewYear}
@@ -2842,7 +2852,7 @@ function MonthCalendarOverlay({
         </div>
 
         {/* Month tab buttons */}
-        <div className="flex gap-3 px-6 py-4 border-b flex-shrink-0">
+        <div className="flex gap-3 px-6 py-3 border-b flex-shrink-0">
           {monthTabs.map((tab) => {
             const isActive = tab.month === viewMonth && tab.year === viewYear;
             return (
@@ -2864,50 +2874,108 @@ function MonthCalendarOverlay({
           })}
         </div>
 
-        {/* Day-of-week labels */}
-        <div className="grid grid-cols-7 px-4 pt-3 pb-1 flex-shrink-0">
-          {DOW_LABELS.map((d) => (
-            <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
-              {d}
-            </div>
-          ))}
-        </div>
+        {/* Two-column body */}
+        <div className="flex flex-1 overflow-hidden">
 
-        {/* Calendar grid — fills remaining height */}
-        <div
-          className="flex-1 px-4 pb-4 grid gap-0"
-          style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
-        >
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7">
-              {week.map((day, di) => {
-                if (!day) return <div key={di} />;
-                const isToday = isSameDay(day, storeNow);
-                const isSelected = isSameDay(day, selectedDate);
-                const isOtherMonth = day.getMonth() !== viewMonth;
-                return (
-                  <button
-                    key={di}
-                    type="button"
-                    onClick={() => onSelectDate(day)}
-                    className={cn(
-                      "flex items-center justify-center rounded-xl m-[3px] text-base font-medium transition-colors select-none min-h-[48px]",
-                      isSelected
-                        ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                        : isToday
-                          ? "border-2 border-primary text-primary font-bold"
-                          : isOtherMonth
-                            ? "text-muted-foreground/40"
-                            : "hover:bg-muted text-foreground"
-                    )}
-                    data-testid={`day-${day.getDate()}`}
-                  >
-                    {day.getDate()}
-                  </button>
-                );
-              })}
+          {/* LEFT: Calendar */}
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Day-of-week labels */}
+            <div className="grid grid-cols-7 px-4 pt-3 pb-1 flex-shrink-0">
+              {DOW_LABELS.map((d) => (
+                <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
+                  {d}
+                </div>
+              ))}
             </div>
-          ))}
+
+            {/* Calendar grid — fills remaining height */}
+            <div
+              className="flex-1 px-4 pb-4 grid"
+              style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
+            >
+              {weeks.map((week, wi) => (
+                <div key={wi} className="grid grid-cols-7">
+                  {week.map((day, di) => {
+                    if (!day) return <div key={di} />;
+                    const isToday = isSameDay(day, storeNow);
+                    const isPreviewing = isSameDay(day, previewDay);
+                    const isOtherMonth = day.getMonth() !== viewMonth;
+                    return (
+                      <button
+                        key={di}
+                        type="button"
+                        onClick={() => setPreviewDay(day)}
+                        className={cn(
+                          "flex items-center justify-center rounded-xl m-[3px] text-base font-medium transition-colors select-none min-h-[48px]",
+                          isPreviewing
+                            ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                            : isToday
+                              ? "border-2 border-primary text-primary font-bold"
+                              : isOtherMonth
+                                ? "text-muted-foreground/40"
+                                : "hover:bg-muted text-foreground"
+                        )}
+                        data-testid={`day-${day.getDate()}`}
+                      >
+                        {day.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT: Appointments panel */}
+          <div className="w-[300px] flex-shrink-0 border-l flex flex-col bg-muted/20">
+            {/* Panel header */}
+            <div className="px-4 py-3 border-b flex-shrink-0 flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-sm">{previewDayLabel}</p>
+                <p className="text-xs text-muted-foreground">
+                  {dayAppts.length === 0 ? "No appointments" : `${dayAppts.length} appointment${dayAppts.length !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelectDate(previewDay)}
+                className="text-xs font-semibold text-primary hover:underline"
+                data-testid="datepicker-goto"
+              >
+                Go to day →
+              </button>
+            </div>
+
+            {/* Appointment cards */}
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {dayAppts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                  <p className="text-sm text-muted-foreground">No bookings on this day</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Tap a different date</p>
+                </div>
+              ) : (
+                dayAppts.map((apt: any) => {
+                  const firstName = apt.customer?.name?.split(" ")[0] || "Walk-In";
+                  const phone = apt.customer?.phone || "—";
+                  const service = apt.service?.name || "—";
+                  const timeStr = formatInTz(apt.date, timezone, "h:mm a");
+                  return (
+                    <div
+                      key={apt.id}
+                      className="rounded-xl border bg-card px-3 py-2.5 shadow-sm"
+                      data-testid={`appt-card-${apt.id}`}
+                    >
+                      <p className="font-bold text-sm text-foreground leading-tight">{firstName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{phone}</p>
+                      <p className="text-xs text-foreground mt-1 font-medium">{service}</p>
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">{timeStr}</p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
