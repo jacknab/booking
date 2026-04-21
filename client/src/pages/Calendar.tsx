@@ -91,9 +91,6 @@ export default function Calendar() {
     autoCompleteAppointments: calSettings?.autoCompleteAppointments ?? DEFAULT_CALENDAR_SETTINGS.autoCompleteAppointments,
   };
 
-  const baseStartHour = Math.max(0, DEFAULT_BUSINESS_START - settings.nonWorkingHoursDisplay);
-  const baseEndHour = Math.min(24, DEFAULT_BUSINESS_END + settings.nonWorkingHoursDisplay);
-
   const storeNow = getNowInTimezone(timezone);
   const [currentDate, setCurrentDate] = useState(storeNow);
   const [selectedStaffId, setSelectedStaffId] = useState<number | "all">("all");
@@ -108,6 +105,37 @@ export default function Calendar() {
 
   const { data: appointments } = useAppointments();
   const { data: staffList, isLoading: staffLoading } = useStaffList();
+
+  const { data: businessHours } = useQuery({
+    queryKey: ["/api/business-hours", selectedStore?.id],
+    queryFn: async () => {
+      if (!selectedStore?.id) return [];
+      const res = await fetch(`/api/business-hours?storeId=${selectedStore.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch business hours");
+      return res.json();
+    },
+    enabled: !!selectedStore?.id,
+  });
+
+  const businessHoursForDay = useMemo(() => {
+    if (!businessHours || (businessHours as any[]).length === 0) return null;
+    const dayOfWeek = currentDate.getDay();
+    return (businessHours as any[]).find((h: any) => h.dayOfWeek === dayOfWeek) || null;
+  }, [businessHours, currentDate]);
+
+  const { BUSINESS_START_HOUR, BUSINESS_END_HOUR } = useMemo(() => {
+    if (!businessHoursForDay || businessHoursForDay.isClosed) {
+      return { BUSINESS_START_HOUR: DEFAULT_BUSINESS_START, BUSINESS_END_HOUR: DEFAULT_BUSINESS_END };
+    }
+    const [openHourRaw] = String(businessHoursForDay.openTime || "09:00").split(":");
+    const [closeHourRaw] = String(businessHoursForDay.closeTime || "17:00").split(":");
+    const openHour = Math.max(0, Math.min(24, Number(openHourRaw)));
+    const closeHour = Math.max(0, Math.min(24, Number(closeHourRaw)));
+    return { BUSINESS_START_HOUR: openHour, BUSINESS_END_HOUR: closeHour };
+  }, [businessHoursForDay]);
+
+  const baseStartHour = Math.max(0, BUSINESS_START_HOUR - settings.nonWorkingHoursDisplay);
+  const baseEndHour = Math.min(24, BUSINESS_END_HOUR + settings.nonWorkingHoursDisplay);
 
   const displayedDayAppointments = useMemo(() => {
     if (!appointments) return [];
