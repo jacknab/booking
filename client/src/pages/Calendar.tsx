@@ -1238,7 +1238,7 @@ function AppointmentDetailsPanel({
     minutesPastStart >= lateGraceMinutes &&
     (appointment.status === "pending" || appointment.status === "confirmed");
   const localDate = toStoreLocal(appointment.date, timezone);
-  const isAppointmentToday = isSameDay(localDate, getNowInTimezone(timezone)) && minutesPastStart >= 0;
+  const isAppointmentToday = isSameDay(localDate, getNowInTimezone(timezone)) && minutesPastStart >= -60;
   const endTime = addMinutes(new Date(appointment.date), appointment.duration);
   const dateStr = formatInTz(appointment.date, timezone, "EEEE, d MMM yyyy");
   const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
