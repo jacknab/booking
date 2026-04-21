@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { useSelectedStore } from "@/hooks/use-store";
 import { Button } from "@/components/ui/button";
 
 const navGroups = [
@@ -86,6 +87,8 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const navigate = useNavigate();
   const { logoutAsync, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { selectedStore } = useSelectedStore();
+  const posEnabled = (selectedStore as any)?.posEnabled !== false;
 
   const handleLogout = async () => {
     try {
@@ -106,12 +109,18 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
         
         <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
           <nav className="px-2 text-sm font-medium lg:px-4 pb-4">
-            {navGroups.map((group) => (
+            {navGroups.map((group) => {
+              const posHiddenRoutes = ["/analytics", "/reports", "/cash-drawer", "/commission-report"];
+              const items = posEnabled
+                ? group.items
+                : group.items.filter((item) => !posHiddenRoutes.includes(item.to));
+              if (items.length === 0) return null;
+              return (
               <div key={group.label} className="mb-2">
                 <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {group.label}
                 </p>
-                {group.items.map((item) => {
+                {items.map((item) => {
                   const isActive = location.pathname === item.to;
                   return (
                     <Link
@@ -131,7 +140,8 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </nav>
         </div>
         

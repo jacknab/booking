@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CreditCard } from "lucide-react";
+import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CreditCard, ShoppingCart } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -433,6 +433,54 @@ function StripePaymentsSettings({ store }: { store: Store }) {
   );
 }
 
+function POSSettings({ store }: { store: Store }) {
+  const { toast } = useToast();
+
+  const updateStore = useMutation({
+    mutationFn: async (posEnabled: boolean) => {
+      const res = await apiRequest("PATCH", `/api/stores/${store.id}`, { posEnabled });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stores", store.id] });
+      toast({ title: "POS setting saved" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save POS setting.", variant: "destructive" });
+    },
+  });
+
+  const posEnabled = (store as any).posEnabled !== false;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <ShoppingCart className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-semibold">Point of Sale</h2>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <Checkbox
+              checked={posEnabled}
+              onCheckedChange={(checked) => updateStore.mutate(checked === true)}
+              disabled={updateStore.isPending}
+              data-testid="checkbox-pos-enabled"
+            />
+            <span>
+              <span className="block text-sm font-medium">Enable built-in POS</span>
+              <span className="block text-xs text-muted-foreground mt-1">
+                When enabled, completed appointments go through a checkout flow for payment collection, tips, and discounts. Financial reports and analytics are also available. Disable this if you handle payments externally and only need appointment tracking.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function BusinessHoursEditor({ store }: { store: Store }) {
   const { toast } = useToast();
   const [weekDate, setWeekDate] = useState(new Date());
@@ -681,6 +729,7 @@ export default function BusinessSettings() {
       </div>
       <div className="space-y-8">
         <BusinessProfile store={store} />
+        <POSSettings store={store} />
         <StripePaymentsSettings store={store} />
         <BusinessHoursEditor store={store} />
       </div>

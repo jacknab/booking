@@ -86,6 +86,7 @@ export default function Calendar() {
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const lateGracePeriodMinutes = (selectedStore as any)?.lateGracePeriodMinutes ?? 10;
+  const posEnabled = (selectedStore as any)?.posEnabled !== false;
   const tzAbbr = getTimezoneAbbr(timezone);
   const { data: calSettings } = useCalendarSettings();
 
@@ -415,6 +416,13 @@ export default function Calendar() {
     setShowCheckout(true);
   };
 
+  const handleComplete = (apt: AppointmentWithDetails) => {
+    updateAppointment.mutate(
+      { id: apt.id, status: "completed" } as any,
+      { onSuccess: () => setSelectedAppointment(null) }
+    );
+  };
+
   const handleFinalizePayment = (apt: AppointmentWithDetails, paymentData: { paymentMethod: string; tip: number; discount: number; totalPaid: number }) => {
     updateAppointment.mutate(
       {
@@ -598,7 +606,13 @@ export default function Calendar() {
         {/* Icon-only navigation sidebar */}
         <TooltipProvider delayDuration={200}>
           <nav className="w-16 flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex flex-col items-center py-3 gap-1.5 z-30">
-            {calendarSidebarItems.map((item, idx) => {
+            {calendarSidebarItems.filter((item) => {
+              if (!posEnabled) {
+                if (item.kind === "action" && item.action === "quick-checkout") return false;
+                if (item.kind === "link" && (item.to === "/analytics" || item.to === "/reports")) return false;
+              }
+              return true;
+            }).map((item, idx) => {
               if (item.kind === "action") {
                 return (
                   <Tooltip key={`action-${idx}`}>
@@ -1116,11 +1130,13 @@ export default function Calendar() {
             onCancel={() => handleCancelAppointment(selectedAppointment)}
             onStart={() => handleStartService(selectedAppointment)}
             onCheckout={() => handleCheckout(selectedAppointment)}
+            onComplete={() => handleComplete(selectedAppointment)}
             onEdit={() => navigate(`/booking/new?editId=${selectedAppointment.id}`)}
             onReschedule={() => navigate(`/booking/new?editId=${selectedAppointment.id}&reschedule=1`)}
             onMarkNoShow={() => handleMarkNoShow(selectedAppointment)}
             lateGraceMinutes={lateGracePeriodMinutes}
             isUpdating={updateAppointment.isPending}
+            posEnabled={posEnabled}
           />
         )}
 
@@ -1213,11 +1229,13 @@ function AppointmentDetailsPanel({
   onCancel,
   onStart,
   onCheckout,
+  onComplete,
   onEdit,
   onReschedule,
   onMarkNoShow,
   lateGraceMinutes,
   isUpdating,
+  posEnabled,
 }: {
   appointment: AppointmentWithDetails;
   timezone: string;
@@ -1225,11 +1243,13 @@ function AppointmentDetailsPanel({
   onCancel: () => void;
   onStart: () => void;
   onCheckout: () => void;
+  onComplete: () => void;
   onEdit: () => void;
   onReschedule: () => void;
   onMarkNoShow: () => void;
   lateGraceMinutes: number;
   isUpdating: boolean;
+  posEnabled: boolean;
 }) {
   const minutesPastStart = Math.floor(
     (Date.now() - new Date(appointment.date).getTime()) / 60000,
@@ -1431,17 +1451,31 @@ function AppointmentDetailsPanel({
             </Button>
 
             {appointment.status === "started" ? (
-              <Button
-                className="w-full bg-green-600 text-white h-12"
-                onClick={onCheckout}
-                disabled={isUpdating}
-                data-testid="button-checkout"
-              >
-                <span className="flex flex-col items-center leading-tight">
-                  <span className="font-semibold">Checkout</span>
-                  <span className="text-[10px] opacity-80">Finish Appointment</span>
-                </span>
-              </Button>
+              posEnabled ? (
+                <Button
+                  className="w-full bg-green-600 text-white h-12"
+                  onClick={onCheckout}
+                  disabled={isUpdating}
+                  data-testid="button-checkout"
+                >
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="font-semibold">Checkout</span>
+                    <span className="text-[10px] opacity-80">Finish Appointment</span>
+                  </span>
+                </Button>
+              ) : (
+                <Button
+                  className="w-full bg-green-600 text-white h-12"
+                  onClick={onComplete}
+                  disabled={isUpdating}
+                  data-testid="button-complete"
+                >
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="font-semibold">Complete</span>
+                    <span className="text-[10px] opacity-80">Mark as Done</span>
+                  </span>
+                </Button>
+              )
             ) : isAppointmentToday ? (
               <div className="flex gap-2">
                 <Button
