@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 
 const SEO_PAGE_ROUTES: Record<string, string> = {
-  "/":                  "index.html",
   "/barbers":           "barbers.html",
   "/hair-salons":       "hair-salons.html",
   "/haircuts":          "hair-salons.html",
