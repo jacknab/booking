@@ -29,13 +29,48 @@ const SEO_PAGE_ROUTES: Record<string, string> = {
 
 const SEO_PAGES_DIR = path.resolve(process.cwd(), "seo-pages");
 
+// Clean URLs for region landing pages — maps /dallas-tx-booking → dallas-tx-booking.html
+// served from client/public (dev) or dist/public (prod).
+const REGION_PAGES = [
+  "dallas-tx-booking",
+  "houston-tx-hair-salons",
+  "houston-tx-nail-salons",
+  "phoenix-az-hair-salons",
+  "phoenix-az-nail-salons",
+  "tempe-az-nail-salons",
+];
+
+const REGION_PUBLIC_DIRS = [
+  path.resolve(process.cwd(), "client", "public"),
+  path.resolve(process.cwd(), "dist", "public"),
+];
+
 export function seoPageMiddleware(req: Request, res: Response, next: NextFunction) {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+  // 1) Industry SEO pages from /seo-pages
   const filename = SEO_PAGE_ROUTES[req.path];
-  if (!filename) return next();
-  const filePath = path.join(SEO_PAGES_DIR, filename);
-  if (!fs.existsSync(filePath)) return next();
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("Cache-Control", "no-cache");
-  res.sendFile(filePath);
+  if (filename) {
+    const filePath = path.join(SEO_PAGES_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache");
+      return res.sendFile(filePath);
+    }
+  }
+
+  // 2) Clean-URL region pages: /dallas-tx-booking → dallas-tx-booking.html
+  const slug = req.path.replace(/^\/+/, "").replace(/\/$/, "");
+  if (slug && REGION_PAGES.includes(slug)) {
+    for (const dir of REGION_PUBLIC_DIRS) {
+      const filePath = path.join(dir, `${slug}.html`);
+      if (fs.existsSync(filePath)) {
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache");
+        return res.sendFile(filePath);
+      }
+    }
+  }
+
+  return next();
 }
