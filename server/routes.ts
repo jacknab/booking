@@ -69,6 +69,36 @@ export async function registerRoutes(
   // Note: setupAuth(app) is called in server/index.ts before registerRoutes.
   // Auth routes (register, login, logout, user) are registered there via auth.ts.
 
+  // Build/version info — lets you verify which build is actually deployed.
+  // Hit GET /api/version on the live site to see commit SHA + build/start time.
+  const SERVER_START_TIME = new Date().toISOString();
+  let detectedCommit = "unknown";
+  try {
+    const { execSync } = await import("child_process");
+    detectedCommit = execSync("git rev-parse --short HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    // not a git checkout — fall back to env vars
+  }
+  const BUILD_COMMIT =
+    process.env.GIT_COMMIT ||
+    process.env.SOURCE_COMMIT ||
+    process.env.COMMIT_SHA ||
+    detectedCommit;
+  const BUILD_TIME = process.env.BUILD_TIME || "unknown";
+  app.get("/api/version", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      commit: BUILD_COMMIT,
+      buildTime: BUILD_TIME,
+      serverStartTime: SERVER_START_TIME,
+      nodeEnv: process.env.NODE_ENV ?? "development",
+    });
+  });
+
   // Public config — exposes safe frontend settings from env vars
   app.get("/api/config", (_req, res) => {
     const raw = parseInt(process.env.ACTIVE_GROUPS ?? "3", 10);
