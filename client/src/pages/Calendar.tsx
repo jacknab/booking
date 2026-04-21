@@ -2869,7 +2869,7 @@ function MonthCalendarOverlay({
         className="relative z-10 bg-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-border"
         style={{ width: "min(1020px, 96vw)", height: "min(94vh, 94dvh)" }}
       >
-        {/* Header: toggle left | month center | close right */}
+        {/* ── HEADER ── */}
         <div className="flex items-center px-4 py-3 border-b flex-shrink-0 gap-3">
           {/* View toggle */}
           <div className="flex rounded-xl overflow-hidden border border-border flex-shrink-0">
@@ -2908,117 +2908,169 @@ function MonthCalendarOverlay({
             {MONTH_NAMES[viewMonth]} {viewYear}
           </span>
 
-          {/* Close */}
+          {/* Close — large tap target for tablet */}
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-muted-foreground flex-shrink-0"
+            className="flex-shrink-0 rounded-xl bg-muted hover:bg-muted/70 active:bg-muted/50 px-4 py-2 text-sm font-semibold text-foreground transition-colors"
             data-testid="datepicker-close"
           >
-            <X className="w-4 h-4" />
+            Close
           </button>
         </div>
 
-        {/* Month tab buttons */}
-        <div className="flex gap-3 px-6 py-3 border-b flex-shrink-0">
-          {monthTabs.map((tab) => {
-            const isActive = tab.month === viewMonth && tab.year === viewYear;
-            return (
-              <button
-                key={`${tab.year}-${tab.month}`}
-                type="button"
-                onClick={() => { setViewMonth(tab.month); setViewYear(tab.year); }}
-                className={cn(
-                  "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted text-foreground hover:bg-muted/70"
-                )}
-                data-testid={`monthtab-${MONTH_NAMES[tab.month].toLowerCase()}`}
-              >
-                {MONTH_NAMES[tab.month]}
-              </button>
-            );
-          })}
-        </div>
+        {/* ── BODY: left (tabs + grid/list) | right panel full-height ── */}
+        <div className="flex flex-1 overflow-hidden">
 
-        {/* ── CALENDAR VIEW ── */}
-        {view === "calendar" && (
-          <div className="flex flex-1 overflow-hidden">
+          {/* LEFT column */}
+          <div className="flex-1 flex flex-col overflow-hidden">
 
-            {/* LEFT: Calendar grid */}
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="grid grid-cols-7 px-4 pt-3 pb-1 flex-shrink-0">
-                {DOW_LABELS.map((d) => (
-                  <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
-                    {d}
+            {/* Month tabs — compact */}
+            <div className="flex gap-2 px-4 py-2 border-b flex-shrink-0">
+              {monthTabs.map((tab) => {
+                const isActive = tab.month === viewMonth && tab.year === viewYear;
+                return (
+                  <button
+                    key={`${tab.year}-${tab.month}`}
+                    type="button"
+                    onClick={() => { setViewMonth(tab.month); setViewYear(tab.year); }}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-foreground hover:bg-muted/70"
+                    )}
+                    data-testid={`monthtab-${MONTH_NAMES[tab.month].toLowerCase()}`}
+                  >
+                    {MONTH_NAMES[tab.month]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ── CALENDAR grid ── */}
+            {view === "calendar" && (
+              <>
+                <div className="grid grid-cols-7 px-4 pt-2 pb-1 flex-shrink-0">
+                  {DOW_LABELS.map((d) => (
+                    <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className="flex-1 px-4 pb-4 grid"
+                  style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
+                >
+                  {weeks.map((week, wi) => (
+                    <div key={wi} className="grid grid-cols-7">
+                      {week.map((day, di) => {
+                        if (!day) return <div key={di} />;
+                        const isToday = isSameDay(day, storeNow);
+                        const isPreviewing = isSameDay(day, previewDay);
+                        const isOtherMonth = day.getMonth() !== viewMonth;
+                        const isPast = day < today0 && !isToday;
+                        const dayKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+                        const hasBookings = !isPast && !isOtherMonth && (apptMap.get(dayKey)?.length ?? 0) > 0;
+                        const showDot = hasBookings && !isPreviewing;
+
+                        if (isPast || isOtherMonth) {
+                          return (
+                            <div
+                              key={di}
+                              className="flex items-center justify-center rounded-xl m-[3px] min-h-[48px] select-none"
+                            >
+                              <span className="text-base font-medium text-muted-foreground/25">
+                                {day.getDate()}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={di}
+                            type="button"
+                            onClick={() => setPreviewDay(day)}
+                            className={cn(
+                              "flex items-center justify-center rounded-xl m-[3px] transition-colors select-none min-h-[48px]",
+                              isPreviewing
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : isToday
+                                  ? "border-2 border-primary"
+                                  : "hover:bg-muted/60"
+                            )}
+                            data-testid={`day-${day.getDate()}`}
+                          >
+                            {showDot ? (
+                              <span className={cn(
+                                "w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-base font-bold text-amber-950",
+                                isToday && "ring-2 ring-primary ring-offset-1"
+                              )}>
+                                {day.getDate()}
+                              </span>
+                            ) : (
+                              <span className={cn(
+                                "text-base font-medium",
+                                isPreviewing ? "text-primary-foreground font-bold"
+                                  : isToday ? "text-primary font-bold"
+                                  : "text-foreground"
+                              )}>
+                                {day.getDate()}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── LIST view ── */}
+            {view === "list" && (
+              <div className="flex-1 overflow-y-auto p-4">
+                {listAppts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-16">
+                    <p className="text-base font-semibold text-muted-foreground">No upcoming bookings this month</p>
+                    <p className="text-sm text-muted-foreground/60 mt-1">Switch months using the tabs above</p>
                   </div>
-                ))}
-              </div>
-              <div
-                className="flex-1 px-4 pb-4 grid"
-                style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
-              >
-                {weeks.map((week, wi) => (
-                  <div key={wi} className="grid grid-cols-7">
-                    {week.map((day, di) => {
-                      if (!day) return <div key={di} />;
-                      const isToday = isSameDay(day, storeNow);
-                      const isPreviewing = isSameDay(day, previewDay);
-                      const isOtherMonth = day.getMonth() !== viewMonth;
-                      const isPast = day < today0 && !isToday;
-                      const dayKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
-                      const hasBookings = !isPast && !isOtherMonth && (apptMap.get(dayKey)?.length ?? 0) > 0;
-                      const showDot = hasBookings && !isPreviewing;
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {listAppts.map((apt: any) => {
+                      const localDate = toStoreLocal(apt.date, timezone);
+                      const dateLabel = format(localDate, "M/d");
+                      const firstName = (apt.customer?.name?.split(" ")[0] || "Walk-In").toUpperCase();
+                      const service = (apt.service?.name || "—").toUpperCase();
                       return (
                         <button
-                          key={di}
+                          key={apt.id}
                           type="button"
-                          onClick={() => setPreviewDay(day)}
-                          className={cn(
-                            "flex items-center justify-center rounded-xl m-[3px] transition-colors select-none min-h-[48px]",
-                            isPreviewing
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : isToday
-                                ? "border-2 border-primary"
-                                : isOtherMonth || isPast
-                                  ? "text-muted-foreground/30"
-                                  : "hover:bg-muted/60"
-                          )}
-                          data-testid={`day-${day.getDate()}`}
+                          onClick={() => onSelectAppointment(apt)}
+                          className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-sm hover:bg-muted/40 active:scale-[0.98] transition-all text-left"
+                          data-testid={`list-appt-${apt.id}`}
                         >
-                          {showDot ? (
-                            <span className={cn(
-                              "w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-base font-bold text-amber-950",
-                              isToday && "ring-2 ring-primary ring-offset-1"
-                            )}>
-                              {day.getDate()}
-                            </span>
-                          ) : (
-                            <span className={cn(
-                              "text-base font-medium",
-                              isPreviewing
-                                ? "text-primary-foreground font-bold"
-                                : isToday
-                                  ? "text-primary font-bold"
-                                  : isOtherMonth || isPast
-                                    ? "text-muted-foreground/30"
-                                    : "text-foreground"
-                            )}>
-                              {day.getDate()}
-                            </span>
-                          )}
+                          <span className="text-sm font-bold text-muted-foreground w-8 flex-shrink-0">{dateLabel}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-foreground truncate">{firstName}</p>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{service}</p>
+                          </div>
                         </button>
                       );
                     })}
                   </div>
-                ))}
+                )}
               </div>
-            </div>
+            )}
 
-            {/* RIGHT: Day appointments panel */}
-            <div className="w-[300px] flex-shrink-0 border-l flex flex-col bg-muted/20">
-              <div className="px-4 py-3 border-b flex-shrink-0 flex items-center justify-between">
+          </div>
+
+          {/* RIGHT: appointments panel — full height from below header */}
+          {view === "calendar" && (
+            <div className="w-[280px] flex-shrink-0 border-l flex flex-col bg-muted/20">
+              {/* Slim day label row */}
+              <div className="px-4 pt-3 pb-2 flex items-center justify-between flex-shrink-0">
                 <div>
                   <p className="font-semibold text-sm">{previewDayLabel}</p>
                   <p className="text-xs text-muted-foreground">
@@ -3028,13 +3080,14 @@ function MonthCalendarOverlay({
                 <button
                   type="button"
                   onClick={() => onSelectDate(previewDay)}
-                  className="text-xs font-semibold text-primary hover:underline"
+                  className="text-xs font-semibold text-primary hover:underline flex-shrink-0"
                   data-testid="datepicker-goto"
                 >
                   Go to day →
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {/* Cards — scrollable, fills remaining height */}
+              <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
                 {dayAppts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-10">
                     <p className="text-sm text-muted-foreground">No bookings on this day</p>
@@ -3064,46 +3117,9 @@ function MonthCalendarOverlay({
                 )}
               </div>
             </div>
+          )}
 
-          </div>
-        )}
-
-        {/* ── LIST VIEW ── */}
-        {view === "list" && (
-          <div className="flex-1 overflow-y-auto p-4">
-            {listAppts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-16">
-                <p className="text-base font-semibold text-muted-foreground">No upcoming bookings this month</p>
-                <p className="text-sm text-muted-foreground/60 mt-1">Switch months using the tabs above</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {listAppts.map((apt: any) => {
-                  const localDate = toStoreLocal(apt.date, timezone);
-                  const dateLabel = format(localDate, "M/d");
-                  const firstName = (apt.customer?.name?.split(" ")[0] || "Walk-In").toUpperCase();
-                  const service = (apt.service?.name || "—").toUpperCase();
-                  return (
-                    <button
-                      key={apt.id}
-                      type="button"
-                      onClick={() => onSelectAppointment(apt)}
-                      className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-sm hover:bg-muted/40 active:scale-[0.98] transition-all text-left"
-                      data-testid={`list-appt-${apt.id}`}
-                    >
-                      <span className="text-sm font-bold text-muted-foreground w-8 flex-shrink-0">{dateLabel}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground truncate">{firstName}</p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{service}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
+        </div>
       </div>
     </div>
   );
