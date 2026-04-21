@@ -1917,7 +1917,9 @@ If you have any questions, please contact your administrator.
       if (!store) return res.status(404).json({ message: "Store not found" });
       const { userId, ...publicStore } = store;
       const hours = await storage.getBusinessHours(store.id);
-      res.json({ ...publicStore, businessHours: hours });
+      const calSettings = await storage.getCalendarSettings(store.id);
+      const showPrices = calSettings?.showPrices ?? true;
+      res.json({ ...publicStore, businessHours: hours, showPrices });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

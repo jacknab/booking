@@ -56,8 +56,14 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
     enabled: !!slug,
   });
 
+  const { data: publicStoreData } = useQuery<{ showPrices?: boolean }>({
+    queryKey: [`/api/public/store/${slug}`],
+    enabled: !!slug,
+  });
+
   const services = servicesData?.services || [];
   const categories = servicesData?.categories || [];
+  const showPrices = publicStoreData?.showPrices ?? true;
 
   const totalPrice = selectedServices.reduce((sum, s) => sum + Number(s.price), 0);
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
@@ -386,9 +392,11 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                      <span className="font-semibold text-sm">
-                                        ${Number(service.price).toFixed(2)}
-                                      </span>
+                                      {showPrices && (
+                                        <span className="font-semibold text-sm">
+                                          ${Number(service.price).toFixed(2)}
+                                        </span>
+                                      )}
                                       <div
                                         className={cn(
                                           "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors",
@@ -424,12 +432,14 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
                     {selectedServices.length} Service
                     {selectedServices.length > 1 ? "s" : ""}
                   </span>
-                  <span
-                    className="text-sm text-gray-500 ml-2"
-                    data-testid="text-total-price"
-                  >
-                    ${totalPrice.toFixed(2)}
-                  </span>
+                  {showPrices && (
+                    <span
+                      className="text-sm text-gray-500 ml-2"
+                      data-testid="text-total-price"
+                    >
+                      ${totalPrice.toFixed(2)}
+                    </span>
+                  )}
                 </div>
                 <Button
                   onClick={handleChooseTime}
@@ -677,20 +687,24 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
                           )}
                         </p>
                       </div>
-                      <span className="font-semibold text-sm">
-                        ${Number(service.price).toFixed(2)}
-                      </span>
+                      {showPrices && (
+                        <span className="font-semibold text-sm">
+                          ${Number(service.price).toFixed(2)}
+                        </span>
+                      )}
                     </div>
                   ))}
-                  <div className="border-t pt-3 flex items-center justify-between">
-                    <span className="font-semibold">Total to pay</span>
-                    <span
-                      className="font-bold text-lg"
-                      data-testid="text-total-price"
-                    >
-                      ${totalPrice.toFixed(2)}
-                    </span>
-                  </div>
+                  {showPrices && (
+                    <div className="border-t pt-3 flex items-center justify-between">
+                      <span className="font-semibold">Total to pay</span>
+                      <span
+                        className="font-bold text-lg"
+                        data-testid="text-total-price"
+                      >
+                        ${totalPrice.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </Card>
 

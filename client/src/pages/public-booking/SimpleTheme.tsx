@@ -81,6 +81,7 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
   const categories = servicesData?.categories || [];
   const addons = servicesData?.addons || [];
   const serviceAddons = servicesData?.serviceAddons || [];
+  const showPrices = storeData?.showPrices ?? true;
 
   const getAddonsForService = (serviceId: number) => {
     const mappings = serviceAddons.filter(sa => sa.serviceId === serviceId);
@@ -463,9 +464,11 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
                             <div className="mt-2 text-sm text-gray-500">+{addon.duration} min</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold text-primary">
-                              +${Number(addon.price).toFixed(2)}
-                            </div>
+                            {showPrices && (
+                              <div className="font-semibold text-primary">
+                                +${Number(addon.price).toFixed(2)}
+                              </div>
+                            )}
                             {isSelected && (
                               <CheckCircle2 className="w-5 h-5 text-primary mt-2 ml-auto" />
                             )}
@@ -480,9 +483,11 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
                     <span className="text-sm font-medium">
                       {selectedServices.length} Service{selectedServices.length > 1 ? "s" : ""}
                     </span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      ${totalPrice.toFixed(2)}
-                    </span>
+                    {showPrices && (
+                      <span className="text-sm text-gray-500 ml-2">
+                        ${totalPrice.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                   <Button onClick={() => {
                     setViewingAddonsForService(null);
@@ -571,12 +576,14 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
                                 <div className="mt-2 text-sm text-gray-500">{service.duration} min</div>
                               </div>
                               <div className="text-right flex flex-col items-end">
-                                <div className={cn(
-                                  "font-semibold",
-                                  isSelected ? "text-primary" : "text-gray-900"
-                                )}>
-                                  ${Number(service.price).toFixed(2)}
-                                </div>
+                                {showPrices && (
+                                  <div className={cn(
+                                    "font-semibold",
+                                    isSelected ? "text-primary" : "text-gray-900"
+                                  )}>
+                                    ${Number(service.price).toFixed(2)}
+                                  </div>
+                                )}
                                 {isSelected && (
                                   <CheckCircle2 className="w-5 h-5 text-primary mt-2" />
                                 )}
@@ -600,9 +607,11 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
                   <span className="text-sm font-medium">
                     {selectedServices.length} Service{selectedServices.length > 1 ? "s" : ""}
                   </span>
-                  <span className="text-sm text-gray-500 ml-2" data-testid="text-total-price">
-                    ${totalPrice.toFixed(2)}
-                  </span>
+                  {showPrices && (
+                    <span className="text-sm text-gray-500 ml-2" data-testid="text-total-price">
+                      ${totalPrice.toFixed(2)}
+                    </span>
+                  )}
                 </div>
                 <Button onClick={handleChooseTime} data-testid="button-choose-staff">
                   Choose Date/Time
@@ -833,10 +842,12 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
                 <p className="text-sm text-gray-600">
                   With {selectedSlot?.staffName}
                 </p>
-                <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>${totalPrice.toFixed(2)}</span>
-                </div>
+                {showPrices && (
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>${totalPrice.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
 
               <Button

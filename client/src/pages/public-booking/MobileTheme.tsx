@@ -65,9 +65,15 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
     enabled: !!slug,
   });
 
+  const { data: publicStoreData } = useQuery<{ showPrices?: boolean }>({
+    queryKey: [`/api/public/store/${slug}`],
+    enabled: !!slug,
+  });
+
   const services = servicesData?.services || [];
   const addons = servicesData?.addons || [];
   const serviceAddons = servicesData?.serviceAddons || [];
+  const showPrices = publicStoreData?.showPrices ?? true;
 
   const totalPrice = selectedServices.reduce((sum, s) => {
     let price = Number(s.price);
@@ -526,7 +532,7 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
                                 <p className="text-sm text-gray-500 mt-1">{service.duration} min</p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="font-bold text-gray-900">${Number(service.price).toFixed(2)}</span>
+                                {showPrices && <span className="font-bold text-gray-900">${Number(service.price).toFixed(2)}</span>}
                                 <Button size="sm" className="rounded-full px-4 bg-[#D32F2F] hover:bg-[#B71C1C]" onClick={() => handleServiceSelect(service)}>
                                     Book
                                 </Button>
@@ -845,9 +851,11 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
                       <div className="mt-2 text-sm text-gray-500">+{addon.duration} min</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-primary">
-                        +${Number(addon.price).toFixed(2)}
-                      </div>
+                      {showPrices && (
+                        <div className="font-semibold text-primary">
+                          +${Number(addon.price).toFixed(2)}
+                        </div>
+                      )}
                       {isSelected && (
                         <CheckCircle2 className="w-5 h-5 text-primary mt-2 ml-auto" />
                       )}
@@ -862,9 +870,11 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
               <span className="text-sm font-medium">
                 {selectedServices.length} Service{selectedServices.length > 1 ? "s" : ""}
               </span>
-              <span className="text-sm text-gray-500 ml-2">
-                ${totalPrice.toFixed(2)}
-              </span>
+              {showPrices && (
+                <span className="text-sm text-gray-500 ml-2">
+                  ${totalPrice.toFixed(2)}
+                </span>
+              )}
             </div>
             <Button onClick={confirmServiceWithAddons}>
               Choose Date/Time

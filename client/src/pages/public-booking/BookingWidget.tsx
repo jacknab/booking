@@ -74,8 +74,14 @@ export default function BookingWidget({
     enabled: !!slug,
   });
 
+  const { data: publicStoreData } = useQuery<{ showPrices?: boolean }>({
+    queryKey: [`/api/public/store/${slug}`],
+    enabled: !!slug,
+  });
+
   const services = servicesData?.services || [];
   const categories = servicesData?.categories || [];
+  const showPrices = publicStoreData?.showPrices ?? true;
 
   const totalPrice = selectedServices.reduce((sum, s) => sum + Number(s.price), 0);
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
@@ -263,9 +269,11 @@ export default function BookingWidget({
               {selectedSlot &&
                 formatInTz(selectedSlot.time, timezone, "h:mm a")}
             </p>
-            <p>
-              <strong>Total:</strong> ${totalPrice.toFixed(2)}
-            </p>
+            {showPrices && (
+              <p>
+                <strong>Total:</strong> ${totalPrice.toFixed(2)}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -389,8 +397,7 @@ export default function BookingWidget({
                                       )}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
-                                      {service.duration} min &middot; $
-                                      {Number(service.price).toFixed(2)}
+                                      {service.duration} min{showPrices ? ` · $${Number(service.price).toFixed(2)}` : ""}
                                     </p>
                                   </div>
                                 </button>
@@ -609,20 +616,24 @@ export default function BookingWidget({
                         )}
                       </p>
                     </div>
-                    <span className="font-semibold text-sm">
-                      ${Number(service.price).toFixed(2)}
-                    </span>
+                    {showPrices && (
+                      <span className="font-semibold text-sm">
+                        ${Number(service.price).toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 ))}
-                <div className="border-t pt-3 flex items-center justify-between">
-                  <span className="font-semibold">Total to pay</span>
-                  <span
-                    className="font-bold text-lg"
-                    data-testid="text-total-price"
-                  >
-                    ${totalPrice.toFixed(2)}
-                  </span>
-                </div>
+                {showPrices && (
+                  <div className="border-t pt-3 flex items-center justify-between">
+                    <span className="font-semibold">Total to pay</span>
+                    <span
+                      className="font-bold text-lg"
+                      data-testid="text-total-price"
+                    >
+                      ${totalPrice.toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
             </Card>
 
