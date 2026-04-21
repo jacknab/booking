@@ -107,6 +107,7 @@ export default function Calendar() {
   const [lookupMode, setLookupMode] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
+  const [showJumpToNow, setShowJumpToNow] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const quickListRef = useRef<HTMLDivElement>(null);
 
@@ -207,6 +208,33 @@ export default function Calendar() {
       container.scrollTop = scrollTarget;
     }
   }, [timeLinePosition, selectedStore?.id]);
+
+  const scrollToNow = useCallback(() => {
+    if (timeLinePosition === null || !scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const scrollTarget = Math.max(0, timeLinePosition - container.clientHeight / 3);
+    container.scrollTo({ top: scrollTarget, behavior: "smooth" });
+  }, [timeLinePosition]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const checkVisibility = () => {
+      if (!isToday || timeLinePosition === null) {
+        setShowJumpToNow(false);
+        return;
+      }
+      const headerOffset = 80;
+      const lineTop = timeLinePosition + headerOffset;
+      const viewTop = container.scrollTop;
+      const viewBottom = viewTop + container.clientHeight;
+      const visible = lineTop >= viewTop + 40 && lineTop <= viewBottom - 40;
+      setShowJumpToNow(!visible);
+    };
+    checkVisibility();
+    container.addEventListener("scroll", checkVisibility, { passive: true });
+    return () => container.removeEventListener("scroll", checkVisibility);
+  }, [isToday, timeLinePosition]);
 
   const filteredStaff = useMemo(() => {
     if (!staffList) return [];
@@ -562,7 +590,17 @@ export default function Calendar() {
           </nav>
         </TooltipProvider>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
+          {showJumpToNow && (
+            <button
+              onClick={scrollToNow}
+              className="absolute bottom-4 right-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-lg hover:bg-blue-700 transition-colors"
+              data-testid="button-jump-to-now"
+            >
+              <Clock className="w-4 h-4" />
+              Now
+            </button>
+          )}
           <div ref={scrollContainerRef} className="h-full overflow-auto">
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
