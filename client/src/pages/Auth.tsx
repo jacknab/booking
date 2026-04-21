@@ -163,7 +163,7 @@ export default function Auth() {
             <p className="text-white text-lg leading-relaxed">
               {cfg
                 ? `Join thousands of businesses already using ${cfg.label} to run smarter.`
-                : "Join 10,000+ service businesses using Certxa to run smarter every day."}
+                : "Built by service pros, for service pros — simple tools to help you book more, work smarter, and grow on your terms."}
             </p>
           </div>
 
