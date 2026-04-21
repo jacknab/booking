@@ -95,7 +95,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   };
 
   return (
-    <aside className="border-r bg-muted/40 w-64">
+    <aside className="w-64 border-r border-border/60 bg-background/95 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
           <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onLinkClick}>
@@ -119,10 +119,10 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                       to={item.to}
                       onClick={onLinkClick}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:text-primary",
                         isActive
-                          ? "bg-muted text-primary"
-                          : "text-muted-foreground"
+                          ? "border border-primary/10 bg-card text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
+                          : "border border-transparent text-muted-foreground hover:border-border/70 hover:bg-card hover:shadow-[0_2px_10px_rgba(15,23,42,0.04)]"
                       )}
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />

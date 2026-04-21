@@ -37258,3 +37258,48 @@
 2026-04-21 16:56:37 +00:00:   statusCode: 404,
 2026-04-21 16:56:37 +00:00:   status: 404
 2026-04-21 16:56:37 +00:00: }
+2026-04-21 18:22:41 +00:00: Internal Server Error: [Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'] {
+2026-04-21 18:22:41 +00:00:   errno: -2,
+2026-04-21 18:22:41 +00:00:   code: 'ENOENT',
+2026-04-21 18:22:41 +00:00:   syscall: 'stat',
+2026-04-21 18:22:41 +00:00:   path: '/apps/booking/dist/public/index.html',
+2026-04-21 18:22:41 +00:00:   expose: false,
+2026-04-21 18:22:41 +00:00:   statusCode: 404,
+2026-04-21 18:22:41 +00:00:   status: 404
+2026-04-21 18:22:41 +00:00: }
+2026-04-21 18:22:41 +00:00: Internal Server Error: [Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'] {
+2026-04-21 18:22:41 +00:00:   errno: -2,
+2026-04-21 18:22:41 +00:00:   code: 'ENOENT',
+2026-04-21 18:22:41 +00:00:   syscall: 'stat',
+2026-04-21 18:22:41 +00:00:   path: '/apps/booking/dist/public/index.html',
+2026-04-21 18:22:41 +00:00:   expose: false,
+2026-04-21 18:22:41 +00:00:   statusCode: 404,
+2026-04-21 18:22:41 +00:00:   status: 404
+2026-04-21 18:22:41 +00:00: }
+2026-04-21 18:22:44 +00:00: Internal Server Error: [Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'] {
+2026-04-21 18:22:44 +00:00:   errno: -2,
+2026-04-21 18:22:44 +00:00:   code: 'ENOENT',
+2026-04-21 18:22:44 +00:00:   syscall: 'stat',
+2026-04-21 18:22:44 +00:00:   path: '/apps/booking/dist/public/index.html',
+2026-04-21 18:22:44 +00:00:   expose: false,
+2026-04-21 18:22:44 +00:00:   statusCode: 404,
+2026-04-21 18:22:44 +00:00:   status: 404
+2026-04-21 18:22:44 +00:00: }
+2026-04-21 19:01:06 +00:00: Internal Server Error: [Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'] {
+2026-04-21 19:01:06 +00:00:   errno: -2,
+2026-04-21 19:01:06 +00:00:   code: 'ENOENT',
+2026-04-21 19:01:06 +00:00:   syscall: 'stat',
+2026-04-21 19:01:06 +00:00:   path: '/apps/booking/dist/public/index.html',
+2026-04-21 19:01:06 +00:00:   expose: false,
+2026-04-21 19:01:06 +00:00:   statusCode: 404,
+2026-04-21 19:01:06 +00:00:   status: 404
+2026-04-21 19:01:06 +00:00: }
+2026-04-21 19:03:10 +00:00: Internal Server Error: [Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'] {
+2026-04-21 19:03:10 +00:00:   errno: -2,
+2026-04-21 19:03:10 +00:00:   code: 'ENOENT',
+2026-04-21 19:03:10 +00:00:   syscall: 'stat',
+2026-04-21 19:03:10 +00:00:   path: '/apps/booking/dist/public/index.html',
+2026-04-21 19:03:10 +00:00:   expose: false,
+2026-04-21 19:03:10 +00:00:   statusCode: 404,
+2026-04-21 19:03:10 +00:00:   status: 404
+2026-04-21 19:03:10 +00:00: }

@@ -117,6 +117,8 @@ export default function Calendar() {
   }, []);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const quickListRef = useRef<HTMLDivElement>(null);
+  const shouldAutoCenterTimeLineRef = useRef(true);
+  const programmaticScrollRef = useRef(false);
 
   const updateAppointment = useUpdateAppointment();
   const { toast } = useToast();
@@ -202,6 +204,7 @@ export default function Calendar() {
     setSelectedAppointment(null);
     setShowCheckout(false);
     setSelectedSlot(null);
+    shouldAutoCenterTimeLineRef.current = true;
   }, [selectedStore?.id, timezone]);
 
   useEffect(() => {
@@ -209,18 +212,21 @@ export default function Calendar() {
   }, [currentDate]);
 
   useEffect(() => {
-    if (timeLinePosition !== null && scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      // Center the time line in the view, or at least show it clearly
-      const scrollTarget = Math.max(0, timeLinePosition - container.clientHeight / 3);
-      container.scrollTop = scrollTarget;
-    }
-  }, [timeLinePosition, selectedStore?.id]);
+    if (!isToday || timeLinePosition === null || !scrollContainerRef.current) return;
+    if (!shouldAutoCenterTimeLineRef.current) return;
+    const container = scrollContainerRef.current;
+    // Center the line once on load, then let the user control the scroll.
+    const scrollTarget = Math.max(0, timeLinePosition - container.clientHeight / 3);
+    programmaticScrollRef.current = true;
+    container.scrollTo({ top: scrollTarget, behavior: "smooth" });
+    shouldAutoCenterTimeLineRef.current = false;
+  }, [isToday, timeLinePosition]);
 
   const scrollToNow = useCallback(() => {
     if (timeLinePosition === null || !scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
     const scrollTarget = Math.max(0, timeLinePosition - container.clientHeight / 3);
+    programmaticScrollRef.current = true;
     container.scrollTo({ top: scrollTarget, behavior: "smooth" });
   }, [timeLinePosition]);
 
@@ -228,6 +234,11 @@ export default function Calendar() {
     const container = scrollContainerRef.current;
     if (!container) return;
     const checkVisibility = () => {
+      if (programmaticScrollRef.current) {
+        programmaticScrollRef.current = false;
+        return;
+      }
+      shouldAutoCenterTimeLineRef.current = false;
       if (!isToday || timeLinePosition === null) {
         setShowJumpToNow(false);
         return;
@@ -311,7 +322,10 @@ export default function Calendar() {
     });
   }, [currentDate, timezone, storeNow, settings.startOfWeek]);
 
-  const goToday = () => setCurrentDate(getNowInTimezone(timezone));
+  const goToday = () => {
+    shouldAutoCenterTimeLineRef.current = true;
+    setCurrentDate(getNowInTimezone(timezone));
+  };
   const goPrev = () => setCurrentDate(subDays(currentDate, 1));
   const goNext = () => setCurrentDate(addDays(currentDate, 1));
 
@@ -532,11 +546,11 @@ export default function Calendar() {
                     className="w-full min-h-[56px] px-3 py-3 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                     onClick={() => {
                       setShowNewApptMenu(false);
-                      setLookupMode(false);
+                      setLookupMode(true);
                       setSelectedAppointment(null);
                       setShowCancelFlow(false);
                       setShowCheckout(false);
-                      navigate("/booking/new");
+                      setShowClientLookup(true);
                     }}
                     data-testid="button-create-new-appointment"
                   >
@@ -578,7 +592,7 @@ export default function Calendar() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* Icon-only navigation sidebar */}
         <TooltipProvider delayDuration={200}>
-          <nav className="w-16 flex-shrink-0 border-r bg-card flex flex-col items-center py-3 gap-1.5 z-30">
+          <nav className="w-16 flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex flex-col items-center py-3 gap-1.5 z-30">
             {calendarSidebarItems.map((item, idx) => {
               if (item.kind === "action") {
                 return (
@@ -588,7 +602,7 @@ export default function Calendar() {
                         type="button"
                         onClick={() => setQuickCheckoutOpen(true)}
                         data-testid="button-quick-checkout"
-                        className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className="flex items-center justify-center w-11 h-11 rounded-xl border border-transparent transition-all duration-200 text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
                       >
                         <item.icon className="h-5 w-5" />
                       </button>
@@ -604,10 +618,10 @@ export default function Calendar() {
                     <Link
                       to={item.to}
                       className={cn(
-                        "flex items-center justify-center w-11 h-11 rounded-xl transition-colors",
+                        "flex items-center justify-center w-11 h-11 rounded-xl border border-transparent transition-all duration-200",
                         isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          ? "border-primary/10 bg-background text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
+                          : "text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
                       )}
                     >
                       <item.icon className="h-5 w-5" />
@@ -634,11 +648,25 @@ export default function Calendar() {
           <div ref={scrollContainerRef} className="h-full overflow-auto">
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
-                <div
-                  className="absolute right-0 left-0 z-[10] pointer-events-none"
-                  style={{ top: `${timeLinePosition + 80}px`, height: "4px", backgroundColor: "#2563eb" }}
-                  data-testid="current-time-line-full"
-                />
+                <>
+                  <div
+                    className="absolute right-0 z-[35] pointer-events-none"
+                    style={{ left: "90px", top: `${timeLinePosition + 80}px`, height: "4px", backgroundColor: "#2563eb" }}
+                    data-testid="current-time-line-full"
+                  />
+                  <div
+                    className="absolute left-[36px] z-[46] pointer-events-none"
+                    style={{ top: `${timeLinePosition + 70}px` }}
+                    data-testid="current-time-label"
+                  >
+                    <span
+                      className="relative inline-flex items-center rounded-md px-2 py-1 text-xs font-bold text-white shadow-[0_2px_8px_rgba(37,99,235,0.35)]"
+                      style={{ backgroundColor: "#2563eb" }}
+                    >
+                      {timeLineLabel}
+                    </span>
+                  </div>
+                </>
               )}
               <div className="w-[90px] flex-shrink-0 bg-card z-30 sticky left-0">
                 <div className="h-[80px] border-b sticky top-0 bg-card z-40" />
@@ -674,20 +702,6 @@ export default function Calendar() {
                     );
                   })}
 
-                  {isToday && timeLinePosition !== null && (
-                    <div
-                      className="absolute left-0 right-0 flex items-center -translate-y-1/2 z-[9]"
-                      style={{ top: `${timeLinePosition}px` }}
-                      data-testid="current-time-label"
-                    >
-                      <span
-                        className="text-sm font-bold px-2 py-1 rounded shadow"
-                        style={{ color: "#fff", backgroundColor: "#2563eb" }}
-                      >
-                        {timeLineLabel}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1243,10 +1257,17 @@ function AppointmentDetailsPanel({
   };
 
   return (
-    <div className={cn(
-      "w-[460px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l",
-      isOverdue && "ring-2 ring-red-400 ring-inset",
-    )} data-testid="appointment-details-panel">
+    <div className="fixed inset-0 z-50" data-testid="appointment-details-panel">
+      <button
+        type="button"
+        aria-label="Close appointment details"
+        className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      <div className={cn(
+        "absolute right-0 top-0 h-full w-[460px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l",
+        isOverdue && "ring-2 ring-red-400 ring-inset",
+      )}>
       {isOverdue && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center gap-2 text-red-700 text-sm font-semibold" data-testid="overdue-banner">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -1431,6 +1452,7 @@ function AppointmentDetailsPanel({
           </>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -1463,7 +1485,14 @@ function CancelAppointmentPanel({
     (appointment.appointmentAddons?.reduce((sum, aa) => sum + Number(aa.addon?.price || 0), 0) || 0);
 
   return (
-    <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="cancel-appointment-panel">
+    <div className="fixed inset-0 z-50" data-testid="cancel-appointment-panel">
+      <button
+        type="button"
+        aria-label="Close cancel appointment"
+        className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      <div className="absolute right-0 top-0 h-full w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <h2 className="font-semibold text-lg">Cancel Appointment</h2>
         <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-cancel">
@@ -1520,6 +1549,7 @@ function CancelAppointmentPanel({
         >
           {isUpdating ? "Cancelling..." : "Cancel Appointment"}
         </Button>
+      </div>
       </div>
     </div>
   );
@@ -1907,7 +1937,14 @@ function CheckoutPOSPanel({
 
   if (phase === "cart") {
     return (
-      <div className="w-[420px] flex-shrink-0 absolute left-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r" data-testid="checkout-pos-panel">
+      <div className="fixed inset-0 z-50" data-testid="checkout-pos-panel">
+        <button
+          type="button"
+          aria-label="Close checkout"
+          className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+          onClick={onClose}
+        />
+        <div className="absolute left-0 top-0 h-full w-[420px] bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-muted-foreground" />
@@ -2078,15 +2115,23 @@ function CheckoutPOSPanel({
             onClick={onClose}
             data-testid="button-abort-checkout"
           >
-            Back to Appointment
+          Back to Appointment
           </Button>
+        </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-[680px] flex-shrink-0 absolute left-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r" data-testid="checkout-payment-panel">
+    <div className="fixed inset-0 z-50" data-testid="checkout-payment-panel">
+      <button
+        type="button"
+        aria-label="Close payment"
+        className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      <div className="absolute left-0 top-0 h-full w-[680px] bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r">
       <div className="p-3 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-muted-foreground" />
@@ -2346,6 +2391,7 @@ function CheckoutPOSPanel({
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -2607,85 +2653,93 @@ function ChooseClientPanel({
   }
 
   return (
-    <div className="w-[380px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="choose-client-panel">
-      <div className="p-4 border-b flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-back-client-lookup">
-            <ArrowLeft className="w-4 h-4" />
+    <div className="fixed inset-0 z-50" data-testid="choose-client-panel">
+      <button
+        type="button"
+        aria-label="Close client lookup"
+        className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      <div className="absolute right-0 top-0 h-full w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+        <div className="p-4 border-b flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-back-client-lookup">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <span className="font-semibold text-sm">Choose A Client</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-client-lookup">
+            <X className="w-4 h-4" />
           </Button>
-          <span className="font-semibold text-sm">Choose A Client</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-client-lookup">
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
 
-      <div className="flex-1 flex flex-col items-center px-6 pt-8">
-        <div className="w-full rounded-lg border p-6 mb-8 text-center">
-          {phoneDigits.length > 0 ? (
-            <p className="text-xl font-semibold tracking-wide" data-testid="text-phone-display">
-              {formatPhone(phoneDigits)}
-            </p>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-foreground" data-testid="text-enter-phone">Enter Telephone Number</p>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                Use <PersonStanding className="w-3.5 h-3.5 inline" /> for walk-in
+        <div className="flex-1 flex flex-col items-center px-6 pt-8 overflow-y-auto">
+          <div className="w-full rounded-lg border p-6 mb-8 text-center">
+            {phoneDigits.length > 0 ? (
+              <p className="text-xl font-semibold tracking-wide" data-testid="text-phone-display">
+                {formatPhone(phoneDigits)}
               </p>
-            </>
-          )}
-          {isSearching && (
-            <p className="text-xs text-muted-foreground mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
-          )}
-        </div>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-foreground" data-testid="text-enter-phone">Enter Telephone Number</p>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  Use <PersonStanding className="w-3.5 h-3.5 inline" /> for walk-in
+                </p>
+              </>
+            )}
+            {isSearching && (
+              <p className="text-xs text-muted-foreground mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
+            )}
+          </div>
 
-        <div className="w-full max-w-[280px] space-y-3">
-          {numKeys.map((row, ri) => (
-            <div key={ri} className="flex justify-center gap-3">
-              {row.map((key) => {
-                if (key === "walk-in") {
+          <div className="w-full max-w-[280px] space-y-3">
+            {numKeys.map((row, ri) => (
+              <div key={ri} className="flex justify-center gap-3">
+                {row.map((key) => {
+                  if (key === "walk-in") {
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onPointerDown={e => e.preventDefault()}
+                        onClick={onWalkIn}
+                        className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                        data-testid="numpad-walkin"
+                      >
+                        <PersonStanding className="w-5 h-5" />
+                      </button>
+                    );
+                  }
+                  if (key === "backspace") {
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onPointerDown={e => e.preventDefault()}
+                        onClick={handleBackspace}
+                        className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                        data-testid="numpad-backspace"
+                      >
+                        <Delete className="w-5 h-5" />
+                      </button>
+                    );
+                  }
                   return (
                     <button
                       key={key}
                       type="button"
                       onPointerDown={e => e.preventDefault()}
-                      onClick={onWalkIn}
-                      className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
-                      data-testid="numpad-walkin"
+                      onClick={() => handleDigit(key)}
+                      className="w-[80px] h-[56px] rounded-lg bg-muted text-xl font-semibold text-foreground hover-elevate active-elevate-2"
+                      data-testid={`numpad-${key}`}
                     >
-                      <PersonStanding className="w-5 h-5" />
+                      {key}
                     </button>
                   );
-                }
-                if (key === "backspace") {
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onPointerDown={e => e.preventDefault()}
-                      onClick={handleBackspace}
-                      className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
-                      data-testid="numpad-backspace"
-                    >
-                      <Delete className="w-5 h-5" />
-                    </button>
-                  );
-                }
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onPointerDown={e => e.preventDefault()}
-                    onClick={() => handleDigit(key)}
-                    className="w-[80px] h-[56px] rounded-lg bg-muted text-xl font-semibold text-foreground hover-elevate active-elevate-2"
-                    data-testid={`numpad-${key}`}
-                  >
-                    {key}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
