@@ -658,6 +658,68 @@ function BusinessHoursEditor({ store }: { store: Store }) {
   );
 }
 
+function CalendarOpsSettings({ store }: { store: Store }) {
+  const { toast } = useToast();
+  const [grace, setGrace] = useState<number>((store as any).lateGracePeriodMinutes ?? 10);
+
+  useEffect(() => {
+    setGrace((store as any).lateGracePeriodMinutes ?? 10);
+  }, [store]);
+
+  const updateStore = useMutation({
+    mutationFn: async (data: { lateGracePeriodMinutes: number }) => {
+      const res = await apiRequest("PATCH", `/api/stores/${store.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stores", store.id] });
+      toast({ title: "Saved", description: "Calendar settings updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save.", variant: "destructive" });
+    },
+  });
+
+  const onSave = () => {
+    const value = Math.max(0, Math.min(120, Math.round(grace) || 0));
+    updateStore.mutate({ lateGracePeriodMinutes: value });
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h2 className="text-lg font-semibold">Calendar &amp; Check-In</h2>
+        <Button type="button" size="sm" onClick={onSave} disabled={updateStore.isPending} data-testid="button-save-calendar-ops">
+          <Save className="w-4 h-4 mr-2" />
+          {updateStore.isPending ? "Saving..." : "Save"}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-6 space-y-2">
+          <Label htmlFor="late-grace">Late grace period (minutes)</Label>
+          <div className="flex items-center gap-3">
+            <Input
+              id="late-grace"
+              type="number"
+              min={0}
+              max={120}
+              value={grace}
+              onChange={(e) => setGrace(Number(e.target.value))}
+              className="w-32"
+              data-testid="input-late-grace"
+            />
+            <span className="text-sm text-muted-foreground">
+              How long after the booked start time before an appointment is flagged as overdue and the No-Show button appears.
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function BusinessSettings() {
   const { selectedStore } = useSelectedStore();
 
@@ -683,6 +745,7 @@ export default function BusinessSettings() {
         <BusinessProfile store={store} />
         <StripePaymentsSettings store={store} />
         <BusinessHoursEditor store={store} />
+        <CalendarOpsSettings store={store} />
       </div>
     </AppLayout>
   );

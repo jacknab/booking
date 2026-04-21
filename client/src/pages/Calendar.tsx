@@ -85,6 +85,7 @@ export default function Calendar() {
   const location = useLocation();
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
+  const lateGracePeriodMinutes = (selectedStore as any)?.lateGracePeriodMinutes ?? 10;
   const tzAbbr = getTimezoneAbbr(timezone);
   const { data: calSettings } = useCalendarSettings();
 
@@ -1093,6 +1094,7 @@ export default function Calendar() {
             onEdit={() => navigate(`/booking/new?editId=${selectedAppointment.id}`)}
             onReschedule={() => navigate(`/booking/new?editId=${selectedAppointment.id}&reschedule=1`)}
             onMarkNoShow={() => handleMarkNoShow(selectedAppointment)}
+            lateGraceMinutes={lateGracePeriodMinutes}
             isUpdating={updateAppointment.isPending}
           />
         )}
@@ -1172,6 +1174,7 @@ function AppointmentDetailsPanel({
   onEdit,
   onReschedule,
   onMarkNoShow,
+  lateGraceMinutes,
   isUpdating,
 }: {
   appointment: AppointmentWithDetails;
@@ -1183,13 +1186,14 @@ function AppointmentDetailsPanel({
   onEdit: () => void;
   onReschedule: () => void;
   onMarkNoShow: () => void;
+  lateGraceMinutes: number;
   isUpdating: boolean;
 }) {
   const minutesPastStart = Math.floor(
     (Date.now() - new Date(appointment.date).getTime()) / 60000,
   );
   const isOverdue =
-    minutesPastStart >= 10 &&
+    minutesPastStart >= lateGraceMinutes &&
     (appointment.status === "pending" || appointment.status === "confirmed");
   const localDate = toStoreLocal(appointment.date, timezone);
   const endTime = addMinutes(new Date(appointment.date), appointment.duration);
