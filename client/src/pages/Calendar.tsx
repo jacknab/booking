@@ -103,12 +103,15 @@ export default function Calendar() {
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showClientLookup, setShowClientLookup] = useState(false);
+  const [showNewApptMenu, setShowNewApptMenu] = useState(false);
+  const [lookupMode, setLookupMode] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const quickListRef = useRef<HTMLDivElement>(null);
 
   const updateAppointment = useUpdateAppointment();
+  const { toast } = useToast();
 
   const { data: appointments } = useAppointments();
   const { data: staffList, isLoading: staffLoading } = useStaffList();
@@ -456,10 +459,61 @@ export default function Calendar() {
               <Settings className="w-4 h-4" />
             </Button>
           </Link>
-          <Button onClick={() => { setSelectedAppointment(null); setShowCancelFlow(false); setShowCheckout(false); setShowClientLookup(true); }} data-testid="button-new-appointment">
-            <CalendarPlus className="w-4 h-4 mr-2" />
-            New Appointment
-          </Button>
+          <div className="relative">
+            <Button onClick={() => setShowNewApptMenu(v => !v)} data-testid="button-new-appointment">
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              New Appointment
+            </Button>
+            {showNewApptMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowNewApptMenu(false)}
+                />
+                <div
+                  className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden p-1.5 flex flex-col gap-1 min-w-[220px]"
+                  onClick={e => e.stopPropagation()}
+                  data-testid="popover-new-appointment-menu"
+                >
+                  <button
+                    className="w-full px-3 py-2 rounded-md bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                    onClick={() => {
+                      setShowNewApptMenu(false);
+                      setLookupMode(false);
+                      setSelectedAppointment(null);
+                      setShowCancelFlow(false);
+                      setShowCheckout(false);
+                      setShowClientLookup(true);
+                    }}
+                    data-testid="button-create-new-appointment"
+                  >
+                    Create New Appointment
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 rounded-md bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                    onClick={() => {
+                      setShowNewApptMenu(false);
+                      setLookupMode(true);
+                      setSelectedAppointment(null);
+                      setShowCancelFlow(false);
+                      setShowCheckout(false);
+                      setShowClientLookup(true);
+                    }}
+                    data-testid="button-lookup-appointment"
+                  >
+                    Look up Appointment
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 rounded-md border border-border text-sm font-semibold hover:bg-muted transition-colors"
+                    onClick={() => setShowNewApptMenu(false)}
+                    data-testid="button-cancel-new-appointment-menu"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -961,10 +1015,37 @@ export default function Calendar() {
             onClose={() => setShowClientLookup(false)}
             onSelectClient={(clientId) => {
               setShowClientLookup(false);
-              navigate(`/booking/new?clientId=${clientId}`);
+              if (lookupMode) {
+                const now = Date.now();
+                const clientAppts = (appointments || []).filter(
+                  (apt: any) => apt.customerId === clientId,
+                );
+                const upcoming = clientAppts
+                  .filter((apt: any) => new Date(apt.date).getTime() + (apt.duration || 0) * 60000 >= now)
+                  .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                const target = upcoming[0]
+                  || clientAppts.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                if (target) {
+                  setSelectedAppointment(target);
+                  setShowCancelFlow(false);
+                  setShowCheckout(false);
+                } else {
+                  toast({
+                    title: "No appointments found",
+                    description: "This client has no appointments to look up.",
+                  });
+                }
+                setLookupMode(false);
+              } else {
+                navigate(`/booking/new?clientId=${clientId}`);
+              }
             }}
             onWalkIn={() => {
               setShowClientLookup(false);
+              if (lookupMode) {
+                setLookupMode(false);
+                return;
+              }
               navigate("/booking/new");
             }}
           />
