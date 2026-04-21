@@ -26,15 +26,21 @@ This is the **Certxa** platform — a full-stack booking and business management
 - Testimonials and trust bar are also filtered to only show reviews for visible groups
 - Config is served via `GET /api/config` → `{ activeGroups: N }` (reads from env at runtime, no rebuild needed)
 
+**Static HTML SEO Landing Pages (22 pages — fully indexed by Google):**
+- Architecture: Static `.html` files in `seo-pages/`, served by `server/seo-pages.ts` middleware registered BEFORE the SSR/Vite handler in `server/index.ts`.
+- Shared assets: `client/public/seo-assets/seo.css` (full stylesheet) and `seo.js` (nav/FAQ/carousel JS).
+- Routes: `/` (home), `/industries` hub, plus 20 industry pages:
+  - Beauty/Wellness: `/barbers`, `/hair-salons`, `/spa`, `/nails`, `/tattoo`, `/estheticians`, `/groomers`
+  - Home Services: `/handyman`, `/house-cleaning`, `/lawn-care`, `/carpet-cleaning`, `/pressure-washing`, `/window-cleaning`, `/snow-removal`, `/dog-walking`
+  - Trades: `/hvac`, `/plumbing`, `/electrical`
+  - Professional: `/tutoring`, `/ride-service`
+- Each page: industry-specific hero, stats, 9-12 feature cards, how-it-works, testimonials, compare table, CTA, footer — per-industry accent colors/gradients.
+- All CTAs link to `/auth?mode=register`; nav links are static HTML internal routes.
+
 **Key public pages:**
-- `/` — Product Selector (landing page, shows 1–3 product groups based on `ACTIVE_GROUPS`)
-- `/booking` — Certxa Booking landing (original salon/spa booking platform)
-- `/queue` — Certxa Queue landing (walk-in queue management for barbershops / haircut studios)
-- Original `/` content (now at `/booking`) — salon/spa focus with business type carousel
-- `/industries` — Industries Hub (all 30+ supported service categories in a grid)
-- `/handyman`, `/house-cleaning`, `/lawn-care`, `/dog-walking`, `/tutoring` — Gig industry landing pages
-- `/hvac`, `/plumbing`, `/electrical`, `/carpet-cleaning`, `/pressure-washing`, `/window-cleaning`, `/snow-removal` — Home service / trades landing pages
-- `/barbers`, `/hair-salons`, `/nails`, `/spa`, `/estheticians`, `/tattoo`, `/haircuts`, `/groomers`, `/ride-service` — Beauty & personal service landing pages
+- `/` — Static HTML home page (served from `seo-pages/index.html`)
+- `/industries` — Static HTML industries hub (all 20 supported categories with links)
+- All 20 industry pages — static HTML with full SEO metadata (canonical, OG, robots)
 
 **Pro Hub (marketing pages):**
 - `/pro` — Main field service hub with hero, 25-industry grid with category filters, feature sections (scheduling/invoicing/CRM), stats bar, testimonials, and lead capture form

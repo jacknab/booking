@@ -47,6 +47,7 @@ const _cjsDirname: string | undefined = (globalThis as any).__dirname;
 
 // Replace with your actual DB functions
 import { storage } from "./storage";
+import { seoPageMiddleware } from "./seo-pages";
 
 const app = express();
 const httpServer = createServer(app);
@@ -213,6 +214,9 @@ app.use((req, res, next) => {
 
   // Register all API routes AFTER static assets so /assets/* never hits a route.
   await registerRoutes(httpServer, app);
+
+  // SEO static HTML pages — must run BEFORE Vite/SSR so HTML files win over React rendering.
+  app.use(seoPageMiddleware);
 
   // Development: use Vite middleware. Production: SSR for landing pages + SPA catch-all.
   if (process.env.NODE_ENV === "production") {
