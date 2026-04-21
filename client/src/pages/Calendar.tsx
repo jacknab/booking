@@ -653,25 +653,24 @@ export default function Calendar() {
           <div ref={scrollContainerRef} className="h-full overflow-auto">
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
-                <>
-                  <div
-                    className="absolute right-0 z-[35] pointer-events-none"
-                    style={{ left: "90px", top: `${timeLinePosition + 80}px`, height: "4px", backgroundColor: "#2563eb" }}
-                    data-testid="current-time-line-full"
-                  />
-                  <div
-                    className="absolute left-[36px] z-[46] pointer-events-none"
-                    style={{ top: `${timeLinePosition + 70}px` }}
-                    data-testid="current-time-label"
-                  >
+                <div
+                  className="absolute left-0 right-0 z-[46] pointer-events-none flex items-center -translate-y-1/2"
+                  style={{ top: `${timeLinePosition + 80}px` }}
+                  data-testid="current-time-line-full"
+                >
+                  {/* Pill — fills the full 90px time-column so it covers the label beneath */}
+                  <div className="w-[90px] flex-shrink-0 flex px-1">
                     <span
-                      className="relative inline-flex items-center rounded-md px-2 py-1 text-xs font-bold text-white shadow-[0_2px_8px_rgba(37,99,235,0.35)]"
+                      className="flex-1 inline-flex items-center justify-center rounded-md py-1 text-xs font-bold text-white shadow-[0_2px_8px_rgba(37,99,235,0.35)]"
                       style={{ backgroundColor: "#2563eb" }}
+                      data-testid="current-time-label"
                     >
                       {timeLineLabel}
                     </span>
                   </div>
-                </>
+                  {/* Line anchored to pill's right edge */}
+                  <div className="flex-1 h-[3px]" style={{ backgroundColor: "#2563eb" }} />
+                </div>
               )}
               <div className="w-[90px] flex-shrink-0 bg-card z-30 sticky left-0">
                 <div className="h-[80px] border-b sticky top-0 bg-card z-40" />
