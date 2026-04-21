@@ -2,10 +2,10 @@ import { pgTable, text, serial, integer, boolean, timestamp, decimal, index, uni
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
-import { users } from "./models/auth";
+import { users, sessions } from "./models/auth";
 
-// Re-export users for use with db schema
-export { users };
+// Re-export users and sessions for use with db schema
+export { users, sessions };
 
 // === TABLE DEFINITIONS ===
 

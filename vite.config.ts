@@ -41,17 +41,7 @@ export default defineConfig({
     },
   },
   define: {
-    'process.env.DEBUG': false,
-    'global': 'window',
-    // Define process for libraries that use it
-    'process': {
-      env: {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'production'),
-      },
-      // minimal process polyfill
-      cwd: () => '/',
-      platform: 'browser',
-    },
+    'process.env.DEBUG': 'false',
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
