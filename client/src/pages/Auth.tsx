@@ -160,7 +160,7 @@ export default function Auth() {
             <h2 className="text-4xl font-black leading-tight mb-3" style={{ WebkitTextStroke: "2px #000", paintOrder: "stroke fill" } as any}>
               {cfg ? cfg.tagline : "The platform built for service pros."}
             </h2>
-            <p className="text-white/55 text-lg leading-relaxed" style={{ WebkitTextStroke: "2px #000", paintOrder: "stroke fill" } as any}>
+            <p className="text-white text-lg leading-relaxed">
               {cfg
                 ? `Join thousands of businesses already using ${cfg.label} to run smarter.`
                 : "Join 10,000+ service businesses using Certxa to run smarter every day."}
@@ -176,12 +176,12 @@ export default function Auth() {
                 </svg>
               ))}
             </div>
-            <p className="text-white/75 text-sm leading-relaxed mb-4" style={{ WebkitTextStroke: "2px #000", paintOrder: "stroke fill" } as any}>
+            <p className="text-white text-sm leading-relaxed mb-4">
               "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. The automation alone is worth every penny."
             </p>
             <div>
-              <p className="text-white font-semibold text-sm" style={{ WebkitTextStroke: "2px #000", paintOrder: "stroke fill" } as any}>Jasmine R.</p>
-              <p className="text-white/40 text-xs" style={{ WebkitTextStroke: "2px #000", paintOrder: "stroke fill" } as any}>Owner, Luxe Hair Studio</p>
+              <p className="text-white font-semibold text-sm">Jasmine R.</p>
+              <p className="text-white text-xs">Owner, Luxe Hair Studio</p>
             </div>
           </div>
         </div>
