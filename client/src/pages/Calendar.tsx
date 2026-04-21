@@ -591,13 +591,19 @@ export default function Calendar() {
                     return (
                       <div
                         key={`label-${h}-${m}`}
-                        className="absolute left-0 right-0 flex items-center justify-end pr-2 -translate-y-1/2"
+                        className="absolute left-0 right-0 flex items-center justify-end gap-1 pr-1 -translate-y-1/2"
                         style={{ top: `${topPx}px` }}
                       >
                         <span className="flex items-baseline gap-0.5">
                           <span className="text-sm font-bold text-foreground">{timePart}</span>
                           <span className="text-[9px] font-semibold text-foreground">{ampm}</span>
                         </span>
+                        <span
+                          className={cn(
+                            "block",
+                            isHour ? "h-px w-3 bg-border" : "h-px w-2 bg-border/60",
+                          )}
+                        />
                       </div>
                     );
                   })}
@@ -608,9 +614,13 @@ export default function Calendar() {
                       style={{ top: `${timeLinePosition}px` }}
                       data-testid="current-time-label"
                     >
-                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: "#fff", backgroundColor: "#2563eb" }}>
+                      <span
+                        className="text-sm font-bold px-2 py-1 rounded shadow"
+                        style={{ color: "#fff", backgroundColor: "#2563eb" }}
+                      >
                         {timeLineLabel}
                       </span>
+                      <span className="flex-1 h-[2px]" style={{ backgroundColor: "#2563eb" }} />
                     </div>
                   )}
                 </div>
