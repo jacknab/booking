@@ -1502,6 +1502,159 @@ function CheckoutPOSPanel({
     });
   };
 
+  const handlePrintReceipt = () => {
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const storeName = escapeHtml((selectedStore as any)?.name || "Receipt");
+    const storeAddr = escapeHtml(
+      [
+        (selectedStore as any)?.address,
+        (selectedStore as any)?.city,
+        (selectedStore as any)?.state,
+        (selectedStore as any)?.zipCode,
+      ]
+        .filter(Boolean)
+        .join(", "),
+    );
+    const storePhone = escapeHtml((selectedStore as any)?.phone || "");
+    const customerName = escapeHtml(appointment.customer?.name || "Walk-In");
+    const staffName = escapeHtml((appointment as any).staff?.name || "");
+    const apptDate = escapeHtml(dateStr);
+    const apptTime = escapeHtml(timeStr);
+    const printedAt = escapeHtml(
+      formatInTz(new Date(), timezone, "EEE, MMM d • h:mm a"),
+    );
+
+    const lineItems: { label: string; price: number }[] = [];
+    if (appointment.service) {
+      lineItems.push({
+        label: appointment.service.name || "Service",
+        price: servicePrice,
+      });
+    }
+    for (const a of aptAddons) {
+      if (!a) continue;
+      lineItems.push({ label: `+ ${a.name}`, price: Number(a.price) });
+    }
+
+    const itemsHtml = lineItems
+      .map(
+        (li) => `
+        <tr>
+          <td>${escapeHtml(li.label)}</td>
+          <td class="r">$${li.price.toFixed(2)}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const tendersHtml = tenders
+      .map(
+        (t) => `
+        <tr>
+          <td>${escapeHtml(t.method.toUpperCase())}</td>
+          <td class="r">$${t.amount.toFixed(2)}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Receipt #${appointment.id}</title>
+<style>
+  @page { margin: 8mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', ui-monospace, monospace;
+    font-size: 12px;
+    color: #000;
+    margin: 0;
+    padding: 12px;
+    width: 80mm;
+  }
+  .center { text-align: center; }
+  .r { text-align: right; }
+  .bold { font-weight: 700; }
+  .lg { font-size: 14px; }
+  .xl { font-size: 16px; }
+  .muted { color: #444; }
+  hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 2px 0; vertical-align: top; }
+  .total-row td { padding-top: 6px; font-weight: 700; font-size: 14px; }
+  .footer { margin-top: 12px; font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="center bold xl">${storeName}</div>
+  ${storeAddr ? `<div class="center muted">${storeAddr}</div>` : ""}
+  ${storePhone ? `<div class="center muted">${storePhone}</div>` : ""}
+  <hr />
+  <div>Receipt #${appointment.id}</div>
+  <div>${printedAt}</div>
+  <div>Appt: ${apptDate} ${apptTime}</div>
+  <div>Client: ${customerName}</div>
+  ${staffName ? `<div>Staff: ${staffName}</div>` : ""}
+  <hr />
+  <table>${itemsHtml}</table>
+  <hr />
+  <table>
+    <tr><td>Subtotal</td><td class="r">$${subtotal.toFixed(2)}</td></tr>
+    ${
+      discount > 0
+        ? `<tr><td>Discount</td><td class="r">-$${discount.toFixed(2)}</td></tr>`
+        : ""
+    }
+    <tr><td>Tax</td><td class="r">$${tax.toFixed(2)}</td></tr>
+    ${
+      tip > 0
+        ? `<tr><td>Tip</td><td class="r">$${tip.toFixed(2)}</td></tr>`
+        : ""
+    }
+    <tr class="total-row"><td>TOTAL</td><td class="r">$${grandTotal.toFixed(2)}</td></tr>
+  </table>
+  <hr />
+  <table>${tendersHtml}</table>
+  <table>
+    <tr><td>Tendered</td><td class="r">$${totalTendered.toFixed(2)}</td></tr>
+    ${
+      changeDue > 0
+        ? `<tr class="bold"><td>Change Due</td><td class="r">$${changeDue.toFixed(2)}</td></tr>`
+        : ""
+    }
+  </table>
+  <hr />
+  <div class="center footer">Thank you!</div>
+  <script>
+    window.onload = function() {
+      window.focus();
+      window.print();
+      setTimeout(function() { window.close(); }, 300);
+    };
+  </script>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank", "width=420,height=640");
+    if (!w) {
+      toast({
+        title: "Pop-up blocked",
+        description: "Allow pop-ups for this site to print receipts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
+
+  const handlePrintAndComplete = () => {
+    handlePrintReceipt();
+    handleCompleteTransaction();
+  };
+
   const getMethodIcon = (method: string) => {
     const found = PAYMENT_METHODS.find(m => m.id === method);
     if (!found) return Banknote;
@@ -1929,7 +2082,7 @@ function CheckoutPOSPanel({
                 <Button
                   variant="outline"
                   className="gap-2"
-                  onClick={handleCompleteTransaction}
+                  onClick={handlePrintAndComplete}
                   disabled={isUpdating}
                   data-testid="button-print-receipt"
                 >
