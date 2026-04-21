@@ -357,9 +357,25 @@ export default function Calendar() {
     setShowCancelFlow(true);
   };
 
+  const handleMarkNoShow = (apt: AppointmentWithDetails) => {
+    updateAppointment.mutate(
+      { id: apt.id, status: "no_show", cancellationReason: "No Show" } as any,
+      {
+        onSuccess: () => {
+          setSelectedAppointment(null);
+          setShowCancelFlow(false);
+        },
+      }
+    );
+  };
+
   const handleConfirmCancel = (apt: AppointmentWithDetails, reason: string) => {
     updateAppointment.mutate(
-      { id: apt.id, status: "cancelled", cancellationReason: reason } as any,
+      {
+        id: apt.id,
+        status: reason === "No Show" ? "no_show" : "cancelled",
+        cancellationReason: reason,
+      } as any,
       {
         onSuccess: () => {
           setSelectedAppointment(null);
@@ -788,7 +804,7 @@ export default function Calendar() {
                               apt.status === "completed" ? "#9ca3af"
                               : apt.status === "started" ? "#22c55e"
                               : apt.status === "late" ? "#fb923c"
-                              : apt.status === "no-show" ? "#fb7185"
+                              : apt.status === "no_show" ? "#fb7185"
                               : "#3b82f6"; // pending / confirmed / default = booked (blue)
 
                             // Background tint by status
@@ -796,7 +812,7 @@ export default function Calendar() {
                               apt.status === "completed" ? "#f3f4f6"
                               : apt.status === "started" ? "#f0fdf4"
                               : apt.status === "late" ? "#fff7ed"
-                              : apt.status === "no-show" ? "#fff1f2"
+                              : apt.status === "no_show" ? "#fff1f2"
                               : "#eff6ff";
 
                             const isLocked = apt.status === "completed";
@@ -1076,6 +1092,7 @@ export default function Calendar() {
             onCheckout={() => handleCheckout(selectedAppointment)}
             onEdit={() => navigate(`/booking/new?editId=${selectedAppointment.id}`)}
             onReschedule={() => navigate(`/booking/new?editId=${selectedAppointment.id}&reschedule=1`)}
+            onMarkNoShow={() => handleMarkNoShow(selectedAppointment)}
             isUpdating={updateAppointment.isPending}
           />
         )}
@@ -1154,6 +1171,7 @@ function AppointmentDetailsPanel({
   onCheckout,
   onEdit,
   onReschedule,
+  onMarkNoShow,
   isUpdating,
 }: {
   appointment: AppointmentWithDetails;
@@ -1164,8 +1182,15 @@ function AppointmentDetailsPanel({
   onCheckout: () => void;
   onEdit: () => void;
   onReschedule: () => void;
+  onMarkNoShow: () => void;
   isUpdating: boolean;
 }) {
+  const minutesPastStart = Math.floor(
+    (Date.now() - new Date(appointment.date).getTime()) / 60000,
+  );
+  const isOverdue =
+    minutesPastStart >= 10 &&
+    (appointment.status === "pending" || appointment.status === "confirmed");
   const localDate = toStoreLocal(appointment.date, timezone);
   const endTime = addMinutes(new Date(appointment.date), appointment.duration);
   const dateStr = formatInTz(appointment.date, timezone, "EEEE, d MMM yyyy");
@@ -1187,7 +1212,7 @@ function AppointmentDetailsPanel({
     started: { label: "Started", variant: "secondary", color: "#22c55e" },
     cancelled: { label: "Cancelled", variant: "destructive", color: "#ef4444" },
     completed: { label: "Completed", variant: "secondary", color: "#22c55e" },
-    "no-show": { label: "No-Show", variant: "destructive", color: "#ef4444" },
+    "no_show": { label: "No-Show", variant: "destructive", color: "#ef4444" },
   };
   const statusInfo = statusMap[appointment.status || "pending"] || statusMap.pending;
   const statusLabel = statusInfo.label;
@@ -1207,7 +1232,16 @@ function AppointmentDetailsPanel({
   };
 
   return (
-    <div className="w-[460px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="appointment-details-panel">
+    <div className={cn(
+      "w-[460px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l",
+      isOverdue && "ring-2 ring-red-400 ring-inset",
+    )} data-testid="appointment-details-panel">
+      {isOverdue && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center gap-2 text-red-700 text-sm font-semibold" data-testid="overdue-banner">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>Client is {minutesPastStart} min late · check them in or mark as no-show</span>
+        </div>
+      )}
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Avatar className="w-9 h-9">
@@ -1310,7 +1344,7 @@ function AppointmentDetailsPanel({
           </div>
         </div>
 
-        {appointment.status !== "cancelled" && appointment.status !== "completed" && appointment.status !== "no-show" && (
+        {appointment.status !== "cancelled" && appointment.status !== "completed" && appointment.status !== "no_show" && (
           <>
             <div className="flex gap-2">
               <Button
@@ -1355,17 +1389,33 @@ function AppointmentDetailsPanel({
                 </span>
               </Button>
             ) : (
-              <Button
-                className="w-full bg-blue-600 text-white h-12"
-                onClick={onStart}
-                disabled={isUpdating}
-                data-testid="button-start-service"
-              >
-                <span className="flex flex-col items-center leading-tight">
-                  <span className="font-semibold">Start</span>
-                  <span className="text-[10px] opacity-80">Begin Service</span>
-                </span>
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-blue-600 text-white h-12"
+                  onClick={onStart}
+                  disabled={isUpdating}
+                  data-testid="button-start-service"
+                >
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="font-semibold">Start</span>
+                    <span className="text-[10px] opacity-80">Begin Service</span>
+                  </span>
+                </Button>
+                {isOverdue && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 border-2 border-red-500 text-red-700 hover:bg-red-50 font-semibold"
+                    onClick={onMarkNoShow}
+                    disabled={isUpdating}
+                    data-testid="button-mark-no-show"
+                  >
+                    <span className="flex flex-col items-center leading-tight">
+                      <span className="font-semibold">No-Show</span>
+                      <span className="text-[10px] opacity-80">Mark Did Not Arrive</span>
+                    </span>
+                  </Button>
+                )}
+              </div>
             )}
           </>
         )}
