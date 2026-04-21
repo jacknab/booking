@@ -149,3 +149,9 @@ id = "J8nE3ES9kPaLBCgKhCr_q"
 uri = "file://docs/chatbot-dialer-api.md"
 type = "text"
 title = "AI Chatbot & Twilio Dialer — API Reference"
+
+[[outputs]]
+id = "nPuoVzxN9kFCdomDOVbnA"
+uri = "file://docs/waitlist.md"
+type = "text"
+title = "Waitlist & Live Queue Documentation"
