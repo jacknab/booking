@@ -157,14 +157,26 @@ export default function Auth() {
                 <span className="font-bold text-sm">{cfg.label}</span>
               </div>
             )}
-            <h2 className="text-4xl font-black leading-tight mb-3">
-              {cfg ? cfg.tagline : "The platform built for service pros."}
-            </h2>
-            <p className="text-white/55 text-lg leading-relaxed">
-              {cfg
-                ? `Join thousands of businesses already using ${cfg.label} to run smarter.`
-                : "Join 10,000+ service businesses using Certxa to run smarter every day."}
-            </p>
+            <div className="relative mb-3">
+              <h2 aria-hidden className="absolute inset-0 font-black leading-tight text-black pointer-events-none select-none -z-10" style={{ fontSize: "38px" }}>
+                {cfg ? cfg.tagline : "The platform built for service pros."}
+              </h2>
+              <h2 className="relative text-4xl font-black leading-tight">
+                {cfg ? cfg.tagline : "The platform built for service pros."}
+              </h2>
+            </div>
+            <div className="relative">
+              <p aria-hidden className="absolute inset-0 leading-relaxed text-black pointer-events-none select-none -z-10" style={{ fontSize: "20px" }}>
+                {cfg
+                  ? `Join thousands of businesses already using ${cfg.label} to run smarter.`
+                  : "Join 10,000+ service businesses using Certxa to run smarter every day."}
+              </p>
+              <p className="relative text-white/55 text-lg leading-relaxed">
+                {cfg
+                  ? `Join thousands of businesses already using ${cfg.label} to run smarter.`
+                  : "Join 10,000+ service businesses using Certxa to run smarter every day."}
+              </p>
+            </div>
           </div>
 
           {/* Testimonial */}
@@ -176,12 +188,23 @@ export default function Auth() {
                 </svg>
               ))}
             </div>
-            <p className="text-white/75 text-sm leading-relaxed mb-4">
-              "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. The automation alone is worth every penny."
-            </p>
+            <div className="relative mb-4">
+              <p aria-hidden className="absolute inset-0 leading-relaxed text-black pointer-events-none select-none -z-10" style={{ fontSize: "16px" }}>
+                "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. The automation alone is worth every penny."
+              </p>
+              <p className="relative text-white/75 text-sm leading-relaxed">
+                "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. The automation alone is worth every penny."
+              </p>
+            </div>
             <div>
-              <p className="text-white font-semibold text-sm">Jasmine R.</p>
-              <p className="text-white/40 text-xs">Owner, Luxe Hair Studio</p>
+              <div className="relative">
+                <p aria-hidden className="absolute inset-0 font-semibold text-black pointer-events-none select-none -z-10" style={{ fontSize: "16px" }}>Jasmine R.</p>
+                <p className="relative text-white font-semibold text-sm">Jasmine R.</p>
+              </div>
+              <div className="relative">
+                <p aria-hidden className="absolute inset-0 text-black pointer-events-none select-none -z-10" style={{ fontSize: "14px" }}>Owner, Luxe Hair Studio</p>
+                <p className="relative text-white/40 text-xs">Owner, Luxe Hair Studio</p>
+              </div>
             </div>
           </div>
         </div>
