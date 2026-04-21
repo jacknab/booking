@@ -303,6 +303,7 @@ export async function registerRoutes(
         allowBookingOutsideHours: calendarSettings.allowBookingOutsideHours,
         autoCompleteAppointments: calendarSettings.autoCompleteAppointments,
         autoMarkNoShows: calendarSettings.autoMarkNoShows,
+        showPrices: calendarSettings.showPrices,
       }).from(calendarSettings)
         .where(eq(calendarSettings.storeId, parseInt(storeNumber)))
         .limit(1);

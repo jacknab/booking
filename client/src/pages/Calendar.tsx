@@ -97,6 +97,7 @@ export default function Calendar() {
     allowBookingOutsideHours: calSettings?.allowBookingOutsideHours ?? DEFAULT_CALENDAR_SETTINGS.allowBookingOutsideHours,
     autoCompleteAppointments: calSettings?.autoCompleteAppointments ?? DEFAULT_CALENDAR_SETTINGS.autoCompleteAppointments,
   };
+  const showPrices = calSettings?.showPrices ?? DEFAULT_CALENDAR_SETTINGS.showPrices;
 
   const storeNow = getNowInTimezone(timezone);
   const [currentDate, setCurrentDate] = useState(storeNow);
@@ -914,7 +915,7 @@ export default function Calendar() {
 
                                   {/* Amount — pushed to bottom */}
                                   <div className="mt-auto pt-0.5 flex items-center justify-between gap-1">
-                                    <span className="text-[10px] font-bold text-gray-700">${serviceTotal.toFixed(2)}</span>
+                                    {showPrices && <span className="text-[10px] font-bold text-gray-700">${serviceTotal.toFixed(2)}</span>}
                                     {isLocked && (
                                       <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
                                         Paid
@@ -1137,6 +1138,7 @@ export default function Calendar() {
             lateGraceMinutes={lateGracePeriodMinutes}
             isUpdating={updateAppointment.isPending}
             posEnabled={posEnabled}
+            showPrices={showPrices}
           />
         )}
 
@@ -1236,6 +1238,7 @@ function AppointmentDetailsPanel({
   lateGraceMinutes,
   isUpdating,
   posEnabled,
+  showPrices,
 }: {
   appointment: AppointmentWithDetails;
   timezone: string;
@@ -1250,6 +1253,7 @@ function AppointmentDetailsPanel({
   lateGraceMinutes: number;
   isUpdating: boolean;
   posEnabled: boolean;
+  showPrices: boolean;
 }) {
   const minutesPastStart = Math.floor(
     (Date.now() - new Date(appointment.date).getTime()) / 60000,
@@ -1374,9 +1378,11 @@ function AppointmentDetailsPanel({
               <h4 className="font-semibold text-sm truncate" data-testid="text-detail-service">{appointment.service?.name || "Service"}</h4>
               <span className="text-xs text-muted-foreground flex-shrink-0">({appointment.service?.duration || appointment.duration}m)</span>
             </div>
-            <span className="text-sm font-normal text-gray-800" data-testid="text-detail-price">
-              ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
-            </span>
+            {showPrices && (
+              <span className="text-sm font-normal text-gray-800" data-testid="text-detail-price">
+                ${appointment.service?.price ? Number(appointment.service.price).toFixed(2) : "0.00"}
+              </span>
+            )}
           </div>
 
           {/* Addons — same font size as service */}
@@ -1388,7 +1394,7 @@ function AppointmentDetailsPanel({
                     <span className="text-sm font-medium truncate">+ {addon.name}</span>
                     <span className="text-xs text-muted-foreground flex-shrink-0">({addon.duration}m)</span>
                   </div>
-                  <span className="text-sm font-normal text-gray-800">${Number(addon.price).toFixed(2)}</span>
+                  {showPrices && <span className="text-sm font-normal text-gray-800">${Number(addon.price).toFixed(2)}</span>}
                 </div>
               ))}
             </div>
@@ -1407,16 +1413,18 @@ function AppointmentDetailsPanel({
       </div>
 
       <div className="border-t p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="font-semibold">Total</span>
+        {showPrices && (
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-semibold">Total</span>
+            </div>
+            <div className="text-right">
+              <span className="font-bold text-lg" data-testid="text-detail-total">
+                ${grandTotal.toFixed(2)}
+              </span>
+            </div>
           </div>
-          <div className="text-right">
-            <span className="font-bold text-lg" data-testid="text-detail-total">
-              ${grandTotal.toFixed(2)}
-            </span>
-          </div>
-        </div>
+        )}
 
         {appointment.status !== "cancelled" && appointment.status !== "completed" && appointment.status !== "no_show" && (
           <>

@@ -187,6 +187,7 @@ export const calendarSettings = pgTable("calendar_settings", {
   allowBookingOutsideHours: boolean("allow_booking_outside_hours").notNull().default(true),
   autoCompleteAppointments: boolean("auto_complete_appointments").notNull().default(true),
   autoMarkNoShows: boolean("auto_mark_no_shows").notNull().default(false),
+  showPrices: boolean("show_prices").notNull().default(true),
 });
 
 export const drawerActions = pgTable("drawer_actions", {

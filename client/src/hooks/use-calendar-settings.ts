@@ -34,4 +34,5 @@ export const DEFAULT_CALENDAR_SETTINGS = {
   allowBookingOutsideHours: true,
   autoCompleteAppointments: true,
   autoMarkNoShows: false,
+  showPrices: true,
 };

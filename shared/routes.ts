@@ -529,6 +529,7 @@ export const api = {
         allowBookingOutsideHours: z.boolean().optional(),
         autoCompleteAppointments: z.boolean().optional(),
         autoMarkNoShows: z.boolean().optional(),
+        showPrices: z.boolean().optional(),
       }),
       responses: {
         200: z.custom<typeof calendarSettings.$inferSelect>(),

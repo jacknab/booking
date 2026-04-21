@@ -22,6 +22,7 @@ type CalendarSettingsForm = {
   nonWorkingHoursDisplay: number;
   allowBookingOutsideHours: boolean;
   autoCompleteAppointments: boolean;
+  showPrices: boolean;
 };
 
 function InfoTooltip({ text }: { text: string }) {
@@ -167,6 +168,7 @@ export default function CalendarSettings() {
         nonWorkingHoursDisplay: settings.nonWorkingHoursDisplay,
         allowBookingOutsideHours: settings.allowBookingOutsideHours,
         autoCompleteAppointments: settings.autoCompleteAppointments,
+        showPrices: settings.showPrices ?? true,
       });
     }
   }, [settings, reset]);
@@ -313,6 +315,26 @@ export default function CalendarSettings() {
                     checked={field.value}
                     onCheckedChange={field.onChange}
                     data-testid="switch-auto-complete"
+                  />
+                )}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 py-2 border-t pt-6">
+              <div>
+                <Label className="text-base font-medium">Show prices on appointments</Label>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Display service prices on calendar appointment cards and in the appointment details panel.
+                </p>
+              </div>
+              <Controller
+                name="showPrices"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    data-testid="switch-show-prices"
                   />
                 )}
               />
