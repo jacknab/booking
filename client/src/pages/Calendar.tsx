@@ -986,6 +986,7 @@ export default function Calendar() {
             onStart={() => handleStartService(selectedAppointment)}
             onCheckout={() => handleCheckout(selectedAppointment)}
             onEdit={() => navigate(`/booking/new?editId=${selectedAppointment.id}`)}
+            onReschedule={() => navigate(`/booking/new?editId=${selectedAppointment.id}&reschedule=1`)}
             isUpdating={updateAppointment.isPending}
           />
         )}
@@ -1063,6 +1064,7 @@ function AppointmentDetailsPanel({
   onStart,
   onCheckout,
   onEdit,
+  onReschedule,
   isUpdating,
 }: {
   appointment: AppointmentWithDetails;
@@ -1072,6 +1074,7 @@ function AppointmentDetailsPanel({
   onStart: () => void;
   onCheckout: () => void;
   onEdit: () => void;
+  onReschedule: () => void;
   isUpdating: boolean;
 }) {
   const localDate = toStoreLocal(appointment.date, timezone);
@@ -1239,6 +1242,16 @@ function AppointmentDetailsPanel({
                 {isUpdating ? "Updating..." : "Cancel Appointment"}
               </Button>
             </div>
+
+            <Button
+              variant="outline"
+              className="w-full border-2 border-amber-500 text-amber-700 hover:bg-amber-50 font-semibold"
+              onClick={onReschedule}
+              disabled={isUpdating}
+              data-testid="button-reschedule-appointment"
+            >
+              Reschedule
+            </Button>
 
             {appointment.status === "started" ? (
               <Button

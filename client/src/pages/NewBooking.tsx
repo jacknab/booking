@@ -40,6 +40,7 @@ export default function NewBooking() {
   const calAvailableMinutes = params.get("availableMinutes") ? Number(params.get("availableMinutes")) : null;
   const paramClientId = params.get("clientId") ? Number(params.get("clientId")) : null;
   const editAppointmentId = params.get("editId") ? Number(params.get("editId")) : null;
+  const isReschedule = params.get("reschedule") === "1";
   const isCalendarBooking = !!(calStaffId && calDate && calTime);
 
   const { data: services, isLoading: servicesLoading } = useServices();
@@ -150,19 +151,26 @@ export default function NewBooking() {
             setSelectedAddons(addonItems);
           }
 
-          const aptDate = new Date(apt.date);
-          setSelectedDate(aptDate);
+          if (isReschedule) {
+            setSelectedDate(getNowInTimezone(timezone));
+            setSelectedSlot(null);
+          } else {
+            const aptDate = new Date(apt.date);
+            setSelectedDate(aptDate);
 
-          setSelectedSlot({
-            time: apt.date,
-            staffId: apt.staffId,
-            staffName: staff?.name || "",
-          });
+            setSelectedSlot({
+              time: apt.date,
+              staffId: apt.staffId,
+              staffName: staff?.name || "",
+            });
+          }
 
           setEditInitialized(true);
 
-          // If appointment already has addons, open directly on the addons step
-          if (apt.appointmentAddons && apt.appointmentAddons.length > 0) {
+          if (isReschedule) {
+            setStep("details");
+          } else if (apt.appointmentAddons && apt.appointmentAddons.length > 0) {
+            // If appointment already has addons, open directly on the addons step
             setStep("addons");
           }
         })
