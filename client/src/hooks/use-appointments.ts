@@ -27,7 +27,8 @@ export function useAppointments(filters?: AppointmentFilters) {
 
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch appointments");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!storeId,
     staleTime: 30 * 1000, // 30 seconds

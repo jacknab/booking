@@ -1293,51 +1293,56 @@ If you have any questions, please contact your administrator.
 
   // === APPOINTMENTS ===
   app.get(api.appointments.list.path, async (req, res) => {
-    const userId = (req.session as any).userId;
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    try {
+      const userId = (req.session as any).userId;
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
 
-    const filters = {
-      from: req.query.from ? new Date(req.query.from as string) : undefined,
-      to: req.query.to ? new Date(req.query.to as string) : undefined,
-      staffId: user?.role === "staff" && user.staffId ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
-      storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
-      customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
-    };
-    const appointments = await storage.getAppointments(filters);
+      const filters = {
+        from: req.query.from ? new Date(req.query.from as string) : undefined,
+        to: req.query.to ? new Date(req.query.to as string) : undefined,
+        staffId: user?.role === "staff" && user.staffId ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
+        storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
+        customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
+      };
+      const appointments = await storage.getAppointments(filters);
 
-    if (filters.storeId) {
-      const calSettings = await storage.getCalendarSettings(filters.storeId);
-      const store = await storage.getStore(filters.storeId);
-      const graceMinutes = Math.max(0, store?.lateGracePeriodMinutes ?? 10);
-      const graceMs = graceMinutes * 60000;
-      const now = new Date();
+      if (filters.storeId) {
+        const calSettings = await storage.getCalendarSettings(filters.storeId);
+        const store = await storage.getStore(filters.storeId);
+        const graceMinutes = Math.max(0, store?.lateGracePeriodMinutes ?? 10);
+        const graceMs = graceMinutes * 60000;
+        const now = new Date();
 
-      if (calSettings?.autoMarkNoShows) {
-        for (const apt of appointments) {
-          if (apt.status !== "cancelled" && apt.status !== "completed" && apt.status !== "no_show" && apt.status !== "started") {
-            const noShowAt = new Date(new Date(apt.date).getTime() + graceMs);
-            if (noShowAt < now) {
-              await storage.updateAppointment(apt.id, { status: "no_show" });
-              apt.status = "no_show";
+        if (calSettings?.autoMarkNoShows) {
+          for (const apt of appointments) {
+            if (apt.status !== "cancelled" && apt.status !== "completed" && apt.status !== "no_show" && apt.status !== "started") {
+              const noShowAt = new Date(new Date(apt.date).getTime() + graceMs);
+              if (noShowAt < now) {
+                await storage.updateAppointment(apt.id, { status: "no_show" });
+                apt.status = "no_show";
+              }
+            }
+          }
+        }
+
+        if (calSettings?.autoCompleteAppointments) {
+          for (const apt of appointments) {
+            if (apt.status === "confirmed" || apt.status === "started" || apt.status === "pending") {
+              const aptEnd = new Date(new Date(apt.date).getTime() + apt.duration * 60000);
+              if (aptEnd < now) {
+                await storage.updateAppointment(apt.id, { status: "completed" });
+                apt.status = "completed";
+              }
             }
           }
         }
       }
 
-      if (calSettings?.autoCompleteAppointments) {
-        for (const apt of appointments) {
-          if (apt.status === "confirmed" || apt.status === "started" || apt.status === "pending") {
-            const aptEnd = new Date(new Date(apt.date).getTime() + apt.duration * 60000);
-            if (aptEnd < now) {
-              await storage.updateAppointment(apt.id, { status: "completed" });
-              apt.status = "completed";
-            }
-          }
-        }
-      }
+      res.json(appointments);
+    } catch (err) {
+      console.error("[appointments] Failed to fetch appointments:", err);
+      res.status(500).json({ message: "Failed to fetch appointments" });
     }
-
-    res.json(appointments);
   });
 
   app.post(api.appointments.create.path, requireActiveTrial, async (req, res) => {
