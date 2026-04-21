@@ -19,8 +19,9 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").default("admin"), // "admin" or "staff"
+  role: varchar("role").default("owner"), // "owner" | "manager" | "staff" (legacy: "admin" treated as owner)
   staffId: integer("staff_id"), // Link to staff table if role is staff
+  permissions: jsonb("permissions").$type<Record<string, boolean>>(), // Per-user permission overrides. Sparse — null/missing keys fall back to role defaults.
   onboardingCompleted: boolean("onboarding_completed").default(false),
   passwordChanged: boolean("password_changed").default(false), // Track if staff has changed their initial password
   createdAt: timestamp("created_at").defaultNow(),

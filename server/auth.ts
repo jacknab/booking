@@ -9,6 +9,7 @@ import { locations, staff, passwordResetTokens } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { sendEmail } from "./mail";
 import passport from "./passport";
+import { computePermissions, normalizeRole } from "@shared/permissions";
 
 export function setupAuth(app: Express) {
   app.set("trust proxy", 1);
@@ -228,7 +229,9 @@ export function setupAuth(app: Express) {
         }
 
         const { password: _, ...safeUser } = user;
-        return res.json(safeUser);
+        const role = normalizeRole(user.role);
+        const permissions = Array.from(computePermissions(role, user.permissions ?? null));
+        return res.json({ ...safeUser, role, permissions });
       }
 
       // --- Staff-only session (logged in via staff table credentials) ---
@@ -239,10 +242,12 @@ export function setupAuth(app: Express) {
         }
 
         const { password: _pw, ...safeStaff } = staffMember;
+        const permissions = Array.from(computePermissions("staff", null));
         return res.json({
           id: `staff-${staffMember.id}`,
           email: staffMember.email ?? "",
           role: "staff",
+          permissions,
           staffId: staffMember.id,
           firstName: staffMember.name?.split(" ")[0] ?? null,
           lastName: staffMember.name?.split(" ").slice(1).join(" ") || null,

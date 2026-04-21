@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { isAuthenticated } from "./auth";
+import { attachAuthContext, requirePermission, ownStaffScope, can } from "./middleware/permissions";
+import { PERMISSIONS } from "@shared/permissions";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users } from "@shared/models/auth";
@@ -141,6 +143,10 @@ export async function registerRoutes(
     }
     next();
   });
+
+  // Resolve role + permissions for every authenticated /api request.
+  // Skips silently for public routes (no session → req.auth left undefined).
+  app.use("/api", attachAuthContext);
 
   // === STORES ===
   app.get(api.stores.list.path, async (req, res) => {
@@ -1295,13 +1301,13 @@ If you have any questions, please contact your administrator.
   // === APPOINTMENTS ===
   app.get(api.appointments.list.path, async (req, res) => {
     try {
-      const userId = (req.session as any).userId;
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      // Scope to own staff if the user lacks appointments.viewAll
+      const scopedStaffId = ownStaffScope(req);
 
       const filters = {
         from: req.query.from ? new Date(req.query.from as string) : undefined,
         to: req.query.to ? new Date(req.query.to as string) : undefined,
-        staffId: user?.role === "staff" && user.staffId ? user.staffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
+        staffId: scopedStaffId !== undefined ? scopedStaffId : (req.query.staffId ? Number(req.query.staffId) : undefined),
         storeId: req.query.storeId ? Number(req.query.storeId) : undefined,
         customerId: req.query.customerId ? Number(req.query.customerId) : undefined,
       };
@@ -3630,7 +3636,8 @@ If you have any questions, please contact your administrator.
 
       // Check if user exists with staff role and this staffId
       const user = await storage.findUserByEmail(staff.email);
-      const hasCalendarAccess = user && user.role === "staff" && user.staffId === staffId;
+      // Calendar access = a linked user account exists in any non-owner role with this staffId
+      const hasCalendarAccess = !!(user && user.role !== "owner" && user.role !== "admin" && user.staffId === staffId);
 
       res.json({ 
         hasCalendarAccess,
