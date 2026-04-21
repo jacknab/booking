@@ -1,7 +1,9 @@
-import { readdir, readFile, stat } from "fs/promises";
+import { readdir, readFile, stat, writeFile, mkdir, rm } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import os from "os";
 import vm from "vm";
+import { build as esbuild } from "esbuild";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ASSETS_DIR = path.resolve(ROOT, "dist/public/assets");
@@ -86,10 +88,42 @@ function makeBrowserSandbox() {
   return sandbox;
 }
 
-async function listJsChunks(): Promise<string[]> {
-  if (!existsSync(ASSETS_DIR)) return [];
+async function findEntryChunk(): Promise<string | null> {
+  const html = await readFile(INDEX_HTML, "utf-8");
+  // Find the main entry script tag (Vite emits <script type="module" src="/assets/index-*.js">)
+  const match = html.match(/<script[^>]+src="\/assets\/(index-[^"]+\.js)"/);
+  if (match) return path.join(ASSETS_DIR, match[1]);
+  // Fallback: the largest index-*.js
   const entries = await readdir(ASSETS_DIR);
-  return entries.filter((f) => f.endsWith(".js")).map((f) => path.join(ASSETS_DIR, f));
+  const candidates = entries.filter((f) => /^index-.*\.js$/.test(f));
+  if (candidates.length === 0) return null;
+  let best: { name: string; size: number } | null = null;
+  for (const name of candidates) {
+    const s = await stat(path.join(ASSETS_DIR, name));
+    if (!best || s.size > best.size) best = { name, size: s.size };
+  }
+  return best ? path.join(ASSETS_DIR, best.name) : null;
+}
+
+async function bundleForVerification(entry: string): Promise<string> {
+  // Use esbuild to merge the entry chunk with all its sibling chunks (which it
+  // imports via relative paths) into a single IIFE we can evaluate in vm.
+  const tmpDir = await mkdir(path.join(os.tmpdir(), `verify-build-${Date.now()}`), { recursive: true });
+  const outFile = path.join(tmpDir as string, "bundle.js");
+  await esbuild({
+    entryPoints: [entry],
+    bundle: true,
+    format: "iife",
+    platform: "browser",
+    write: true,
+    outfile: outFile,
+    logLevel: "silent",
+    legalComments: "none",
+    // Vite chunks can contain `import.meta` references; esbuild handles this in browser.
+  });
+  const code = await readFile(outFile, "utf-8");
+  await rm(tmpDir as string, { recursive: true, force: true });
+  return code;
 }
 
 async function main() {
@@ -98,49 +132,44 @@ async function main() {
     process.exit(1);
   }
 
-  const chunks = await listJsChunks();
-  if (chunks.length === 0) {
-    console.error(`[verify-build] No JS chunks found in ${ASSETS_DIR}.`);
+  const entry = await findEntryChunk();
+  if (!entry) {
+    console.error(`[verify-build] Could not find an index-*.js entry chunk in ${ASSETS_DIR}.`);
     process.exit(1);
   }
 
-  console.log(`[verify-build] Checking ${chunks.length} bundle chunk(s) for top-level errors...`);
+  console.log(`[verify-build] Entry: ${path.basename(entry)}`);
+  console.log(`[verify-build] Bundling all chunks for execution check...`);
 
-  const failures: { file: string; error: string }[] = [];
+  let code: string;
+  try {
+    code = await bundleForVerification(entry);
+  } catch (err: any) {
+    console.error(`[verify-build] Failed to bundle chunks: ${err?.message || err}`);
+    process.exit(1);
+  }
 
-  for (const file of chunks) {
-    const code = await readFile(file, "utf-8");
-    const sizeKb = ((await stat(file)).size / 1024).toFixed(1);
-    const sandbox = makeBrowserSandbox();
-    vm.createContext(sandbox);
-    try {
-      const script = new vm.Script(code, { filename: path.basename(file) });
-      script.runInContext(sandbox, { timeout: 10_000 });
-      console.log(`  ok   ${path.basename(file)} (${sizeKb} KB)`);
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      // Ignore errors that come from runtime side-effects unrelated to TDZ/parse.
-      // We specifically care about TDZ ("Cannot access 'X' before initialization"),
-      // SyntaxError, and top-level ReferenceError for missing globals.
-      const isCritical =
-        /Cannot access .* before initialization/.test(msg) ||
-        err instanceof SyntaxError;
-      if (isCritical) {
-        failures.push({ file: path.basename(file), error: msg });
-        console.log(`  FAIL ${path.basename(file)} (${sizeKb} KB) — ${msg}`);
-      } else {
-        console.log(`  ok*  ${path.basename(file)} (${sizeKb} KB) — non-critical: ${msg}`);
-      }
+  const sizeKb = (code.length / 1024).toFixed(1);
+  console.log(`[verify-build] Bundled ${sizeKb} KB. Executing in sandbox...`);
+
+  const sandbox = makeBrowserSandbox();
+  vm.createContext(sandbox);
+  try {
+    const script = new vm.Script(code, { filename: "verify-bundle.js" });
+    script.runInContext(sandbox, { timeout: 15_000 });
+    console.log(`[verify-build] OK — bundle executed without TDZ or syntax errors.`);
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    const isCritical =
+      /Cannot access .* before initialization/.test(msg) ||
+      err instanceof SyntaxError;
+    if (isCritical) {
+      console.error(`[verify-build] FAIL — ${msg}`);
+      if (err?.stack) console.error(err.stack.split("\n").slice(0, 5).join("\n"));
+      process.exit(1);
     }
+    console.log(`[verify-build] OK* — non-critical runtime error from sandbox stub: ${msg}`);
   }
-
-  if (failures.length > 0) {
-    console.error(`\n[verify-build] ${failures.length} chunk(s) failed:`);
-    for (const f of failures) console.error(`  - ${f.file}: ${f.error}`);
-    process.exit(1);
-  }
-
-  console.log(`\n[verify-build] All chunks passed top-level execution check.`);
 }
 
 main().catch((err) => {
