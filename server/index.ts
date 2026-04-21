@@ -269,6 +269,11 @@ app.use((req, res, next) => {
       // SPA catch-all — handles all non-SSR, non-API routes
       app.use((req: Request, res: Response, next: NextFunction) => {
         if (req.path.startsWith("/api/")) return next();
+        // Never cache index.html so users always pick up the latest hashed
+        // asset filenames after a redeploy.
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
         res.sendFile(indexHtmlPath);
       });
     }
