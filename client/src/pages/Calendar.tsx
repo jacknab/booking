@@ -1238,6 +1238,7 @@ function AppointmentDetailsPanel({
     minutesPastStart >= lateGraceMinutes &&
     (appointment.status === "pending" || appointment.status === "confirmed");
   const localDate = toStoreLocal(appointment.date, timezone);
+  const isAppointmentToday = isSameDay(localDate, getNowInTimezone(timezone));
   const endTime = addMinutes(new Date(appointment.date), appointment.duration);
   const dateStr = formatInTz(appointment.date, timezone, "EEEE, d MMM yyyy");
   const timeStr = `${formatInTz(appointment.date, timezone, "h:mm a")} - ${formatInTz(endTime, timezone, "h:mm a")}`;
@@ -1441,7 +1442,7 @@ function AppointmentDetailsPanel({
                   <span className="text-[10px] opacity-80">Finish Appointment</span>
                 </span>
               </Button>
-            ) : (
+            ) : isAppointmentToday ? (
               <div className="flex gap-2">
                 <Button
                   className="flex-1 bg-blue-600 text-white h-12"
@@ -1469,7 +1470,7 @@ function AppointmentDetailsPanel({
                   </Button>
                 )}
               </div>
-            )}
+            ) : null}
           </>
         )}
       </div>
