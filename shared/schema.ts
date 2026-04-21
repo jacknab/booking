@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, index, uniqueIndex, varchar, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, index, uniqueIndex, varchar, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
@@ -98,6 +98,7 @@ export const staff = pgTable("staff", {
   commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default("0"),
   storeId: integer("store_id").references(() => locations.id),
   password: text("password"),
+  permissions: jsonb("permissions").$type<Record<string, boolean>>(),
 });
 
 export const staffServices = pgTable("staff_services", {

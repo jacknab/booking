@@ -48,13 +48,13 @@ export const attachAuthContext: RequestHandler = async (req, _res, next) => {
         };
       }
     } else if (sessionStaffId) {
-      // Staff-table login — pseudo-user with the "staff" role and no overrides.
+      // Staff-table login — pseudo-user with the "staff" role; overrides live on staff.permissions.
       const [staffMember] = await db.select().from(staff).where(eq(staff.id, sessionStaffId));
       if (staffMember) {
         req.auth = {
           staffId: staffMember.id,
           role: "staff",
-          permissions: computePermissions("staff", null),
+          permissions: computePermissions("staff", staffMember.permissions ?? null),
         };
       }
     }

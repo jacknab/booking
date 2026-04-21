@@ -130,7 +130,6 @@ export async function registerRoutes(
     if (req.path.startsWith("/admin/platform-settings")) return next(); // Allow admin platform settings endpoint
     if (req.path.startsWith("/admin/users")) return next(); // Allow admin users endpoint
     if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
-    if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
     if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
     if (req.path.startsWith("/chatbot/")) return next(); // Chatbot API — uses own X-Chatbot-Key auth
     if (req.path.startsWith("/dialer/")) return next();  // Twilio dialer — uses own X-Dialer-Key auth + Twilio webhooks
@@ -3783,7 +3782,7 @@ If you have any questions, please contact your administrator.
    */
 
   // GET all invoices
-  app.get("/api/billing/invoices/all", async (req, res) => {
+  app.get("/api/billing/invoices/all", requirePermission(PERMISSIONS.BILLING_MANAGE), async (req, res) => {
     try {
       // Mock data - replace with actual database query
       const invoices: any[] = []; // Mock empty invoices array
@@ -3795,7 +3794,7 @@ If you have any questions, please contact your administrator.
   });
 
   // GET unpaid invoices count
-  app.get("/api/billing/invoices/unpaid/count", async (req, res) => {
+  app.get("/api/billing/invoices/unpaid/count", requirePermission(PERMISSIONS.BILLING_MANAGE), async (req, res) => {
     try {
       // Mock data - replace with actual database query
       const count = 0; // Mock unpaid count
@@ -3807,7 +3806,7 @@ If you have any questions, please contact your administrator.
   });
 
   // GET past due invoices count
-  app.get("/api/billing/invoices/past-due/count", async (req, res) => {
+  app.get("/api/billing/invoices/past-due/count", requirePermission(PERMISSIONS.BILLING_MANAGE), async (req, res) => {
     try {
       // Mock data - replace with actual database query
       const count = 0; // Mock past due count
@@ -4692,11 +4691,40 @@ If you have any questions, please contact your administrator.
             : eq(users.id, ownerId),
         );
 
+      // Staff that have a linked user account (by email or staffId) — exclude
+      // them from the "staff-only" pseudo-member list so we don't show duplicates.
+      const linkedStaffIds = new Set<number>();
+      const linkedEmails = new Set<string>();
+      for (const u of teamUsers) {
+        if (u.staffId) linkedStaffIds.add(u.staffId);
+        if (u.email) linkedEmails.add(u.email);
+      }
+      const staffOnly = teamStaff.filter(
+        (s) => !linkedStaffIds.has(s.id) && !(s.email && linkedEmails.has(s.email)),
+      );
+
+      const userMembers = teamUsers.map((u) => ({
+        ...u,
+        isOwner: u.id === ownerId,
+        kind: "user" as const,
+      }));
+      const staffMembers = staffOnly.map((s) => {
+        const [first, ...rest] = (s.name ?? "").split(" ");
+        return {
+          id: `staff:${s.id}`,
+          email: s.email ?? "",
+          firstName: first ?? null,
+          lastName: rest.join(" ") || null,
+          role: "staff",
+          staffId: s.id,
+          permissions: s.permissions ?? null,
+          isOwner: false,
+          kind: "staff" as const,
+        };
+      });
+
       res.json({
-        members: teamUsers.map((u) => ({
-          ...u,
-          isOwner: u.id === ownerId,
-        })),
+        members: [...userMembers, ...staffMembers],
         staff: teamStaff.map((s) => ({ id: s.id, name: s.name, email: s.email, storeId: s.storeId })),
       });
     } catch (err) {
@@ -4736,15 +4764,30 @@ If you have any questions, please contact your administrator.
       if (!permissions || typeof permissions !== "object") {
         return res.status(400).json({ message: "permissions object required" });
       }
+      const cleaned: Record<string, boolean> = {};
+      for (const [k, v] of Object.entries(permissions)) {
+        if (typeof v === "boolean") cleaned[k] = v;
+      }
+
+      // Staff-only pseudo-member targeted as "staff:<id>"
+      if (targetId.startsWith("staff:")) {
+        const staffIdNum = Number(targetId.slice("staff:".length));
+        if (!Number.isFinite(staffIdNum)) {
+          return res.status(400).json({ message: "Invalid staff id" });
+        }
+        const [updated] = await db
+          .update(staff)
+          .set({ permissions: cleaned })
+          .where(eq(staff.id, staffIdNum))
+          .returning();
+        if (!updated) return res.status(404).json({ message: "Staff not found" });
+        return res.json({ id: targetId, permissions: updated.permissions });
+      }
+
       const [target] = await db.select().from(users).where(eq(users.id, targetId));
       if (!target) return res.status(404).json({ message: "User not found" });
       if (target.role === "owner" || target.role === "admin") {
         return res.status(403).json({ message: "Cannot edit an owner's permissions" });
-      }
-      // Sparse override map — strip keys whose value matches the role default to keep it clean.
-      const cleaned: Record<string, boolean> = {};
-      for (const [k, v] of Object.entries(permissions)) {
-        if (typeof v === "boolean") cleaned[k] = v;
       }
       const [updated] = await db
         .update(users)
