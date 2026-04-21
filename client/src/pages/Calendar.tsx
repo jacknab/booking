@@ -10,7 +10,8 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -20,15 +21,20 @@ import type { AppointmentWithDetails } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
-const calendarSidebarItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/analytics", label: "Analytics", icon: TrendingUp },
-  { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/customers", label: "Customers", icon: Users },
-  { to: "/services", label: "Services", icon: Scissors },
-  { to: "/staff", label: "Staff", icon: UserCircle },
-  { to: "/reports", label: "Reports", icon: FileText },
-  { to: "/business-settings", label: "Business Settings", icon: Building2 },
+type SidebarItem =
+  | { kind: "link"; to: string; label: string; icon: any }
+  | { kind: "action"; action: "quick-checkout"; label: string; icon: any };
+
+const calendarSidebarItems: SidebarItem[] = [
+  { kind: "link", to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { kind: "link", to: "/analytics", label: "Analytics", icon: TrendingUp },
+  { kind: "link", to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { kind: "link", to: "/customers", label: "Customers", icon: Users },
+  { kind: "link", to: "/services", label: "Services", icon: Scissors },
+  { kind: "link", to: "/staff", label: "Staff", icon: UserCircle },
+  { kind: "link", to: "/reports", label: "Reports", icon: FileText },
+  { kind: "action", action: "quick-checkout", label: "Quick Cash Out", icon: Receipt },
+  { kind: "link", to: "/business-settings", label: "Business Settings", icon: Building2 },
 ];
 
 const HOUR_HEIGHT = 180;
@@ -98,7 +104,9 @@ export default function Calendar() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showClientLookup, setShowClientLookup] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
+  const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const quickListRef = useRef<HTMLDivElement>(null);
 
   const updateAppointment = useUpdateAppointment();
 
@@ -459,7 +467,24 @@ export default function Calendar() {
         {/* Icon-only navigation sidebar */}
         <TooltipProvider delayDuration={200}>
           <nav className="w-16 flex-shrink-0 border-r bg-card flex flex-col items-center py-3 gap-1.5 z-30">
-            {calendarSidebarItems.map((item) => {
+            {calendarSidebarItems.map((item, idx) => {
+              if (item.kind === "action") {
+                return (
+                  <Tooltip key={`action-${idx}`}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setQuickCheckoutOpen(true)}
+                        data-testid="button-quick-checkout"
+                        className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <item.icon className="h-5 w-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{item.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
               const isActive = location.pathname === item.to;
               return (
                 <Tooltip key={item.to}>
@@ -743,6 +768,148 @@ export default function Calendar() {
             </div>
           </div>
         </div>
+
+        <Sheet open={quickCheckoutOpen} onOpenChange={setQuickCheckoutOpen}>
+          <SheetContent
+            side="left"
+            className="w-[340px] sm:w-[360px] p-0 flex flex-col gap-0"
+          >
+            <SheetHeader className="px-4 py-3 border-b">
+              <SheetTitle className="text-base font-bold flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                Quick Cash Out
+              </SheetTitle>
+              <p className="text-xs text-muted-foreground text-left">
+                {format(currentDate, "EEE MMM d")} · Tap a ticket to open
+              </p>
+            </SheetHeader>
+
+            <div className="flex justify-center border-b">
+              <button
+                type="button"
+                onClick={() => quickListRef.current?.scrollBy({ top: -240, behavior: "smooth" })}
+                data-testid="button-quick-scroll-up"
+                className="flex-1 h-12 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:bg-muted active:bg-muted/70 transition-colors"
+              >
+                <ChevronUp className="w-5 h-5" />
+                Up
+              </button>
+            </div>
+
+            <div ref={quickListRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+              {(() => {
+                const todayAppts = (appointments || []).filter((apt: any) => {
+                  if (apt.status === "cancelled") return false;
+                  const localDate = toStoreLocal(apt.date, timezone);
+                  return isSameDay(localDate, currentDate);
+                });
+
+                if (todayAppts.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      No appointments today
+                    </div>
+                  );
+                }
+
+                const byStaff = new Map<number, any[]>();
+                for (const apt of todayAppts) {
+                  if (!byStaff.has(apt.staffId)) byStaff.set(apt.staffId, []);
+                  byStaff.get(apt.staffId)!.push(apt);
+                }
+
+                const orderedStaff = (staffList || []).filter((s: any) =>
+                  byStaff.has(s.id),
+                );
+
+                return orderedStaff.map((staffMember: any) => {
+                  const list = (byStaff.get(staffMember.id) || []).sort(
+                    (a: any, b: any) =>
+                      toStoreLocal(a.date, timezone).getTime() -
+                      toStoreLocal(b.date, timezone).getTime(),
+                  );
+                  return (
+                    <div key={staffMember.id}>
+                      <div className="flex items-center gap-2 px-1 mb-2">
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage src={staffMember.profilePicture || undefined} />
+                          <AvatarFallback
+                            className="text-[11px] font-bold text-white"
+                            style={{ backgroundColor: getStaffColor(staffMember) }}
+                          >
+                            {staffMember.name?.[0]?.toUpperCase() || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-bold text-sm">{staffMember.name}</span>
+                        <span className="ml-auto text-[11px] text-muted-foreground">
+                          {list.length} {list.length === 1 ? "ticket" : "tickets"}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {list.map((apt: any) => {
+                          const localDate = toStoreLocal(apt.date, timezone);
+                          const timeStr = format(localDate, "h:mm a");
+                          const customerFirst =
+                            (apt.customer?.name || "").trim().split(/\s+/)[0] || "";
+                          const isPaid = apt.status === "completed" || apt.paymentStatus === "paid";
+                          return (
+                            <button
+                              key={apt.id}
+                              type="button"
+                              data-testid={`quick-ticket-${apt.id}`}
+                              onClick={() => {
+                                setSelectedAppointment(apt);
+                                setShowCheckout(false);
+                                setShowCancelFlow(false);
+                                setQuickCheckoutOpen(false);
+                              }}
+                              className="w-full text-left rounded-lg border bg-card hover:bg-muted active:bg-muted/70 transition-colors p-3 flex items-center gap-3"
+                              style={{
+                                borderLeft: `4px solid ${getStaffColor(staffMember)}`,
+                              }}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm truncate">
+                                  {customerFirst || "Walk-In"}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground truncate">
+                                  {timeStr}
+                                  {apt.services?.[0]?.name
+                                    ? ` · ${apt.services[0].name}`
+                                    : ""}
+                                </div>
+                              </div>
+                              {isPaid ? (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                  Paid
+                                </Badge>
+                              ) : (
+                                <DollarSign className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            <div className="flex justify-center border-t">
+              <button
+                type="button"
+                onClick={() => quickListRef.current?.scrollBy({ top: 240, behavior: "smooth" })}
+                data-testid="button-quick-scroll-down"
+                className="flex-1 h-12 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:bg-muted active:bg-muted/70 transition-colors"
+              >
+                <ChevronDown className="w-5 h-5" />
+                Down
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {selectedAppointment && !showCancelFlow && !showCheckout && (
           <AppointmentDetailsPanel
