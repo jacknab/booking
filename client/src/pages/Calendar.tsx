@@ -10,7 +10,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered, Search } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -186,6 +186,7 @@ export default function Calendar() {
 
   const TOTAL_HOURS = END_HOUR - START_HOUR;
   const { position: timeLinePosition, timeLabel: timeLineLabel } = useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
+  const isToday = isSameDay(currentDate, storeNow);
 
   // Auto-select the staff column for staff users once auth resolves
   useEffect(() => {
@@ -313,8 +314,6 @@ export default function Calendar() {
   const goToday = () => setCurrentDate(getNowInTimezone(timezone));
   const goPrev = () => setCurrentDate(subDays(currentDate, 1));
   const goNext = () => setCurrentDate(addDays(currentDate, 1));
-
-  const isToday = isSameDay(currentDate, storeNow);
 
   const getAvailableMinutesForSlot = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
     if (!appointments) return END_HOUR * 60 - (slotHour * 60 + slotMinute);
@@ -512,8 +511,7 @@ export default function Calendar() {
           </Link>
           <div className="relative">
             <Button onClick={() => setShowNewApptMenu(v => !v)} data-testid="button-new-appointment">
-              <CalendarPlus className="w-4 h-4 mr-2" />
-              New Appointment
+              APPOINTMENT
             </Button>
             {showNewApptMenu && (
               <>
@@ -522,26 +520,31 @@ export default function Calendar() {
                   onClick={() => setShowNewApptMenu(false)}
                 />
                 <div
-                  className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden p-1.5 flex flex-col gap-1 min-w-[220px]"
+                  className="absolute right-0 top-full mt-2 z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden"
                   onClick={e => e.stopPropagation()}
                   data-testid="popover-new-appointment-menu"
                 >
+                  <div className="px-3 py-2 border-b bg-muted/50">
+                    <span className="text-xs font-semibold text-foreground">Appointment</span>
+                  </div>
+                  <div className="p-2 flex flex-col gap-2 min-w-[200px]">
                   <button
-                    className="w-full px-3 py-2 rounded-md bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                    className="w-full min-h-[56px] px-3 py-3 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                     onClick={() => {
                       setShowNewApptMenu(false);
                       setLookupMode(false);
                       setSelectedAppointment(null);
                       setShowCancelFlow(false);
                       setShowCheckout(false);
-                      setShowClientLookup(true);
+                      navigate("/booking/new");
                     }}
                     data-testid="button-create-new-appointment"
                   >
-                    Create New Appointment
+                    <CalendarPlus className="w-4 h-4 shrink-0" />
+                    <span>BOOK</span>
                   </button>
                   <button
-                    className="w-full px-3 py-2 rounded-md bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                    className="w-full min-h-[56px] px-3 py-3 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                     onClick={() => {
                       setShowNewApptMenu(false);
                       setLookupMode(true);
@@ -552,15 +555,19 @@ export default function Calendar() {
                     }}
                     data-testid="button-lookup-appointment"
                   >
-                    Look up Appointment
+                    <Search className="w-4 h-4 shrink-0" />
+                    <span>LOOK UP</span>
                   </button>
                   <button
-                    className="w-full px-3 py-2 rounded-md border border-border text-sm font-semibold hover:bg-muted transition-colors"
-                    onClick={() => setShowNewApptMenu(false)}
+                    className="w-full min-h-[56px] px-3 py-3 rounded-md border border-border text-sm font-semibold hover:bg-muted transition-colors flex items-center justify-center gap-2"
+                    onClick={() => {
+                      setShowNewApptMenu(false);
+                    }}
                     data-testid="button-cancel-new-appointment-menu"
                   >
-                    Cancel
+                    <span>Cancel</span>
                   </button>
+                  </div>
                 </div>
               </>
             )}

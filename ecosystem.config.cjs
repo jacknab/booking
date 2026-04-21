@@ -2,15 +2,15 @@ module.exports = {
   apps: [
     {
       name: 'certxa',
-      script: 'dist/index.cjs',
+      script: './dist/index.cjs',
       cwd: '/apps/booking',
       instances: 1,
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 5080,
-        DATABASE_URL: 'postgresql://certxa_user:CHANGE_ME@127.0.0.1/certxabooking_data?sslmode=disable',
-        SESSION_SECRET: 'CHANGE_ME',
+        PORT: 5081,
+        DATABASE_URL: 'postgresql://certxa_user:booking_secure_pass_2024@127.0.0.1/certxabooking_data5?sslmode=disable',
+        SESSION_SECRET: 'nTe38f9ZNUrkWDELaO/tEOuSEs+LUU7wGXllFIZGNQVmqB9nnA8G3B5zEn1GLWopQQbDEIgbI2Ss1HhQxEtYhQ==',
         CORS_ALLOW_ALL: 'false',
         CORS_ORIGINS: 'https://certxa.com,https://www.certxa.com',
         TRIAL_PERIOD_DAYS: '60',

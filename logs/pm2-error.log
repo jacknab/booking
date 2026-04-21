@@ -37246,3 +37246,15 @@
 2026-04-09 10:06:18 +00:00:     at kF (/apps/booking/dist/index.cjs:43:8080)
 2026-04-09 10:06:18 +00:00:     at b (/apps/booking/dist/index.cjs:43:6022)
 2026-04-09 10:06:18 +00:00:     at fr.handle (/apps/booking/dist/index.cjs:43:5377)
+2026-04-21 16:25:13 +00:00: [SSR] Failed to load SSR bundle, falling back to SPA-only: TypeError: jV is not a function
+2026-04-21 16:25:13 +00:00:     at /apps/booking/dist/index.cjs:168:26049
+2026-04-21 16:25:13 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-04-21 16:56:37 +00:00: Internal Server Error: [Error: ENOENT: no such file or directory, stat '/apps/booking/dist/public/index.html'] {
+2026-04-21 16:56:37 +00:00:   errno: -2,
+2026-04-21 16:56:37 +00:00:   code: 'ENOENT',
+2026-04-21 16:56:37 +00:00:   syscall: 'stat',
+2026-04-21 16:56:37 +00:00:   path: '/apps/booking/dist/public/index.html',
+2026-04-21 16:56:37 +00:00:   expose: false,
+2026-04-21 16:56:37 +00:00:   statusCode: 404,
+2026-04-21 16:56:37 +00:00:   status: 404
+2026-04-21 16:56:37 +00:00: }
