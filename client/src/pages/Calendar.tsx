@@ -680,17 +680,21 @@ export default function Calendar() {
 
                             // Band color by status
                             const bandColor =
-                              apt.status === "started" || apt.status === "completed" ? "#22c55e"
+                              apt.status === "completed" ? "#9ca3af"
+                              : apt.status === "started" ? "#22c55e"
                               : apt.status === "late" ? "#fb923c"
                               : apt.status === "no-show" ? "#fb7185"
                               : "#3b82f6"; // pending / confirmed / default = booked (blue)
 
                             // Background tint by status
                             const bgColor =
-                              apt.status === "started" || apt.status === "completed" ? "#f0fdf4"
+                              apt.status === "completed" ? "#f3f4f6"
+                              : apt.status === "started" ? "#f0fdf4"
                               : apt.status === "late" ? "#fff7ed"
                               : apt.status === "no-show" ? "#fff1f2"
                               : "#eff6ff";
+
+                            const isLocked = apt.status === "completed";
 
                             // Band side: left = staff/store booked, right = online booked
                             // apt.source === "online" would indicate online booking (stub: always left for now)
@@ -703,7 +707,10 @@ export default function Calendar() {
                             return (
                               <div
                                 key={apt.id}
-                                className="absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md flex"
+                                className={cn(
+                                  "absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer z-[5] transition-shadow hover:shadow-md flex",
+                                  isLocked && "opacity-70",
+                                )}
                                 style={{
                                   ...style,
                                   backgroundColor: bgColor,
@@ -745,8 +752,13 @@ export default function Calendar() {
                                   )}
 
                                   {/* Amount — pushed to bottom */}
-                                  <div className="mt-auto pt-0.5">
+                                  <div className="mt-auto pt-0.5 flex items-center justify-between gap-1">
                                     <span className="text-[10px] font-bold text-gray-700">${serviceTotal.toFixed(2)}</span>
+                                    {isLocked && (
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
+                                        Paid
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
 
