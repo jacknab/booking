@@ -60,8 +60,7 @@ function useCurrentTimeLine(timezone: string, startHour: number, endHour: number
 
     const h = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
     const m = String(minutes).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    setTimeLabel(`${h}:${m} ${ampm}`);
+    setTimeLabel(`${h}:${m}`);
   }, [timezone, startHour, endHour]);
 
   useEffect(() => {
@@ -530,7 +529,7 @@ export default function Calendar() {
                       style={{ top: `${timeLinePosition}px` }}
                       data-testid="current-time-label"
                     >
-                      <span className="text-[17px] font-bold px-3 py-1.5 rounded-md" style={{ color: "#fff", backgroundColor: "#2563eb" }}>
+                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ color: "#fff", backgroundColor: "#2563eb" }}>
                         {timeLineLabel}
                       </span>
                     </div>
