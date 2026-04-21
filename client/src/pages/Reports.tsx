@@ -22,6 +22,7 @@ import {
   startOfMonth, eachMonthOfInterval, subMonths,
 } from "date-fns";
 import type { AppointmentWithDetails } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 const CHART_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899"];
 
@@ -198,12 +199,34 @@ export default function Reports() {
     staffList.map((s: any) => {
       const appts = completedAppts.filter(a => (a as any).staffId === s.id);
       const revenue = appts.reduce((sum, a) => sum + parseFloat(a.totalPaid || "0"), 0);
+
+      const timed = appts.filter((a: any) => a.startedAt && a.completedAt);
+      const totalActualMin = timed.reduce((sum: number, a: any) => {
+        const start = new Date(a.startedAt).getTime();
+        const end = new Date(a.completedAt).getTime();
+        return sum + Math.max(0, (end - start) / 60000);
+      }, 0);
+      const totalBookedMin = timed.reduce((sum: number, a: any) => {
+        const addonMin = (a.appointmentAddons || []).reduce(
+          (acc: number, aa: any) => acc + (aa.addon?.duration || 0),
+          0,
+        );
+        return sum + (a.duration || 0) + addonMin;
+      }, 0);
+      const avgActualMin = timed.length ? totalActualMin / timed.length : 0;
+      const avgBookedMin = timed.length ? totalBookedMin / timed.length : 0;
+      const efficiency = totalActualMin > 0 ? totalBookedMin / totalActualMin : 0;
+
       return {
         id: s.id,
         name: s.name,
         appointments: appts.length,
         revenue,
         avgTicket: appts.length ? revenue / appts.length : 0,
+        timedCount: timed.length,
+        avgActualMin,
+        avgBookedMin,
+        efficiency,
       };
     }).sort((a, b) => b.revenue - a.revenue),
   [staffList, completedAppts]);
@@ -464,24 +487,47 @@ export default function Reports() {
                         <th className="text-left py-2 pr-4 font-medium">Staff Member</th>
                         <th className="text-right py-2 px-4 font-medium">Appointments</th>
                         <th className="text-right py-2 px-4 font-medium">Revenue</th>
-                        <th className="text-right py-2 pl-4 font-medium">Avg Ticket</th>
+                        <th className="text-right py-2 px-4 font-medium">Avg Ticket</th>
+                        <th className="text-right py-2 px-4 font-medium">Avg Booked</th>
+                        <th className="text-right py-2 px-4 font-medium">Avg Actual</th>
+                        <th className="text-right py-2 pl-4 font-medium">Efficiency</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {staffStats.map(s => (
-                        <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
-                          <td className="py-2.5 pr-4 font-medium">{s.name}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums">{s.appointments}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.revenue)}</td>
-                          <td className="py-2.5 pl-4 text-right tabular-nums">{fmt(s.avgTicket)}</td>
-                        </tr>
-                      ))}
+                      {staffStats.map(s => {
+                        const eff = s.efficiency;
+                        const effLabel = s.timedCount > 0 ? `${Math.round(eff * 100)}%` : "—";
+                        const effClass = s.timedCount === 0
+                          ? "text-muted-foreground"
+                          : eff >= 1
+                            ? "text-emerald-600 font-semibold"
+                            : eff >= 0.85
+                              ? "text-amber-600 font-semibold"
+                              : "text-red-600 font-semibold";
+                        const fmtMin = (m: number) => s.timedCount > 0
+                          ? (m >= 60 ? `${Math.floor(m / 60)}h ${Math.round(m % 60)}m` : `${Math.round(m)}m`)
+                          : "—";
+                        return (
+                          <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                            <td className="py-2.5 pr-4 font-medium">{s.name}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{s.appointments}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.revenue)}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.avgTicket)}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">{fmtMin(s.avgBookedMin)}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{fmtMin(s.avgActualMin)}</td>
+                            <td className={cn("py-2.5 pl-4 text-right tabular-nums", effClass)}>{effLabel}</td>
+                          </tr>
+                        );
+                      })}
                       {staffStats.length === 0 && (
-                        <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
+                        <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Avg Booked / Actual / Efficiency are calculated only from completed appointments where staff tapped Start and Checkout. Efficiency = booked time ÷ actual time (100%+ means on or under booked time).
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
