@@ -568,11 +568,9 @@ export default function Calendar() {
               {isToday && timeLinePosition !== null && (
                 <div
                   className="absolute right-0 left-0 z-[10] pointer-events-none"
-                  style={{ top: `${timeLinePosition + 60}px` }}
+                  style={{ top: `${timeLinePosition + 80}px`, height: "4px", backgroundColor: "#2563eb" }}
                   data-testid="current-time-line-full"
-                >
-                  <div className="w-full" style={{ height: "3px", backgroundColor: "#2563eb" }} />
-                </div>
+                />
               )}
               <div className="w-[90px] flex-shrink-0 bg-card z-30 sticky left-0">
                 <div className="h-[80px] border-b sticky top-0 bg-card z-40" />
@@ -620,7 +618,6 @@ export default function Calendar() {
                       >
                         {timeLineLabel}
                       </span>
-                      <span className="flex-1 h-[2px]" style={{ backgroundColor: "#2563eb" }} />
                     </div>
                   )}
                 </div>
