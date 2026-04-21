@@ -108,6 +108,12 @@ export default function Calendar() {
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
   const [showJumpToNow, setShowJumpToNow] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const quickListRef = useRef<HTMLDivElement>(null);
 
@@ -974,6 +980,22 @@ export default function Calendar() {
                           const customerFirst =
                             (apt.customer?.name || "").trim().split(/\s+/)[0] || "";
                           const isPaid = apt.status === "completed" || apt.paymentStatus === "paid";
+                          const aptAddonsDur = (apt.appointmentAddons || []).reduce(
+                            (s: number, aa: any) => s + (aa.addon?.duration || 0),
+                            0,
+                          );
+                          const totalDur = (apt.duration || 0) + aptAddonsDur;
+                          const startedAt = apt.startedAt ? new Date(apt.startedAt).getTime() : null;
+                          const elapsedMin = startedAt ? Math.max(0, Math.floor((nowTick - startedAt) / 60000)) : 0;
+                          const overBy = totalDur > 0 ? elapsedMin - totalDur : 0;
+                          const elapsedLabel = elapsedMin >= 60
+                            ? `${Math.floor(elapsedMin / 60)}h ${elapsedMin % 60}m`
+                            : `${elapsedMin}m`;
+                          const elapsedClass = overBy > 0
+                            ? "bg-red-100 text-red-700 border-red-300"
+                            : elapsedMin >= totalDur * 0.75 && totalDur > 0
+                              ? "bg-amber-100 text-amber-700 border-amber-300"
+                              : "bg-emerald-100 text-emerald-700 border-emerald-300";
                           return (
                             <button
                               key={apt.id}
@@ -1001,6 +1023,18 @@ export default function Calendar() {
                                     : ""}
                                 </div>
                               </div>
+                              {startedAt && (
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-bold px-1.5 py-0.5 rounded border tabular-nums",
+                                    elapsedClass,
+                                  )}
+                                  data-testid={`quick-ticket-elapsed-${apt.id}`}
+                                  title={totalDur > 0 ? `Booked for ${totalDur}m` : undefined}
+                                >
+                                  {elapsedLabel}
+                                </span>
+                              )}
                               {isPaid ? (
                                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                                   Paid

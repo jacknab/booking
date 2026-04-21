@@ -135,6 +135,7 @@ export const appointments = pgTable("appointments", {
   tipAmount: decimal("tip_amount", { precision: 10, scale: 2 }),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }),
   totalPaid: decimal("total_paid", { precision: 10, scale: 2 }),
+  startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   serviceId: integer("service_id").references(() => services.id),
   staffId: integer("staff_id").references(() => staff.id),

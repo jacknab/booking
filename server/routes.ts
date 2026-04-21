@@ -1336,6 +1336,9 @@ If you have any questions, please contact your administrator.
         ...req.body,
         date: req.body.date ? new Date(req.body.date) : undefined,
       });
+      if (input.status === "started" && !input.startedAt) {
+        input.startedAt = new Date();
+      }
       if (input.status === "completed" && !input.completedAt) {
         input.completedAt = new Date();
       }
