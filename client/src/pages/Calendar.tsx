@@ -2516,7 +2516,14 @@ function ChooseClientPanel({
 
   if (showNameEntry) {
     return (
-      <div className="w-[740px] flex-shrink-0 absolute right-0 top-0 bottom-0 z-30 bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l" data-testid="enter-name-panel">
+      <div className="fixed inset-0 z-50" data-testid="enter-name-panel">
+        <button
+          type="button"
+          aria-label="Close name entry"
+          className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+          onClick={onClose}
+        />
+        <div className="absolute right-0 top-0 h-full w-[740px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
@@ -2647,6 +2654,7 @@ function ChooseClientPanel({
           >
             {isCreating ? "Creating..." : "Done"}
           </Button>
+        </div>
         </div>
       </div>
     );
