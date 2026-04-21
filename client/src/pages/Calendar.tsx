@@ -910,7 +910,7 @@ export default function Calendar() {
             <div ref={quickListRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
               {(() => {
                 const todayAppts = (appointments || []).filter((apt: any) => {
-                  if (apt.status === "cancelled") return false;
+                  if (apt.status !== "started") return false;
                   const localDate = toStoreLocal(apt.date, timezone);
                   return isSameDay(localDate, currentDate);
                 });
@@ -918,7 +918,7 @@ export default function Calendar() {
                 if (todayAppts.length === 0) {
                   return (
                     <div className="text-center py-12 text-sm text-muted-foreground">
-                      No appointments today
+                      No checked-in clients
                     </div>
                   );
                 }
@@ -935,9 +935,19 @@ export default function Calendar() {
 
                 return orderedStaff.map((staffMember: any) => {
                   const list = (byStaff.get(staffMember.id) || []).sort(
-                    (a: any, b: any) =>
-                      toStoreLocal(a.date, timezone).getTime() -
-                      toStoreLocal(b.date, timezone).getTime(),
+                    (a: any, b: any) => {
+                      const aAddons = (a.appointmentAddons || []).reduce(
+                        (s: number, aa: any) => s + (aa.addon?.duration || 0),
+                        0,
+                      );
+                      const bAddons = (b.appointmentAddons || []).reduce(
+                        (s: number, aa: any) => s + (aa.addon?.duration || 0),
+                        0,
+                      );
+                      const aDur = (a.duration || 0) + aAddons;
+                      const bDur = (b.duration || 0) + bAddons;
+                      return aDur - bDur;
+                    },
                   );
                   return (
                     <div key={staffMember.id}>
