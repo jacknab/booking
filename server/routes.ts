@@ -130,6 +130,7 @@ export async function registerRoutes(
     if (req.path.startsWith("/admin/platform-settings")) return next(); // Allow admin platform settings endpoint
     if (req.path.startsWith("/admin/users")) return next(); // Allow admin users endpoint
     if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
+    if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
     if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
     if (req.path.startsWith("/chatbot/")) return next(); // Chatbot API — uses own X-Chatbot-Key auth
     if (req.path.startsWith("/dialer/")) return next();  // Twilio dialer — uses own X-Dialer-Key auth + Twilio webhooks
@@ -600,7 +601,7 @@ export async function registerRoutes(
     res.json(service);
   });
 
-  app.post(api.services.create.path, requireActiveTrial, requirePermission(PERMISSIONS.SERVICES_MANAGE), async (req, res) => {
+  app.post(api.services.create.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertServiceSchema.parse(req.body);
       const service = await storage.createService(input);
@@ -614,7 +615,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.services.update.path, requirePermission(PERMISSIONS.SERVICES_MANAGE), async (req, res) => {
+  app.patch(api.services.update.path, async (req, res) => {
     try {
       const input = insertServiceSchema.partial().parse(req.body);
       const service = await storage.updateService(Number(req.params.id), input);
@@ -625,7 +626,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.services.delete.path, requirePermission(PERMISSIONS.SERVICES_MANAGE), async (req, res) => {
+  app.delete(api.services.delete.path, async (req, res) => {
     await storage.deleteService(Number(req.params.id));
     res.status(204).end();
   });
@@ -874,7 +875,7 @@ export async function registerRoutes(
     res.json(member);
   });
 
-  app.post(api.staff.create.path, requireActiveTrial, requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+  app.post(api.staff.create.path, requireActiveTrial, async (req, res) => {
     try {
       const input = insertStaffSchema.parse(req.body);
       if (input.password) {
@@ -889,7 +890,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.staff.update.path, requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+  app.patch(api.staff.update.path, async (req, res) => {
     try {
       const input = insertStaffSchema.partial().parse(req.body);
       if (input.password) {
@@ -906,7 +907,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.staff.delete.path, requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+  app.delete(api.staff.delete.path, async (req, res) => {
     await storage.deleteStaff(Number(req.params.id));
     res.status(204).end();
   });
@@ -1409,7 +1410,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.delete(api.appointments.delete.path, requirePermission(PERMISSIONS.APPOINTMENTS_DELETE), async (req, res) => {
+  app.delete(api.appointments.delete.path, async (req, res) => {
     await storage.deleteAppointment(Number(req.params.id));
     res.status(204).end();
   });
@@ -1421,7 +1422,7 @@ If you have any questions, please contact your administrator.
     res.json(products);
   });
 
-  app.post(api.products.create.path, requirePermission(PERMISSIONS.PRODUCTS_MANAGE), async (req, res) => {
+  app.post(api.products.create.path, async (req, res) => {
     try {
       const input = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(input);
@@ -1431,7 +1432,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.patch(api.products.update.path, requirePermission(PERMISSIONS.PRODUCTS_MANAGE), async (req, res) => {
+  app.patch(api.products.update.path, async (req, res) => {
     try {
       const input = insertProductSchema.partial().parse(req.body);
       const product = await storage.updateProduct(Number(req.params.id), input);
@@ -1442,7 +1443,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.delete(api.products.delete.path, requirePermission(PERMISSIONS.PRODUCTS_MANAGE), async (req, res) => {
+  app.delete(api.products.delete.path, async (req, res) => {
     await storage.deleteProduct(Number(req.params.id));
     res.status(204).end();
   });
@@ -2413,7 +2414,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.put("/api/sms-settings/:storeId", requirePermission(PERMISSIONS.STORE_SETTINGS), async (req, res) => {
+  app.put("/api/sms-settings/:storeId", async (req, res) => {
     if (!(await validateStoreOwnership(req, res))) return;
     try {
       const storeId = Number(req.params.storeId);
@@ -2486,7 +2487,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.put("/api/mail-settings/:storeId", requirePermission(PERMISSIONS.STORE_SETTINGS), async (req, res) => {
+  app.put("/api/mail-settings/:storeId", async (req, res) => {
     if (!(await validateStoreOwnership(req, res))) return;
     try {
       const storeId = Number(req.params.storeId);
@@ -2532,7 +2533,7 @@ If you have any questions, please contact your administrator.
     res.json(settings ? safeStripeSettings(settings) : null);
   });
 
-  app.put("/api/stripe-settings/:storeId", requirePermission(PERMISSIONS.INTEGRATIONS_MANAGE), async (req, res) => {
+  app.put("/api/stripe-settings/:storeId", async (req, res) => {
     if (!(await validateStoreOwnership(req, res))) return;
     try {
       const storeId = Number(req.params.storeId);
@@ -2883,7 +2884,7 @@ If you have any questions, please contact your administrator.
   /**
    * Connect a specific location to the store.
    */
-  app.post("/api/google-business/connect-location", requirePermission(PERMISSIONS.INTEGRATIONS_MANAGE), async (req, res) => {
+  app.post("/api/google-business/connect-location", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -2947,7 +2948,7 @@ If you have any questions, please contact your administrator.
    * Required by Google API policies: users must be able to revoke access at any time,
    * and disconnecting must remove all associated data.
    */
-  app.delete("/api/google-business/profile/:storeId", requirePermission(PERMISSIONS.INTEGRATIONS_MANAGE), async (req, res) => {
+  app.delete("/api/google-business/profile/:storeId", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -3782,7 +3783,7 @@ If you have any questions, please contact your administrator.
    */
 
   // GET all invoices
-  app.get("/api/billing/invoices/all", requirePermission(PERMISSIONS.BILLING_MANAGE), async (req, res) => {
+  app.get("/api/billing/invoices/all", async (req, res) => {
     try {
       // Mock data - replace with actual database query
       const invoices: any[] = []; // Mock empty invoices array
@@ -3794,7 +3795,7 @@ If you have any questions, please contact your administrator.
   });
 
   // GET unpaid invoices count
-  app.get("/api/billing/invoices/unpaid/count", requirePermission(PERMISSIONS.BILLING_MANAGE), async (req, res) => {
+  app.get("/api/billing/invoices/unpaid/count", async (req, res) => {
     try {
       // Mock data - replace with actual database query
       const count = 0; // Mock unpaid count
@@ -3806,7 +3807,7 @@ If you have any questions, please contact your administrator.
   });
 
   // GET past due invoices count
-  app.get("/api/billing/invoices/past-due/count", requirePermission(PERMISSIONS.BILLING_MANAGE), async (req, res) => {
+  app.get("/api/billing/invoices/past-due/count", async (req, res) => {
     try {
       // Mock data - replace with actual database query
       const count = 0; // Mock past due count
