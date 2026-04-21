@@ -2824,6 +2824,19 @@ function MonthCalendarOverlay({
 
   const previewDayLabel = format(previewDay, "EEE, MMM d");
 
+  const today0 = new Date(storeNow.getFullYear(), storeNow.getMonth(), storeNow.getDate());
+
+  const apptMap = useMemo(() => {
+    const map = new Map<string, any[]>();
+    appointments.forEach((apt: any) => {
+      const localDate = toStoreLocal(apt.date, timezone);
+      const key = `${localDate.getFullYear()}-${localDate.getMonth()}-${localDate.getDate()}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(apt);
+    });
+    return map;
+  }, [appointments, timezone]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" data-testid="month-calendar-overlay">
       <button
