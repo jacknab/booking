@@ -528,6 +528,7 @@ export const api = {
         nonWorkingHoursDisplay: z.number().optional(),
         allowBookingOutsideHours: z.boolean().optional(),
         autoCompleteAppointments: z.boolean().optional(),
+        autoMarkNoShows: z.boolean().optional(),
       }),
       responses: {
         200: z.custom<typeof calendarSettings.$inferSelect>(),

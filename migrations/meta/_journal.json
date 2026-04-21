@@ -15,6 +15,13 @@
       "when": 1773061701056,
       "tag": "0001_third_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776793774576,
+      "tag": "0008_add_auto_mark_no_shows",
+      "breakpoints": true
     }
   ]
 }

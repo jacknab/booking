@@ -45,7 +45,8 @@ CREATE TABLE "calendar_settings" (
 	"time_slot_interval" integer DEFAULT 15 NOT NULL,
 	"non_working_hours_display" integer DEFAULT 1 NOT NULL,
 	"allow_booking_outside_hours" boolean DEFAULT true NOT NULL,
-	"auto_complete_appointments" boolean DEFAULT true NOT NULL
+	"auto_complete_appointments" boolean DEFAULT true NOT NULL,
+	"auto_mark_no_shows" boolean DEFAULT false NOT NULL
 );
 CREATE TABLE "cash_drawer_sessions" (
 	"id" serial PRIMARY KEY,

@@ -302,6 +302,7 @@ export async function registerRoutes(
         nonWorkingHoursDisplay: calendarSettings.nonWorkingHoursDisplay,
         allowBookingOutsideHours: calendarSettings.allowBookingOutsideHours,
         autoCompleteAppointments: calendarSettings.autoCompleteAppointments,
+        autoMarkNoShows: calendarSettings.autoMarkNoShows,
       }).from(calendarSettings)
         .where(eq(calendarSettings.storeId, parseInt(storeNumber)))
         .limit(1);
@@ -1306,8 +1307,24 @@ If you have any questions, please contact your administrator.
 
     if (filters.storeId) {
       const calSettings = await storage.getCalendarSettings(filters.storeId);
+      const store = await storage.getStore(filters.storeId);
+      const graceMinutes = Math.max(0, store?.lateGracePeriodMinutes ?? 10);
+      const graceMs = graceMinutes * 60000;
+      const now = new Date();
+
+      if (calSettings?.autoMarkNoShows) {
+        for (const apt of appointments) {
+          if (apt.status !== "cancelled" && apt.status !== "completed" && apt.status !== "no_show" && apt.status !== "started") {
+            const noShowAt = new Date(new Date(apt.date).getTime() + graceMs);
+            if (noShowAt < now) {
+              await storage.updateAppointment(apt.id, { status: "no_show" });
+              apt.status = "no_show";
+            }
+          }
+        }
+      }
+
       if (calSettings?.autoCompleteAppointments) {
-        const now = new Date();
         for (const apt of appointments) {
           if (apt.status === "confirmed" || apt.status === "started" || apt.status === "pending") {
             const aptEnd = new Date(new Date(apt.date).getTime() + apt.duration * 60000);
