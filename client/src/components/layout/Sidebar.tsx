@@ -26,58 +26,75 @@ import {
   FileText,
   ListOrdered,
 } from "lucide-react";
+import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useSelectedStore } from "@/hooks/use-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
+import { PERMISSIONS } from "@shared/permissions";
 
-const navGroups = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  permission?: string;
+  anyOf?: string[];
+};
+
+const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Overview",
     items: [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/analytics", label: "Analytics", icon: TrendingUp },
-      { to: "/calendar", label: "Calendar", icon: Calendar },
+      { to: "/analytics", label: "Analytics", icon: TrendingUp, permission: PERMISSIONS.REPORTS_VIEW },
+      { to: "/calendar", label: "Calendar", icon: Calendar, anyOf: [PERMISSIONS.APPOINTMENTS_VIEW_ALL, PERMISSIONS.APPOINTMENTS_VIEW_OWN] },
     ],
   },
   {
     label: "Clients",
     items: [
-      { to: "/customers", label: "Customers", icon: Users },
-      { to: "/waitlist", label: "Waitlist", icon: Clock },
+      { to: "/customers", label: "Customers", icon: Users, permission: PERMISSIONS.CUSTOMERS_VIEW },
+      { to: "/waitlist", label: "Waitlist", icon: Clock, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
-      { to: "/loyalty", label: "Loyalty Program", icon: Star },
+      { to: "/loyalty", label: "Loyalty Program", icon: Star, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/reviews", label: "Reviews", icon: ThumbsUp },
-      { to: "/google-business", label: "Google Reviews", icon: MapPin },
+      { to: "/google-business", label: "Google Reviews", icon: MapPin, permission: PERMISSIONS.INTEGRATIONS_MANAGE },
     ],
   },
   {
     label: "Business",
     items: [
-      { to: "/services", label: "Services", icon: Scissors },
-      { to: "/staff", label: "Staff", icon: UserCircle },
-      { to: "/products", label: "Products", icon: ShoppingBag },
+      { to: "/services", label: "Services", icon: Scissors, permission: PERMISSIONS.SERVICES_MANAGE },
+      { to: "/staff", label: "Staff", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE },
+      { to: "/products", label: "Products", icon: ShoppingBag, permission: PERMISSIONS.PRODUCTS_MANAGE },
       { to: "/gift-cards", label: "Gift Cards", icon: Gift },
-      { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList },
+      { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList, permission: PERMISSIONS.SERVICES_MANAGE },
     ],
   },
   {
     label: "Finance",
     items: [
-      { to: "/reports", label: "Reports", icon: FileText },
-      { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote },
-      { to: "/commission-report", label: "Commissions", icon: BarChart3 },
+      { to: "/reports", label: "Reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW },
+      { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote, permission: PERMISSIONS.CASH_DRAWER_VIEW },
+      {
+        to: "/commission-report",
+        label: "Commissions",
+        icon: BarChart3,
+        anyOf: [PERMISSIONS.COMMISSIONS_VIEW_ALL, PERMISSIONS.COMMISSIONS_VIEW_OWN],
+      },
     ],
   },
   {
     label: "Settings",
     items: [
-      { to: "/online-booking", label: "Online Booking", icon: Globe },
-      { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare },
-      { to: "/mail-settings", label: "Email Notifications", icon: Mail },
-      { to: "/business-settings", label: "Business Settings", icon: Building2 },
-      { to: "/calendar-settings", label: "Calendar Settings", icon: Settings },
+      { to: "/online-booking", label: "Online Booking", icon: Globe, permission: PERMISSIONS.STORE_SETTINGS },
+      { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare, permission: PERMISSIONS.STORE_SETTINGS },
+      { to: "/mail-settings", label: "Email Notifications", icon: Mail, permission: PERMISSIONS.STORE_SETTINGS },
+      { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS },
+      { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
+      { to: "/team-permissions", label: "Team Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
     ],
   },
 ];
@@ -88,6 +105,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const { logoutAsync, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { selectedStore } = useSelectedStore();
+  const { can, canAny } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
 
   const handleLogout = async () => {
@@ -111,9 +129,14 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
           <nav className="px-2 text-sm font-medium lg:px-4 pb-4">
             {navGroups.map((group) => {
               const posHiddenRoutes = ["/analytics", "/reports", "/cash-drawer", "/commission-report"];
-              const items = posEnabled
+              const items = (posEnabled
                 ? group.items
-                : group.items.filter((item) => !posHiddenRoutes.includes(item.to));
+                : group.items.filter((item) => !posHiddenRoutes.includes(item.to))
+              ).filter((item) => {
+                if (item.permission && !can(item.permission)) return false;
+                if (item.anyOf && !canAny(...item.anyOf)) return false;
+                return true;
+              });
               if (items.length === 0) return null;
               return (
               <div key={group.label} className="mb-2">

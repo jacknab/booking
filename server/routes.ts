@@ -601,7 +601,7 @@ export async function registerRoutes(
     res.json(service);
   });
 
-  app.post(api.services.create.path, requireActiveTrial, async (req, res) => {
+  app.post(api.services.create.path, requireActiveTrial, requirePermission(PERMISSIONS.SERVICES_MANAGE), async (req, res) => {
     try {
       const input = insertServiceSchema.parse(req.body);
       const service = await storage.createService(input);
@@ -615,7 +615,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.services.update.path, async (req, res) => {
+  app.patch(api.services.update.path, requirePermission(PERMISSIONS.SERVICES_MANAGE), async (req, res) => {
     try {
       const input = insertServiceSchema.partial().parse(req.body);
       const service = await storage.updateService(Number(req.params.id), input);
@@ -626,7 +626,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.services.delete.path, async (req, res) => {
+  app.delete(api.services.delete.path, requirePermission(PERMISSIONS.SERVICES_MANAGE), async (req, res) => {
     await storage.deleteService(Number(req.params.id));
     res.status(204).end();
   });
@@ -875,7 +875,7 @@ export async function registerRoutes(
     res.json(member);
   });
 
-  app.post(api.staff.create.path, requireActiveTrial, async (req, res) => {
+  app.post(api.staff.create.path, requireActiveTrial, requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
     try {
       const input = insertStaffSchema.parse(req.body);
       if (input.password) {
@@ -890,7 +890,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.staff.update.path, async (req, res) => {
+  app.patch(api.staff.update.path, requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
     try {
       const input = insertStaffSchema.partial().parse(req.body);
       if (input.password) {
@@ -907,7 +907,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.staff.delete.path, async (req, res) => {
+  app.delete(api.staff.delete.path, requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
     await storage.deleteStaff(Number(req.params.id));
     res.status(204).end();
   });
@@ -1410,7 +1410,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.delete(api.appointments.delete.path, async (req, res) => {
+  app.delete(api.appointments.delete.path, requirePermission(PERMISSIONS.APPOINTMENTS_DELETE), async (req, res) => {
     await storage.deleteAppointment(Number(req.params.id));
     res.status(204).end();
   });
@@ -1422,7 +1422,7 @@ If you have any questions, please contact your administrator.
     res.json(products);
   });
 
-  app.post(api.products.create.path, async (req, res) => {
+  app.post(api.products.create.path, requirePermission(PERMISSIONS.PRODUCTS_MANAGE), async (req, res) => {
     try {
       const input = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(input);
@@ -1432,7 +1432,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.patch(api.products.update.path, async (req, res) => {
+  app.patch(api.products.update.path, requirePermission(PERMISSIONS.PRODUCTS_MANAGE), async (req, res) => {
     try {
       const input = insertProductSchema.partial().parse(req.body);
       const product = await storage.updateProduct(Number(req.params.id), input);
@@ -1443,7 +1443,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.delete(api.products.delete.path, async (req, res) => {
+  app.delete(api.products.delete.path, requirePermission(PERMISSIONS.PRODUCTS_MANAGE), async (req, res) => {
     await storage.deleteProduct(Number(req.params.id));
     res.status(204).end();
   });
@@ -2414,7 +2414,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.put("/api/sms-settings/:storeId", async (req, res) => {
+  app.put("/api/sms-settings/:storeId", requirePermission(PERMISSIONS.STORE_SETTINGS), async (req, res) => {
     if (!(await validateStoreOwnership(req, res))) return;
     try {
       const storeId = Number(req.params.storeId);
@@ -2487,7 +2487,7 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  app.put("/api/mail-settings/:storeId", async (req, res) => {
+  app.put("/api/mail-settings/:storeId", requirePermission(PERMISSIONS.STORE_SETTINGS), async (req, res) => {
     if (!(await validateStoreOwnership(req, res))) return;
     try {
       const storeId = Number(req.params.storeId);
@@ -2533,7 +2533,7 @@ If you have any questions, please contact your administrator.
     res.json(settings ? safeStripeSettings(settings) : null);
   });
 
-  app.put("/api/stripe-settings/:storeId", async (req, res) => {
+  app.put("/api/stripe-settings/:storeId", requirePermission(PERMISSIONS.INTEGRATIONS_MANAGE), async (req, res) => {
     if (!(await validateStoreOwnership(req, res))) return;
     try {
       const storeId = Number(req.params.storeId);
@@ -2884,7 +2884,7 @@ If you have any questions, please contact your administrator.
   /**
    * Connect a specific location to the store.
    */
-  app.post("/api/google-business/connect-location", async (req, res) => {
+  app.post("/api/google-business/connect-location", requirePermission(PERMISSIONS.INTEGRATIONS_MANAGE), async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -2948,7 +2948,7 @@ If you have any questions, please contact your administrator.
    * Required by Google API policies: users must be able to revoke access at any time,
    * and disconnecting must remove all associated data.
    */
-  app.delete("/api/google-business/profile/:storeId", async (req, res) => {
+  app.delete("/api/google-business/profile/:storeId", requirePermission(PERMISSIONS.INTEGRATIONS_MANAGE), async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -4649,6 +4649,114 @@ If you have any questions, please contact your administrator.
         res.status(500).json({ error: err?.message ?? "Failed to delete region" });
       }
     });
+
+  // ── Team / Permissions ────────────────────────────────────────────────────────
+  // List all user accounts owned by the current owner (anyone whose email
+  // matches a staff record under one of the owner's stores, plus the owner).
+  app.get("/api/team", requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+    try {
+      const ownerId = req.auth?.userId;
+      if (!ownerId) return res.status(401).json({ message: "Unauthorized" });
+
+      // Find all stores belonging to this owner, then all staff in those stores,
+      // then all user accounts with matching emails (or staffId).
+      const ownerStores = await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.userId, ownerId));
+      const storeIds = ownerStores.map((s) => s.id);
+
+      const teamStaff = storeIds.length
+        ? await db.select().from(staff).where(sql`${staff.storeId} IN (${sql.join(storeIds, sql`, `)})`)
+        : [];
+
+      const staffEmails = teamStaff.map((s) => s.email).filter((e): e is string => !!e);
+      const staffIds = teamStaff.map((s) => s.id);
+
+      const teamUsers = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          staffId: users.staffId,
+          permissions: users.permissions,
+        })
+        .from(users)
+        .where(
+          staffEmails.length || staffIds.length
+            ? sql`${users.id} = ${ownerId}
+                  OR ${users.email} IN (${staffEmails.length ? sql.join(staffEmails, sql`, `) : sql`NULL`})
+                  OR ${users.staffId} IN (${staffIds.length ? sql.join(staffIds, sql`, `) : sql`NULL`})`
+            : eq(users.id, ownerId),
+        );
+
+      res.json({
+        members: teamUsers.map((u) => ({
+          ...u,
+          isOwner: u.id === ownerId,
+        })),
+        staff: teamStaff.map((s) => ({ id: s.id, name: s.name, email: s.email, storeId: s.storeId })),
+      });
+    } catch (err) {
+      console.error("[team] list failed:", err);
+      res.status(500).json({ message: "Failed to load team" });
+    }
+  });
+
+  app.patch("/api/team/:userId/role", requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+    try {
+      const targetId = req.params.userId;
+      const { role } = req.body as { role?: string };
+      if (!["manager", "staff"].includes(role || "")) {
+        return res.status(400).json({ message: "Role must be 'manager' or 'staff'" });
+      }
+      // Owners can never be demoted via this endpoint.
+      const [target] = await db.select().from(users).where(eq(users.id, targetId));
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (target.id === req.auth?.userId) {
+        return res.status(400).json({ message: "You cannot change your own role" });
+      }
+      if (target.role === "owner" || target.role === "admin") {
+        return res.status(403).json({ message: "Cannot change an owner's role" });
+      }
+      const [updated] = await db.update(users).set({ role }).where(eq(users.id, targetId)).returning();
+      res.json(updated);
+    } catch (err) {
+      console.error("[team] update role failed:", err);
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  });
+
+  app.patch("/api/team/:userId/permissions", requirePermission(PERMISSIONS.STAFF_PERMISSIONS_MANAGE), async (req, res) => {
+    try {
+      const targetId = req.params.userId;
+      const { permissions } = req.body as { permissions?: Record<string, boolean> };
+      if (!permissions || typeof permissions !== "object") {
+        return res.status(400).json({ message: "permissions object required" });
+      }
+      const [target] = await db.select().from(users).where(eq(users.id, targetId));
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (target.role === "owner" || target.role === "admin") {
+        return res.status(403).json({ message: "Cannot edit an owner's permissions" });
+      }
+      // Sparse override map — strip keys whose value matches the role default to keep it clean.
+      const cleaned: Record<string, boolean> = {};
+      for (const [k, v] of Object.entries(permissions)) {
+        if (typeof v === "boolean") cleaned[k] = v;
+      }
+      const [updated] = await db
+        .update(users)
+        .set({ permissions: cleaned })
+        .where(eq(users.id, targetId))
+        .returning();
+      res.json(updated);
+    } catch (err) {
+      console.error("[team] update permissions failed:", err);
+      res.status(500).json({ message: "Failed to update permissions" });
+    }
+  });
 
   // ── Certxa Pro Dashboard API ─────────────────────────────────────────────────
   const { default: proDashboardRouter } = await import("./routes/pro-dashboard.js");

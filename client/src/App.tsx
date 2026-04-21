@@ -100,6 +100,9 @@ import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
 import SeoManager from "@/components/SeoManager";
+import TeamPermissions from "@/pages/TeamPermissions";
+import { RequirePermission } from "@/components/RequirePermission";
+import { PERMISSIONS } from "@shared/permissions";
 
 // List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
@@ -127,6 +130,7 @@ const authenticatedPaths = [
   "/commission-report",
   "/calendar-settings",
   "/business-settings",
+  "/team-permissions",
   "/online-booking",
   "/sms-settings",
   "/mail-settings",
@@ -237,6 +241,14 @@ function AppRoutes() {
       <Route path="/commission-report" element={<CommissionReport />} />
       <Route path="/calendar-settings" element={<CalendarSettingsPage />} />
       <Route path="/business-settings" element={<BusinessSettings />} />
+      <Route
+        path="/team-permissions"
+        element={
+          <RequirePermission permission={PERMISSIONS.STAFF_MANAGE}>
+            <TeamPermissions />
+          </RequirePermission>
+        }
+      />
       <Route path="/online-booking" element={<OnlineBooking />} />
       <Route path="/sms-settings" element={<SmsSettings />} />
       <Route path="/mail-settings" element={<MailSettings />} />
