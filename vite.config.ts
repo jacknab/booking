@@ -31,23 +31,6 @@ export default defineConfig({
     cssCodeSplit: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          if (id.includes('/react-dom/') || id.includes('/scheduler/')) return 'vendor-react-dom';
-          if (id.includes('/react/') || id.includes('/react-router') || id.includes('/react-hook-form/') || id.includes('/@hookform/') || id.includes('/@tanstack/')) return 'vendor-react';
-          if (id.includes('/recharts/') || id.includes('/d3-') || id.includes('/victory-vendor/')) return 'vendor-charts';
-          if (id.includes('/leaflet') || id.includes('/react-leaflet')) return 'vendor-maps';
-          if (id.includes('/framer-motion/')) return 'vendor-motion';
-          if (id.includes('/@radix-ui/')) return 'vendor-radix';
-          if (id.includes('/lucide-react/') || id.includes('/react-icons/')) return 'vendor-icons';
-          if (id.includes('/date-fns')) return 'vendor-date';
-          if (id.includes('/html2canvas') || id.includes('/qrcode.react')) return 'vendor-canvas';
-          if (id.includes('/embla-carousel')) return 'vendor-embla';
-        },
-      },
-    },
   },
   server: {
     host: "0.0.0.0",

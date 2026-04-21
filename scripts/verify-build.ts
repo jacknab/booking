@@ -9,82 +9,92 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const ASSETS_DIR = path.resolve(ROOT, "dist/public/assets");
 const INDEX_HTML = path.resolve(ROOT, "dist/public/index.html");
 
+// Build a deeply-permissive browser-ish sandbox. Any property access on
+// unknown DOM/BOM objects returns a callable Proxy that swallows further
+// access — this lets third-party libraries fully initialize so we can
+// detect *real* bundle-internal errors (TDZ, syntax) rather than bailing
+// on a missing browser API.
+function makePermissiveProxy(): any {
+  const target: any = function () { return makePermissiveProxy(); };
+  return new Proxy(target, {
+    get(_t, prop) {
+      if (prop === Symbol.toPrimitive) return () => "";
+      if (prop === Symbol.iterator) return function* () {}.bind(null);
+      if (prop === "then") return undefined; // not a thenable
+      if (prop === "length") return 0;
+      if (prop === "constructor") return Object;
+      return makePermissiveProxy();
+    },
+    set: () => true,
+    has: () => true,
+    apply: () => makePermissiveProxy(),
+    construct: () => makePermissiveProxy(),
+  });
+}
+
 function makeBrowserSandbox() {
-  const noop = () => {};
-  const fakeEl: any = new Proxy(
-    {},
+  const documentStub: any = makePermissiveProxy();
+  const windowStub: any = makePermissiveProxy();
+  const sandbox: any = new Proxy(
     {
-      get: () => fakeEl,
-      set: () => true,
+      // Real implementations where libraries rely on identity / behavior.
+      console,
+      process: { env: { NODE_ENV: "production" } },
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
+      queueMicrotask,
+      Promise,
+      URL,
+      URLSearchParams,
+      TextEncoder,
+      TextDecoder,
+      Buffer,
+      crypto: (globalThis as any).crypto,
+      window: windowStub,
+      self: windowStub,
+      document: documentStub,
+      navigator: { userAgent: "node-build-verify", language: "en-US", languages: ["en-US"] },
+      location: { href: "http://localhost/", origin: "http://localhost", pathname: "/", search: "", hash: "" },
+      localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {}, key: () => null, length: 0 },
+      sessionStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {}, key: () => null, length: 0 },
+      matchMedia: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {} }),
+      requestAnimationFrame: (cb: any) => setTimeout(cb, 0),
+      cancelAnimationFrame: (id: any) => clearTimeout(id),
+      fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve({}), text: () => Promise.resolve("") }),
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => true,
+      getComputedStyle: () => makePermissiveProxy(),
+      // Constructors libraries probe for
+      HTMLElement: function HTMLElement() {},
+      HTMLCanvasElement: function HTMLCanvasElement() {},
+      Element: function Element() {},
+      Node: function Node() {},
+      Event: function Event() {},
+      CustomEvent: function CustomEvent() {},
+      Image: function Image() {},
+      MutationObserver: function MutationObserver() { return { observe: () => {}, disconnect: () => {}, takeRecords: () => [] }; },
+      ResizeObserver: function ResizeObserver() { return { observe: () => {}, disconnect: () => {} }; },
+      IntersectionObserver: function IntersectionObserver() { return { observe: () => {}, disconnect: () => {} }; },
+    },
+    {
+      get(target: any, prop) {
+        if (prop in target) return target[prop];
+        // Fallback: anything else the bundle reads becomes a permissive proxy.
+        return makePermissiveProxy();
+      },
+      set(target: any, prop, value) {
+        target[prop] = value;
+        return true;
+      },
       has: () => true,
-      apply: () => fakeEl,
     },
   );
-  const storage = {
-    getItem: () => null,
-    setItem: noop,
-    removeItem: noop,
-    clear: noop,
-    key: () => null,
-    length: 0,
-  };
-  const documentStub: any = {
-    createElement: () => fakeEl,
-    createElementNS: () => fakeEl,
-    createTextNode: () => fakeEl,
-    createDocumentFragment: () => fakeEl,
-    getElementById: () => null,
-    getElementsByTagName: () => [],
-    querySelector: () => null,
-    querySelectorAll: () => [],
-    addEventListener: noop,
-    removeEventListener: noop,
-    documentElement: fakeEl,
-    head: fakeEl,
-    body: fakeEl,
-    location: { href: "http://localhost/", origin: "http://localhost", pathname: "/" },
-    cookie: "",
-    readyState: "complete",
-  };
-  const windowStub: any = {
-    addEventListener: noop,
-    removeEventListener: noop,
-    location: documentStub.location,
-    navigator: { userAgent: "node-build-verify", language: "en-US" },
-    document: documentStub,
-    localStorage: storage,
-    sessionStorage: storage,
-    matchMedia: () => ({ matches: false, addEventListener: noop, removeEventListener: noop, addListener: noop, removeListener: noop }),
-    requestAnimationFrame: (cb: any) => setTimeout(cb, 0),
-    cancelAnimationFrame: (id: any) => clearTimeout(id),
-    setTimeout,
-    clearTimeout,
-    setInterval,
-    clearInterval,
-    fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve({}), text: () => Promise.resolve("") }),
-    crypto: (globalThis as any).crypto,
-    HTMLElement: function HTMLElement() {},
-    Element: function Element() {},
-    Node: function Node() {},
-    Image: function Image() {},
-    history: { pushState: noop, replaceState: noop, go: noop, back: noop, forward: noop },
-    scrollTo: noop,
-    getComputedStyle: () => ({ getPropertyValue: () => "" }),
-  };
-  windowStub.self = windowStub;
-  windowStub.window = windowStub;
-  windowStub.globalThis = windowStub;
-  const sandbox: any = {
-    ...windowStub,
-    console,
-    process: { env: { NODE_ENV: "production" } },
-    global: windowStub,
-    URL,
-    URLSearchParams,
-    TextEncoder,
-    TextDecoder,
-    Buffer,
-  };
+  // Make the sandbox self-referential so `window === self === globalThis`.
+  (sandbox as any).globalThis = sandbox;
+  (sandbox as any).global = sandbox;
   return sandbox;
 }
 
