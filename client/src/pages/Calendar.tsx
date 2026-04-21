@@ -550,7 +550,7 @@ export default function Calendar() {
                           </div>
 
                         <div
-                          className="relative bg-slate-50 border-l last:border-r overflow-hidden"
+                          className="relative bg-slate-50 border-l last:border-r"
                           style={{
                             height: `${TOTAL_HOURS * HOUR_HEIGHT}px`,
                             borderLeftColor: CALENDAR_COLUMN_SEPARATOR_COLOR,
