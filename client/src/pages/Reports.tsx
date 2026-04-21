@@ -236,12 +236,29 @@ export default function Reports() {
     services.map((svc: any) => {
       const appts = completedAppts.filter(a => (a as any).serviceId === svc.id);
       const revenue = appts.reduce((sum, a) => sum + parseFloat(a.totalPaid || "0"), 0);
+
+      const timed = appts.filter((a: any) => a.startedAt && a.completedAt);
+      const totalActualMin = timed.reduce((sum: number, a: any) => {
+        const start = new Date(a.startedAt).getTime();
+        const end = new Date(a.completedAt).getTime();
+        return sum + Math.max(0, (end - start) / 60000);
+      }, 0);
+      const bookedDur = svc.duration || 0;
+      const avgActualMin = timed.length ? totalActualMin / timed.length : 0;
+      const efficiency = avgActualMin > 0 ? bookedDur / avgActualMin : 0;
+      const avgOverMin = avgActualMin - bookedDur;
+
       return {
         id: svc.id,
         name: svc.name,
         bookings: appts.length,
         revenue,
         avgTicket: appts.length ? revenue / appts.length : 0,
+        bookedDur,
+        timedCount: timed.length,
+        avgActualMin,
+        avgOverMin,
+        efficiency,
       };
     }).sort((a, b) => b.bookings - a.bookings).slice(0, 10),
   [services, completedAppts]);
@@ -564,7 +581,7 @@ export default function Reports() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Service Revenue Table</CardTitle>
+                <CardTitle className="text-base">Service Revenue & Timing</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -574,24 +591,58 @@ export default function Reports() {
                         <th className="text-left py-2 pr-4 font-medium">Service</th>
                         <th className="text-right py-2 px-4 font-medium">Bookings</th>
                         <th className="text-right py-2 px-4 font-medium">Revenue</th>
-                        <th className="text-right py-2 pl-4 font-medium">Avg Ticket</th>
+                        <th className="text-right py-2 px-4 font-medium">Avg Ticket</th>
+                        <th className="text-right py-2 px-4 font-medium">Booked</th>
+                        <th className="text-right py-2 px-4 font-medium">Avg Actual</th>
+                        <th className="text-right py-2 pl-4 font-medium">+/− vs Booked</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {serviceStats.map(s => (
-                        <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
-                          <td className="py-2.5 pr-4 font-medium">{s.name}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums">{s.bookings}</td>
-                          <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.revenue)}</td>
-                          <td className="py-2.5 pl-4 text-right tabular-nums">{fmt(s.avgTicket)}</td>
-                        </tr>
-                      ))}
+                      {serviceStats.map(s => {
+                        const fmtMin = (m: number) => m >= 60
+                          ? `${Math.floor(m / 60)}h ${Math.round(m % 60)}m`
+                          : `${Math.round(m)}m`;
+                        const hasTiming = s.timedCount > 0;
+                        const overMin = Math.round(s.avgOverMin);
+                        const overLabel = !hasTiming
+                          ? "—"
+                          : overMin === 0
+                            ? "On time"
+                            : overMin > 0
+                              ? `+${overMin}m over`
+                              : `${overMin}m under`;
+                        const overClass = !hasTiming
+                          ? "text-muted-foreground"
+                          : overMin <= 0
+                            ? "text-emerald-600 font-semibold"
+                            : overMin <= Math.max(5, s.bookedDur * 0.15)
+                              ? "text-amber-600 font-semibold"
+                              : "text-red-600 font-semibold";
+                        return (
+                          <tr key={s.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                            <td className="py-2.5 pr-4 font-medium">{s.name}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{s.bookings}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.revenue)}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">{fmt(s.avgTicket)}</td>
+                            <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
+                              {s.bookedDur ? fmtMin(s.bookedDur) : "—"}
+                            </td>
+                            <td className="py-2.5 px-4 text-right tabular-nums">
+                              {hasTiming ? fmtMin(s.avgActualMin) : "—"}
+                            </td>
+                            <td className={cn("py-2.5 pl-4 text-right tabular-nums", overClass)}>{overLabel}</td>
+                          </tr>
+                        );
+                      })}
                       {serviceStats.length === 0 && (
-                        <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
+                        <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No data available.</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Avg Actual is measured from when staff tap Start to Checkout. If a service consistently shows "+ over", consider increasing its booked duration to reduce schedule overruns.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
