@@ -1154,6 +1154,10 @@ export default function Calendar() {
               setCurrentDate(date);
               setShowDatePicker(false);
             }}
+            onSelectAppointment={(apt) => {
+              setSelectedAppointment(apt);
+              setShowDatePicker(false);
+            }}
             onClose={() => setShowDatePicker(false)}
           />
         )}
@@ -2783,18 +2787,21 @@ function MonthCalendarOverlay({
   timezone,
   appointments,
   onSelectDate,
+  onSelectAppointment,
   onClose,
 }: {
   selectedDate: Date;
   timezone: string;
   appointments: any[];
   onSelectDate: (date: Date) => void;
+  onSelectAppointment: (apt: any) => void;
   onClose: () => void;
 }) {
   const storeNow = getNowInTimezone(timezone);
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
   const [previewDay, setPreviewDay] = useState<Date>(selectedDate);
+  const [view, setView] = useState<"calendar" | "list">("calendar");
 
   const nowMonth = storeNow.getMonth();
   const nowYear = storeNow.getFullYear();
@@ -2837,6 +2844,19 @@ function MonthCalendarOverlay({
     return map;
   }, [appointments, timezone]);
 
+  const listAppts = useMemo(() => {
+    return appointments
+      .filter((apt: any) => {
+        const localDate = toStoreLocal(apt.date, timezone);
+        return (
+          localDate >= today0 &&
+          localDate.getMonth() === viewMonth &&
+          localDate.getFullYear() === viewYear
+        );
+      })
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [appointments, timezone, viewMonth, viewYear, today0]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" data-testid="month-calendar-overlay">
       <button
@@ -2849,15 +2869,50 @@ function MonthCalendarOverlay({
         className="relative z-10 bg-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-border"
         style={{ width: "min(1020px, 96vw)", height: "min(94vh, 94dvh)" }}
       >
-        {/* Top header: month/year + close */}
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
-          <span className="text-xl font-bold tracking-tight">
+        {/* Header: toggle left | month center | close right */}
+        <div className="flex items-center px-4 py-3 border-b flex-shrink-0 gap-3">
+          {/* View toggle */}
+          <div className="flex rounded-xl overflow-hidden border border-border flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setView("calendar")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors",
+                view === "calendar"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              )}
+              data-testid="view-toggle-calendar"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              Cal
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors border-l border-border",
+                view === "list"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              )}
+              data-testid="view-toggle-list"
+            >
+              <ListOrdered className="w-3.5 h-3.5" />
+              List
+            </button>
+          </div>
+
+          {/* Month/year label — centered */}
+          <span className="flex-1 text-center text-lg font-bold tracking-tight">
             {MONTH_NAMES[viewMonth]} {viewYear}
           </span>
+
+          {/* Close */}
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-muted-foreground"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-muted-foreground flex-shrink-0"
             data-testid="datepicker-close"
           >
             <X className="w-4 h-4" />
@@ -2887,109 +2942,168 @@ function MonthCalendarOverlay({
           })}
         </div>
 
-        {/* Two-column body */}
-        <div className="flex flex-1 overflow-hidden">
+        {/* ── CALENDAR VIEW ── */}
+        {view === "calendar" && (
+          <div className="flex flex-1 overflow-hidden">
 
-          {/* LEFT: Calendar */}
-          <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Day-of-week labels */}
-            <div className="grid grid-cols-7 px-4 pt-3 pb-1 flex-shrink-0">
-              {DOW_LABELS.map((d) => (
-                <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
-                  {d}
-                </div>
-              ))}
+            {/* LEFT: Calendar grid */}
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="grid grid-cols-7 px-4 pt-3 pb-1 flex-shrink-0">
+                {DOW_LABELS.map((d) => (
+                  <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div
+                className="flex-1 px-4 pb-4 grid"
+                style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
+              >
+                {weeks.map((week, wi) => (
+                  <div key={wi} className="grid grid-cols-7">
+                    {week.map((day, di) => {
+                      if (!day) return <div key={di} />;
+                      const isToday = isSameDay(day, storeNow);
+                      const isPreviewing = isSameDay(day, previewDay);
+                      const isOtherMonth = day.getMonth() !== viewMonth;
+                      const isPast = day < today0 && !isToday;
+                      const dayKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+                      const hasBookings = !isPast && !isOtherMonth && (apptMap.get(dayKey)?.length ?? 0) > 0;
+                      const showDot = hasBookings && !isPreviewing;
+                      return (
+                        <button
+                          key={di}
+                          type="button"
+                          onClick={() => setPreviewDay(day)}
+                          className={cn(
+                            "flex items-center justify-center rounded-xl m-[3px] transition-colors select-none min-h-[48px]",
+                            isPreviewing
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : isToday
+                                ? "border-2 border-primary"
+                                : isOtherMonth || isPast
+                                  ? "text-muted-foreground/30"
+                                  : "hover:bg-muted/60"
+                          )}
+                          data-testid={`day-${day.getDate()}`}
+                        >
+                          {showDot ? (
+                            <span className={cn(
+                              "w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-base font-bold text-amber-950",
+                              isToday && "ring-2 ring-primary ring-offset-1"
+                            )}>
+                              {day.getDate()}
+                            </span>
+                          ) : (
+                            <span className={cn(
+                              "text-base font-medium",
+                              isPreviewing
+                                ? "text-primary-foreground font-bold"
+                                : isToday
+                                  ? "text-primary font-bold"
+                                  : isOtherMonth || isPast
+                                    ? "text-muted-foreground/30"
+                                    : "text-foreground"
+                            )}>
+                              {day.getDate()}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Calendar grid — fills remaining height */}
-            <div
-              className="flex-1 px-4 pb-4 grid"
-              style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
-            >
-              {weeks.map((week, wi) => (
-                <div key={wi} className="grid grid-cols-7">
-                  {week.map((day, di) => {
-                    if (!day) return <div key={di} />;
-                    const isToday = isSameDay(day, storeNow);
-                    const isPreviewing = isSameDay(day, previewDay);
-                    const isOtherMonth = day.getMonth() !== viewMonth;
+            {/* RIGHT: Day appointments panel */}
+            <div className="w-[300px] flex-shrink-0 border-l flex flex-col bg-muted/20">
+              <div className="px-4 py-3 border-b flex-shrink-0 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-sm">{previewDayLabel}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {dayAppts.length === 0 ? "No appointments" : `${dayAppts.length} appointment${dayAppts.length !== 1 ? "s" : ""}`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectDate(previewDay)}
+                  className="text-xs font-semibold text-primary hover:underline"
+                  data-testid="datepicker-goto"
+                >
+                  Go to day →
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+                {dayAppts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                    <p className="text-sm text-muted-foreground">No bookings on this day</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Tap a different date</p>
+                  </div>
+                ) : (
+                  dayAppts.map((apt: any) => {
+                    const firstName = apt.customer?.name?.split(" ")[0] || "Walk-In";
+                    const phone = apt.customer?.phone || "—";
+                    const service = apt.service?.name || "—";
+                    const timeStr = formatInTz(apt.date, timezone, "h:mm a");
                     return (
                       <button
-                        key={di}
+                        key={apt.id}
                         type="button"
-                        onClick={() => setPreviewDay(day)}
-                        className={cn(
-                          "flex items-center justify-center rounded-xl m-[3px] text-base font-medium transition-colors select-none min-h-[48px]",
-                          isPreviewing
-                            ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                            : isToday
-                              ? "border-2 border-primary text-primary font-bold"
-                              : isOtherMonth
-                                ? "text-muted-foreground/40"
-                                : "hover:bg-muted text-foreground"
-                        )}
-                        data-testid={`day-${day.getDate()}`}
+                        onClick={() => onSelectAppointment(apt)}
+                        className="w-full text-left rounded-xl border bg-card px-3 py-2.5 shadow-sm hover:bg-muted/40 transition-colors"
+                        data-testid={`appt-card-${apt.id}`}
                       >
-                        {day.getDate()}
+                        <p className="font-bold text-sm text-foreground leading-tight">{firstName}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{phone}</p>
+                        <p className="text-xs text-foreground mt-1 font-medium">{service}</p>
+                        <p className="text-xs text-muted-foreground/70 mt-0.5">{timeStr}</p>
                       </button>
                     );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* RIGHT: Appointments panel */}
-          <div className="w-[300px] flex-shrink-0 border-l flex flex-col bg-muted/20">
-            {/* Panel header */}
-            <div className="px-4 py-3 border-b flex-shrink-0 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-sm">{previewDayLabel}</p>
-                <p className="text-xs text-muted-foreground">
-                  {dayAppts.length === 0 ? "No appointments" : `${dayAppts.length} appointment${dayAppts.length !== 1 ? "s" : ""}`}
-                </p>
+                  })
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => onSelectDate(previewDay)}
-                className="text-xs font-semibold text-primary hover:underline"
-                data-testid="datepicker-goto"
-              >
-                Go to day →
-              </button>
             </div>
 
-            {/* Appointment cards */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-              {dayAppts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-10">
-                  <p className="text-sm text-muted-foreground">No bookings on this day</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Tap a different date</p>
-                </div>
-              ) : (
-                dayAppts.map((apt: any) => {
-                  const firstName = apt.customer?.name?.split(" ")[0] || "Walk-In";
-                  const phone = apt.customer?.phone || "—";
-                  const service = apt.service?.name || "—";
-                  const timeStr = formatInTz(apt.date, timezone, "h:mm a");
-                  return (
-                    <div
-                      key={apt.id}
-                      className="rounded-xl border bg-card px-3 py-2.5 shadow-sm"
-                      data-testid={`appt-card-${apt.id}`}
-                    >
-                      <p className="font-bold text-sm text-foreground leading-tight">{firstName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{phone}</p>
-                      <p className="text-xs text-foreground mt-1 font-medium">{service}</p>
-                      <p className="text-xs text-muted-foreground/70 mt-0.5">{timeStr}</p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
           </div>
+        )}
 
-        </div>
+        {/* ── LIST VIEW ── */}
+        {view === "list" && (
+          <div className="flex-1 overflow-y-auto p-4">
+            {listAppts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-16">
+                <p className="text-base font-semibold text-muted-foreground">No upcoming bookings this month</p>
+                <p className="text-sm text-muted-foreground/60 mt-1">Switch months using the tabs above</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {listAppts.map((apt: any) => {
+                  const localDate = toStoreLocal(apt.date, timezone);
+                  const dateLabel = format(localDate, "M/d");
+                  const firstName = (apt.customer?.name?.split(" ")[0] || "Walk-In").toUpperCase();
+                  const service = (apt.service?.name || "—").toUpperCase();
+                  return (
+                    <button
+                      key={apt.id}
+                      type="button"
+                      onClick={() => onSelectAppointment(apt)}
+                      className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-sm hover:bg-muted/40 active:scale-[0.98] transition-all text-left"
+                      data-testid={`list-appt-${apt.id}`}
+                    >
+                      <span className="text-sm font-bold text-muted-foreground w-8 flex-shrink-0">{dateLabel}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate">{firstName}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{service}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );
