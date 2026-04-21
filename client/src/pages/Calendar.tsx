@@ -546,7 +546,7 @@ export default function Calendar() {
                     className="w-full min-h-[56px] px-3 py-3 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                     onClick={() => {
                       setShowNewApptMenu(false);
-                      setLookupMode(true);
+                      setLookupMode(false);
                       setSelectedAppointment(null);
                       setShowCancelFlow(false);
                       setShowCheckout(false);
