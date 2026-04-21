@@ -104,6 +104,7 @@ export default function Calendar() {
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showClientLookup, setShowClientLookup] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNewApptMenu, setShowNewApptMenu] = useState(false);
   const [lookupMode, setLookupMode] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
@@ -477,9 +478,13 @@ export default function Calendar() {
           <Button variant="ghost" size="icon" onClick={goPrev} data-testid="button-prev-day">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-base font-semibold whitespace-nowrap px-2" data-testid="text-current-date">
+          <button
+            className="text-base font-semibold whitespace-nowrap px-2 rounded-md hover:bg-muted transition-colors"
+            onClick={() => setShowDatePicker(true)}
+            data-testid="button-current-date"
+          >
             {formatInTz(currentDate, timezone, "EEE d MMM, yyyy")}
-          </span>
+          </button>
           <div className="hidden lg:flex items-center gap-0.5 ml-1">
             {weekDayLabels.map((wd) => {
               const wdIsToday = isSameDay(wd.date, storeNow);
@@ -1137,6 +1142,18 @@ export default function Calendar() {
             onClose={() => { setShowCheckout(false); }}
             onFinalize={(paymentData) => handleFinalizePayment(selectedAppointment, paymentData)}
             isUpdating={updateAppointment.isPending}
+          />
+        )}
+
+        {showDatePicker && (
+          <MonthCalendarOverlay
+            selectedDate={currentDate}
+            timezone={timezone}
+            onSelectDate={(date) => {
+              setCurrentDate(date);
+              setShowDatePicker(false);
+            }}
+            onClose={() => setShowDatePicker(false)}
           />
         )}
 
@@ -2748,6 +2765,149 @@ function ChooseClientPanel({
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
+const DOW_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function MonthCalendarOverlay({
+  selectedDate,
+  timezone,
+  onSelectDate,
+  onClose,
+}: {
+  selectedDate: Date;
+  timezone: string;
+  onSelectDate: (date: Date) => void;
+  onClose: () => void;
+}) {
+  const storeNow = getNowInTimezone(timezone);
+  const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
+  const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
+
+  const nowMonth = storeNow.getMonth();
+  const nowYear = storeNow.getFullYear();
+  const monthTabs = [0, 1, 2].map((i) => {
+    const totalMonth = nowMonth + i;
+    return {
+      month: totalMonth % 12,
+      year: nowYear + Math.floor(totalMonth / 12),
+    };
+  });
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay = new Date(viewYear, viewMonth + 1, 0);
+  const startDow = firstDay.getDay();
+
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) cells.push(new Date(viewYear, viewMonth, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const weeks: (Date | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3" data-testid="month-calendar-overlay">
+      <button
+        type="button"
+        aria-label="Close date picker"
+        className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        className="relative z-10 bg-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-border"
+        style={{ width: "min(660px, 96vw)", height: "min(94vh, 94dvh)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+          <span className="text-xl font-bold tracking-tight">
+            {MONTH_NAMES[viewMonth]} {viewYear}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-muted-foreground"
+            data-testid="datepicker-close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Month tab buttons */}
+        <div className="flex gap-3 px-6 py-4 border-b flex-shrink-0">
+          {monthTabs.map((tab) => {
+            const isActive = tab.month === viewMonth && tab.year === viewYear;
+            return (
+              <button
+                key={`${tab.year}-${tab.month}`}
+                type="button"
+                onClick={() => { setViewMonth(tab.month); setViewYear(tab.year); }}
+                className={cn(
+                  "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-foreground hover:bg-muted/70"
+                )}
+                data-testid={`monthtab-${MONTH_NAMES[tab.month].toLowerCase()}`}
+              >
+                {MONTH_NAMES[tab.month]}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Day-of-week labels */}
+        <div className="grid grid-cols-7 px-4 pt-3 pb-1 flex-shrink-0">
+          {DOW_LABELS.map((d) => (
+            <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid — fills remaining height */}
+        <div
+          className="flex-1 px-4 pb-4 grid gap-0"
+          style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}
+        >
+          {weeks.map((week, wi) => (
+            <div key={wi} className="grid grid-cols-7">
+              {week.map((day, di) => {
+                if (!day) return <div key={di} />;
+                const isToday = isSameDay(day, storeNow);
+                const isSelected = isSameDay(day, selectedDate);
+                const isOtherMonth = day.getMonth() !== viewMonth;
+                return (
+                  <button
+                    key={di}
+                    type="button"
+                    onClick={() => onSelectDate(day)}
+                    className={cn(
+                      "flex items-center justify-center rounded-xl m-[3px] text-base font-medium transition-colors select-none min-h-[48px]",
+                      isSelected
+                        ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                        : isToday
+                          ? "border-2 border-primary text-primary font-bold"
+                          : isOtherMonth
+                            ? "text-muted-foreground/40"
+                            : "hover:bg-muted text-foreground"
+                    )}
+                    data-testid={`day-${day.getDate()}`}
+                  >
+                    {day.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     </div>
