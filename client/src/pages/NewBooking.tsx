@@ -12,6 +12,7 @@ import { useServices } from "@/hooks/use-services";
 import { useStaffList } from "@/hooks/use-staff";
 import { useCustomers } from "@/hooks/use-customers";
 import { useCreateAppointment } from "@/hooks/use-appointments";
+import { useQuery } from "@tanstack/react-query";
 import { useAddonsForService, useSetAppointmentAddons, useServiceCategories } from "@/hooks/use-addons";
 import { useAvailableTime } from "@/hooks/use-available-time";
 import { AvailableTimeBanner } from "@/components/AvailableTimeBanner";
@@ -1041,6 +1042,24 @@ function BookingSummaryPanel({
   const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   const [highlightedServiceId, setHighlightedServiceId] = useState<number | null>(null);
+  const { selectedStore: panelStore } = useSelectedStore();
+  const { data: allAppts = [] } = useQuery<any[]>({
+    queryKey: ["/api/appointments", panelStore?.id],
+    queryFn: () =>
+      fetch(`/api/appointments?storeId=${panelStore?.id}`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!panelStore?.id && !!selectedCustomer,
+    staleTime: 60_000,
+  });
+  const noShowInfo = useMemo(() => {
+    if (!selectedCustomer) return null;
+    const mine = (allAppts as any[]).filter(a => a.customerId === selectedCustomer.id);
+    const total = mine.length;
+    const noShows = mine.filter(a => a.status === "no_show").length;
+    if (total < 3 || noShows === 0) return null;
+    const rate = noShows / total;
+    if (rate < 0.25) return null;
+    return { rate, noShows, total };
+  }, [allAppts, selectedCustomer]);
   return (
     <div className="w-[460px] flex-shrink-0 border-l bg-card flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.1)] z-10" data-testid="booking-summary-panel">
       <div className="p-4 border-b flex items-center gap-3">
@@ -1066,6 +1085,21 @@ function BookingSummaryPanel({
               </div>
               {selectedCustomer.phone && (
                 <p className="text-xs text-muted-foreground mt-0.5">{selectedCustomer.phone}</p>
+              )}
+              {noShowInfo && (
+                <div
+                  className={cn(
+                    "mt-1.5 inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                    noShowInfo.rate >= 0.5
+                      ? "bg-red-50 border-red-300 text-red-700"
+                      : "bg-amber-50 border-amber-300 text-amber-700",
+                  )}
+                  data-testid="badge-no-show-risk"
+                  title={`${noShowInfo.noShows} no-shows out of ${noShowInfo.total} bookings`}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  No-show risk · {Math.round(noShowInfo.rate * 100)}% ({noShowInfo.noShows}/{noShowInfo.total})
+                </div>
               )}
             </>
           ) : (

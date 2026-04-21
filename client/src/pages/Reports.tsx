@@ -272,6 +272,37 @@ export default function Reports() {
     }).sort((a, b) => b.totalSpend - a.totalSpend).slice(0, 10);
   }, [customers, completedAppts]);
 
+  // ── No-Show Risk (lifetime, not period-bound) ─────────────────────────────
+  const noShowRisks = useMemo(() => {
+    const byCustomer = new Map<number, { total: number; noShows: number; cancels: number }>();
+    (appointments as any[]).forEach(a => {
+      const cid = a.customerId;
+      if (!cid) return;
+      const entry = byCustomer.get(cid) || { total: 0, noShows: 0, cancels: 0 };
+      entry.total += 1;
+      if (a.status === "no_show") entry.noShows += 1;
+      if (a.status === "cancelled") entry.cancels += 1;
+      byCustomer.set(cid, entry);
+    });
+    return (customers as any[])
+      .map(c => {
+        const stats = byCustomer.get(c.id) || { total: 0, noShows: 0, cancels: 0 };
+        const rate = stats.total > 0 ? stats.noShows / stats.total : 0;
+        return {
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          total: stats.total,
+          noShows: stats.noShows,
+          cancels: stats.cancels,
+          rate,
+        };
+      })
+      .filter(r => r.total >= 3 && r.noShows > 0)
+      .sort((a, b) => b.rate - a.rate || b.noShows - a.noShows)
+      .slice(0, 10);
+  }, [customers, appointments]);
+
   const newCustomers = useMemo(() =>
     (customers as any[]).filter(c => {
       const d = new Date(c.createdAt || c.created_at || 0);
@@ -658,6 +689,61 @@ export default function Reports() {
               <StatCard title="Avg Spend / Client" value={fmt(returningCount ? totalRevenue / returningCount : 0)}
                 icon={DollarSign} sub="completed appointments" />
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  No-Show Risks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {noShowRisks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    No clients with a meaningful no-show history. Great news.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-muted-foreground">
+                          <th className="text-left py-2 pr-4 font-medium">Customer</th>
+                          <th className="text-right py-2 px-4 font-medium">Total Bookings</th>
+                          <th className="text-right py-2 px-4 font-medium">No-Shows</th>
+                          <th className="text-right py-2 px-4 font-medium">Cancels</th>
+                          <th className="text-right py-2 pl-4 font-medium">No-Show Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {noShowRisks.map(r => {
+                          const pctVal = Math.round(r.rate * 100);
+                          const cls = r.rate >= 0.5
+                            ? "text-red-600 font-bold"
+                            : r.rate >= 0.25
+                              ? "text-amber-600 font-semibold"
+                              : "text-muted-foreground";
+                          return (
+                            <tr key={r.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                              <td className="py-2.5 pr-4">
+                                <div className="font-medium">{r.name}</div>
+                                {r.phone && <div className="text-xs text-muted-foreground">{r.phone}</div>}
+                              </td>
+                              <td className="py-2.5 px-4 text-right tabular-nums">{r.total}</td>
+                              <td className="py-2.5 px-4 text-right tabular-nums">{r.noShows}</td>
+                              <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">{r.cancels}</td>
+                              <td className={cn("py-2.5 pl-4 text-right tabular-nums", cls)}>{pctVal}%</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Lifetime no-show rate (not limited to the selected period). Only clients with 3+ total bookings and at least one no-show appear here.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
