@@ -23,6 +23,7 @@ type CalendarSettingsForm = {
   allowBookingOutsideHours: boolean;
   autoCompleteAppointments: boolean;
   showPrices: boolean;
+  walkInsEnabled: boolean;
 };
 
 function InfoTooltip({ text }: { text: string }) {
@@ -169,6 +170,7 @@ export default function CalendarSettings() {
         allowBookingOutsideHours: settings.allowBookingOutsideHours,
         autoCompleteAppointments: settings.autoCompleteAppointments,
         showPrices: settings.showPrices ?? true,
+        walkInsEnabled: (settings as any).walkInsEnabled ?? true,
       });
     }
   }, [settings, reset]);
@@ -335,6 +337,26 @@ export default function CalendarSettings() {
                     checked={field.value}
                     onCheckedChange={field.onChange}
                     data-testid="switch-show-prices"
+                  />
+                )}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 py-2 border-t pt-6">
+              <div>
+                <Label className="text-base font-medium">Allow walk-ins</Label>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  When off, the walk-in button is hidden and staff must always look up or create a client. Useful if you want to capture customer contact info for SMS or marketing on every booking.
+                </p>
+              </div>
+              <Controller
+                name="walkInsEnabled"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    data-testid="switch-walk-ins-enabled"
                   />
                 )}
               />

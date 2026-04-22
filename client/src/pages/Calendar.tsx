@@ -1191,6 +1191,7 @@ export default function Calendar() {
 
         {showClientLookup && (
           <ChooseClientPanel
+            walkInsEnabled={(calSettings as any)?.walkInsEnabled ?? true}
             onClose={() => setShowClientLookup(false)}
             onSelectClient={(clientId) => {
               setShowClientLookup(false);
@@ -2475,10 +2476,12 @@ function ChooseClientPanel({
   onClose,
   onSelectClient,
   onWalkIn,
+  walkInsEnabled = true,
 }: {
   onClose: () => void;
   onSelectClient: (clientId: number) => void;
   onWalkIn: () => void;
+  walkInsEnabled?: boolean;
 }) {
   const [phoneDigits, setPhoneDigits] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -2581,7 +2584,7 @@ function ChooseClientPanel({
     ["1", "2", "3"],
     ["4", "5", "6"],
     ["7", "8", "9"],
-    ["walk-in", "0", "backspace"],
+    [walkInsEnabled ? "walk-in" : "blank", "0", "backspace"],
   ];
 
   const kbRow1 = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"];
@@ -2791,6 +2794,9 @@ function ChooseClientPanel({
                         <PersonStanding className="w-5 h-5" />
                       </button>
                     );
+                  }
+                  if (key === "blank") {
+                    return <div key={key} className="w-[80px] h-[56px]" aria-hidden="true" />;
                   }
                   if (key === "backspace") {
                     return (

@@ -35,4 +35,5 @@ export const DEFAULT_CALENDAR_SETTINGS = {
   autoCompleteAppointments: true,
   autoMarkNoShows: false,
   showPrices: true,
+  walkInsEnabled: true,
 };

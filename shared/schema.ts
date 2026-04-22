@@ -189,6 +189,7 @@ export const calendarSettings = pgTable("calendar_settings", {
   autoCompleteAppointments: boolean("auto_complete_appointments").notNull().default(true),
   autoMarkNoShows: boolean("auto_mark_no_shows").notNull().default(false),
   showPrices: boolean("show_prices").notNull().default(true),
+  walkInsEnabled: boolean("walk_ins_enabled").notNull().default(true),
 });
 
 export const drawerActions = pgTable("drawer_actions", {
