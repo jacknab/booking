@@ -10,7 +10,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, ThumbsUp, ListOrdered, Search, AlertCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
