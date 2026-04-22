@@ -1225,7 +1225,7 @@ export default function Calendar() {
                 setLookupMode(false);
                 return;
               }
-              navigate("/booking/new");
+              navigate("/booking/new?walkIn=1");
             }}
           />
         )}

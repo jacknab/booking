@@ -43,6 +43,7 @@ export default function NewBooking() {
   const editAppointmentId = params.get("editId") ? Number(params.get("editId")) : null;
   const isReschedule = params.get("reschedule") === "1";
   const isCalendarBooking = !!(calStaffId && calDate && calTime);
+  const isWalkIn = params.get("walkIn") === "1";
 
   const { data: services, isLoading: servicesLoading } = useServices();
   const { data: categories } = useServiceCategories();
@@ -79,6 +80,7 @@ export default function NewBooking() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [calendarSlotInitialized, setCalendarSlotInitialized] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [walkInBookingPending, setWalkInBookingPending] = useState(false);
 
   const handleCancel = () => {
     if (!selectedService) {
@@ -107,6 +109,38 @@ export default function NewBooking() {
       }
     }
   }, [isCalendarBooking, staffList, calStaffId, calTime, calDate, timezone, calendarSlotInitialized, navigate]);
+
+  // Walk-in: auto-pick the soonest available slot once slots arrive.
+  useEffect(() => {
+    if (!isWalkIn) return;
+    if (selectedSlot) return;
+    if (slotsLoading) return;
+    if (!slots || slots.length === 0) return;
+    const next = slots.find((s) => new Date(s.time).getTime() > Date.now());
+    if (!next) return;
+    setSelectedSlot(next);
+    setSelectedStaff(staffList?.find((s: Staff) => s.id === next.staffId) || null);
+  }, [isWalkIn, selectedSlot, slots, slotsLoading, staffList]);
+
+  // Walk-in: if user requested booking before the slot was ready, fire it once it is.
+  useEffect(() => {
+    if (!walkInBookingPending) return;
+    if (!selectedSlot) return;
+    setWalkInBookingPending(false);
+    handleRequestBooking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walkInBookingPending, selectedSlot]);
+
+  // Walk-in: surface a clear failure if we can't find any slot today.
+  useEffect(() => {
+    if (!walkInBookingPending) return;
+    if (slotsLoading) return;
+    if (selectedSlot) return;
+    if (slots && slots.length > 0) return;
+    setWalkInBookingPending(false);
+    window.alert("No staff are available for a walk-in right now. Please pick a future time slot manually.");
+    navigate("/calendar");
+  }, [walkInBookingPending, slotsLoading, selectedSlot, slots, navigate]);
 
   useEffect(() => {
     if (paramClientId && customers && !clientInitialized) {
@@ -313,11 +347,21 @@ export default function NewBooking() {
     setSelectedAddons(prev => prev.filter(a => a.id !== addonId));
   };
 
+  const triggerWalkInBooking = () => {
+    if (selectedSlot) {
+      handleRequestBooking();
+    } else {
+      setWalkInBookingPending(true);
+    }
+  };
+
   const handleContinueToAddons = () => {
     if (availableAddons && availableAddons.length > 0) {
       setStep("addons");
     } else if (isCalendarBooking) {
       handleRequestBooking();
+    } else if (isWalkIn) {
+      triggerWalkInBooking();
     } else {
       setStep("details");
     }
@@ -326,6 +370,8 @@ export default function NewBooking() {
   const handleContinueToDetails = () => {
     if (isCalendarBooking) {
       handleRequestBooking();
+    } else if (isWalkIn) {
+      triggerWalkInBooking();
     } else {
       setStep("details");
     }
