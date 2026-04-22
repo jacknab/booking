@@ -353,6 +353,16 @@ export default function Calendar() {
   }, [appointments, timezone, currentDate, END_HOUR]);
 
   const handleSlotClick = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
+    const slotStart = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      slotHour,
+      slotMinute,
+      0,
+      0,
+    );
+    if (slotStart.getTime() <= storeNow.getTime()) return;
     const availMins = getAvailableMinutesForSlot(staffId, slotHour, slotMinute);
     if (availMins <= 0) return;
     setSelectedSlot(prev =>
@@ -360,7 +370,7 @@ export default function Calendar() {
         ? null
         : { staffId, hour: slotHour, minute: slotMinute }
     );
-  }, [getAvailableMinutesForSlot]);
+  }, [currentDate, storeNow, getAvailableMinutesForSlot]);
 
   const handleBookSlot = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
     const availMins = getAvailableMinutesForSlot(staffId, slotHour, slotMinute);
