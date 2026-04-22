@@ -1359,6 +1359,10 @@ If you have any questions, please contact your administrator.
         date: new Date(req.body.date),
       });
 
+      if (input.date.getTime() <= Date.now()) {
+        return res.status(400).json({ message: "Cannot create an appointment in the past" });
+      }
+
       if (input.storeId) {
         const calSettings = await storage.getCalendarSettings(input.storeId);
         if (calSettings && !calSettings.allowBookingOutsideHours) {

@@ -92,11 +92,12 @@ export default function NewBooking() {
     if (isCalendarBooking && staffList && !calendarSlotInitialized) {
       const staffMember = staffList.find((s: Staff) => s.id === calStaffId);
       if (staffMember) {
-        setSelectedStaff(staffMember);
-        const [hours, mins] = calTime!.split(":").map(Number);
-        const localDate = new Date(selectedDate!);
-        localDate.setHours(hours, mins, 0, 0);
         const utcTime = storeLocalToUtc(`${calDate}T${calTime}:00`, timezone);
+        if (utcTime.getTime() <= Date.now()) {
+          navigate("/calendar");
+          return;
+        }
+        setSelectedStaff(staffMember);
         setSelectedSlot({
           time: utcTime.toISOString(),
           staffId: calStaffId!,
@@ -105,7 +106,7 @@ export default function NewBooking() {
         setCalendarSlotInitialized(true);
       }
     }
-  }, [isCalendarBooking, staffList, calStaffId, calTime, timezone, selectedDate, calendarSlotInitialized]);
+  }, [isCalendarBooking, staffList, calStaffId, calTime, calDate, timezone, calendarSlotInitialized, navigate]);
 
   useEffect(() => {
     if (paramClientId && customers && !clientInitialized) {
