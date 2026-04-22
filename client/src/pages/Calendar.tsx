@@ -876,6 +876,13 @@ export default function Calendar() {
                             const addonTotal = aptAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
                             const serviceTotal = Number(apt.service?.price || 0) + addonTotal;
 
+                            const aptMinutesPastStart = Math.floor(
+                              (Date.now() - new Date(apt.date).getTime()) / 60000,
+                            );
+                            const isAptOverdue =
+                              aptMinutesPastStart >= lateGracePeriodMinutes &&
+                              (apt.status === "pending" || apt.status === "confirmed");
+
                             return (
                               <div
                                 key={apt.id}
@@ -885,9 +892,9 @@ export default function Calendar() {
                                 )}
                                 style={{
                                   ...style,
-                                  backgroundColor: bgColor,
-                                  border: `1px solid ${bandColor}40`,
-                                  ...(isSelected ? { boxShadow: `0 0 0 2px ${bandColor}` } : {}),
+                                  backgroundColor: isAptOverdue ? "#fef2f2" : bgColor,
+                                  border: isAptOverdue ? "1.5px solid #dc2626" : `1px solid ${bandColor}40`,
+                                  ...(isSelected ? { boxShadow: `0 0 0 2px ${isAptOverdue ? "#dc2626" : bandColor}` } : {}),
                                 }}
                                 onClick={() => { setSelectedAppointment(apt); setShowCheckout(false); setShowCancelFlow(false); }}
                                 data-testid={`appointment-block-${apt.id}`}
