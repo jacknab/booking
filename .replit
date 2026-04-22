@@ -87,7 +87,7 @@ TWILIO_PHONE_NUMBER = "+18888147623"
 ACTIVE_GROUPS = "3"
 
 [userenv.development]
-GOOGLE_REDIRECT_URI = "https://20d00579-ab59-49ff-938d-f9e6635f9adb-00-3j4opn7ui5dcl.picard.replit.dev/google-business"
+GOOGLE_REDIRECT_URI = "https://67119edb-b869-414f-a3a6-ab37c644cbfa-00-3e6a27unge8n7.riker.replit.dev/google-business"
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://dashboard.certxa.com/google-business"

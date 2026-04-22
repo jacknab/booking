@@ -74,6 +74,27 @@ export default function PrivacyPolicy() {
             <p className="text-sm text-muted-foreground mt-2">
               <strong>Important:</strong> You control what data we access. We only receive access to information necessary to synchronize and help you manage your Google Business Profile reviews. We never access your Google Drive, Gmail, Calendar, or other Google services.
             </p>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">2.4 Google API Services User Data Policy — Limited Use</h3>
+            <p className="mb-4">
+              Certxa's use and transfer to any other app of information received from Google APIs
+              will adhere to the{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements. Specifically:
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>We only use Google user data to provide or improve user-facing features that are prominent in our application's user experience (review management).</li>
+              <li>We do not transfer Google user data to third parties except as necessary to provide or improve those features, comply with applicable law, or as part of a merger/acquisition with adequate notice.</li>
+              <li>We do not use Google user data to serve advertisements.</li>
+              <li>We do not allow humans to read Google user data except with the user's explicit consent for specific data, when needed for security purposes, to comply with applicable law, or for internal operations where the data has been aggregated and anonymized.</li>
+            </ul>
           </section>
 
           <section className="mb-8">
@@ -280,7 +301,17 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Disconnect at any time through Certxa settings</li>
-              <li>Revoke access through Google Account settings (accounts.google.com)</li>
+              <li>
+                Revoke access through your{" "}
+                <a
+                  href="https://myaccount.google.com/permissions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  Google Account permissions page
+                </a>
+              </li>
               <li>View, edit, or delete your reviews directly on Google Business Profile</li>
               <li>Certxa cannot force you to respond to or hide reviews</li>
               <li>Your reviews remain on Google regardless of Certxa status</li>
