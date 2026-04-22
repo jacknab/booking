@@ -1,0 +1,53 @@
+capig.datah04.com/events/8c7439c4b880d686e32ca91432487a2f2a5eb5e009a712ec06ab4b6acc8eb681:1  Failed to load resource: the server responded with a status of 422 ()
+index-Du57nGA7.js:58 `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+(anonymous) @ index-Du57nGA7.js:58
+index-Du57nGA7.js:58 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-Du57nGA7.js:58
+connect.facebook.net/:1 Framing 'https://www.facebook.com/' violates the following Content Security Policy directive: "frame-src 'self' https://certxa.com". The request has been blocked.
+
+capig.datah04.com/events/8c7439c4b880d686e32ca91432487a2f2a5eb5e009a712ec06ab4b6acc8eb681:1  Failed to load resource: the server responded with a status of 422 ()
+capig.datah04.com/events/8c7439c4b880d686e32ca91432487a2f2a5eb5e009a712ec06ab4b6acc8eb681:1  Failed to load resource: the server responded with a status of 422 ()
+index-Du57nGA7.js:58 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-Du57nGA7.js:58
+capig.datah04.com/events/8c7439c4b880d686e32ca91432487a2f2a5eb5e009a712ec06ab4b6acc8eb681:1  Failed to load resource: the server responded with a status of 422 ()
+connect.facebook.net/:1 Framing 'https://www.facebook.com/' violates the following Content Security Policy directive: "frame-src 'self' https://certxa.com". The request has been blocked.
+
+connect.facebook.net/:1 Framing 'https://www.facebook.com/' violates the following Content Security Policy directive: "frame-src 'self' https://certxa.com". The request has been blocked.
+
+connect.facebook.net/:1 Framing 'https://www.facebook.com/' violates the following Content Security Policy directive: "frame-src 'self' https://certxa.com". The request has been blocked.
+
+index-Du57nGA7.js:58 `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+(anonymous) @ index-Du57nGA7.js:58
+index-Du57nGA7.js:58 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-Du57nGA7.js:58
+index-Du57nGA7.js:8 ReferenceError: AlertCircle is not defined
+    at swe (index-Du57nGA7.js:181:29128)
+    at O2 (index-Du57nGA7.js:6:17873)
+    at O6 (index-Du57nGA7.js:8:44982)
+    at P6 (index-Du57nGA7.js:8:40540)
+    at ate (index-Du57nGA7.js:8:40467)
+    at sb (index-Du57nGA7.js:8:40318)
+    at iS (index-Du57nGA7.js:8:36576)
+    at _6 (index-Du57nGA7.js:8:37389)
+    at Rd (index-Du57nGA7.js:6:3274)
+    at index-Du57nGA7.js:8:34882
+q2 @ index-Du57nGA7.js:8
+index-Du57nGA7.js:6 Uncaught ReferenceError: AlertCircle is not defined
+    at swe (index-Du57nGA7.js:181:29128)
+    at O2 (index-Du57nGA7.js:6:17873)
+    at O6 (index-Du57nGA7.js:8:44982)
+    at P6 (index-Du57nGA7.js:8:40540)
+    at ate (index-Du57nGA7.js:8:40467)
+    at sb (index-Du57nGA7.js:8:40318)
+    at iS (index-Du57nGA7.js:8:36576)
+    at _6 (index-Du57nGA7.js:8:37389)
+    at Rd (index-Du57nGA7.js:6:3274)
+    at index-Du57nGA7.js:8:34882
