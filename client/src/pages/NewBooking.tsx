@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -198,6 +198,55 @@ export default function NewBooking() {
     totalDuration,
     staffMode === "specific" ? specificStaffId : null
   );
+
+  // Auto-advance to the next day with available slots when current date has none.
+  const autoAdvanceOriginRef = useRef<Date | null>(null);
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
+
+  useEffect(() => {
+    autoAdvanceOriginRef.current = null;
+    setAutoAdvancing(false);
+  }, [selectedService?.id, specificStaffId, staffMode, totalDuration, selectedStore?.id]);
+
+  useEffect(() => {
+    if (isCalendarBooking) return;
+    if (!selectedDate) return;
+    if (slotsLoading) return;
+    if (!slots) return;
+    if (slots.length > 0) {
+      setAutoAdvancing(false);
+      return;
+    }
+    if (!selectedService || !selectedStore || totalDuration <= 0) return;
+    if (staffMode === "specific" && !specificStaffId) return;
+
+    if (!autoAdvanceOriginRef.current) {
+      autoAdvanceOriginRef.current = selectedDate;
+    }
+    const daysAhead = Math.floor(
+      (selectedDate.getTime() - autoAdvanceOriginRef.current.getTime()) / 86400000,
+    );
+    if (daysAhead >= 60) {
+      setAutoAdvancing(false);
+      return;
+    }
+
+    setAutoAdvancing(true);
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    next.setHours(0, 0, 0, 0);
+    setSelectedDate(next);
+  }, [
+    slots,
+    slotsLoading,
+    selectedDate,
+    selectedService,
+    selectedStore,
+    totalDuration,
+    staffMode,
+    specificStaffId,
+    isCalendarBooking,
+  ]);
 
   const categoryNames = useMemo(() => {
     let names: string[] = [];
@@ -754,15 +803,18 @@ export default function NewBooking() {
                     <User className="w-10 h-10 text-muted-foreground/30 mb-3" />
                     <p className="text-sm text-muted-foreground">Select a staff member to see their availability</p>
                   </div>
-                ) : slotsLoading ? (
-                  <div className="flex items-center justify-center h-48">
+                ) : slotsLoading || autoAdvancing ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    {autoAdvancing && (
+                      <p className="text-sm text-muted-foreground">Finding next available date…</p>
+                    )}
                   </div>
                 ) : !slots || slots.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-center">
                     <Clock className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">No available time slots for this date</p>
-                    <p className="text-xs text-muted-foreground mt-1">Try a different date or staff preference</p>
+                    <p className="text-sm text-muted-foreground">No available time slots in the next 60 days</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try a different staff preference or service</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
