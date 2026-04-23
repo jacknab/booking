@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type SidebarItem =
   | { kind: "link"; to: string; label: string; icon: any }
-  | { kind: "action"; action: "quick-checkout"; label: string; icon: any };
+  | { kind: "action"; action: "quick-checkout" | "day-close"; label: string; icon: any };
 
 const calendarSidebarItems: SidebarItem[] = [
   { kind: "link", to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -34,6 +34,7 @@ const calendarSidebarItems: SidebarItem[] = [
   { kind: "link", to: "/staff", label: "Staff", icon: UserCircle },
   { kind: "link", to: "/reports", label: "Reports", icon: FileText },
   { kind: "action", action: "quick-checkout", label: "Quick Cash Out", icon: Receipt },
+  { kind: "action", action: "day-close", label: "Day Close", icon: Lock },
   { kind: "link", to: "/business-settings", label: "Business Settings", icon: Building2 },
 ];
 
@@ -652,7 +653,7 @@ export default function Calendar() {
           </button>
           {calendarSidebarItems.filter((item) => {
             if (!posEnabled) {
-              if (item.kind === "action" && item.action === "quick-checkout") return false;
+              if (item.kind === "action" && (item.action === "quick-checkout" || item.action === "day-close")) return false;
               if (item.kind === "link" && (item.to === "/analytics" || item.to === "/reports")) return false;
             }
             return true;
@@ -662,15 +663,20 @@ export default function Calendar() {
               navOpen ? "px-2" : "px-0"
             );
             if (item.kind === "action") {
+              const isDayClose = item.action === "day-close";
               return (
                 <button
                   key={`action-${idx}`}
                   type="button"
                   onClick={() => {
-                    setQuickCheckoutOpen(true);
+                    if (isDayClose) {
+                      navigate("/cash-drawer?action=close");
+                    } else {
+                      setQuickCheckoutOpen(true);
+                    }
                     setNavOpen(false);
                   }}
-                  data-testid="button-quick-checkout"
+                  data-testid={isDayClose ? "button-day-close" : "button-quick-checkout"}
                   className={cn(
                     baseClasses,
                     "text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"

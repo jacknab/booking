@@ -566,6 +566,7 @@ export const api = {
       input: z.object({
         storeId: z.number(),
         openingBalance: z.string().optional().default("0.00"),
+        openingDenominationBreakdown: z.string().nullable().optional(),
         openedBy: z.string().nullable().optional(),
       }),
       responses: {

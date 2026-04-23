@@ -1549,10 +1549,60 @@ If you have any questions, please contact your administrator.
         return res.status(409).json({ message: "A drawer session is already open for this store" });
       }
 
+      // If a denomination breakdown was provided, compute the opening balance from it
+      // server-side so the staff cannot fudge the numeric total.
+      const denomValues: Record<string, number> = {
+        "100": 100, "50": 50, "20": 20, "10": 10, "5": 5, "2": 2, "1": 1,
+        "0.25": 0.25, "0.10": 0.10, "0.05": 0.05, "0.01": 0.01,
+      };
+      let computedOpening: string | null = null;
+      if (input.openingDenominationBreakdown) {
+        try {
+          const counts = JSON.parse(input.openingDenominationBreakdown) as Record<string, number>;
+          let total = 0;
+          for (const [k, c] of Object.entries(counts)) {
+            const v = denomValues[k];
+            if (v != null && typeof c === "number" && c > 0) {
+              total += Math.round(v * c * 100);
+            }
+          }
+          computedOpening = (total / 100).toFixed(2);
+        } catch {
+          computedOpening = null;
+        }
+      }
+      const openingBalance = computedOpening ?? input.openingBalance ?? "0.00";
+
+      // Compare against the most recent closed session for the store. If the prior
+      // closing balance differs from this opening count, flag for manager review.
+      const allSessions = await storage.getCashDrawerSessions(input.storeId);
+      const lastClosed = allSessions
+        .filter(s => s.status === "closed")
+        .sort((a, b) => {
+          const at = a.closedAt ? new Date(a.closedAt).getTime() : 0;
+          const bt = b.closedAt ? new Date(b.closedAt).getTime() : 0;
+          return bt - at;
+        })[0];
+
+      let priorClosingMismatch = false;
+      let priorClosingVariance: string | null = null;
+      if (lastClosed && lastClosed.closingBalance != null) {
+        const priorClose = Number(lastClosed.closingBalance);
+        const opening = Number(openingBalance);
+        const diff = Math.round((opening - priorClose) * 100) / 100;
+        if (Math.abs(diff) >= 0.01) {
+          priorClosingMismatch = true;
+          priorClosingVariance = diff.toFixed(2);
+        }
+      }
+
       const session = await storage.createCashDrawerSession({
         storeId: input.storeId,
         openedAt: new Date(),
-        openingBalance: input.openingBalance || "0.00",
+        openingBalance,
+        openingDenominationBreakdown: input.openingDenominationBreakdown || null,
+        priorClosingMismatch,
+        priorClosingVariance,
         openedBy: input.openedBy || null,
         status: "open",
       });

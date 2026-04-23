@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,14 @@ export default function CashDrawer() {
 
   const [openingAmount, setOpeningAmount] = useState("0.00");
   const [closeNotes, setCloseNotes] = useState("");
+  const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+
+  // "Blind count" — staff users count without seeing the running total or expected
+  // amount; only managers/owners get to see those figures and any variance.
+  const role = user?.role ?? "owner";
+  const isBlindCount = role === "staff";
+  const location = useLocation();
   const [actionType, setActionType] = useState<"cash_in" | "cash_out" | null>(null);
   const [actionAmount, setActionAmount] = useState("");
   const [actionReason, setActionReason] = useState("");
@@ -76,6 +84,15 @@ export default function CashDrawer() {
     queryKey: [`/api/cash-drawer/open?storeId=${selectedStore?.id}`],
     enabled: !!selectedStore,
   });
+
+  // If we navigated here with ?action=close (e.g. from the Calendar drawer's
+  // "Day Close" icon), automatically pop open the close-shift dialog.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("action") === "close" && openSession) {
+      setShowCloseDialog(true);
+    }
+  }, [location.search, openSession]);
 
   const { data: sessions = [] } = useQuery<CashDrawerSessionWithActions[]>({
     queryKey: [`/api/cash-drawer/sessions?storeId=${selectedStore?.id}`],
@@ -98,18 +115,31 @@ export default function CashDrawer() {
     queryClient.invalidateQueries({ queryKey: [`/api/cash-drawer/sessions?storeId=${selectedStore?.id}`] });
   };
 
+  const openDenomCounter = useDenominationCounter();
+
   const openDrawerMutation = useMutation({
     mutationFn: async () => {
+      const denomData = JSON.stringify(openDenomCounter.counts);
       return apiRequest("POST", "/api/cash-drawer/sessions", {
         storeId: selectedStore!.id,
-        openingBalance: openingAmount,
+        openingBalance: openDenomCounter.total.toFixed(2),
+        openingDenominationBreakdown: denomData,
         openedBy: userName,
       });
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       invalidateDrawerQueries();
-      toast({ title: "Drawer opened", description: "Cash drawer session started." });
+      const session = res?.data ?? res;
+      const mismatch = session?.priorClosingMismatch;
+      toast({
+        title: "Drawer opened",
+        description: mismatch
+          ? "Day open recorded. A discrepancy with the previous day's close was flagged for manager review."
+          : "Cash drawer session started.",
+      });
       setOpeningAmount("0.00");
+      openDenomCounter.reset();
+      setShowOpenDialog(false);
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message || "Could not open drawer", variant: "destructive" });
@@ -242,34 +272,20 @@ export default function CashDrawer() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Open the cash drawer to begin accepting payments. Enter the starting cash amount in the drawer.
+                Open the cash drawer to begin accepting payments. You'll count each
+                denomination in the drawer; the total is recorded for the manager to verify.
               </p>
-              <div className="flex items-end gap-3 flex-wrap">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Opening Balance</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={openingAmount}
-                      onChange={(e) => setOpeningAmount(e.target.value)}
-                      className="pl-9 w-40"
-                      data-testid="input-opening-balance"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={() => openDrawerMutation.mutate()}
-                  disabled={openDrawerMutation.isPending}
-                  className="bg-green-600 text-white gap-2"
-                  data-testid="button-open-drawer"
-                >
-                  <Unlock className="w-4 h-4" />
-                  {openDrawerMutation.isPending ? "Opening..." : "Open Drawer"}
-                </Button>
-              </div>
+              <Button
+                onClick={() => {
+                  openDenomCounter.reset();
+                  setShowOpenDialog(true);
+                }}
+                className="bg-green-600 text-white gap-2"
+                data-testid="button-open-drawer"
+              >
+                <Unlock className="w-4 h-4" />
+                Day Open — Count Drawer
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -430,9 +446,20 @@ export default function CashDrawer() {
                 isPending={closeDrawerMutation.isPending}
                 timezone={timezone}
                 liveZReport={liveZReport}
+                blind={isBlindCount}
               />
             )}
           </div>
+        )}
+
+        {showOpenDialog && (
+          <OpenShiftDialog
+            denomCounter={openDenomCounter}
+            onClose={() => setShowOpenDialog(false)}
+            onConfirm={() => openDrawerMutation.mutate()}
+            isPending={openDrawerMutation.isPending}
+            blind={isBlindCount}
+          />
         )}
 
         {viewingReportId && zReport && (
@@ -528,6 +555,7 @@ function EndShiftDialog({
   isPending,
   timezone,
   liveZReport,
+  blind = false,
 }: {
   openSession: CashDrawerSessionWithActions;
   denomCounter: ReturnType<typeof useDenominationCounter>;
@@ -538,11 +566,17 @@ function EndShiftDialog({
   isPending: boolean;
   timezone: string;
   liveZReport?: any;
+  blind?: boolean;
 }) {
   const expectedCash = liveZReport?.expectedCash ?? null;
   const cashSales = liveZReport?.paymentBreakdown?.cash ?? 0;
   const countedTotal = denomCounter.total;
   const variance = expectedCash !== null ? countedTotal - expectedCash : null;
+  const enteredCount = Object.values(denomCounter.counts).reduce(
+    (acc, c) => acc + (Number(c) > 0 ? 1 : 0),
+    0,
+  );
+  const canSubmit = blind ? enteredCount > 0 : countedTotal > 0;
 
   return (
     <Card className="border-destructive/30" data-testid="close-dialog-card">
@@ -559,7 +593,9 @@ function EndShiftDialog({
       </CardHeader>
       <CardContent className="space-y-5">
         <p className="text-sm text-muted-foreground">
-          Count each denomination in the cash drawer. The total will be calculated automatically.
+          {blind
+            ? "Count each denomination in the cash drawer and enter how many you have. Don't worry about the total — your manager will reconcile it."
+            : "Count each denomination in the cash drawer. The total will be calculated automatically."}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0">
@@ -573,6 +609,7 @@ function EndShiftDialog({
                 count={denomCounter.counts[d.key] || 0}
                 onChange={(count) => denomCounter.setCount(d.key, count)}
                 denomKey={d.key}
+                hideSubtotal={blind}
               />
             ))}
           </div>
@@ -586,44 +623,47 @@ function EndShiftDialog({
                 count={denomCounter.counts[d.key] || 0}
                 onChange={(count) => denomCounter.setCount(d.key, count)}
                 denomKey={d.key}
+                hideSubtotal={blind}
               />
             ))}
           </div>
         </div>
 
-        <div className="border-t pt-4 space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="bg-muted/50 rounded-md p-3 space-y-1">
-              <p className="text-xs text-muted-foreground">Counted Total</p>
-              <p className="text-xl font-bold" data-testid="text-counted-total">
-                ${countedTotal.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-muted/50 rounded-md p-3 space-y-1">
-              <p className="text-xs text-muted-foreground">Expected in Drawer</p>
-              <p className="text-xl font-bold text-muted-foreground" data-testid="text-expected-cash">
-                {expectedCash !== null ? `$${expectedCash.toFixed(2)}` : "Loading..."}
-              </p>
-              <p className="text-[10px] text-muted-foreground">Open + Cash Sales + In - Out</p>
-            </div>
-            <div className="bg-muted/50 rounded-md p-3 space-y-1">
-              <p className="text-xs text-muted-foreground">Variance</p>
-              <p className={cn("text-xl font-bold", variance === null ? "text-muted-foreground" : variance === 0 ? "text-green-600" : variance > 0 ? "text-blue-600" : "text-destructive")} data-testid="text-variance">
-                {countedTotal === 0 || variance === null ? "---" : variance === 0 ? "Even" : variance > 0 ? `+$${variance.toFixed(2)}` : `-$${Math.abs(variance).toFixed(2)}`}
-              </p>
-              {countedTotal > 0 && variance !== null && variance !== 0 && (
-                <p className="text-[10px] text-muted-foreground">
-                  {variance > 0 ? "Over" : "Short"}
+        {!blind && (
+          <div className="border-t pt-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-muted/50 rounded-md p-3 space-y-1">
+                <p className="text-xs text-muted-foreground">Counted Total</p>
+                <p className="text-xl font-bold" data-testid="text-counted-total">
+                  ${countedTotal.toFixed(2)}
                 </p>
-              )}
+              </div>
+              <div className="bg-muted/50 rounded-md p-3 space-y-1">
+                <p className="text-xs text-muted-foreground">Expected in Drawer</p>
+                <p className="text-xl font-bold text-muted-foreground" data-testid="text-expected-cash">
+                  {expectedCash !== null ? `$${expectedCash.toFixed(2)}` : "Loading..."}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Open + Cash Sales + In - Out</p>
+              </div>
+              <div className="bg-muted/50 rounded-md p-3 space-y-1">
+                <p className="text-xs text-muted-foreground">Variance</p>
+                <p className={cn("text-xl font-bold", variance === null ? "text-muted-foreground" : variance === 0 ? "text-green-600" : variance > 0 ? "text-blue-600" : "text-destructive")} data-testid="text-variance">
+                  {countedTotal === 0 || variance === null ? "---" : variance === 0 ? "Even" : variance > 0 ? `+$${variance.toFixed(2)}` : `-$${Math.abs(variance).toFixed(2)}`}
+                </p>
+                {countedTotal > 0 && variance !== null && variance !== 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {variance > 0 ? "Over" : "Short"}
+                  </p>
+                )}
+              </div>
             </div>
+            {liveZReport && cashSales > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Includes ${cashSales.toFixed(2)} in cash sales from {liveZReport.transactionCount} transaction(s)
+              </p>
+            )}
           </div>
-          {liveZReport && cashSales > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Includes ${cashSales.toFixed(2)} in cash sales from {liveZReport.transactionCount} transaction(s)
-            </p>
-          )}
-        </div>
+        )}
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Notes (optional)</label>
@@ -639,11 +679,11 @@ function EndShiftDialog({
           <Button
             className="gap-2 bg-destructive text-destructive-foreground"
             onClick={onConfirm}
-            disabled={isPending || countedTotal === 0}
+            disabled={isPending || !canSubmit}
             data-testid="button-confirm-close"
           >
             <Lock className="w-4 h-4" />
-            {isPending ? "Closing..." : "Close Drawer & Generate Z Report"}
+            {isPending ? "Closing..." : blind ? "Submit Day Close Count" : "Close Drawer & Generate Z Report"}
           </Button>
           <Button variant="ghost" onClick={onClose}>
             Cancel
@@ -654,18 +694,131 @@ function EndShiftDialog({
   );
 }
 
+function OpenShiftDialog({
+  denomCounter,
+  onClose,
+  onConfirm,
+  isPending,
+  blind = false,
+}: {
+  denomCounter: ReturnType<typeof useDenominationCounter>;
+  onClose: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+  blind?: boolean;
+}) {
+  const countedTotal = denomCounter.total;
+  const enteredCount = Object.values(denomCounter.counts).reduce(
+    (acc, c) => acc + (Number(c) > 0 ? 1 : 0),
+    0,
+  );
+  const canSubmit = blind ? enteredCount > 0 : countedTotal >= 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+      data-testid="open-shift-dialog-overlay"
+    >
+      <Card
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border-green-500/30"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="open-shift-dialog"
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Unlock className="w-5 h-5 text-green-600" />
+              Day Open — Count Drawer
+            </CardTitle>
+            <Button size="icon" variant="ghost" onClick={onClose} data-testid="button-cancel-open">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-sm text-muted-foreground">
+            {blind
+              ? "Count each denomination in the cash drawer and enter how many you have. Don't worry about the total — your manager will reconcile any discrepancy with yesterday's close."
+              : "Count each denomination in the cash drawer. The opening total is recorded for the shift."}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0">
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Bills</div>
+              {DENOMINATIONS.filter(d => d.value >= 1).map(d => (
+                <DenominationRow
+                  key={d.key}
+                  label={d.label}
+                  denomValue={d.value}
+                  count={denomCounter.counts[d.key] || 0}
+                  onChange={(count) => denomCounter.setCount(d.key, count)}
+                  denomKey={d.key}
+                  hideSubtotal={blind}
+                />
+              ))}
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Coins</div>
+              {DENOMINATIONS.filter(d => d.value < 1).map(d => (
+                <DenominationRow
+                  key={d.key}
+                  label={d.label}
+                  denomValue={d.value}
+                  count={denomCounter.counts[d.key] || 0}
+                  onChange={(count) => denomCounter.setCount(d.key, count)}
+                  denomKey={d.key}
+                  hideSubtotal={blind}
+                />
+              ))}
+            </div>
+          </div>
+
+          {!blind && (
+            <div className="border-t pt-4">
+              <div className="bg-muted/50 rounded-md p-3 space-y-1 inline-block">
+                <p className="text-xs text-muted-foreground">Opening Total</p>
+                <p className="text-xl font-bold" data-testid="text-open-counted-total">
+                  ${countedTotal.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-2">
+            <Button
+              className="gap-2 bg-green-600 text-white"
+              onClick={onConfirm}
+              disabled={isPending || !canSubmit}
+              data-testid="button-confirm-open"
+            >
+              <Unlock className="w-4 h-4" />
+              {isPending ? "Opening..." : blind ? "Submit Day Open Count" : "Open Drawer"}
+            </Button>
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function DenominationRow({
   label,
   denomValue,
   count,
   onChange,
   denomKey,
+  hideSubtotal = false,
 }: {
   label: string;
   denomValue: number;
   count: number;
   onChange: (count: number) => void;
   denomKey: string;
+  hideSubtotal?: boolean;
 }) {
   const subtotal = Math.round(count * denomValue * 100) / 100;
 
@@ -681,9 +834,11 @@ function DenominationRow({
         placeholder="0"
         data-testid={`input-denom-${denomKey}`}
       />
-      <span className="text-sm font-medium w-20 text-right tabular-nums" data-testid={`text-denom-subtotal-${denomKey}`}>
-        ${subtotal.toFixed(2)}
-      </span>
+      {!hideSubtotal && (
+        <span className="text-sm font-medium w-20 text-right tabular-nums" data-testid={`text-denom-subtotal-${denomKey}`}>
+          ${subtotal.toFixed(2)}
+        </span>
+      )}
     </div>
   );
 }
