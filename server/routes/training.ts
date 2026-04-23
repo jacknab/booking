@@ -5,12 +5,15 @@ import {
   trainingUserState,
   trainingUserProfile,
   trainingEvents,
+  staff,
+  locations,
   type InsertTrainingEvent,
   type TrainingActionCategory,
   type TrainingUserState,
 } from "../../shared/schema";
+import { users } from "../../shared/models/auth";
 import { isAuthenticated } from "../auth";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { reduce, type CategoryState, type TrainingEventType } from "../training/reducer";
 
 const router = Router();
@@ -188,6 +191,224 @@ router.post("/event", isAuthenticated, async (req, res) => {
     });
   } catch (err) {
     console.error("[training] /event error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+// === Owner / manager dashboard endpoints ===
+
+function isManagerRole(role: unknown): boolean {
+  return role === "owner" || role === "admin" || role === "manager";
+}
+
+/**
+ * Verify the requester is a manager who can administer staff at `storeId`.
+ * Owners are gated by `locations.userId`; managers/admins are trusted globally
+ * (they're already authenticated and the UI scopes them per-store).
+ */
+async function assertManagesStore(req: any, storeId: number): Promise<boolean> {
+  const role = req.user?.role ?? req.user?.claims?.role;
+  if (!isManagerRole(role)) return false;
+  if (role === "owner") {
+    const [loc] = await db
+      .select({ userId: locations.userId })
+      .from(locations)
+      .where(eq(locations.id, storeId));
+    if (!loc) return false;
+    if (loc.userId && loc.userId !== uid(req)) return false;
+  }
+  return true;
+}
+
+router.get("/admin/staff", isAuthenticated, async (req, res) => {
+  try {
+    const userId = uid(req);
+    if (!userId) return res.status(401).json({ error: "unauthorized" });
+    const storeId = Number(req.query.storeId);
+    if (!Number.isInteger(storeId)) {
+      return res.status(400).json({ error: "storeId required" });
+    }
+    if (!(await assertManagesStore(req, storeId))) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+
+    // Staff records for the store, plus any user accounts linked to them.
+    const storeStaff = await db
+      .select({ id: staff.id, name: staff.name })
+      .from(staff)
+      .where(eq(staff.storeId, storeId));
+    const staffIds = storeStaff.map((s) => s.id);
+    const staffNameById = new Map(storeStaff.map((s) => [s.id, s.name]));
+
+    const linkedUsers = staffIds.length
+      ? await db
+          .select()
+          .from(users)
+          .where(inArray(users.staffId, staffIds))
+      : [];
+
+    const categories = await db.select().from(trainingActionCategories);
+    const userIds = linkedUsers.map((u) => u.id);
+    const states = userIds.length
+      ? await db
+          .select()
+          .from(trainingUserState)
+          .where(inArray(trainingUserState.userId, userIds))
+      : [];
+    const profiles = userIds.length
+      ? await db
+          .select()
+          .from(trainingUserProfile)
+          .where(inArray(trainingUserProfile.userId, userIds))
+      : [];
+    const profileByUser = new Map(profiles.map((p) => [p.userId, p]));
+    const statesByUser = new Map<string, typeof states>();
+    for (const s of states) {
+      if (!statesByUser.has(s.userId)) statesByUser.set(s.userId, [] as any);
+      statesByUser.get(s.userId)!.push(s);
+    }
+
+    const rows = linkedUsers.map((u) => {
+      const userStates = statesByUser.get(u.id) ?? [];
+      const totalCats = categories.length || 1;
+      const graduated = userStates.filter((s) => s.graduatedAt).length;
+      const lastSeen = userStates.reduce<Date | null>((acc, s) => {
+        const d = s.lastSeenAt ? new Date(s.lastSeenAt) : null;
+        if (!d) return acc;
+        if (!acc || d.getTime() > acc.getTime()) return d;
+        return acc;
+      }, null);
+      const avgLevel = userStates.length
+        ? userStates.reduce((a, s) => a + s.helpLevel, 0) / userStates.length
+        : 3;
+      return {
+        userId: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        role: u.role,
+        staffId: u.staffId,
+        staffName: u.staffId ? staffNameById.get(u.staffId) ?? null : null,
+        profile: profileByUser.get(u.id) ?? null,
+        graduatedCategories: graduated,
+        totalCategories: totalCats,
+        avgHelpLevel: Number(avgLevel.toFixed(2)),
+        lastActivityAt: lastSeen ? lastSeen.toISOString() : null,
+      };
+    });
+
+    res.json({ categories, staff: rows });
+  } catch (err) {
+    console.error("[training] /admin/staff error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+router.get("/admin/staff/:userId", isAuthenticated, async (req, res) => {
+  try {
+    const requester = uid(req);
+    if (!requester) return res.status(401).json({ error: "unauthorized" });
+    const storeId = Number(req.query.storeId);
+    if (!Number.isInteger(storeId)) {
+      return res.status(400).json({ error: "storeId required" });
+    }
+    if (!(await assertManagesStore(req, storeId))) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const targetUserId = String(req.params.userId);
+
+    const [target] = await db.select().from(users).where(eq(users.id, targetUserId));
+    if (!target) return res.status(404).json({ error: "user not found" });
+
+    const categories = await db.select().from(trainingActionCategories);
+    const states = await db
+      .select()
+      .from(trainingUserState)
+      .where(eq(trainingUserState.userId, targetUserId));
+    const [profile] = await db
+      .select()
+      .from(trainingUserProfile)
+      .where(eq(trainingUserProfile.userId, targetUserId));
+
+    const recentEvents = await db
+      .select()
+      .from(trainingEvents)
+      .where(eq(trainingEvents.userId, targetUserId))
+      .orderBy(desc(trainingEvents.occurredAt))
+      .limit(50);
+
+    res.json({
+      user: {
+        id: target.id,
+        email: target.email,
+        firstName: target.firstName,
+        lastName: target.lastName,
+        role: target.role,
+      },
+      profile,
+      categories,
+      state: states,
+      recentEvents,
+    });
+  } catch (err) {
+    console.error("[training] /admin/staff/:userId error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+router.post("/admin/pin", isAuthenticated, async (req, res) => {
+  try {
+    const requester = uid(req);
+    if (!requester) return res.status(401).json({ error: "unauthorized" });
+    const { userId, categoryId, pinnedLevel, storeId } = req.body ?? {};
+    if (!userId || !Number.isInteger(categoryId) || !Number.isInteger(storeId)) {
+      return res.status(400).json({ error: "userId, categoryId, storeId required" });
+    }
+    const pin: number | null =
+      pinnedLevel === null || pinnedLevel === undefined ? null : Number(pinnedLevel);
+    if (pin !== null && (!Number.isInteger(pin) || pin < 0 || pin > 3)) {
+      return res.status(400).json({ error: "pinnedLevel must be 0..3 or null" });
+    }
+    if (!(await assertManagesStore(req, storeId))) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(trainingUserState)
+      .where(
+        and(
+          eq(trainingUserState.userId, String(userId)),
+          eq(trainingUserState.categoryId, categoryId),
+        ),
+      );
+
+    if (existing) {
+      await db
+        .update(trainingUserState)
+        .set({
+          pinnedLevel: pin,
+          // When pinning, snap visible level to the pin so behavior is immediate.
+          helpLevel: pin !== null ? pin : existing.helpLevel,
+        })
+        .where(eq(trainingUserState.id, existing.id));
+    } else {
+      const [cat] = await db
+        .select()
+        .from(trainingActionCategories)
+        .where(eq(trainingActionCategories.id, categoryId));
+      if (!cat) return res.status(404).json({ error: "category not found" });
+      await db.insert(trainingUserState).values({
+        userId: String(userId),
+        categoryId,
+        helpLevel: pin ?? cat.defaultHelpLevel,
+        pinnedLevel: pin,
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[training] /admin/pin error:", err);
     res.status(500).json({ error: "internal_error" });
   }
 });
