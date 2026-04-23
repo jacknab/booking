@@ -143,13 +143,21 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
 
   const handleCalendarAccessChange = async (enabled: boolean) => {
     try {
-      const response = await fetch(`/api/staff/${staff.id}/enable-calendar-access`, {
+      const endpoint = enabled
+        ? `/api/staff/${staff.id}/enable-calendar-access`
+        : `/api/staff/${staff.id}/disable-calendar-access`;
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
       const data = await response.json();
       if (response.ok) {
-        toast({ title: enabled ? "Calendar access enabled" : "Calendar access disabled", description: enabled ? "An email with a temporary password has been sent to the staff member." : "Calendar access has been disabled." });
+        toast({
+          title: enabled ? "Calendar access enabled" : "Calendar access disabled",
+          description: enabled
+            ? "An email with a temporary password has been sent to the staff member."
+            : "This staff member can no longer log in to the calendar.",
+        });
         setCalendarAccess(enabled);
       } else {
         toast({ title: "Failed to update access", description: data.message, variant: "destructive" });

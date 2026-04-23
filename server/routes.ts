@@ -3948,6 +3948,31 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // POST disable staff calendar access — unlinks the user account from the
+  // staff record so they can no longer log in to the staff calendar. Does
+  // NOT delete the user account, and does NOT downgrade an owner/admin/manager.
+  app.post("/api/staff/:id/disable-calendar-access", isAuthenticated, async (req, res) => {
+    try {
+      const staffId = Number(req.params.id);
+      const staff = await storage.getStaffMember(staffId);
+      if (!staff || !staff.email) {
+        return res.status(400).json({ message: "Staff member not found or has no email address." });
+      }
+      const user = await storage.findUserByEmail(staff.email);
+      if (!user || user.staffId !== staffId) {
+        return res.json({ message: "Calendar access already disabled." });
+      }
+      // Only clear the staffId link. If their role was "staff" (set by the
+      // legacy enable flow) and they don't own a store, leave it; otherwise
+      // preserve owner/admin/manager.
+      await storage.updateUser(user.id, { staffId: null });
+      res.json({ message: "Calendar access disabled." });
+    } catch (error) {
+      console.error("Error disabling calendar access:", error);
+      res.status(500).json({ message: "Failed to disable calendar access" });
+    }
+  });
+
   // POST test mailgun connection
   app.post("/api/admin/platform-settings/test-mailgun", async (req, res) => {
     try {
