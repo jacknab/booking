@@ -21,6 +21,9 @@ import {
   resetSandboxData,
   sandboxStoreIdForUser,
   applySandboxScenario,
+  recordScenarioRun,
+  clearScenarioRun,
+  evaluateScenarioRun,
   SANDBOX_SCENARIOS,
   type SandboxScenarioKey,
 } from "../training/sandbox";
@@ -813,11 +816,44 @@ router.post("/sandbox/scenario", isAuthenticated, async (req, res) => {
     if (!sandboxId) return res.status(404).json({ error: "no_store_for_user" });
 
     const result = await applySandboxScenario(sandboxId, scenario as SandboxScenarioKey);
-    res.json({ ok: true, sandboxId, ...result });
+    recordScenarioRun(userId, {
+      sandboxId,
+      key: scenario as SandboxScenarioKey,
+      initial: result.initial,
+      scenarioCustomerIds: result.scenarioCustomerIds,
+    });
+    res.json({ ok: true, sandboxId, appointmentsCreated: result.appointmentsCreated });
   } catch (err) {
     console.error("[training] /sandbox/scenario error:", err);
     res.status(500).json({ error: "internal_error" });
   }
+});
+
+/**
+ * Score the trainee's currently active scenario. Returns null if there
+ * isn't one running. The scoreboard surfaces this when they finish.
+ */
+router.get("/sandbox/scenario/results", isAuthenticated, async (req, res) => {
+  try {
+    const userId = uid(req);
+    if (!userId) return res.status(401).json({ error: "unauthorized" });
+    const results = await evaluateScenarioRun(userId);
+    res.json({ results });
+  } catch (err) {
+    console.error("[training] /sandbox/scenario/results error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * Clear the active scenario without running another one (e.g. trainee
+ * dismisses the scoreboard).
+ */
+router.post("/sandbox/scenario/dismiss", isAuthenticated, async (req, res) => {
+  const userId = uid(req);
+  if (!userId) return res.status(401).json({ error: "unauthorized" });
+  clearScenarioRun(userId);
+  res.json({ ok: true });
 });
 
 export default router;

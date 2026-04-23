@@ -22,8 +22,20 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type Scenario = { key: string; label: string; description: string };
+type ScenarioMetric = { label: string; value: number; outOf?: number };
+type ScenarioResults = {
+  scenario: { key: string; label: string };
+  startedAt: string;
+  metrics: ScenarioMetric[];
+  headline: string;
+  score: number;
+};
 
-function ScenarioPicker() {
+function ScenarioPicker({
+  onScenarioStarted,
+}: {
+  onScenarioStarted: (key: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -45,9 +57,9 @@ function ScenarioPicker() {
         title: `${label} loaded`,
         description: `${result.appointmentsCreated ?? 0} practice bookings ready to work through.`,
       });
-      // Refresh anything reading appointments/customers in the sandbox view.
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      onScenarioStarted(scenario);
       setOpen(false);
     },
     onError: () => {
@@ -114,10 +126,130 @@ function ScenarioPicker() {
   );
 }
 
+function ScenarioScoreboard({
+  onDismiss,
+  onClose,
+}: {
+  onDismiss: () => void;
+  onClose: () => void;
+}) {
+  const { data, isLoading } = useQuery<{ results: ScenarioResults | null }>({
+    queryKey: ["/api/training/sandbox/scenario/results"],
+  });
+  const results = data?.results;
+
+  return (
+    <div
+      role="dialog"
+      aria-label="Scenario results"
+      data-testid="scenario-scoreboard"
+      className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div className="w-[420px] max-w-[90%] rounded-xl bg-background shadow-2xl border border-border overflow-hidden">
+        <div className="px-5 py-4 border-b bg-muted/40">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Scenario complete
+          </div>
+          <div className="text-lg font-semibold mt-0.5">
+            {results?.scenario.label ?? "Practice Scenario"}
+          </div>
+        </div>
+        <div className="p-5">
+          {isLoading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> Scoring your run…
+            </div>
+          )}
+          {!isLoading && !results && (
+            <div className="text-sm text-muted-foreground">
+              No scenario is currently running.
+            </div>
+          )}
+          {!isLoading && results && (
+            <>
+              <div className="flex items-baseline justify-between mb-3">
+                <div className="text-sm text-muted-foreground">{results.headline}</div>
+                <div
+                  className="text-2xl font-bold tabular-nums"
+                  data-testid="scenario-score"
+                >
+                  {results.score}%
+                </div>
+              </div>
+              <ul className="space-y-2">
+                {results.metrics.map((m) => (
+                  <li
+                    key={m.label}
+                    className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-b-0"
+                  >
+                    <span className="text-muted-foreground">{m.label}</span>
+                    <span className="font-medium tabular-nums">
+                      {m.value}
+                      {m.outOf != null && (
+                        <span className="text-muted-foreground"> / {m.outOf}</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+        <div className="px-5 py-3 border-t bg-muted/40 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onDismiss}
+            data-testid="button-scoreboard-keep-practicing"
+            className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted transition-colors"
+          >
+            Keep practicing
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            data-testid="button-scoreboard-close"
+            className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Close practice mode
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PracticeOverlay() {
   const { inPractice, exitPractice } = usePracticeMode();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  const [showScoreboard, setShowScoreboard] = useState(false);
+  const queryClient = useQueryClient();
+
+  const dismissScenario = async () => {
+    setShowScoreboard(false);
+    setActiveScenario(null);
+    try {
+      await apiRequest("POST", "/api/training/sandbox/scenario/dismiss", {});
+    } catch {
+      // best-effort cleanup; safe to ignore network errors here
+    }
+    queryClient.removeQueries({ queryKey: ["/api/training/sandbox/scenario/results"] });
+  };
+
+  const requestExit = () => {
+    if (activeScenario && !showScoreboard) {
+      // Pre-fetch latest results before showing the scoreboard.
+      queryClient.invalidateQueries({ queryKey: ["/api/training/sandbox/scenario/results"] });
+      setShowScoreboard(true);
+      return;
+    }
+    if (activeScenario) {
+      void dismissScenario();
+    }
+    exitPractice();
+  };
 
   // Esc to close
   useEffect(() => {
@@ -125,12 +257,13 @@ export function PracticeOverlay() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        exitPractice();
+        requestExit();
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [inPractice, exitPractice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inPractice, activeScenario, showScoreboard]);
 
   // Lock body scroll while open so the page underneath doesn't shift on
   // open/close — also kills the perceived "lag" the plan calls out.
@@ -147,7 +280,7 @@ export function PracticeOverlay() {
 
   const onBackdropMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-      exitPractice();
+      requestExit();
     }
   };
 
@@ -174,10 +307,25 @@ export function PracticeOverlay() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <ScenarioPicker />
+            <ScenarioPicker onScenarioStarted={(key) => setActiveScenario(key)} />
+            {activeScenario && (
+              <button
+                type="button"
+                onClick={() => {
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/training/sandbox/scenario/results"],
+                  });
+                  setShowScoreboard(true);
+                }}
+                data-testid="button-show-results"
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium border border-amber-300 dark:border-amber-700 bg-white/60 dark:bg-amber-900/40 hover:bg-white dark:hover:bg-amber-900/60 transition-colors"
+              >
+                Results
+              </button>
+            )}
             <button
               type="button"
-              onClick={exitPractice}
+              onClick={requestExit}
               data-testid="button-practice-close"
               className="p-1.5 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
               aria-label="Close practice mode"
@@ -203,6 +351,17 @@ export function PracticeOverlay() {
             </SandboxStoreProvider>
           </MemoryRouter>
         </div>
+
+        {showScoreboard && (
+          <ScenarioScoreboard
+            onDismiss={() => setShowScoreboard(false)}
+            onClose={() => {
+              setShowScoreboard(false);
+              void dismissScenario();
+              exitPractice();
+            }}
+          />
+        )}
       </div>
     </div>,
     document.body,

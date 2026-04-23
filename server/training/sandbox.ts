@@ -436,13 +436,149 @@ async function ensureBaseSandboxData(sandboxStoreId: number): Promise<void> {
 }
 
 /**
+ * In-memory record of the trainee's currently active Quick Scenario, keyed
+ * by userId. Lets us diff baseline vs current state to score how well they
+ * worked through the scenario. Cleared when a new scenario starts or when
+ * results are dismissed. We deliberately keep this in memory — scenarios
+ * are short, ephemeral practice sessions.
+ */
+type ScenarioRun = {
+  sandboxId: number;
+  key: SandboxScenarioKey;
+  startedAt: Date;
+  initial: Array<{ id: number; status: string; customerId: number | null }>;
+  scenarioCustomerIds: number[];
+};
+const scenarioRuns = new Map<string, ScenarioRun>();
+
+export function recordScenarioRun(
+  userId: string,
+  run: Omit<ScenarioRun, "startedAt"> & { startedAt?: Date },
+): void {
+  scenarioRuns.set(userId, { startedAt: new Date(), ...run });
+}
+
+export function clearScenarioRun(userId: string): void {
+  scenarioRuns.delete(userId);
+}
+
+export type ScenarioResults = {
+  scenario: { key: SandboxScenarioKey; label: string };
+  startedAt: string;
+  metrics: Array<{ label: string; value: number; outOf?: number }>;
+  headline: string;
+  score: number; // 0-100
+};
+
+export async function evaluateScenarioRun(userId: string): Promise<ScenarioResults | null> {
+  const run = scenarioRuns.get(userId);
+  if (!run) return null;
+  const def = SANDBOX_SCENARIOS.find((s) => s.key === run.key)!;
+
+  const initialIds = run.initial.map((a) => a.id);
+  const initialNow = initialIds.length
+    ? await db
+        .select({ id: appointments.id, status: appointments.status, customerId: appointments.customerId })
+        .from(appointments)
+        .where(inArray(appointments.id, initialIds))
+    : [];
+  const initialNowMap = new Map(initialNow.map((a) => [a.id, a]));
+
+  // Anything in the sandbox that isn't part of the initial set was created
+  // by the trainee during the scenario.
+  const allInStore = await db
+    .select({ id: appointments.id, status: appointments.status, customerId: appointments.customerId })
+    .from(appointments)
+    .where(eq(appointments.storeId, run.sandboxId));
+  const initialIdSet = new Set(initialIds);
+  const newAppointments = allInStore.filter((a) => !initialIdSet.has(a.id));
+  const scenarioCustomerSet = new Set(run.scenarioCustomerIds);
+
+  const countInitialBy = (status: string) =>
+    initialNow.filter((a) => a.status === status).length;
+
+  let metrics: ScenarioResults["metrics"] = [];
+  let score = 0;
+  let headline = "";
+
+  if (run.key === "busy-saturday") {
+    const total = run.initial.length;
+    const completed = countInitialBy("completed");
+    const noShow = countInitialBy("no-show");
+    const cancelled = countInitialBy("cancelled");
+    metrics = [
+      { label: "Bookings completed", value: completed, outOf: total },
+      { label: "No-shows", value: noShow },
+      { label: "Cancellations", value: cancelled },
+    ];
+    score = total ? Math.round((completed / total) * 100) : 0;
+    headline = `You worked ${completed} of ${total} Saturday bookings.`;
+  } else if (run.key === "walk-in-rush") {
+    const total = run.initial.length;
+    let handled = 0;
+    let waiting = 0;
+    for (const a of initialNow) {
+      if (a.status === "confirmed" || a.status === "completed") handled++;
+      else if (a.status === "pending") waiting++;
+    }
+    const newBookings = newAppointments.filter(
+      (a) => a.customerId != null && scenarioCustomerSet.has(a.customerId),
+    ).length;
+    metrics = [
+      { label: "Walk-ins booked in", value: handled, outOf: total },
+      { label: "Walk-ins still waiting", value: waiting },
+      { label: "Follow-up appointments created", value: newBookings },
+    ];
+    score = total ? Math.round((handled / total) * 100) : 0;
+    headline = `You handled ${handled} of ${total} walk-ins.`;
+  } else if (run.key === "no-show-recovery") {
+    const noShowCustomerIds = new Set(
+      run.initial
+        .filter((a) => a.status === "no-show" || a.status === "cancelled")
+        .map((a) => a.customerId)
+        .filter((id): id is number => id != null),
+    );
+    const rebooks = newAppointments.filter(
+      (a) => a.customerId != null && noShowCustomerIds.has(a.customerId),
+    ).length;
+    const todayPending = run.initial.filter((a) => a.status === "pending");
+    const todayPendingNow = todayPending.filter((a) => {
+      const cur = initialNowMap.get(a.id);
+      return cur?.status === "confirmed" || cur?.status === "completed";
+    }).length;
+    const totalToRebook = noShowCustomerIds.size;
+    metrics = [
+      { label: "Customers rebooked", value: rebooks, outOf: totalToRebook },
+      { label: "Today's pending confirmed", value: todayPendingNow, outOf: todayPending.length },
+    ];
+    const denom = totalToRebook + todayPending.length;
+    score = denom ? Math.round(((rebooks + todayPendingNow) / denom) * 100) : 0;
+    headline = `You recovered ${rebooks} of ${totalToRebook} no-shows.`;
+  }
+
+  return {
+    scenario: { key: run.key, label: def.label },
+    startedAt: run.startedAt.toISOString(),
+    metrics,
+    headline,
+    score: Math.min(100, Math.max(0, score)),
+  };
+}
+
+/**
  * Apply a Quick Scenario to a sandbox: keep staff/services/customers,
- * wipe all appointments, then create a themed batch.
+ * wipe all appointments, then create a themed batch. Returns the freshly
+ * created appointments + customer ids the scenario "owns" so the caller
+ * can snapshot a baseline for scoring.
  */
 export async function applySandboxScenario(
   sandboxStoreId: number,
   scenarioKey: SandboxScenarioKey,
-): Promise<{ appointmentsCreated: number }> {
+): Promise<{
+  appointmentsCreated: number;
+  initial: Array<{ id: number; status: string; customerId: number | null }>;
+  scenarioCustomerIds: number[];
+}> {
   const [s] = await db.select().from(locations).where(eq(locations.id, sandboxStoreId));
   if (!s || !s.isTrainingSandbox) {
     throw new Error(`store ${sandboxStoreId} is not a training sandbox`);
@@ -476,16 +612,23 @@ export async function applySandboxScenario(
   const serviceDurations = new Map(serviceRows.map((r) => [r.id, r.duration ?? 45]));
   const customerIds = customerRows.map((r) => r.id);
 
-  let created = 0;
+  let result: { initial: ScenarioRun["initial"]; scenarioCustomerIds: number[] } = {
+    initial: [],
+    scenarioCustomerIds: [],
+  };
   if (scenarioKey === "busy-saturday") {
-    created = await seedBusySaturday(sandboxStoreId, staffIds, serviceIds, serviceDurations, customerIds);
+    result = await seedBusySaturday(sandboxStoreId, staffIds, serviceIds, serviceDurations, customerIds);
   } else if (scenarioKey === "walk-in-rush") {
-    created = await seedWalkInRush(sandboxStoreId, staffIds, serviceIds, serviceDurations);
+    result = await seedWalkInRush(sandboxStoreId, staffIds, serviceIds, serviceDurations);
   } else if (scenarioKey === "no-show-recovery") {
-    created = await seedNoShowRecovery(sandboxStoreId, staffIds, serviceIds, serviceDurations, customerIds);
+    result = await seedNoShowRecovery(sandboxStoreId, staffIds, serviceIds, serviceDurations, customerIds);
   }
 
-  return { appointmentsCreated: created };
+  return {
+    appointmentsCreated: result.initial.length,
+    initial: result.initial,
+    scenarioCustomerIds: result.scenarioCustomerIds,
+  };
 }
 
 function nextSaturday(from: Date): Date {
@@ -502,10 +645,10 @@ async function seedBusySaturday(
   serviceIds: number[],
   durations: Map<number, number>,
   customerIds: number[],
-): Promise<number> {
+): Promise<{ initial: ScenarioRun["initial"]; scenarioCustomerIds: number[] }> {
   const saturday = nextSaturday(new Date());
-  let count = 0;
-  // Each stylist gets a column packed 9:00–18:00.
+  const initial: ScenarioRun["initial"] = [];
+  const usedCustomers = new Set<number>();
   for (let s = 0; s < staffIds.length; s++) {
     let minutes = 9 * 60;
     const endMinutes = 18 * 60;
@@ -516,21 +659,26 @@ async function seedBusySaturday(
       if (minutes + duration > endMinutes) break;
       const date = new Date(saturday);
       date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-      await db.insert(appointments).values({
-        date,
-        duration,
-        status: "confirmed",
-        serviceId,
-        staffId: staffIds[s],
-        customerId: customerIds[(s * 11 + i * 3) % customerIds.length],
-        storeId,
-      });
-      count++;
+      const customerId = customerIds[(s * 11 + i * 3) % customerIds.length];
+      const [row] = await db
+        .insert(appointments)
+        .values({
+          date,
+          duration,
+          status: "confirmed",
+          serviceId,
+          staffId: staffIds[s],
+          customerId,
+          storeId,
+        })
+        .returning({ id: appointments.id });
+      initial.push({ id: row.id, status: "confirmed", customerId });
+      usedCustomers.add(customerId);
       minutes += duration;
       i++;
     }
   }
-  return count;
+  return { initial, scenarioCustomerIds: Array.from(usedCustomers) };
 }
 
 async function seedWalkInRush(
@@ -538,10 +686,8 @@ async function seedWalkInRush(
   staffIds: number[],
   serviceIds: number[],
   durations: Map<number, number>,
-): Promise<number> {
+): Promise<{ initial: ScenarioRun["initial"]; scenarioCustomerIds: number[] }> {
   const now = new Date();
-  // 8 walk-ins over the next 90 minutes — fresh customers so trainee can
-  // see what a true walk-in surge looks like in the calendar.
   const walkInIds: number[] = [];
   for (let i = 0; i < 8; i++) {
     const [c] = await db
@@ -557,24 +703,27 @@ async function seedWalkInRush(
     walkInIds.push(c.id);
   }
 
-  let count = 0;
+  const initial: ScenarioRun["initial"] = [];
   for (let i = 0; i < 8; i++) {
     const serviceId = serviceIds[i % serviceIds.length];
     const duration = durations.get(serviceId) ?? 30;
     const date = new Date(now);
     date.setMinutes(date.getMinutes() + i * 10);
-    await db.insert(appointments).values({
-      date,
-      duration,
-      status: "pending",
-      serviceId,
-      staffId: staffIds[i % staffIds.length],
-      customerId: walkInIds[i],
-      storeId,
-    });
-    count++;
+    const [row] = await db
+      .insert(appointments)
+      .values({
+        date,
+        duration,
+        status: "pending",
+        serviceId,
+        staffId: staffIds[i % staffIds.length],
+        customerId: walkInIds[i],
+        storeId,
+      })
+      .returning({ id: appointments.id });
+    initial.push({ id: row.id, status: "pending", customerId: walkInIds[i] });
   }
-  return count;
+  return { initial, scenarioCustomerIds: walkInIds };
 }
 
 async function seedNoShowRecovery(
@@ -583,12 +732,12 @@ async function seedNoShowRecovery(
   serviceIds: number[],
   durations: Map<number, number>,
   customerIds: number[],
-): Promise<number> {
+): Promise<{ initial: ScenarioRun["initial"]; scenarioCustomerIds: number[] }> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  let count = 0;
+  const initial: ScenarioRun["initial"] = [];
+  const tracked = new Set<number>();
 
-  // 6 no-shows + cancellations across the past 3 days.
   const pastConfigs: Array<{ daysAgo: number; hour: number; status: string }> = [
     { daysAgo: 1, hour: 10, status: "no-show" },
     { daysAgo: 1, hour: 14, status: "no-show" },
@@ -603,36 +752,45 @@ async function seedNoShowRecovery(
     date.setDate(date.getDate() - cfg.daysAgo);
     date.setHours(cfg.hour, 0, 0, 0);
     const serviceId = serviceIds[i % serviceIds.length];
-    await db.insert(appointments).values({
-      date,
-      duration: durations.get(serviceId) ?? 45,
-      status: cfg.status,
-      serviceId,
-      staffId: staffIds[i % staffIds.length],
-      customerId: customerIds[(i * 5) % customerIds.length],
-      storeId,
-    });
-    count++;
+    const customerId = customerIds[(i * 5) % customerIds.length];
+    const [row] = await db
+      .insert(appointments)
+      .values({
+        date,
+        duration: durations.get(serviceId) ?? 45,
+        status: cfg.status,
+        serviceId,
+        staffId: staffIds[i % staffIds.length],
+        customerId,
+        storeId,
+      })
+      .returning({ id: appointments.id });
+    initial.push({ id: row.id, status: cfg.status, customerId });
+    tracked.add(customerId);
   }
 
-  // 4 unconfirmed appointments later today to chase down.
   for (let i = 0; i < 4; i++) {
     const date = new Date(today);
     date.setHours(13 + i, 0, 0, 0);
     const serviceId = serviceIds[(i + 2) % serviceIds.length];
-    await db.insert(appointments).values({
-      date,
-      duration: durations.get(serviceId) ?? 45,
-      status: "pending",
-      serviceId,
-      staffId: staffIds[i % staffIds.length],
-      customerId: customerIds[(i * 9 + 3) % customerIds.length],
-      storeId,
-    });
-    count++;
+    const customerId = customerIds[(i * 9 + 3) % customerIds.length];
+    const [row] = await db
+      .insert(appointments)
+      .values({
+        date,
+        duration: durations.get(serviceId) ?? 45,
+        status: "pending",
+        serviceId,
+        staffId: staffIds[i % staffIds.length],
+        customerId,
+        storeId,
+      })
+      .returning({ id: appointments.id });
+    initial.push({ id: row.id, status: "pending", customerId });
+    tracked.add(customerId);
   }
 
-  return count;
+  return { initial, scenarioCustomerIds: Array.from(tracked) };
 }
 
 /**
