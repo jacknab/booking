@@ -26,19 +26,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // Use terser instead of esbuild to avoid TDZ ("Cannot access 'X' before
-    // initialization") errors caused by esbuild's minify-syntax pass hoisting
-    // const declarations across modules. Terser is slower but produces a
-    // safer output for our bundle.
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        passes: 1,
-      },
-      format: {
-        comments: false,
-      },
-    },
+    // Use esbuild for faster minification (Vite v3+ default)
+    minify: 'esbuild',
     cssCodeSplit: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
