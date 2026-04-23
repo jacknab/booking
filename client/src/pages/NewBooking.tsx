@@ -81,6 +81,9 @@ export default function NewBooking() {
   const [calendarSlotInitialized, setCalendarSlotInitialized] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [walkInBookingPending, setWalkInBookingPending] = useState(false);
+  const [detailsTab, setDetailsTab] = useState<"staff" | "time">(() =>
+    isReschedule || isCalendarBooking || calStaffId ? "time" : "staff"
+  );
 
   const handleCancel = () => {
     if (!selectedService) {
@@ -759,41 +762,6 @@ export default function NewBooking() {
                   data-testid="calendar-date-picker"
                 />
 
-                {staffMode === "specific" && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Select Staff</Label>
-                    {staffList?.map((member: Staff) => (
-                      <button
-                        key={member.id}
-                        onClick={() => handleSpecificStaffSelect(member.id)}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-2.5 rounded-md text-left transition-colors",
-                          specificStaffId === member.id
-                            ? "bg-primary/10 ring-1 ring-primary"
-                            : "hover-elevate"
-                        )}
-                        data-testid={`button-select-staff-${member.id}`}
-                      >
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback
-                            style={{ backgroundColor: (member.color || "#3b82f6") + "22", color: member.color || "#3b82f6" }}
-                            className="text-xs font-bold"
-                          >
-                            {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.role}</p>
-                        </div>
-                        {specificStaffId === member.id && (
-                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
                 {!selectedCustomer && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Client</Label>
@@ -836,32 +804,119 @@ export default function NewBooking() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={staffMode === "any" ? "default" : "outline"}
-                    className="gap-1.5 h-8 px-3 text-xs"
-                    onClick={() => handleStaffModeChange("any")}
-                    data-testid="button-staff-any"
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    Any Staff
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={staffMode === "specific" ? "default" : "outline"}
-                    className="gap-1.5 h-8 px-3 text-xs"
-                    onClick={() => handleStaffModeChange("specific")}
-                    data-testid="button-staff-specific"
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    Specific
-                  </Button>
+                  <div className="inline-flex rounded-md border p-0.5 bg-muted/40">
+                    <button
+                      type="button"
+                      onClick={() => setDetailsTab("staff")}
+                      className={cn(
+                        "flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded transition-colors",
+                        detailsTab === "staff"
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                      data-testid="tab-staff"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      Staff
+                      <span className="text-[10px] text-muted-foreground/80 ml-0.5">
+                        ({staffMode === "any" ? "Any" : (staffList?.find((s: Staff) => s.id === specificStaffId)?.name?.split(" ")[0] || "—")})
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsTab("time")}
+                      className={cn(
+                        "flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded transition-colors",
+                        detailsTab === "time"
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                      data-testid="tab-time"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      Time Slot
+                    </button>
+                  </div>
                   <Badge variant="secondary" className="no-default-active-elevate text-xs">
                     {tzAbbr} &middot; {timezone}
                   </Badge>
                 </div>
               </div>
 
+              {detailsTab === "staff" ? (
+                <div className="p-6 space-y-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Pick who will perform the service, or let us pick the first available.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <button
+                      onClick={() => handleStaffModeChange("any")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors min-h-[140px]",
+                        staffMode === "any"
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover-elevate"
+                      )}
+                      data-testid="card-staff-any"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="w-6 h-6 text-primary" />
+                      </div>
+                      <p className="text-sm font-semibold">Any Staff</p>
+                      <p className="text-[11px] text-muted-foreground text-center leading-tight">First available</p>
+                      {staffMode === "any" && (
+                        <Check className="w-4 h-4 text-primary" />
+                      )}
+                    </button>
+                    {staffList?.map((member: Staff) => {
+                      const isSelected = staffMode === "specific" && specificStaffId === member.id;
+                      const color = member.color || "#3b82f6";
+                      return (
+                        <button
+                          key={member.id}
+                          onClick={() => {
+                            setStaffMode("specific");
+                            handleSpecificStaffSelect(member.id);
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors min-h-[140px]",
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover-elevate"
+                          )}
+                          data-testid={`card-staff-${member.id}`}
+                        >
+                          <Avatar className="w-12 h-12">
+                            <AvatarFallback
+                              style={{ backgroundColor: color + "22", color: color }}
+                              className="text-base font-bold"
+                            >
+                              {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="text-sm font-semibold text-center leading-tight truncate max-w-full">{member.name}</p>
+                          <p className="text-[11px] text-muted-foreground text-center leading-tight truncate max-w-full">{member.role}</p>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-primary" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      className="h-11 px-8"
+                      onClick={() => setDetailsTab("time")}
+                      disabled={staffMode === "specific" && !specificStaffId}
+                      data-testid="button-staff-continue"
+                    >
+                      Continue
+                    </Button>
+                  </div>
+                </div>
+              ) : (
               <div className="p-6">
                 {!selectedDate ? (
                   <div className="flex flex-col items-center justify-center h-48 text-center">
@@ -937,6 +992,7 @@ export default function NewBooking() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           </div>
 
