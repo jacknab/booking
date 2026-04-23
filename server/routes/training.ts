@@ -21,7 +21,12 @@ import { ensureSandboxForUser, resetSandboxData, sandboxStoreIdForUser } from ".
 const router = Router();
 
 const uid = (req: any): string | null => {
-  const id = req.user?.id ?? req.user?.claims?.sub ?? null;
+  const id =
+    req.auth?.userId ??
+    (req.session as any)?.userId ??
+    req.user?.id ??
+    req.user?.claims?.sub ??
+    null;
   return id ? String(id) : null;
 };
 
@@ -313,7 +318,7 @@ async function getSettingsForUser(userId: string) {
 }
 
 async function assertManagesStore(req: any, storeId: number): Promise<boolean> {
-  const role = req.user?.role ?? req.user?.claims?.role;
+  const role = req.auth?.role ?? req.user?.role ?? req.user?.claims?.role;
   if (!isManagerRole(role)) return false;
   if (role === "owner") {
     const [loc] = await db
