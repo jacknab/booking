@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/components/StoreProvider";
 import { useTheme } from "@/hooks/use-theme";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { TrainingProvider } from "@/contexts/TrainingContext";
 import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
@@ -150,7 +151,9 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <ErrorBoundary>
-          <AppRoutes />
+          <TrainingProvider>
+            <AppRoutes />
+          </TrainingProvider>
         </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
