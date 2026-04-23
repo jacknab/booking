@@ -5076,6 +5076,10 @@ If you have any questions, please contact your administrator.
   const { default: trainingRouter } = await import("./routes/training.js");
   app.use("/api/training", trainingRouter);
 
+  // Phase 8 — graduation sweep + day-7 owner digest.
+  const { startGraduationScheduler } = await import("./training/graduation-scheduler.js");
+  startGraduationScheduler();
+
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
   startEmailReminderScheduler();

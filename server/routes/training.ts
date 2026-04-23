@@ -651,6 +651,24 @@ router.put("/admin/settings", isAuthenticated, async (req, res) => {
   }
 });
 
+/**
+ * Phase 8.2 — staff dismisses the one-time "You've graduated 🎓" card.
+ */
+router.post("/acknowledge-graduation", isAuthenticated, async (req, res) => {
+  try {
+    const userId = uid(req);
+    if (!userId) return res.status(401).json({ error: "unauthorized" });
+    await db
+      .update(trainingUserProfile)
+      .set({ graduationStaffNotified: true })
+      .where(eq(trainingUserProfile.userId, userId));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[training] /acknowledge-graduation error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
 router.post("/reset/:userId", isAuthenticated, async (req, res) => {
   try {
     const actor = uid(req);
@@ -666,7 +684,13 @@ router.post("/reset/:userId", isAuthenticated, async (req, res) => {
     await db.delete(trainingUserState).where(eq(trainingUserState.userId, targetUserId));
     await db
       .update(trainingUserProfile)
-      .set({ graduatedAt: null, graduationNotifiedOwner: false, enrolledAt: new Date() })
+      .set({
+        graduatedAt: null,
+        graduationNotifiedOwner: false,
+        graduationStaffNotified: false,
+        day7DigestSentAt: null,
+        enrolledAt: new Date(),
+      })
       .where(eq(trainingUserProfile.userId, targetUserId));
 
     res.json({ ok: true });

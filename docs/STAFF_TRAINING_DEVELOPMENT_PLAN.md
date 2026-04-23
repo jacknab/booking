@@ -161,17 +161,20 @@ Each of these mirrors Phase 3 (author steps + wire overlay). Each is its own sma
 
 ---
 
-## Phase 8 — Graduation
+## Phase 8 — Graduation ✅ DONE
 
-### 8.1 — Graduation logic
+### 8.1 — Graduation logic ✅ DONE
 - A scheduled job (or a check on each event) that computes: enrolled ≥ 7 days AND every touched category at L0.
 - Sets `graduated_at`.
+- **Shipped:** `server/training/graduation-scheduler.ts` runs `graduationSweep()` hourly (plus once at boot). For every non-graduated profile, looks up the user's store-level `graduationMinDays` (default 7), checks every touched `training_user_state` row is at `helpLevel === 0`, and stamps `profile.graduatedAt` + resets `graduationNotifiedOwner`/`graduationStaffNotified` so the owner toast (Phase 6) and staff card (8.2) re-fire. The original per-event check in `/api/training/event` still fires (immediate path), but the scheduler catches users who hit L0 in many categories without triggering further events.
 
-### 8.2 — Graduation card to the staff
+### 8.2 — Graduation card to the staff ✅ DONE
 - One-time *"You've graduated 🎓"* card on next login.
+- **Shipped:** `client/src/components/training/GraduationCard.tsx` mounted in `App.tsx`. Renders when `profile.graduatedAt && !profile.graduationStaffNotified`. Dismiss → `POST /api/training/acknowledge-graduation` flips the flag so it never re-fires (and re-fires after an owner reset, which clears the flag).
 
-### 8.3 — Owner Day-7 digest email
+### 8.3 — Owner Day-7 digest email ✅ DONE
 - For trainees who **didn't** graduate by Day 7: per-staff "still needs help with X, Y" breakdown.
+- **Shipped:** `day7DigestSweep()` runs every 6h. For each eligible trainee (enrolled ≥ `graduationMinDays`, not graduated, no digest sent yet), groups by store owner, sends a single Mailgun email per owner listing every staff member and the categories they're stuck on (any state with `helpLevel > 0`). Stamps `profile.day7DigestSentAt` on success so each trainee triggers exactly one digest. Owner reset clears the timestamp so the digest can fire again after a reset.
 
 ---
 

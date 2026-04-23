@@ -37,6 +37,8 @@ interface TrainingProfile {
   enrolledAt: string;
   graduatedAt: string | null;
   graduationNotifiedOwner: boolean;
+  graduationStaffNotified: boolean;
+  day7DigestSentAt: string | null;
 }
 
 interface TrainingSettings {

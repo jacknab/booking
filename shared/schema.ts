@@ -1113,6 +1113,8 @@ export const trainingUserProfile = pgTable("training_user_profile", {
   enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
   graduatedAt: timestamp("graduated_at"),
   graduationNotifiedOwner: boolean("graduation_notified_owner").notNull().default(false),
+  graduationStaffNotified: boolean("graduation_staff_notified").notNull().default(false),
+  day7DigestSentAt: timestamp("day7_digest_sent_at"),
 });
 
 export const trainingSettings = pgTable("training_settings", {

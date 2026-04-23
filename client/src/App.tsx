@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TrainingProvider } from "@/contexts/TrainingContext";
 import { HelpBubble } from "@/components/training/HelpBubble";
 import { GraduationNotifier } from "@/components/training/GraduationNotifier";
+import { GraduationCard } from "@/components/training/GraduationCard";
 import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
@@ -161,6 +162,7 @@ function App() {
             <AppRoutes />
             <HelpBubble />
             <GraduationNotifier />
+            <GraduationCard />
           </TrainingProvider>
         </ErrorBoundary>
       </TooltipProvider>
