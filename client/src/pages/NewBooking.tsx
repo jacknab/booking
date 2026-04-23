@@ -791,6 +791,15 @@ export default function NewBooking() {
                   />
                 </div>
               </div>
+              <div className="p-3 border-t">
+                <Button
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
+                  onClick={handleCancel}
+                  data-testid="button-cancel-booking-details"
+                >
+                  <span className="font-semibold">Cancel</span>
+                </Button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
