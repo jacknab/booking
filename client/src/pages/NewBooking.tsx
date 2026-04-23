@@ -20,7 +20,7 @@ import { useAvailableSlots, type TimeSlot } from "@/hooks/use-availability";
 import { useSelectedStore } from "@/hooks/use-store";
 import { getTimezoneAbbr, formatInTz, storeLocalToUtc, getNowInTimezone } from "@/lib/timezone";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer, AlertCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
@@ -589,7 +589,7 @@ export default function NewBooking() {
                 >
                   <span className="flex flex-col items-center leading-tight">
                     <span className="font-semibold">Request Booking</span>
-                    <span className="text-[10px] opacity-80">{totalDuration} min</span>
+                    <span className="font-semibold opacity-90">{totalDuration} min</span>
                   </span>
                 </Button>
               )
@@ -607,10 +607,20 @@ export default function NewBooking() {
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
               )}
-              <div>
+              <div className="flex-1">
                 <h2 className="font-semibold text-lg" data-testid="text-extras-heading">Extras</h2>
                 <p className="text-xs text-muted-foreground" data-testid="text-extras-subheading">for {selectedService?.name}</p>
               </div>
+              {!editAppointmentId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStep("services")}
+                  data-testid="button-no-addons"
+                >
+                  No Addons
+                </Button>
+              )}
             </div>
             <div className="p-6 space-y-5">
               {addonsLoading ? (
@@ -717,7 +727,7 @@ export default function NewBooking() {
                 >
                   <span className="flex flex-col items-center leading-tight">
                     <span className="font-semibold">Request Booking</span>
-                    <span className="text-[10px] opacity-80">{totalDuration} min</span>
+                    <span className="font-semibold opacity-90">{totalDuration} min</span>
                   </span>
                 </Button>
               )
@@ -1154,6 +1164,15 @@ function BookingSummaryPanel({
   const remainingMinutes = availableMinutes != null ? availableMinutes - totalDuration : null;
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   const [highlightedServiceId, setHighlightedServiceId] = useState<number | null>(null);
+
+  // Format a phone number as (555) 123-4567 — strips non-digits and falls
+  // back to the original string if we don't have exactly 10 digits.
+  const formatPhoneNumber = (raw: string) => {
+    const digits = (raw || "").replace(/\D/g, "");
+    const ten = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+    if (ten.length !== 10) return raw;
+    return `(${ten.slice(0, 3)}) ${ten.slice(3, 6)}-${ten.slice(6)}`;
+  };
   const { selectedStore: panelStore } = useSelectedStore();
   const { data: allAppts = [] } = useQuery<any[]>({
     queryKey: ["/api/appointments", panelStore?.id],
@@ -1183,20 +1202,20 @@ function BookingSummaryPanel({
         <div className="flex-1 min-w-0">
           {selectedCustomer ? (
             <>
-              <div className="flex items-center gap-2">
-                <Link
-                  to={`/client/${selectedCustomer.id}`}
-                  className="text-xl font-bold text-foreground underline-offset-4 hover:underline cursor-pointer truncate"
-                  data-testid="link-client-profile"
-                >
+              <button
+                type="button"
+                onClick={() => onSetCustomer(null)}
+                className="w-full text-left flex items-center gap-2 -m-1 p-1 rounded-md hover:bg-muted/50 active:bg-muted transition-colors"
+                data-testid="button-replace-client"
+                title="Replace client"
+              >
+                <span className="text-xl font-bold text-foreground truncate">
                   {selectedCustomer.name}
-                </Link>
-                <button onClick={() => onSetCustomer(null)} className="text-muted-foreground flex-shrink-0">
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
+                </span>
+                <X className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </button>
               {selectedCustomer.phone && (
-                <p className="text-xs text-muted-foreground mt-0.5">{selectedCustomer.phone}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatPhoneNumber(selectedCustomer.phone)}</p>
               )}
               {noShowInfo && (
                 <div
