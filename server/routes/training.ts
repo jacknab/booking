@@ -16,7 +16,14 @@ import { users } from "../../shared/models/auth";
 import { isAuthenticated } from "../auth";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { reduce, type CategoryState, type TrainingEventType } from "../training/reducer";
-import { ensureSandboxForUser, resetSandboxData, sandboxStoreIdForUser } from "../training/sandbox";
+import {
+  ensureSandboxForUser,
+  resetSandboxData,
+  sandboxStoreIdForUser,
+  applySandboxScenario,
+  SANDBOX_SCENARIOS,
+  type SandboxScenarioKey,
+} from "../training/sandbox";
 
 const router = Router();
 
@@ -776,6 +783,39 @@ router.post("/sandbox/reset", isAuthenticated, async (req, res) => {
     res.json({ ok: true, sandboxId });
   } catch (err) {
     console.error("[training] /sandbox/reset error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * List the available Quick Scenarios for the practice sandbox picker.
+ */
+router.get("/sandbox/scenarios", isAuthenticated, async (_req, res) => {
+  res.json({ scenarios: SANDBOX_SCENARIOS });
+});
+
+/**
+ * Apply a Quick Scenario to the caller's sandbox. Any signed-in trainee
+ * can run this on their own practice store — it never touches live data.
+ */
+router.post("/sandbox/scenario", isAuthenticated, async (req, res) => {
+  try {
+    const userId = uid(req);
+    if (!userId) return res.status(401).json({ error: "unauthorized" });
+
+    const scenario = String(req.body?.scenario ?? "");
+    if (!SANDBOX_SCENARIOS.some((s) => s.key === scenario)) {
+      return res.status(400).json({ error: "unknown_scenario" });
+    }
+
+    let sandboxId = await sandboxStoreIdForUser(userId);
+    if (!sandboxId) sandboxId = await ensureSandboxForUser(userId);
+    if (!sandboxId) return res.status(404).json({ error: "no_store_for_user" });
+
+    const result = await applySandboxScenario(sandboxId, scenario as SandboxScenarioKey);
+    res.json({ ok: true, sandboxId, ...result });
+  } catch (err) {
+    console.error("[training] /sandbox/scenario error:", err);
     res.status(500).json({ error: "internal_error" });
   }
 });
