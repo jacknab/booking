@@ -111,6 +111,7 @@ export default function Calendar() {
   const [lookupMode, setLookupMode] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [showJumpToNow, setShowJumpToNow] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
 
@@ -614,55 +615,81 @@ export default function Calendar() {
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Icon-only navigation sidebar */}
-        <TooltipProvider delayDuration={200}>
-          <nav className="w-16 flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex flex-col items-center py-3 gap-1.5 z-30">
-            {calendarSidebarItems.filter((item) => {
-              if (!posEnabled) {
-                if (item.kind === "action" && item.action === "quick-checkout") return false;
-                if (item.kind === "link" && (item.to === "/analytics" || item.to === "/reports")) return false;
-              }
-              return true;
-            }).map((item, idx) => {
-              if (item.kind === "action") {
-                return (
-                  <Tooltip key={`action-${idx}`}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setQuickCheckoutOpen(true)}
-                        data-testid="button-quick-checkout"
-                        className="flex items-center justify-center w-11 h-11 rounded-xl border border-transparent transition-all duration-200 text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
-                      >
-                        <item.icon className="h-5 w-5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
-                  </Tooltip>
-                );
-              }
-              const isActive = location.pathname === item.to;
+        {/* Collapsible navigation drawer */}
+        <nav
+          className={cn(
+            "flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex flex-col items-stretch py-3 gap-1.5 z-30 transition-[width] duration-200 ease-out overflow-hidden",
+            navOpen ? "w-44" : "w-16"
+          )}
+          data-testid="calendar-nav-drawer"
+        >
+          <button
+            type="button"
+            onClick={() => setNavOpen((v) => !v)}
+            aria-label={navOpen ? "Collapse menu" : "Expand menu"}
+            data-testid="button-toggle-nav-drawer"
+            className="mx-auto mb-1 flex items-center justify-center w-11 h-11 rounded-xl text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
+          >
+            {navOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </button>
+          {calendarSidebarItems.filter((item) => {
+            if (!posEnabled) {
+              if (item.kind === "action" && item.action === "quick-checkout") return false;
+              if (item.kind === "link" && (item.to === "/analytics" || item.to === "/reports")) return false;
+            }
+            return true;
+          }).map((item, idx) => {
+            const baseClasses = cn(
+              "mx-2 flex flex-col items-center justify-center rounded-xl border border-transparent transition-all duration-200 py-2 gap-1",
+              navOpen ? "px-2" : "px-0"
+            );
+            if (item.kind === "action") {
               return (
-                <Tooltip key={item.to}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to={item.to}
-                      className={cn(
-                        "flex items-center justify-center w-11 h-11 rounded-xl border border-transparent transition-all duration-200",
-                        isActive
-                          ? "border-primary/10 bg-background text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
-                          : "text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
+                <button
+                  key={`action-${idx}`}
+                  type="button"
+                  onClick={() => {
+                    setQuickCheckoutOpen(true);
+                    setNavOpen(false);
+                  }}
+                  data-testid="button-quick-checkout"
+                  className={cn(
+                    baseClasses,
+                    "text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {navOpen && (
+                    <span className="text-[11px] font-medium leading-tight text-center whitespace-nowrap">
+                      {item.label}
+                    </span>
+                  )}
+                </button>
               );
-            })}
-          </nav>
-        </TooltipProvider>
+            }
+            const isActive = location.pathname === item.to;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setNavOpen(false)}
+                className={cn(
+                  baseClasses,
+                  isActive
+                    ? "border-primary/10 bg-background text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
+                    : "text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {navOpen && (
+                  <span className="text-[11px] font-medium leading-tight text-center whitespace-nowrap">
+                    {item.label}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
         <div className="flex-1 overflow-hidden relative">
           {showJumpToNow && (
