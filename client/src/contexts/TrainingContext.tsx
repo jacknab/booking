@@ -39,17 +39,27 @@ interface TrainingProfile {
   graduationNotifiedOwner: boolean;
 }
 
+interface TrainingSettings {
+  enabled: boolean;
+  autoEnrollNewStaff: boolean;
+  graduationMinDays: number;
+  showHelpBubbleAfterGraduation: boolean;
+  storeId: number | null;
+}
+
 interface TrainingStateResponse {
   enrolled: boolean;
   profile: TrainingProfile | null;
   categories: TrainingCategory[];
   state: TrainingState[];
+  settings?: TrainingSettings;
 }
 
 interface TrainingContextValue {
   enabled: boolean;
   profile: TrainingProfile | null;
   graduated: boolean;
+  settings: TrainingSettings | null;
   /** Returns the current help level (0..3) for a category. 3 if unknown. */
   getHelpLevel: (categorySlug: string) => number;
   /** True if the user has graduated this category (silent forever). */
@@ -77,14 +87,18 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
   // Throttle: drop duplicate events of the same (slug,type) within 1.5s.
   const lastEventRef = useRef<Map<string, number>>(new Map());
 
-  const enabled = !!user;
+  const userPresent = !!user;
 
   const { data } = useQuery<TrainingStateResponse>({
     queryKey: ["/api/training/state"],
-    enabled,
+    enabled: userPresent,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+
+  // Honor server-side gating: store may have training disabled, or user may
+  // not be enrolled (e.g. auto-enroll off and never manually enrolled).
+  const enabled = userPresent && (data?.enrolled ?? false);
 
   const categoriesBySlug = useMemo(() => {
     const map = new Map<string, TrainingCategory>();

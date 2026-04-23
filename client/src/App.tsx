@@ -106,6 +106,7 @@ import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
 import SeoManager from "@/components/SeoManager";
 import TeamPermissions from "@/pages/TeamPermissions";
 import TrainingAdmin from "@/pages/TrainingAdmin";
+import TrainingSettings from "@/pages/TrainingSettings";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
 
@@ -137,6 +138,7 @@ const authenticatedPaths = [
   "/business-settings",
   "/team-permissions",
   "/dashboard/training",
+  "/dashboard/training/settings",
   "/online-booking",
   "/sms-settings",
   "/mail-settings",
@@ -243,6 +245,7 @@ function AppRoutes() {
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/waitlist" element={<Waitlist />} />
       <Route path="/dashboard/training" element={<TrainingAdmin />} />
+      <Route path="/dashboard/training/settings" element={<TrainingSettings />} />
       <Route path="/dashboard/queue" element={<QueueDashboard />} />
       <Route path="/dashboard/queue/settings" element={<QueueSettings />} />
       <Route path="/gift-cards" element={<GiftCards />} />

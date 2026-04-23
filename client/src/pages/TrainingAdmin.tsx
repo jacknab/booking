@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, GraduationCap, Pin, PinOff, RotateCcw, X } from "lucide-react";
+import { Loader2, GraduationCap, Pin, PinOff, RotateCcw, X, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -192,6 +193,13 @@ export default function TrainingAdmin() {
                 or reset someone back to full coaching.
               </p>
             </div>
+            <Link
+              to="/dashboard/training/settings"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              data-testid="link-training-settings"
+            >
+              <Settings className="w-4 h-4" /> Settings
+            </Link>
           </header>
 
           {listQuery.isLoading && (

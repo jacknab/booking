@@ -5,6 +5,7 @@ import {
   trainingUserState,
   trainingUserProfile,
   trainingEvents,
+  trainingSettings,
   staff,
   locations,
   type InsertTrainingEvent,
@@ -59,18 +60,40 @@ router.get("/state", isAuthenticated, async (req, res) => {
     const userId = uid(req);
     if (!userId) return res.status(401).json({ error: "unauthorized" });
 
-    const profile = await ensureProfile(userId);
-    const categories = await db.select().from(trainingActionCategories);
-    const state = await db
+    const settings = await getSettingsForUser(userId);
+
+    // Phase 7 — respect store-level "auto-enroll new staff" toggle.
+    // If disabled, only enroll users whose owner manually opted them in
+    // (i.e. a profile already exists).
+    let profile = await db
       .select()
-      .from(trainingUserState)
-      .where(eq(trainingUserState.userId, userId));
+      .from(trainingUserProfile)
+      .where(eq(trainingUserProfile.userId, userId))
+      .then((r) => r[0]);
+    if (!profile && settings.autoEnrollNewStaff) {
+      profile = await ensureProfile(userId);
+    }
+
+    const categories = await db.select().from(trainingActionCategories);
+    const state = profile
+      ? await db
+          .select()
+          .from(trainingUserState)
+          .where(eq(trainingUserState.userId, userId))
+      : [];
 
     res.json({
-      enrolled: true,
+      enrolled: !!profile && settings.enabled,
       profile,
       categories,
       state,
+      settings: {
+        enabled: settings.enabled,
+        autoEnrollNewStaff: settings.autoEnrollNewStaff,
+        graduationMinDays: settings.graduationMinDays,
+        showHelpBubbleAfterGraduation: settings.showHelpBubbleAfterGraduation,
+        storeId: settings.storeId,
+      },
     });
   } catch (err) {
     console.error("[training] /state error:", err);
@@ -187,6 +210,14 @@ router.post("/event", isAuthenticated, async (req, res) => {
         .from(trainingUserProfile)
         .where(eq(trainingUserProfile.userId, userId));
       if (profile && !profile.graduatedAt) {
+        // Phase 7 — honor minimum-days gate. Owners can require staff to be
+        // enrolled for at least N days before being allowed to graduate.
+        const settings = await getSettingsForUser(userId);
+        const enrolledMs = profile.enrolledAt ? new Date(profile.enrolledAt).getTime() : Date.now();
+        const ageDays = (Date.now() - enrolledMs) / 86_400_000;
+        if (ageDays < (settings.graduationMinDays ?? 0)) {
+          // Skip overall graduation; per-category state still updated above.
+        } else {
         const allCategories = await db.select({ id: trainingActionCategories.id }).from(trainingActionCategories);
         const userStates = await db
           .select({ categoryId: trainingUserState.categoryId, graduatedAt: trainingUserState.graduatedAt })
@@ -199,6 +230,7 @@ router.post("/event", isAuthenticated, async (req, res) => {
             .update(trainingUserProfile)
             .set({ graduatedAt: new Date(), graduationNotifiedOwner: false })
             .where(eq(trainingUserProfile.userId, userId));
+        }
         }
       }
     }
@@ -231,6 +263,47 @@ function isManagerRole(role: unknown): boolean {
  * Owners are gated by `locations.userId`; managers/admins are trusted globally
  * (they're already authenticated and the UI scopes them per-store).
  */
+/**
+ * Phase 7 — settings helper. Returns the merged training settings row for a
+ * store (creates the default row on first read so the UI always has something
+ * to bind to).
+ */
+const SETTINGS_DEFAULTS = {
+  enabled: true,
+  autoEnrollNewStaff: true,
+  graduationMinDays: 7,
+  showHelpBubbleAfterGraduation: true,
+};
+
+async function getSettingsForStore(storeId: number) {
+  const [row] = await db
+    .select()
+    .from(trainingSettings)
+    .where(eq(trainingSettings.storeId, storeId));
+  if (row) return row;
+  const [created] = await db
+    .insert(trainingSettings)
+    .values({ storeId, ...SETTINGS_DEFAULTS })
+    .onConflictDoNothing()
+    .returning();
+  if (created) return created;
+  const [reread] = await db
+    .select()
+    .from(trainingSettings)
+    .where(eq(trainingSettings.storeId, storeId));
+  return reread;
+}
+
+/** Resolve the effective settings for a signed-in user (looks up their store). */
+async function getSettingsForUser(userId: string) {
+  const [u] = await db.select().from(users).where(eq(users.id, userId));
+  if (!u?.staffId) return { storeId: null, ...SETTINGS_DEFAULTS };
+  const [s] = await db.select().from(staff).where(eq(staff.id, u.staffId));
+  if (!s?.storeId) return { storeId: null, ...SETTINGS_DEFAULTS };
+  const settings = await getSettingsForStore(s.storeId);
+  return { storeId: s.storeId, ...settings };
+}
+
 async function assertManagesStore(req: any, storeId: number): Promise<boolean> {
   const role = req.user?.role ?? req.user?.claims?.role;
   if (!isManagerRole(role)) return false;
@@ -526,6 +599,54 @@ router.post("/admin/pin", isAuthenticated, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error("[training] /admin/pin error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * Phase 7 — store-level training settings.
+ */
+router.get("/admin/settings", isAuthenticated, async (req, res) => {
+  try {
+    const storeId = Number(req.query.storeId);
+    if (!Number.isInteger(storeId)) return res.status(400).json({ error: "storeId required" });
+    if (!(await assertManagesStore(req, storeId))) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const settings = await getSettingsForStore(storeId);
+    res.json({ settings });
+  } catch (err) {
+    console.error("[training] /admin/settings GET error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+router.put("/admin/settings", isAuthenticated, async (req, res) => {
+  try {
+    const { storeId, enabled, autoEnrollNewStaff, graduationMinDays, showHelpBubbleAfterGraduation } =
+      req.body ?? {};
+    if (!Number.isInteger(storeId)) return res.status(400).json({ error: "storeId required" });
+    if (!(await assertManagesStore(req, storeId))) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const minDays = Number(graduationMinDays);
+    if (!Number.isInteger(minDays) || minDays < 0 || minDays > 365) {
+      return res.status(400).json({ error: "graduationMinDays must be 0..365" });
+    }
+    await getSettingsForStore(storeId); // ensure row exists
+    const [updated] = await db
+      .update(trainingSettings)
+      .set({
+        enabled: !!enabled,
+        autoEnrollNewStaff: !!autoEnrollNewStaff,
+        graduationMinDays: minDays,
+        showHelpBubbleAfterGraduation: !!showHelpBubbleAfterGraduation,
+      })
+      .where(eq(trainingSettings.storeId, storeId))
+      .returning();
+    res.json({ settings: updated });
+  } catch (err) {
+    console.error("[training] /admin/settings PUT error:", err);
     res.status(500).json({ error: "internal_error" });
   }
 });

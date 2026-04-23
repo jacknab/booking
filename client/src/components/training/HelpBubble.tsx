@@ -13,12 +13,15 @@ import { useTraining } from "@/contexts/TrainingContext";
  *   - Shows a brief "got it" toast so the staff member knows help is coming
  */
 export function HelpBubble() {
-  const { enabled, graduated, activeCategory, requestHelp, isCategoryGraduated } = useTraining();
+  const { enabled, graduated, activeCategory, requestHelp, isCategoryGraduated, settings } = useTraining();
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
 
-  if (!enabled || graduated || !activeCategory) return null;
-  if (isCategoryGraduated(activeCategory)) return null;
+  if (!enabled || !activeCategory) return null;
+  // After graduation, only show the bubble if the owner has opted in.
+  const showAfterGraduation = settings?.showHelpBubbleAfterGraduation ?? true;
+  if (graduated && !showAfterGraduation) return null;
+  if (isCategoryGraduated(activeCategory) && !showAfterGraduation) return null;
 
   const onClick = async () => {
     if (busy) return;
