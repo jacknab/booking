@@ -709,6 +709,34 @@ router.post("/reset/:userId", isAuthenticated, async (req, res) => {
 });
 
 /**
+ * Phase 9.4 — return (and lazily create) the practice sandbox store for the
+ * authenticated caller. Called by the client when entering Practice Mode.
+ */
+router.get("/sandbox", isAuthenticated, async (req, res) => {
+  try {
+    const userId = uid(req);
+    if (!userId) return res.status(401).json({ error: "unauthorized" });
+
+    // Resolve user → staff → store → sandbox.
+    let sandboxId = await sandboxStoreIdForUser(userId);
+    if (!sandboxId) {
+      sandboxId = await ensureSandboxForUser(userId);
+    }
+    if (!sandboxId) {
+      return res.status(404).json({ error: "no_store_for_user" });
+    }
+
+    const [store] = await db.select().from(locations).where(eq(locations.id, sandboxId));
+    if (!store) return res.status(404).json({ error: "sandbox_not_found" });
+
+    res.json({ store });
+  } catch (err) {
+    console.error("[training] /sandbox error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
  * Phase 9.1 — wipe & reseed the practice sandbox for the caller's store.
  * Owners/managers/admins only.
  */

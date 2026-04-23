@@ -11,8 +11,11 @@
  */
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { MemoryRouter } from "react-router-dom";
 import { Beaker, X } from "lucide-react";
 import { usePracticeMode } from "@/contexts/PracticeModeContext";
+import { SandboxStoreProvider } from "@/components/training/SandboxStoreProvider";
+import { SandboxRoutes } from "@/components/training/SandboxRoutes";
 
 export function PracticeOverlay() {
   const { inPractice, exitPractice } = usePracticeMode();
@@ -83,25 +86,18 @@ export function PracticeOverlay() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-auto bg-muted/20">
-          {/* Phase 9.4 will mount the sandbox-scoped app routes here. */}
-          <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
-            <div className="text-center max-w-md p-8">
-              <Beaker className="w-10 h-10 mx-auto mb-3 opacity-60" />
-              <p className="font-medium text-foreground mb-1">
-                Practice surface ready.
-              </p>
-              <p>
-                Phase 9.4 will mount the full app here against a sandbox store, so
-                you can drill bookings, check-outs, and walk-ins without affecting
-                live data.
-              </p>
-              <p className="mt-3 text-xs">
-                Press <kbd className="px-1.5 py-0.5 rounded border bg-background">Esc</kbd>,
-                click the ✕, or click outside this panel to close.
-              </p>
-            </div>
-          </div>
+        <div className="flex-1 overflow-auto bg-background">
+          {/*
+           * MemoryRouter keeps practice navigation isolated from the live URL,
+           * so a trainee clicking around inside the overlay never changes the
+           * browser address bar. SandboxStoreProvider overrides StoreContext
+           * so every reused page component reads/writes the sandbox store.
+           */}
+          <MemoryRouter initialEntries={["/calendar"]}>
+            <SandboxStoreProvider>
+              <SandboxRoutes />
+            </SandboxStoreProvider>
+          </MemoryRouter>
         </div>
       </div>
     </div>,

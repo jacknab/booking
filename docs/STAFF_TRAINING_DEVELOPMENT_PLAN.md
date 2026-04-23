@@ -208,9 +208,11 @@ Built in parallel with Phases 5–8. Each sub-phase is its own PR.
 - Temporary trigger: **Cmd/Ctrl + Shift + P** opens or closes the overlay (sidebar entry comes in 9.8).
 - Mounted inside `TrainingProvider` in App.tsx so it inherits training state for future phases.
 
-### 9.4 — `StoreContext` override + route remount
-- Inside the overlay, the existing app routes mount with a sandbox `storeId`.
-- No duplicated UI — the same Calendar / NewBooking / Lookup components.
+### 9.4 — `StoreContext` override + route remount ✅ DONE
+- `GET /api/training/sandbox` returns (and lazily creates) the caller's sandbox `locations` row.
+- `client/src/components/training/SandboxStoreProvider.tsx` fetches it and re-supplies the existing `StoreContext` with the sandbox as `selectedStore`. Every page that calls `useSelectedStore()` automatically operates on the sandbox without code changes.
+- `client/src/components/training/SandboxRoutes.tsx` reuses the live page components (Calendar, NewBooking, ClientLookup, POSInterface, Customers, ClientProfile, Dashboard) — no duplicated UI.
+- `PracticeOverlay` mounts those routes inside a `MemoryRouter` (initial entry `/calendar`), so practice navigation never changes the live URL bar and live and practice keep separate route stacks.
 
 ### 9.5 — Resume-where-you-left-off
 - Persist overlay route + scroll + in-progress form state in `localStorage` keyed by user id.
