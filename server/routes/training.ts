@@ -16,6 +16,7 @@ import { users } from "../../shared/models/auth";
 import { isAuthenticated } from "../auth";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { reduce, type CategoryState, type TrainingEventType } from "../training/reducer";
+import { ensureSandboxForUser, resetSandboxData, sandboxStoreIdForUser } from "../training/sandbox";
 
 const router = Router();
 
@@ -46,7 +47,14 @@ async function ensureProfile(userId: string) {
     .values({ userId })
     .onConflictDoNothing()
     .returning();
-  if (created) return created;
+  if (created) {
+    // Phase 9.1 — first enrollment for this user; make sure their store has a
+    // practice sandbox ready. Best-effort: do not block enrollment on failure.
+    ensureSandboxForUser(userId).catch((err) =>
+      console.error("[training] ensureSandboxForUser failed:", err),
+    );
+    return created;
+  }
   // Lost the race — re-read.
   const [reread] = await db
     .select()
@@ -696,6 +704,45 @@ router.post("/reset/:userId", isAuthenticated, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error("[training] /reset error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * Phase 9.1 — wipe & reseed the practice sandbox for the caller's store.
+ * Owners/managers/admins only.
+ */
+router.post("/sandbox/reset", isAuthenticated, async (req, res) => {
+  try {
+    const actor = uid(req);
+    if (!actor) return res.status(401).json({ error: "unauthorized" });
+    const role = (req as any).user?.role ?? (req as any).user?.claims?.role;
+    if (role !== "owner" && role !== "admin" && role !== "manager") {
+      return res.status(403).json({ error: "forbidden" });
+    }
+
+    const storeId = Number(req.body?.storeId);
+    if (!Number.isFinite(storeId) || storeId <= 0) {
+      return res.status(400).json({ error: "storeId required" });
+    }
+
+    // Resolve target sandbox: caller passes the parent store id; we look up
+    // its sandbox (creating one if it doesn't exist yet).
+    const [parent] = await db.select().from(locations).where(eq(locations.id, storeId));
+    if (!parent) return res.status(404).json({ error: "store not found" });
+
+    let sandboxId: number;
+    if (parent.isTrainingSandbox) {
+      sandboxId = parent.id;
+    } else {
+      const { ensureSandboxForStore } = await import("../training/sandbox");
+      sandboxId = await ensureSandboxForStore(parent.id);
+    }
+
+    await resetSandboxData(sandboxId);
+    res.json({ ok: true, sandboxId });
+  } catch (err) {
+    console.error("[training] /sandbox/reset error:", err);
     res.status(500).json({ error: "internal_error" });
   }
 });

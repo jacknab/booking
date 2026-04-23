@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, GraduationCap, Pin, PinOff, RotateCcw, X, Settings } from "lucide-react";
+import { Loader2, GraduationCap, Pin, PinOff, RotateCcw, X, Settings, Beaker } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
@@ -154,6 +154,22 @@ export default function TrainingAdmin() {
     },
   });
 
+  const sandboxResetMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/training/sandbox/reset", { storeId });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Practice data reset",
+        description: "Fresh demo staff, services, clients, and bookings are loaded.",
+      });
+    },
+    onError: () => {
+      toast({ title: "Could not reset practice data", variant: "destructive" });
+    },
+  });
+
   const role = (user as any)?.role;
   const isManager = role === "owner" || role === "admin" || role === "manager";
 
@@ -193,13 +209,37 @@ export default function TrainingAdmin() {
                 or reset someone back to full coaching.
               </p>
             </div>
-            <Link
-              to="/dashboard/training/settings"
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-              data-testid="link-training-settings"
-            >
-              <Settings className="w-4 h-4" /> Settings
-            </Link>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Wipe all practice-mode data and reload fresh demo staff, services, clients, and bookings?",
+                    )
+                  ) {
+                    sandboxResetMutation.mutate();
+                  }
+                }}
+                disabled={!storeId || sandboxResetMutation.isPending}
+                data-testid="button-reset-practice-data"
+              >
+                {sandboxResetMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Beaker className="w-4 h-4" />
+                )}
+                Reset Practice Data
+              </Button>
+              <Link
+                to="/dashboard/training/settings"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+                data-testid="link-training-settings"
+              >
+                <Settings className="w-4 h-4" /> Settings
+              </Link>
+            </div>
           </header>
 
           {listQuery.isLoading && (

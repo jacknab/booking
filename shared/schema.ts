@@ -32,6 +32,10 @@ export const locations = pgTable("locations", {
   facebookPageId: text("facebook_page_id"),
   lateGracePeriodMinutes: integer("late_grace_period_minutes").notNull().default(10),
   posEnabled: boolean("pos_enabled").notNull().default(true),
+  // Phase 9.1 — sandbox stores are practice clones. All side-effects
+  // (SMS, email, Stripe, webhooks) short-circuit when storeId points here.
+  isTrainingSandbox: boolean("is_training_sandbox").notNull().default(false),
+  sandboxParentStoreId: integer("sandbox_parent_store_id"),
 });
 
 export const businessHours = pgTable("business_hours", {

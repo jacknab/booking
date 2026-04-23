@@ -30,9 +30,11 @@ import { sendEmail } from "../mail";
 const HOUR_MS = 60 * 60 * 1000;
 const GRADUATION_TICK_MS = 1 * HOUR_MS;
 const DIGEST_TICK_MS = 6 * HOUR_MS;
+const SANDBOX_RESET_TICK_MS = 24 * HOUR_MS;
 
 let graduationIntervalId: ReturnType<typeof setInterval> | null = null;
 let digestIntervalId: ReturnType<typeof setInterval> | null = null;
+let sandboxResetIntervalId: ReturnType<typeof setInterval> | null = null;
 
 const SETTINGS_DEFAULTS = {
   enabled: true,
@@ -266,8 +268,10 @@ function escapeHtml(s: string): string {
 }
 
 export function startGraduationScheduler() {
-  if (graduationIntervalId || digestIntervalId) return;
-  console.log("[Training] Graduation scheduler started (hourly grad sweep, 6h digest)");
+  if (graduationIntervalId || digestIntervalId || sandboxResetIntervalId) return;
+  console.log(
+    "[Training] Graduation scheduler started (hourly grad sweep, 6h digest, daily sandbox reset)",
+  );
 
   // Kick off immediately, then on interval.
   graduationSweep().catch((err) =>
@@ -284,4 +288,18 @@ export function startGraduationScheduler() {
       console.error("[Training] day7DigestSweep error:", err),
     );
   }, DIGEST_TICK_MS);
+
+  // Phase 9.1 — nightly wipe & reseed of every practice sandbox.
+  // Lazy import keeps the scheduler module decoupled from the sandbox helpers.
+  sandboxResetIntervalId = setInterval(async () => {
+    try {
+      const { resetAllSandboxes } = await import("./sandbox");
+      const r = await resetAllSandboxes();
+      if (r.resetCount > 0) {
+        console.log(`[Training] reset ${r.resetCount} practice sandbox(es)`);
+      }
+    } catch (err) {
+      console.error("[Training] resetAllSandboxes error:", err);
+    }
+  }, SANDBOX_RESET_TICK_MS);
 }

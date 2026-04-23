@@ -182,12 +182,14 @@ Each of these mirrors Phase 3 (author steps + wire overlay). Each is its own sma
 
 Built in parallel with Phases 5–8. Each sub-phase is its own PR.
 
-### 9.1 — Sandbox store + seeder
-- `stores.is_training_sandbox` boolean column.
-- One sandbox store auto-created per real store on first staff enrollment.
-- `scripts/seed-training-sandbox.ts` (4 demo staff, ~20 services, ~30 clients, ~40 appointments).
-- Nightly cron that resets the sandbox.
-- *Reset Practice Data* button.
+### 9.1 — Sandbox store + seeder ✅ DONE
+- `locations.is_training_sandbox` + `sandbox_parent_store_id` columns.
+- `server/training/sandbox.ts` — `ensureSandboxForStore` / `resetSandboxData` / `resetAllSandboxes` / `ensureSandboxForUser`.
+- Hooked into `ensureProfile` so the first time a user enrolls, their store gets a sandbox.
+- `scripts/seed-training-sandbox.ts` — manual reseed (all stores or specific ids).
+- Nightly cron in graduation-scheduler (24h tick) wipes & reseeds every sandbox.
+- `POST /api/training/sandbox/reset` admin endpoint + *Reset Practice Data* button on TrainingAdmin.
+- Sandbox stores have `userId=null` so they stay out of the owner's normal store picker.
 
 ### 9.2 — Side-effect short-circuits
 - Single guard at the top of each external service call (SMS, email, Stripe, webhooks): if the operation's `storeId` is the sandbox → return `{ skipped: true }`.
