@@ -4940,17 +4940,60 @@ If you have any questions, please contact your administrator.
 
   app.patch("/api/team/:userId/role", requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
     try {
-      const targetId = req.params.userId;
+      let targetId = req.params.userId;
       const { role } = req.body as { role?: string };
       if (!["manager", "staff"].includes(role || "")) {
         return res.status(400).json({ message: "Role must be 'manager' or 'staff'" });
       }
-      // Reject pseudo-IDs used for staff records that don't yet have a login.
+
+      // Pseudo-IDs (staff:N) point to staff records without a login yet.
+      // Auto-create a user account so the owner can assign a role directly.
       if (targetId.startsWith("staff:")) {
-        return res.status(400).json({
-          message: "This staff member hasn't logged in yet. Ask them to sign in once before assigning a role.",
-        });
+        const staffId = Number(targetId.slice("staff:".length));
+        if (!Number.isInteger(staffId)) {
+          return res.status(400).json({ message: "Invalid staff id" });
+        }
+        const [staffRow] = await db.select().from(staff).where(eq(staff.id, staffId));
+        if (!staffRow) return res.status(404).json({ message: "Staff member not found" });
+        if (!staffRow.email) {
+          return res.status(400).json({
+            message: "This staff member needs an email on their profile before a role can be assigned.",
+          });
+        }
+        // If a user already exists with that email, just link & reuse it.
+        const [existingByEmail] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, staffRow.email));
+        if (existingByEmail) {
+          if (!existingByEmail.staffId) {
+            await db.update(users).set({ staffId }).where(eq(users.id, existingByEmail.id));
+          }
+          targetId = existingByEmail.id;
+        } else {
+          // Create a placeholder login. A random password is set; the staff
+          // member will use the standard "forgot password" flow on first login.
+          const tempPassword = await bcrypt.hash(
+            `${Math.random().toString(36).slice(2)}${Date.now()}`,
+            10,
+          );
+          const [first, ...rest] = (staffRow.name ?? "").split(" ");
+          const [created] = await db
+            .insert(users)
+            .values({
+              email: staffRow.email,
+              password: tempPassword,
+              firstName: first || null,
+              lastName: rest.join(" ") || null,
+              role: role!, // will be overwritten below, but seed correctly
+              staffId,
+              passwordChanged: false,
+            })
+            .returning();
+          targetId = created.id;
+        }
       }
+
       // Owners can never be demoted via this endpoint.
       const [target] = await db.select().from(users).where(eq(users.id, targetId));
       if (!target) return res.status(404).json({ message: "User not found" });

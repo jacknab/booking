@@ -227,10 +227,6 @@ export default function TeamPermissions() {
                 <div className="flex items-center gap-3">
                   {selected.isOwner ? (
                     <Badge>Owner</Badge>
-                  ) : selected.kind === "staff" ? (
-                    <Badge variant="outline" title="This staff member hasn't logged in yet">
-                      Awaiting first login
-                    </Badge>
                   ) : (
                     <>
                       <Select
