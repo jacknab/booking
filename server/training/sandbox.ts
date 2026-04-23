@@ -139,9 +139,30 @@ function randomPhone(seed: number): string {
 }
 
 /**
+ * Returns true if the sandbox has no customers and no services.
+ * Used to auto-seed an empty sandbox on first open so trainees never
+ * land in a blank store.
+ */
+async function isSandboxEmpty(sandboxStoreId: number): Promise<boolean> {
+  const [c] = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .where(eq(customers.storeId, sandboxStoreId))
+    .limit(1);
+  if (c) return false;
+  const [s] = await db
+    .select({ id: services.id })
+    .from(services)
+    .where(eq(services.storeId, sandboxStoreId))
+    .limit(1);
+  return !s;
+}
+
+/**
  * Find or create the sandbox location for a real (parent) store.
- * Idempotent. Always seeds data if newly created; existing sandboxes are
- * left alone (use resetSandboxData to wipe + reseed).
+ * Idempotent. Seeds on creation, and also auto-seeds an existing sandbox
+ * if it's empty (e.g. after a manual wipe) so trainees aren't dropped
+ * into a blank store.
  */
 export async function ensureSandboxForStore(parentStoreId: number): Promise<number> {
   const [parent] = await db.select().from(locations).where(eq(locations.id, parentStoreId));
@@ -160,7 +181,12 @@ export async function ensureSandboxForStore(parentStoreId: number): Promise<numb
         eq(locations.isTrainingSandbox, true),
       ),
     );
-  if (existing) return existing.id;
+  if (existing) {
+    if (await isSandboxEmpty(existing.id)) {
+      await seedSandboxData(existing.id);
+    }
+    return existing.id;
+  }
 
   const baseSlug = parent.bookingSlug ?? `store-${parent.id}`;
   const [created] = await db
