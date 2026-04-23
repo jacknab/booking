@@ -215,6 +215,11 @@ app.use((req, res, next) => {
   // Register all API routes AFTER static assets so /assets/* never hits a route.
   await registerRoutes(httpServer, app);
 
+  // One-time startup repair: fix any users who own a store but were left with
+  // the "staff" role by legacy code paths.
+  const { repairOwnerRoles } = await import("./startup/repairOwnerRoles");
+  await repairOwnerRoles();
+
   // SEO static HTML pages — must run BEFORE Vite/SSR so HTML files win over React rendering.
   app.use(seoPageMiddleware);
 
