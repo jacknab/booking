@@ -44,6 +44,31 @@ The bot **demotes itself one level** each time the staff completes the action co
 - After **7 days** *or* once the staff member has reached **L0 in every action category**, the bot sends them a quiet *"You've graduated 🎓"* card and turns itself off completely.
 - The owner is notified by email / in-app.
 
+### Practice Mode (sandbox overlay)
+A complement to the live bot for downtime — when the staff member has a lull between clients and wants to *try things* without affecting real data.
+
+- A **"Practice"** button sits next to the **?** help bubble in the bottom-right.
+- Tapping it opens a **popup overlay** that fills most of the screen but is **not full-screen**: the live calendar/POS underneath stays visible at the edges so the staff member can spot a walk-in client immediately.
+- The overlay is its own React tree pointed at a separate **sandbox dataset** (demo staff, demo clients, demo appointments) — no real records are touched, no real SMS / email / Stripe calls fire (the same short-circuits we'd build for the original sandbox idea).
+- A persistent banner inside the overlay reads **"PRACTICE MODE — nothing here is real"**.
+
+**Quick-close, quick-resume (the critical requirement):**
+- A large **✕** in the top-right corner closes the overlay instantly.
+- Pressing **Esc** closes it.
+- Clicking *anywhere outside* the overlay closes it.
+- A floating *"Client just walked in!"* shortcut button on the overlay header closes the overlay and jumps straight to the client lookup screen in the live app.
+- When the staff re-opens Practice mode later, it **resumes exactly where they left off** — same screen, same selections, same in-progress booking. No "are you sure you want to leave" friction.
+- Sandbox state is preserved per staff member for the duration of training (resets nightly to seed state, or on demand from the user via *Reset Practice Data*).
+
+**How Practice mode interacts with the live adaptive bot:**
+- Successful actions in Practice **count** toward demoting the live help level (so practicing on a slow afternoon really does reduce in-shift hand-holding).
+- However, Practice successes count at **half weight** — actually doing the action with a real client still matters more.
+- Failures in Practice **do not** promote the live help level (you're allowed to mess around without being penalized).
+
+**Availability:**
+- Auto-shown on the staff sidebar for any user still enrolled in training.
+- After graduation, Practice mode stays available but is hidden behind a *"Brush up"* link in their profile menu — useful when learning a new feature months later.
+
 ---
 
 ## 3. Curriculum (7-Day Plan)
@@ -170,7 +195,16 @@ training_settings                     -- one row per store
 
 > No new tables for "modules / lessons / quizzes" — the live-mode bot is event-driven, not lesson-driven. The 7-day curriculum from §3 is just the *default discovery order* the bot uses if the staff member hasn't naturally encountered an action yet.
 
-### 4.2 Live-mode safety (no sandbox)
+### 4.1b Practice-mode sandbox
+
+- A boolean `stores.is_training_sandbox` flag identifies the sandbox dataset (one shared sandbox store per real store, auto-created on first staff enrollment).
+- Seeder script (`scripts/seed-training-sandbox.ts`): 4 demo staff, ~20 services across 4 categories, ~30 demo clients, ~40 appointments spread over the past/next 14 days.
+- A nightly cron resets the sandbox to seed state; staff can also click *Reset Practice Data* on demand.
+- Outbound side-effects are short-circuited at the service layer for any operation whose `storeId` is the sandbox store: SMS, email, Stripe, push notifications, webhooks all return `{ skipped: true }` immediately. Single guard, applied once per service.
+- The Practice overlay is rendered as a portal `<PracticeOverlay />` in the root `App.tsx`. It mounts the existing app routes inside the overlay but with a **`StoreContext` override** pointing to the sandbox store id. **No duplicated UI** — the same Calendar / NewBooking / Lookup components run in both contexts.
+- Per-staff overlay state (current route, scroll position, in-progress booking form) is persisted in `localStorage` keyed by user id, so close/re-open feels instant.
+
+### 4.2 Live-mode safety
 Because the bot now runs on real data, we add safeguards in the live system **for users who have an active training profile**:
 - **Extra confirmation** on `high_risk = true` categories (cancel, refund, delete client, day-close) for the first 7 days, regardless of help level. Worded plainly: *"You're still learning — are you sure you want to refund $84.00 to Maria?"*
 - **Undo window** extended from 5s to 30s for trainees on reversible actions (cancel/no-show toggle).
@@ -242,6 +276,14 @@ New page **Settings → Training**:
 - Graduation logic + "You've graduated 🎓" card
 - Owner email digest at Day 7 (per trainee status)
 - Heat-grid view in owner dashboard
+
+### Phase 4b — Practice Mode overlay (week 4, in parallel)
+- Sandbox store auto-creation + seeder + nightly reset cron
+- Service-layer side-effect short-circuits (SMS / email / Stripe / webhooks) gated by `store.is_training_sandbox`
+- `<PracticeOverlay />` portal with `StoreContext` override + Esc / outside-click / ✕ to close
+- *Client just walked in!* shortcut button
+- Resume-where-you-left-off via `localStorage`
+- Practice events feed the adaptive algorithm at half weight (successes only)
 
 ### Phase 5 — Polish
 - Analytics: which categories take the longest to graduate, which selectors get the most wrong-clicks (signals confusing UI to refactor)
