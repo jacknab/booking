@@ -1141,3 +1141,16 @@ export type TrainingUserProfile = typeof trainingUserProfile.$inferSelect;
 export type InsertTrainingUserProfile = typeof trainingUserProfile.$inferInsert;
 export type TrainingSettings = typeof trainingSettings.$inferSelect;
 export type InsertTrainingSettings = typeof trainingSettings.$inferInsert;
+
+export const names = pgTable("names", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  origin: varchar("origin", { length: 32 }).notNull(),
+  gender: varchar("gender", { length: 16 }).notNull().default("female"),
+}, (t) => [
+  index("idx_names_origin").on(t.origin),
+  uniqueIndex("idx_names_name_origin_unique").on(t.name, t.origin),
+]);
+
+export type Name = typeof names.$inferSelect;
+export type InsertName = typeof names.$inferInsert;
