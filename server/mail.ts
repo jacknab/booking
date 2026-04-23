@@ -31,7 +31,15 @@ export async function sendEmail(
   html: string,
   text?: string,
   from?: string
-): Promise<{ success: boolean; id?: string; error?: string }> {
+): Promise<{ success: boolean; id?: string; error?: string; skipped?: boolean }> {
+  // Phase 9.2 — practice-mode short-circuit. Sandbox stores must never send
+  // real email to real inboxes.
+  const { isSandboxStore } = await import("./training/sandbox");
+  if (await isSandboxStore(storeId)) {
+    console.log(`[Mail] sandbox store ${storeId} → email skipped (to=${to}, subject="${subject}")`);
+    return { success: true, skipped: true };
+  }
+
   // Always use platform-level .env credentials — never per-store keys
   const apiKey = process.env.MAILGUN_API_KEY;
   const domain = process.env.MAILGUN_DOMAIN;

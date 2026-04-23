@@ -86,6 +86,49 @@ const CATEGORY_DEFS: Array<{ name: string; services: Array<{ name: string; durat
 
 const SANDBOX_OWNER_NAME = "Practice Owner";
 
+/**
+ * Phase 9.2 — fast in-memory cache of which storeIds are sandboxes.
+ * Loaded lazily on first lookup, refreshed every 60s. Writes to the
+ * locations table from this module manually invalidate via {@link
+ * invalidateSandboxCache}.
+ */
+let sandboxIdCache: { ids: Set<number>; loadedAt: number } | null = null;
+const SANDBOX_CACHE_TTL_MS = 60 * 1000;
+
+export function invalidateSandboxCache(): void {
+  sandboxIdCache = null;
+}
+
+async function loadSandboxIds(): Promise<Set<number>> {
+  const rows = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(eq(locations.isTrainingSandbox, true));
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * Returns true if the given storeId is a training sandbox. Cached for 60s.
+ * Use this to short-circuit any external side-effect (SMS, email, Stripe,
+ * webhooks). On cache miss / DB error returns false (fail-open is the
+ * safer default — sandbox stores have userId=null so they're rare).
+ */
+export async function isSandboxStore(
+  storeId: number | null | undefined,
+): Promise<boolean> {
+  if (!storeId) return false;
+  const now = Date.now();
+  if (!sandboxIdCache || now - sandboxIdCache.loadedAt > SANDBOX_CACHE_TTL_MS) {
+    try {
+      sandboxIdCache = { ids: await loadSandboxIds(), loadedAt: now };
+    } catch (err) {
+      console.error("[sandbox] isSandboxStore cache reload failed:", err);
+      return false;
+    }
+  }
+  return sandboxIdCache.ids.has(storeId);
+}
+
 function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length];
 }
@@ -144,6 +187,7 @@ export async function ensureSandboxForStore(parentStoreId: number): Promise<numb
     })
     .returning();
 
+  invalidateSandboxCache();
   await seedSandboxData(created.id);
   return created.id;
 }

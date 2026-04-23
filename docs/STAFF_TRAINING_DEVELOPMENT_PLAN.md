@@ -191,9 +191,13 @@ Built in parallel with Phases 5–8. Each sub-phase is its own PR.
 - `POST /api/training/sandbox/reset` admin endpoint + *Reset Practice Data* button on TrainingAdmin.
 - Sandbox stores have `userId=null` so they stay out of the owner's normal store picker.
 
-### 9.2 — Side-effect short-circuits
-- Single guard at the top of each external service call (SMS, email, Stripe, webhooks): if the operation's `storeId` is the sandbox → return `{ skipped: true }`.
-- Unit tests confirming nothing leaves the building when sandbox.
+### 9.2 — Side-effect short-circuits ✅ DONE
+- `isSandboxStore(storeId)` helper in `server/training/sandbox.ts` (60s in-memory cache, manual invalidation on sandbox create).
+- Guard at the top of `sendSms` (server/sms.ts) — logs to `sms_log` with status `sandbox-skipped`, returns `{ success: true, skipped: true }`. Twilio is never called.
+- Guard at the top of `sendEmail` (server/mail.ts) — logs once, returns `{ success: true, skipped: true }`. Mailgun is never called.
+- Guard at the Stripe test-magstripe payment endpoint (server/routes.ts) — returns a fake successful payment intent so the trainee's POS flow completes.
+- All call sites already route through these three helpers, so reminder/dialer/queue flows inherit the guard automatically.
+- Smoke-tested live: SMS + email return `{skipped: true}` for sandbox storeIds and behave normally for real ones.
 
 ### 9.3 — `<PracticeOverlay />` portal
 - Renders as a portal over the live app, ~90% of viewport, leaving live calendar visible at the edges.

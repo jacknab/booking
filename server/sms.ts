@@ -43,7 +43,27 @@ export async function sendSms(
   messageType: string,
   appointmentId?: number,
   customerId?: number
-): Promise<{ success: boolean; sid?: string; error?: string }> {
+): Promise<{ success: boolean; sid?: string; error?: string; skipped?: boolean }> {
+  // Phase 9.2 — practice-mode short-circuit. Sandbox stores must never send
+  // real SMS to real phones. We log to the SMS log so trainees can still see
+  // their action "happened" in-app.
+  const { isSandboxStore } = await import("./training/sandbox");
+  if (await isSandboxStore(storeId)) {
+    await storage.createSmsLog({
+      storeId,
+      appointmentId: appointmentId ?? null,
+      customerId: customerId ?? null,
+      phone,
+      messageType,
+      messageBody: body,
+      status: "sandbox-skipped",
+      twilioSid: null,
+      errorMessage: null,
+      sentAt: new Date(),
+    }).catch(() => null);
+    return { success: true, skipped: true };
+  }
+
   // Check store has available tokens
   const store = await storage.getStore(storeId);
   if (!store) {

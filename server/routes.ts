@@ -2797,6 +2797,22 @@ If you have any questions, please contact your administrator.
         return res.status(400).json({ message: "Only Stripe test card swipes are accepted." });
       }
 
+      // Phase 9.2 — practice-mode short-circuit. Sandbox stores must never
+      // hit Stripe; fake a successful charge so the trainee's POS flow
+      // completes naturally.
+      const { isSandboxStore } = await import("./training/sandbox");
+      if (await isSandboxStore(storeId)) {
+        return res.json({
+          success: true,
+          skipped: true,
+          paymentIntentId: `pi_sandbox_${Date.now()}`,
+          status: "succeeded",
+          amount: paymentInput.amount,
+          cardLast4: paymentInput.cardLast4 || "4242",
+          cardBrand: paymentInput.cardBrand || allowedPaymentMethods[paymentInput.testPaymentMethod],
+        });
+      }
+
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(settings.secretKey);
       const amountInCents = Math.round(paymentInput.amount * 100);
