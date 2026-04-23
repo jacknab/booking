@@ -70,7 +70,10 @@ export default function CashDrawer() {
   // amount; only managers/owners get to see those figures and any variance.
   const role = user?.role ?? "owner";
   const isBlindCount = role === "staff";
+  const isManager = role === "owner" || role === "manager";
   const location = useLocation();
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState("");
   const [actionType, setActionType] = useState<"cash_in" | "cash_out" | null>(null);
   const [actionAmount, setActionAmount] = useState("");
   const [actionReason, setActionReason] = useState("");
@@ -83,6 +86,30 @@ export default function CashDrawer() {
   const { data: openSession, isLoading: loadingOpen } = useQuery<CashDrawerSessionWithActions | null>({
     queryKey: [`/api/cash-drawer/open?storeId=${selectedStore?.id}`],
     enabled: !!selectedStore,
+  });
+
+  const { data: discrepancies = [] } = useQuery<any[]>({
+    queryKey: [`/api/cash-drawer/discrepancies?storeId=${selectedStore?.id}`],
+    enabled: !!selectedStore && isManager,
+  });
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
+      return apiRequest("POST", `/api/cash-drawer/sessions/${id}/acknowledge-mismatch`, {
+        resolvedBy: userName,
+        resolutionNotes: notes || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/cash-drawer/discrepancies?storeId=${selectedStore?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cash-drawer/sessions?storeId=${selectedStore?.id}`] });
+      toast({ title: "Discrepancy acknowledged", description: "The cash variance has been marked as resolved." });
+      setResolvingId(null);
+      setResolutionNotes("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message || "Could not resolve discrepancy", variant: "destructive" });
+    },
   });
 
   // If we navigated here with ?action=close (e.g. from the Calendar drawer's
@@ -464,6 +491,98 @@ export default function CashDrawer() {
 
         {viewingReportId && zReport && (
           <ZReportView report={zReport} timezone={timezone} onClose={() => setViewingReportId(null)} />
+        )}
+
+        {isManager && discrepancies.length > 0 && (
+          <Card className="border-destructive/40 bg-destructive/5" data-testid="discrepancies-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-5 h-5" />
+                Cash Discrepancies — {discrepancies.length} unresolved
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                The opening drawer count for these shifts didn't match the prior day's closing balance. Review and acknowledge each one to clear the alert.
+              </p>
+              {discrepancies.map((s) => {
+                const variance = s.priorClosingVariance ? Number(s.priorClosingVariance) : 0;
+                const isResolving = resolvingId === s.id;
+                return (
+                  <div
+                    key={s.id}
+                    className="border rounded-md p-3 bg-background space-y-2"
+                    data-testid={`discrepancy-${s.id}`}
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {formatInTz(s.openedAt, timezone, "MMM d, yyyy 'at' h:mm a")}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Opened by {s.openedBy || "—"} · Counted ${Number(s.openingBalance).toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "font-mono",
+                            variance > 0 ? "text-blue-600 border-blue-300" : "text-destructive border-destructive/40"
+                          )}
+                        >
+                          {variance > 0 ? "+" : ""}${variance.toFixed(2)} {variance > 0 ? "over" : "short"}
+                        </Badge>
+                        {!isResolving && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setResolvingId(s.id);
+                              setResolutionNotes("");
+                            }}
+                            data-testid={`button-resolve-${s.id}`}
+                          >
+                            Acknowledge
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {isResolving && (
+                      <div className="space-y-2 pt-1">
+                        <Input
+                          placeholder="Resolution notes (optional) — e.g. 'Manager added $20 from float'"
+                          value={resolutionNotes}
+                          onChange={(e) => setResolutionNotes(e.target.value)}
+                          data-testid={`input-resolution-notes-${s.id}`}
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => acknowledgeMutation.mutate({ id: s.id, notes: resolutionNotes })}
+                            disabled={acknowledgeMutation.isPending}
+                            data-testid={`button-confirm-resolve-${s.id}`}
+                          >
+                            {acknowledgeMutation.isPending ? "Saving..." : "Confirm Acknowledgement"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setResolvingId(null);
+                              setResolutionNotes("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         )}
 
         {closedSessions.length > 0 && (

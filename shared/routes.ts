@@ -603,6 +603,25 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    discrepancies: {
+      method: 'GET' as const,
+      path: '/api/cash-drawer/discrepancies' as const,
+      responses: {
+        200: z.array(z.custom<typeof cashDrawerSessions.$inferSelect>()),
+      },
+    },
+    acknowledgeMismatch: {
+      method: 'POST' as const,
+      path: '/api/cash-drawer/sessions/:id/acknowledge-mismatch' as const,
+      input: z.object({
+        resolvedBy: z.string(),
+        resolutionNotes: z.string().nullable().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof cashDrawerSessions.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
     zReport: {
       method: 'GET' as const,
       path: '/api/cash-drawer/sessions/:id/z-report' as const,

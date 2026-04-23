@@ -1679,6 +1679,40 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  app.get(api.cashDrawer.discrepancies.path, async (req, res) => {
+    try {
+      const storeId = Number(req.query.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+      const all = await storage.getCashDrawerSessions(storeId);
+      const unresolved = all
+        .filter(s => s.priorClosingMismatch && !s.priorClosingResolvedAt)
+        .sort((a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime());
+      res.json(unresolved);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to load discrepancies" });
+    }
+  });
+
+  app.post(api.cashDrawer.acknowledgeMismatch.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const session = await storage.getCashDrawerSession(id);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      const input = api.cashDrawer.acknowledgeMismatch.input.parse(req.body);
+
+      const updated = await storage.updateCashDrawerSession(id, {
+        priorClosingResolvedBy: input.resolvedBy,
+        priorClosingResolvedAt: new Date(),
+        priorClosingResolutionNotes: input.resolutionNotes || null,
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error(error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
   app.get(api.cashDrawer.zReport.path, async (req, res) => {
     try {
       const id = Number(req.params.id);
