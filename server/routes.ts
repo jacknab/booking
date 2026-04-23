@@ -147,6 +147,75 @@ export async function registerRoutes(
     res.json({ activeGroups });
   });
 
+  // Diagnostic — reports the resolved session/auth context. Useful for debugging
+  // 401/500 issues on production where you can't easily inspect the session store.
+  app.get("/api/debug/whoami", async (req, res) => {
+    const session: any = req.session || {};
+    const sessionUserId = session.userId ?? null;
+    const sessionStaffId = session.staffId ?? null;
+
+    let user: any = null;
+    let staffRow: any = null;
+    let dbError: string | null = null;
+
+    try {
+      if (sessionUserId) {
+        const [u] = await db.select().from(users).where(eq(users.id, sessionUserId));
+        if (u) {
+          user = {
+            id: u.id,
+            email: (u as any).email ?? null,
+            role: (u as any).role ?? null,
+            staffId: (u as any).staffId ?? null,
+          };
+        }
+      }
+      if (sessionStaffId) {
+        const [s] = await db.select().from(staff).where(eq(staff.id, sessionStaffId));
+        if (s) {
+          staffRow = {
+            id: s.id,
+            name: (s as any).name ?? null,
+            email: (s as any).email ?? null,
+            role: (s as any).role ?? null,
+            storeId: (s as any).storeId ?? null,
+          };
+        }
+      }
+    } catch (err: any) {
+      dbError = err?.message || String(err);
+    }
+
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      now: new Date().toISOString(),
+      hostHeader: req.headers.host ?? null,
+      forwardedHost: req.headers["x-forwarded-host"] ?? null,
+      forwardedProto: req.headers["x-forwarded-proto"] ?? null,
+      cookieHeaderPresent: !!req.headers.cookie,
+      sessionId: (req as any).sessionID ?? null,
+      session: {
+        userId: sessionUserId,
+        staffId: sessionStaffId,
+        keys: Object.keys(session).filter((k) => k !== "cookie"),
+      },
+      reqAuth: req.auth
+        ? {
+            userId: req.auth.userId ?? null,
+            staffId: req.auth.staffId ?? null,
+            role: req.auth.role,
+            permissionsCount: req.auth.permissions?.size ?? 0,
+          }
+        : null,
+      user,
+      staff: staffRow,
+      subdomainStore: req.store
+        ? { id: (req.store as any).id, slug: (req.store as any).bookingSlug }
+        : null,
+      dbError,
+    });
+  });
+
   app.get("/api/trial/status", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
