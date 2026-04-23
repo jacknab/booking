@@ -1,0 +1,72 @@
+capig.datah04.com/events/8c7439c4b880d686e32ca91432487a2f2a5eb5e009a712ec06ab4b6acc8eb681:1  Failed to load resource: the server responded with a status of 422 ()
+index-J_9d10D0.js:58 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-J_9d10D0.js:58
+index-J_9d10D0.js:58 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-J_9d10D0.js:58
+index-J_9d10D0.js:58 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-J_9d10D0.js:58
+connect.facebook.net/:1 Framing 'https://www.facebook.com/' violates the following Content Security Policy directive: "default-src 'self'". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.
+
+connect.facebook.net/:1 Framing 'https://www.facebook.com/' violates the following Content Security Policy directive: "default-src 'self'". The request has been blocked. Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.
+
+api/team/staff:2/role:1  Failed to load resource: the server responded with a status of 404 ()
+index-J_9d10D0.js:14 Fetch finished loading: GET "https://certxa.com/api/stores".
+queryFn @ index-J_9d10D0.js:14
+a @ index-J_9d10D0.js:8
+b @ index-J_9d10D0.js:8
+start @ index-J_9d10D0.js:8
+fetch @ index-J_9d10D0.js:8
+#u @ index-J_9d10D0.js:8
+fetch @ index-J_9d10D0.js:8
+refetch @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+batch @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+await in (anonymous)
+(anonymous) @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+n @ index-J_9d10D0.js:8
+index-J_9d10D0.js:14 Fetch finished loading: GET "https://certxa.com/api/auth/user".
+xue @ index-J_9d10D0.js:14
+a @ index-J_9d10D0.js:8
+b @ index-J_9d10D0.js:8
+start @ index-J_9d10D0.js:8
+fetch @ index-J_9d10D0.js:8
+#u @ index-J_9d10D0.js:8
+fetch @ index-J_9d10D0.js:8
+refetch @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+batch @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+await in (anonymous)
+(anonymous) @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+n @ index-J_9d10D0.js:8
+index-J_9d10D0.js:400 Fetch finished loading: GET "https://certxa.com/api/team".
+queryFn @ index-J_9d10D0.js:400
+a @ index-J_9d10D0.js:8
+b @ index-J_9d10D0.js:8
+start @ index-J_9d10D0.js:8
+fetch @ index-J_9d10D0.js:8
+#u @ index-J_9d10D0.js:8
+fetch @ index-J_9d10D0.js:8
+refetch @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+batch @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+await in (anonymous)
+(anonymous) @ index-J_9d10D0.js:8
+onFocus @ index-J_9d10D0.js:8
+(anonymous) @ index-J_9d10D0.js:8
+n @ index-J_9d10D0.js:8

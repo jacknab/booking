@@ -4945,6 +4945,12 @@ If you have any questions, please contact your administrator.
       if (!["manager", "staff"].includes(role || "")) {
         return res.status(400).json({ message: "Role must be 'manager' or 'staff'" });
       }
+      // Reject pseudo-IDs used for staff records that don't yet have a login.
+      if (targetId.startsWith("staff:")) {
+        return res.status(400).json({
+          message: "This staff member hasn't logged in yet. Ask them to sign in once before assigning a role.",
+        });
+      }
       // Owners can never be demoted via this endpoint.
       const [target] = await db.select().from(users).where(eq(users.id, targetId));
       if (!target) return res.status(404).json({ message: "User not found" });
