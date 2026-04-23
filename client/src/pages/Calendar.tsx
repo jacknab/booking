@@ -112,6 +112,23 @@ export default function Calendar() {
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const navDrawerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node | null;
+      if (navDrawerRef.current && target && !navDrawerRef.current.contains(target)) {
+        setNavOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [navOpen]);
   const [showJumpToNow, setShowJumpToNow] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
 
@@ -617,6 +634,7 @@ export default function Calendar() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* Collapsible navigation drawer */}
         <nav
+          ref={navDrawerRef}
           className={cn(
             "flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex flex-col items-stretch py-3 gap-1.5 z-30 transition-[width] duration-200 ease-out overflow-hidden",
             navOpen ? "w-44" : "w-16"
