@@ -214,9 +214,11 @@ Built in parallel with Phases 5–8. Each sub-phase is its own PR.
 - `client/src/components/training/SandboxRoutes.tsx` reuses the live page components (Calendar, NewBooking, ClientLookup, POSInterface, Customers, ClientProfile, Dashboard) — no duplicated UI.
 - `PracticeOverlay` mounts those routes inside a `MemoryRouter` (initial entry `/calendar`), so practice navigation never changes the live URL bar and live and practice keep separate route stacks.
 
-### 9.5 — Resume-where-you-left-off
-- Persist overlay route + scroll + in-progress form state in `localStorage` keyed by user id.
-- Restore on re-open.
+### 9.5 — Resume-where-you-left-off ✅ DONE
+- `client/src/components/training/PracticePersistence.tsx` snapshots the MemoryRouter path + overlay scroll position into `localStorage` under `practice-mode:state:<userId>`.
+- On overlay open, the snapshot is read and `navigate(savedPath, { replace: true })` runs once before any user input; scroll is restored on the next animation frame so the new route has rendered.
+- Scroll snapshots are debounced 250ms; route snapshots fire on every path change.
+- Bonus: `usePracticeFormState(key, initial)` is a drop-in `useState` replacement for any form component that wants its draft preserved across overlay close/reopen, namespaced under `practice-mode:form:<userId>:<key>`.
 
 ### 9.6 — *Client just walked in!* shortcut
 - Header button: closes overlay and navigates the live app to `/client-lookup`.

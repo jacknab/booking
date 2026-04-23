@@ -16,10 +16,12 @@ import { Beaker, X } from "lucide-react";
 import { usePracticeMode } from "@/contexts/PracticeModeContext";
 import { SandboxStoreProvider } from "@/components/training/SandboxStoreProvider";
 import { SandboxRoutes } from "@/components/training/SandboxRoutes";
+import { PracticePersistence } from "@/components/training/PracticePersistence";
 
 export function PracticeOverlay() {
   const { inPractice, exitPractice } = usePracticeMode();
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Esc to close
   useEffect(() => {
@@ -86,14 +88,17 @@ export function PracticeOverlay() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-auto bg-background">
+        <div ref={scrollRef} className="flex-1 overflow-auto bg-background">
           {/*
            * MemoryRouter keeps practice navigation isolated from the live URL,
            * so a trainee clicking around inside the overlay never changes the
            * browser address bar. SandboxStoreProvider overrides StoreContext
            * so every reused page component reads/writes the sandbox store.
+           * PracticePersistence (Phase 9.5) restores the previous path +
+           * scroll position so re-opening picks up exactly where you left off.
            */}
           <MemoryRouter initialEntries={["/calendar"]}>
+            <PracticePersistence scrollRef={scrollRef} />
             <SandboxStoreProvider>
               <SandboxRoutes />
             </SandboxStoreProvider>
