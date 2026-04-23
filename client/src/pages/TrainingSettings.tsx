@@ -70,7 +70,7 @@ export default function TrainingSettings() {
   const canManage = role === "owner" || role === "admin" || role === "manager";
   const storeId = selectedStore?.id;
 
-  const { data, isLoading } = useQuery<{ settings: TrainingSettings }>({
+  const { data, isLoading, error } = useQuery<{ settings: TrainingSettings }>({
     queryKey: ["/api/training/admin/settings", storeId],
     queryFn: async () => {
       const res = await apiRequest(
@@ -80,6 +80,7 @@ export default function TrainingSettings() {
       return res.json();
     },
     enabled: !!storeId && canManage,
+    retry: false,
   });
 
   useEffect(() => {
@@ -122,10 +123,28 @@ export default function TrainingSettings() {
   }
 
   if (!draft) {
+    if (!storeId) {
+      return (
+        <AppLayout>
+          <div className="p-8 text-center text-muted-foreground">
+            Pick a store from the switcher to manage training settings.
+          </div>
+        </AppLayout>
+      );
+    }
+    if (error) {
+      return (
+        <AppLayout>
+          <div className="p-8 text-center text-muted-foreground">
+            Couldn't load training settings for this store. You may not have permission, or the server returned an error.
+          </div>
+        </AppLayout>
+      );
+    }
     return (
       <AppLayout>
-        <div className="p-8 text-center text-muted-foreground">
-          Pick a store from the switcher to manage training settings.
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       </AppLayout>
     );

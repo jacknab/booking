@@ -329,6 +329,17 @@ async function getSettingsForUser(userId: string) {
 
 async function assertManagesStore(req: any, storeId: number): Promise<boolean> {
   const role = req.auth?.role ?? req.user?.role ?? req.user?.claims?.role;
+  const userId = uid(req);
+  // Anyone whose user account owns this store can manage it, regardless of
+  // the `users.role` label (some legacy accounts are saved as "staff" even
+  // though they registered the store).
+  if (userId) {
+    const [loc] = await db
+      .select({ userId: locations.userId })
+      .from(locations)
+      .where(eq(locations.id, storeId));
+    if (loc?.userId && loc.userId === userId) return true;
+  }
   if (!isManagerRole(role)) return false;
   if (role === "owner") {
     const [loc] = await db
@@ -336,7 +347,7 @@ async function assertManagesStore(req: any, storeId: number): Promise<boolean> {
       .from(locations)
       .where(eq(locations.id, storeId));
     if (!loc) return false;
-    if (loc.userId && loc.userId !== uid(req)) return false;
+    if (loc.userId && loc.userId !== userId) return false;
   }
   return true;
 }
