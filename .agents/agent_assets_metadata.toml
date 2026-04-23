@@ -161,3 +161,9 @@ id = "KCoWdaC5n016FbTwi3wlM"
 uri = "file://docs/STAFF_TRAINING_TOOL_PLAN.md"
 type = "text"
 title = "Staff Training Tool — Plan (with Practice Mode)"
+
+[[outputs]]
+id = "Ije_Ziss8mYR53Ntz-yry"
+uri = "file://docs/STAFF_TRAINING_DEVELOPMENT_PLAN.md"
+type = "text"
+title = "Staff Training Tool — Development Plan (Phased)"
