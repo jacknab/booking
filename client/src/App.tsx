@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/components/StoreProvider";
 import { useTheme } from "@/hooks/use-theme";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
@@ -148,7 +149,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <AppRoutes />
+        <ErrorBoundary>
+          <AppRoutes />
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );
