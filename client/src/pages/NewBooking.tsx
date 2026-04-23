@@ -24,6 +24,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer, AlertCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
+import { CoachOverlay } from "@/components/training/CoachOverlay";
+import { CREATE_BOOKING_STEPS } from "@/components/training/steps/createBooking";
 
 type BookingStep = "services" | "addons" | "details";
 
@@ -462,6 +464,11 @@ export default function NewBooking() {
 
   return (
     <div className="h-screen w-screen flex bg-background">
+      <CoachOverlay
+        category="create-booking"
+        steps={CREATE_BOOKING_STEPS}
+        active={true}
+      />
       {step === "services" && (
         <>
           <div className="flex flex-1 overflow-hidden">
