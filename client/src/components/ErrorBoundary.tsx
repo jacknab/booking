@@ -21,6 +21,24 @@ export class ErrorBoundary extends Component<Props, State> {
     // Also log to the browser console so it shows up in DevTools
     console.error("[ErrorBoundary] Caught error:", error);
     console.error("[ErrorBoundary] Component stack:", errorInfo.componentStack);
+
+    // Ship the error to the server so it gets appended to logs/client-errors.log
+    try {
+      void fetch("/api/client-errors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        keepalive: true,
+        body: JSON.stringify({
+          url: window.location.href,
+          message: error.message || String(error),
+          stack: error.stack || "",
+          componentStack: errorInfo.componentStack || "",
+        }),
+      }).catch(() => {});
+    } catch {
+      // best-effort only
+    }
   }
 
   handleReload = () => {

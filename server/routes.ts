@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
@@ -99,6 +99,45 @@ export async function registerRoutes(
       serverStartTime: SERVER_START_TIME,
       nodeEnv: process.env.NODE_ENV ?? "development",
     });
+  });
+
+  // Append client-side errors to a log file for easy access. Frontend
+  // ErrorBoundary POSTs here when it catches a render error.
+  app.post("/api/client-errors", express.json({ limit: "256kb" }), async (req, res) => {
+    try {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const logsDir = path.resolve(process.cwd(), "logs");
+      await fs.mkdir(logsDir, { recursive: true });
+      const file = path.join(logsDir, "client-errors.log");
+
+      const body = req.body || {};
+      const entry = {
+        timestamp: new Date().toISOString(),
+        url: String(body.url ?? ""),
+        userAgent: req.headers["user-agent"] ?? "",
+        ip: req.ip,
+        message: String(body.message ?? ""),
+        stack: String(body.stack ?? ""),
+        componentStack: String(body.componentStack ?? ""),
+      };
+
+      const line =
+        `\n=== ${entry.timestamp} ===\n` +
+        `URL: ${entry.url}\n` +
+        `UA:  ${entry.userAgent}\n` +
+        `IP:  ${entry.ip}\n` +
+        `Message: ${entry.message}\n` +
+        `Stack:\n${entry.stack}\n` +
+        `Component stack:${entry.componentStack}\n`;
+
+      await fs.appendFile(file, line, "utf8");
+      console.error("[client-error]", entry.message, "@", entry.url);
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[client-error] failed to log:", err?.message || err);
+      res.status(500).json({ ok: false });
+    }
   });
 
   // Public config — exposes safe frontend settings from env vars
