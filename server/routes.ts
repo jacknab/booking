@@ -1035,7 +1035,16 @@ export async function registerRoutes(
       let user = await storage.findUserByEmail(staff.email);
 
       if (user) {
-        await storage.updateUser(user.id, { password: hashedPassword, role: "staff", staffId: staff.id, passwordChanged: false });
+        // Link the user to this staff record, but DO NOT downgrade an existing
+        // owner/admin/manager to "staff" — that locks them out of their own store.
+        const keepRole =
+          user.role === "owner" || user.role === "admin" || user.role === "manager";
+        await storage.updateUser(user.id, {
+          password: hashedPassword,
+          ...(keepRole ? {} : { role: "staff" }),
+          staffId: staff.id,
+          passwordChanged: false,
+        });
       } else {
         user = await storage.createUser({
           email: staff.email,
