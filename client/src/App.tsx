@@ -8,6 +8,7 @@ import { StoreProvider } from "@/components/StoreProvider";
 import { useTheme } from "@/hooks/use-theme";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TrainingProvider } from "@/contexts/TrainingContext";
+import { HelpBubble } from "@/components/training/HelpBubble";
 import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
@@ -153,6 +154,7 @@ function App() {
         <ErrorBoundary>
           <TrainingProvider>
             <AppRoutes />
+            <HelpBubble />
           </TrainingProvider>
         </ErrorBoundary>
       </TooltipProvider>

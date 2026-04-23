@@ -56,6 +56,12 @@ interface TrainingContextValue {
   isCategoryGraduated: (categorySlug: string) => boolean;
   /** Records an event and optimistically updates local state. */
   recordEvent: (categorySlug: string, type: TrainingEventType, metadata?: Record<string, unknown>) => Promise<void>;
+  /** Slug of the category whose flow is currently visible on the page (for the help bubble). */
+  activeCategory: string | null;
+  /** Pages or overlays register the current category here. Returns an unregister fn. */
+  setActiveCategory: (slug: string | null) => void;
+  /** User explicitly asked for guidance — bumps level back to L3 for the slug. */
+  requestHelp: (slug: string) => Promise<void>;
 }
 
 const TrainingContext = createContext<TrainingContextValue | null>(null);
@@ -66,6 +72,7 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<TrainingState>>>({});
+  const [activeCategory, setActiveCategoryState] = useState<string | null>(null);
 
   // Throttle: drop duplicate events of the same (slug,type) within 1.5s.
   const lastEventRef = useRef<Map<string, number>>(new Map());
@@ -168,6 +175,25 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, [enabled, queryClient]);
 
+  const setActiveCategory = useCallback((slug: string | null) => {
+    setActiveCategoryState((prev) => (prev === slug ? prev : slug));
+  }, []);
+
+  const requestHelp = useCallback(
+    async (slug: string) => {
+      if (!enabled) return;
+      // Optimistically force level back to L3 immediately so UI snaps.
+      setLocalOverrides((prev) => ({
+        ...prev,
+        [slug]: { ...(prev[slug] ?? {}), helpLevel: 3 },
+      }));
+      // Bypass throttle for explicit user action.
+      lastEventRef.current.delete(`${slug}:help-requested`);
+      await recordEvent(slug, "help-requested", { source: "help-bubble" });
+    },
+    [enabled, recordEvent],
+  );
+
   const value: TrainingContextValue = useMemo(
     () => ({
       enabled,
@@ -176,8 +202,11 @@ export function TrainingProvider({ children }: { children: ReactNode }) {
       getHelpLevel,
       isCategoryGraduated,
       recordEvent,
+      activeCategory,
+      setActiveCategory,
+      requestHelp,
     }),
-    [enabled, data, getHelpLevel, isCategoryGraduated, recordEvent],
+    [enabled, data, getHelpLevel, isCategoryGraduated, recordEvent, activeCategory, setActiveCategory, requestHelp],
   );
 
   return <TrainingContext.Provider value={value}>{children}</TrainingContext.Provider>;
@@ -194,9 +223,25 @@ export function useTraining(): TrainingContextValue {
       getHelpLevel: () => DEFAULT_HELP_LEVEL,
       isCategoryGraduated: () => false,
       recordEvent: async () => {},
+      activeCategory: null,
+      setActiveCategory: () => {},
+      requestHelp: async () => {},
     };
   }
   return ctx;
+}
+
+/**
+ * Register `slug` as the active training category for the page while mounted.
+ * The floating help bubble uses this to know which category to bump back to L3.
+ */
+export function useActiveTrainingCategory(slug: string | null, active: boolean = true) {
+  const { setActiveCategory } = useTraining();
+  useEffect(() => {
+    if (!active || !slug) return;
+    setActiveCategory(slug);
+    return () => setActiveCategory(null);
+  }, [slug, active, setActiveCategory]);
 }
 
 /**

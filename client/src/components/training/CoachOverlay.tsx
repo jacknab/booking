@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { X, ChevronDown, ChevronUp } from "lucide-react";
-import { useTrainingCategory } from "@/contexts/TrainingContext";
+import { useTrainingCategory, useActiveTrainingCategory } from "@/contexts/TrainingContext";
 import { variantForHelpLevel, type StepDescriptor, type Variant } from "./types";
 import { useTargetRect } from "./useTargetRect";
 
@@ -19,6 +19,9 @@ const HESITATION_MS = 8000;
 
 export function CoachOverlay({ category, steps, active, onComplete }: Props) {
   const { helpLevel, graduated, record } = useTrainingCategory(category);
+  // Register this category as the page's active flow so the floating
+  // help bubble knows which slug to bump back to L3.
+  useActiveTrainingCategory(category, active && !graduated);
   const [stepIndex, setStepIndex] = useState(0);
   const [whyOpen, setWhyOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);

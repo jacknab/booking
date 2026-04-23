@@ -83,12 +83,21 @@ export function reduce({ state, event, highRisk }: ReducerInput): CategoryState 
 
     case "hesitation":
     case "wrong-click":
-    case "help-requested":
     case "abandoned": {
       next.failures += 1;
       next.successStreak = 0;
       if (!isPinned && next.helpLevel < 3) {
         next.helpLevel += 1;
+      }
+      return next;
+    }
+
+    case "help-requested": {
+      // Explicit ask for guidance — jump straight back to full spotlight (L3).
+      next.failures += 1;
+      next.successStreak = 0;
+      if (!isPinned) {
+        next.helpLevel = 3;
       }
       return next;
     }
