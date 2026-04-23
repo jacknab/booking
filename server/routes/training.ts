@@ -6,9 +6,12 @@ import {
   trainingUserProfile,
   trainingEvents,
   type InsertTrainingEvent,
+  type TrainingActionCategory,
+  type TrainingUserState,
 } from "../../shared/schema";
 import { isAuthenticated } from "../auth";
 import { eq, and } from "drizzle-orm";
+import { reduce, type CategoryState, type TrainingEventType } from "../training/reducer";
 
 const router = Router();
 
@@ -26,20 +29,34 @@ const VALID_EVENT_TYPES = new Set([
   "abandoned",
 ]);
 
+// Auto-enroll any signed-in user who doesn't yet have a training profile.
+// Owners may opt out via training_settings.auto_enroll_new_staff (Phase 7).
+async function ensureProfile(userId: string) {
+  const [existing] = await db
+    .select()
+    .from(trainingUserProfile)
+    .where(eq(trainingUserProfile.userId, userId));
+  if (existing) return existing;
+  const [created] = await db
+    .insert(trainingUserProfile)
+    .values({ userId })
+    .onConflictDoNothing()
+    .returning();
+  if (created) return created;
+  // Lost the race — re-read.
+  const [reread] = await db
+    .select()
+    .from(trainingUserProfile)
+    .where(eq(trainingUserProfile.userId, userId));
+  return reread;
+}
+
 router.get("/state", isAuthenticated, async (req, res) => {
   try {
     const userId = uid(req);
     if (!userId) return res.status(401).json({ error: "unauthorized" });
 
-    const [profile] = await db
-      .select()
-      .from(trainingUserProfile)
-      .where(eq(trainingUserProfile.userId, userId));
-
-    if (!profile) {
-      return res.json({ enrolled: false, profile: null, categories: [], state: [] });
-    }
-
+    const profile = await ensureProfile(userId);
     const categories = await db.select().from(trainingActionCategories);
     const state = await db
       .select()
@@ -81,19 +98,94 @@ router.post("/event", isAuthenticated, async (req, res) => {
       .where(eq(trainingActionCategories.slug, categorySlug));
     if (!category) return res.status(404).json({ error: "unknown category" });
 
-    const event: InsertTrainingEvent = {
+    await ensureProfile(userId);
+
+    // Persist the raw event first — the reducer below is best-effort.
+    const eventRow: InsertTrainingEvent = {
       userId,
       categoryId: category.id,
       type,
       helpLevelAtTime: helpLevel,
       metadata: metadata ?? null,
     };
-    await db.insert(trainingEvents).values(event);
+    await db.insert(trainingEvents).values(eventRow);
 
-    // Reducer wiring lands in Phase 1.2; for now we just persist the event
-    // so the engine can backfill state when it ships.
+    // Load (or initialize) per-category state, run the reducer, write back.
+    const [existing] = await db
+      .select()
+      .from(trainingUserState)
+      .where(
+        and(
+          eq(trainingUserState.userId, userId),
+          eq(trainingUserState.categoryId, category.id),
+        ),
+      );
 
-    res.json({ ok: true });
+    const now = new Date();
+    const current: CategoryState = existing
+      ? {
+          helpLevel: existing.helpLevel,
+          successStreak: existing.successStreak,
+          failures: existing.failures,
+          totalAttempts: existing.totalAttempts,
+          lastSeenAt: existing.lastSeenAt,
+          graduatedAt: existing.graduatedAt,
+          pinnedLevel: existing.pinnedLevel,
+          enrolledAt: existing.lastSeenAt ?? now,
+        }
+      : {
+          helpLevel: category.defaultHelpLevel,
+          successStreak: 0,
+          failures: 0,
+          totalAttempts: 0,
+          lastSeenAt: null,
+          graduatedAt: null,
+          pinnedLevel: null,
+          enrolledAt: now,
+        };
+
+    const nextState = reduce({
+      state: current,
+      event: { type: type as TrainingEventType, at: now },
+      highRisk: category.highRisk,
+    });
+
+    if (existing) {
+      await db
+        .update(trainingUserState)
+        .set({
+          helpLevel: nextState.helpLevel,
+          successStreak: nextState.successStreak,
+          failures: nextState.failures,
+          totalAttempts: nextState.totalAttempts,
+          lastSeenAt: nextState.lastSeenAt,
+          graduatedAt: nextState.graduatedAt,
+        })
+        .where(eq(trainingUserState.id, existing.id));
+    } else {
+      await db.insert(trainingUserState).values({
+        userId,
+        categoryId: category.id,
+        helpLevel: nextState.helpLevel,
+        successStreak: nextState.successStreak,
+        failures: nextState.failures,
+        totalAttempts: nextState.totalAttempts,
+        lastSeenAt: nextState.lastSeenAt,
+        graduatedAt: nextState.graduatedAt,
+      });
+    }
+
+    res.json({
+      ok: true,
+      state: {
+        categorySlug: category.slug,
+        helpLevel: nextState.helpLevel,
+        successStreak: nextState.successStreak,
+        failures: nextState.failures,
+        totalAttempts: nextState.totalAttempts,
+        graduatedAt: nextState.graduatedAt,
+      },
+    });
   } catch (err) {
     console.error("[training] /event error:", err);
     res.status(500).json({ error: "internal_error" });
