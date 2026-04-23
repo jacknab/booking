@@ -1635,6 +1635,7 @@ If you have any questions, please contact your administrator.
         closedAt: new Date(),
         closingBalance: input.closingBalance || "0.00",
         denominationBreakdown: input.denominationBreakdown || null,
+        reportedCardSales: input.reportedCardSales || null,
         closedBy: input.closedBy || null,
         status: "closed",
         notes: input.notes || null,

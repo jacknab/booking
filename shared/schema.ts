@@ -174,6 +174,7 @@ export const cashDrawerSessions = pgTable("cash_drawer_sessions", {
   closingBalance: decimal("closing_balance", { precision: 10, scale: 2 }),
   denominationBreakdown: text("denomination_breakdown"),
   openingDenominationBreakdown: text("opening_denomination_breakdown"),
+  reportedCardSales: decimal("reported_card_sales", { precision: 10, scale: 2 }),
   priorClosingMismatch: boolean("prior_closing_mismatch").notNull().default(false),
   priorClosingVariance: decimal("prior_closing_variance", { precision: 10, scale: 2 }),
   priorClosingResolvedBy: text("prior_closing_resolved_by"),

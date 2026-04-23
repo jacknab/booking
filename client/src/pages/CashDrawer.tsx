@@ -63,6 +63,7 @@ export default function CashDrawer() {
 
   const [openingAmount, setOpeningAmount] = useState("0.00");
   const [closeNotes, setCloseNotes] = useState("");
+  const [reportedCardSales, setReportedCardSales] = useState("");
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
 
@@ -179,6 +180,7 @@ export default function CashDrawer() {
       return apiRequest("POST", `/api/cash-drawer/sessions/${openSession!.id}/close`, {
         closingBalance: denomCounter.total.toFixed(2),
         denominationBreakdown: denomData,
+        reportedCardSales: reportedCardSales.trim() ? Number(reportedCardSales).toFixed(2) : null,
         closedBy: userName,
         notes: closeNotes,
       });
@@ -189,6 +191,7 @@ export default function CashDrawer() {
       toast({ title: "Shift closed", description: "Day close completed. Z Report generated." });
       setShowCloseDialog(false);
       setCloseNotes("");
+      setReportedCardSales("");
       denomCounter.reset();
       setViewingReportId(sessionId);
     },
@@ -468,6 +471,8 @@ export default function CashDrawer() {
                 denomCounter={denomCounter}
                 closeNotes={closeNotes}
                 setCloseNotes={setCloseNotes}
+                reportedCardSales={reportedCardSales}
+                setReportedCardSales={setReportedCardSales}
                 onClose={() => setShowCloseDialog(false)}
                 onConfirm={() => closeDrawerMutation.mutate()}
                 isPending={closeDrawerMutation.isPending}
@@ -669,6 +674,8 @@ function EndShiftDialog({
   denomCounter,
   closeNotes,
   setCloseNotes,
+  reportedCardSales,
+  setReportedCardSales,
   onClose,
   onConfirm,
   isPending,
@@ -680,6 +687,8 @@ function EndShiftDialog({
   denomCounter: ReturnType<typeof useDenominationCounter>;
   closeNotes: string;
   setCloseNotes: (v: string) => void;
+  reportedCardSales: string;
+  setReportedCardSales: (v: string) => void;
   onClose: () => void;
   onConfirm: () => void;
   isPending: boolean;
@@ -687,6 +696,11 @@ function EndShiftDialog({
   liveZReport?: any;
   blind?: boolean;
 }) {
+  const cardSales = liveZReport?.paymentBreakdown?.card ?? 0;
+  const reportedNum = reportedCardSales.trim() ? Number(reportedCardSales) : null;
+  const cardVariance = reportedNum !== null && Number.isFinite(reportedNum)
+    ? Math.round((reportedNum - cardSales) * 100) / 100
+    : null;
   const expectedCash = liveZReport?.expectedCash ?? null;
   const cashSales = liveZReport?.paymentBreakdown?.cash ?? 0;
   const countedTotal = denomCounter.total;
@@ -783,6 +797,43 @@ function EndShiftDialog({
             )}
           </div>
         )}
+
+        <div className="border-t pt-4 space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Credit Card Sales (from terminal report)
+          </label>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={reportedCardSales}
+                onChange={(e) => setReportedCardSales(e.target.value)}
+                className="pl-9 w-40"
+                data-testid="input-reported-card-sales"
+              />
+            </div>
+            {!blind && reportedNum !== null && (
+              <span className="text-xs text-muted-foreground">
+                System recorded: <span className="font-medium text-foreground">${cardSales.toFixed(2)}</span>
+                {cardVariance !== null && cardVariance !== 0 && (
+                  <span className={cn("ml-2 font-medium", cardVariance > 0 ? "text-blue-600" : "text-destructive")}>
+                    ({cardVariance > 0 ? "+" : ""}${cardVariance.toFixed(2)} {cardVariance > 0 ? "over" : "short"})
+                  </span>
+                )}
+                {cardVariance === 0 && (
+                  <span className="ml-2 font-medium text-green-600">(matches)</span>
+                )}
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Enter the total credit/debit card sales from your terminal's end-of-day batch report.
+          </p>
+        </div>
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Notes (optional)</label>
