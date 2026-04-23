@@ -178,6 +178,31 @@ router.post("/event", isAuthenticated, async (req, res) => {
       });
     }
 
+    // Phase 6 — overall graduation detection.
+    // If this category just graduated AND every category is now graduated,
+    // stamp the user's profile.graduatedAt so the owner gets a notification.
+    if (nextState.graduatedAt) {
+      const [profile] = await db
+        .select()
+        .from(trainingUserProfile)
+        .where(eq(trainingUserProfile.userId, userId));
+      if (profile && !profile.graduatedAt) {
+        const allCategories = await db.select({ id: trainingActionCategories.id }).from(trainingActionCategories);
+        const userStates = await db
+          .select({ categoryId: trainingUserState.categoryId, graduatedAt: trainingUserState.graduatedAt })
+          .from(trainingUserState)
+          .where(eq(trainingUserState.userId, userId));
+        const gradSet = new Set(userStates.filter((s) => s.graduatedAt).map((s) => s.categoryId));
+        const allDone = allCategories.length > 0 && allCategories.every((c) => gradSet.has(c.id));
+        if (allDone) {
+          await db
+            .update(trainingUserProfile)
+            .set({ graduatedAt: new Date(), graduationNotifiedOwner: false })
+            .where(eq(trainingUserProfile.userId, userId));
+        }
+      }
+    }
+
     res.json({
       ok: true,
       state: {
@@ -352,6 +377,98 @@ router.get("/admin/staff/:userId", isAuthenticated, async (req, res) => {
     });
   } catch (err) {
     console.error("[training] /admin/staff/:userId error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * Phase 6 — Pending graduation notifications for the owner.
+ * Returns staff (in stores the requester manages) whose profile has
+ * graduatedAt set but graduationNotifiedOwner is still false.
+ */
+router.get("/notifications", isAuthenticated, async (req, res) => {
+  try {
+    const requester = uid(req);
+    if (!requester) return res.status(401).json({ error: "unauthorized" });
+    const role = (req as any).user?.role ?? (req as any).user?.claims?.role;
+    if (!isManagerRole(role)) return res.json({ notifications: [] });
+
+    // Find every store this user manages (owners) — managers/admins see all.
+    let storeFilter: number[] | null = null;
+    if (role === "owner") {
+      const owned = await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(eq(locations.userId, requester));
+      storeFilter = owned.map((s) => s.id);
+      if (storeFilter.length === 0) return res.json({ notifications: [] });
+    }
+
+    // Pull graduated, un-notified profiles.
+    const pendingProfiles = await db
+      .select()
+      .from(trainingUserProfile);
+    const candidates = pendingProfiles.filter(
+      (p) => p.graduatedAt && !p.graduationNotifiedOwner,
+    );
+    if (candidates.length === 0) return res.json({ notifications: [] });
+
+    const candidateUserIds = candidates.map((p) => p.userId);
+    const candidateUsers = await db
+      .select()
+      .from(users)
+      .where(inArray(users.id, candidateUserIds));
+
+    // Filter by manager scope: their staffId must belong to a store in scope.
+    const staffIds = candidateUsers.map((u) => u.staffId).filter((x): x is number => !!x);
+    const staffRows = staffIds.length
+      ? await db.select().from(staff).where(inArray(staff.id, staffIds))
+      : [];
+    const staffById = new Map(staffRows.map((s) => [s.id, s]));
+
+    const notifications = candidateUsers
+      .map((u) => {
+        if (!u.staffId) return null;
+        const sRow = staffById.get(u.staffId);
+        if (!sRow) return null;
+        if (storeFilter && (!sRow.storeId || !storeFilter.includes(sRow.storeId))) return null;
+        const profile = candidates.find((p) => p.userId === u.id)!;
+        return {
+          userId: u.id,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          staffName: sRow.name,
+          storeId: sRow.storeId,
+          graduatedAt: profile.graduatedAt,
+        };
+      })
+      .filter(Boolean);
+
+    res.json({ notifications });
+  } catch (err) {
+    console.error("[training] /notifications error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+router.post("/notifications/dismiss", isAuthenticated, async (req, res) => {
+  try {
+    const requester = uid(req);
+    if (!requester) return res.status(401).json({ error: "unauthorized" });
+    const role = (req as any).user?.role ?? (req as any).user?.claims?.role;
+    if (!isManagerRole(role)) return res.status(403).json({ error: "forbidden" });
+    const { userId } = req.body ?? {};
+    if (!userId) return res.status(400).json({ error: "userId required" });
+
+    await db
+      .update(trainingUserProfile)
+      .set({ graduationNotifiedOwner: true })
+      .where(eq(trainingUserProfile.userId, String(userId)));
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[training] /notifications/dismiss error:", err);
     res.status(500).json({ error: "internal_error" });
   }
 });
