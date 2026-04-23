@@ -5023,6 +5023,10 @@ If you have any questions, please contact your administrator.
   const { default: dialerRouter } = await import("./dialer.js");
   app.use("/api/dialer", dialerRouter);
 
+  // ── Staff Training Tool ──────────────────────────────────────────────────────
+  const { default: trainingRouter } = await import("./routes/training.js");
+  app.use("/api/training", trainingRouter);
+
   // Start the reminder schedulers (SMS + Email)
   startReminderScheduler();
   startEmailReminderScheduler();

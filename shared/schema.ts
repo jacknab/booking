@@ -1059,3 +1059,79 @@ export type InsertLoyaltyTransaction = z.infer<typeof insertLoyaltyTransactionSc
 export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+// === TRAINING SYSTEM (Staff Training Tool) ===
+// See docs/STAFF_TRAINING_TOOL_PLAN.md and docs/STAFF_TRAINING_DEVELOPMENT_PLAN.md
+
+export const trainingActionCategories = pgTable("training_action_categories", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  defaultHelpLevel: integer("default_help_level").notNull().default(3),
+  highRisk: boolean("high_risk").notNull().default(false),
+});
+
+export const trainingActionSteps = pgTable("training_action_steps", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id").references(() => trainingActionCategories.id, { onDelete: "cascade" }).notNull(),
+  order: integer("order").notNull().default(0),
+  stepJson: jsonb("step_json").notNull(),
+}, (t) => [index("idx_training_steps_category").on(t.categoryId)]);
+
+export const trainingUserState = pgTable("training_user_state", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  categoryId: integer("category_id").references(() => trainingActionCategories.id, { onDelete: "cascade" }).notNull(),
+  helpLevel: integer("help_level").notNull().default(3),
+  successStreak: integer("success_streak").notNull().default(0),
+  failures: integer("failures").notNull().default(0),
+  totalAttempts: integer("total_attempts").notNull().default(0),
+  lastSeenAt: timestamp("last_seen_at"),
+  graduatedAt: timestamp("graduated_at"),
+  pinnedLevel: integer("pinned_level"),
+}, (t) => [
+  uniqueIndex("uniq_training_user_category").on(t.userId, t.categoryId),
+  index("idx_training_state_user").on(t.userId),
+]);
+
+export const trainingEvents = pgTable("training_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  categoryId: integer("category_id").references(() => trainingActionCategories.id, { onDelete: "cascade" }).notNull(),
+  type: varchar("type", { length: 32 }).notNull(),
+  helpLevelAtTime: integer("help_level_at_time").notNull(),
+  occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+  metadata: jsonb("metadata"),
+}, (t) => [
+  index("idx_training_events_user_cat").on(t.userId, t.categoryId),
+  index("idx_training_events_occurred").on(t.occurredAt),
+]);
+
+export const trainingUserProfile = pgTable("training_user_profile", {
+  userId: varchar("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
+  graduatedAt: timestamp("graduated_at"),
+  graduationNotifiedOwner: boolean("graduation_notified_owner").notNull().default(false),
+});
+
+export const trainingSettings = pgTable("training_settings", {
+  storeId: integer("store_id").primaryKey().references(() => locations.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(true),
+  autoEnrollNewStaff: boolean("auto_enroll_new_staff").notNull().default(true),
+  graduationMinDays: integer("graduation_min_days").notNull().default(7),
+  showHelpBubbleAfterGraduation: boolean("show_help_bubble_after_graduation").notNull().default(true),
+});
+
+export type TrainingActionCategory = typeof trainingActionCategories.$inferSelect;
+export type InsertTrainingActionCategory = typeof trainingActionCategories.$inferInsert;
+export type TrainingActionStep = typeof trainingActionSteps.$inferSelect;
+export type InsertTrainingActionStep = typeof trainingActionSteps.$inferInsert;
+export type TrainingUserState = typeof trainingUserState.$inferSelect;
+export type InsertTrainingUserState = typeof trainingUserState.$inferInsert;
+export type TrainingEvent = typeof trainingEvents.$inferSelect;
+export type InsertTrainingEvent = typeof trainingEvents.$inferInsert;
+export type TrainingUserProfile = typeof trainingUserProfile.$inferSelect;
+export type InsertTrainingUserProfile = typeof trainingUserProfile.$inferInsert;
+export type TrainingSettings = typeof trainingSettings.$inferSelect;
+export type InsertTrainingSettings = typeof trainingSettings.$inferInsert;
