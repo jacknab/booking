@@ -1,0 +1,56 @@
+capig.datah04.com/events/cceb2ebf75220c8134a7549dd711974a10988610afa2f5a674826898505ddf44:1  Failed to load resource: the server responded with a status of 422 ()
+chunk-LPF6KSF2.js?v=489f14b6:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+react-router-dom.js?v=489f14b6:4435 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+warnOnce @ react-router-dom.js?v=489f14b6:4435
+react-router-dom.js?v=489f14b6:4435 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+warnOnce @ react-router-dom.js?v=489f14b6:4435
+NewBooking.tsx:123 Uncaught ReferenceError: Cannot access 'slots' before initialization
+    at NewBooking (NewBooking.tsx:123:31)
+    at renderWithHooks (chunk-LPF6KSF2.js?v=489f14b6:11596:26)
+    at mountIndeterminateComponent (chunk-LPF6KSF2.js?v=489f14b6:14974:21)
+    at beginWork (chunk-LPF6KSF2.js?v=489f14b6:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-LPF6KSF2.js?v=489f14b6:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-LPF6KSF2.js?v=489f14b6:3705:24)
+    at invokeGuardedCallback (chunk-LPF6KSF2.js?v=489f14b6:3739:39)
+    at beginWork$1 (chunk-LPF6KSF2.js?v=489f14b6:19818:15)
+    at performUnitOfWork (chunk-LPF6KSF2.js?v=489f14b6:19251:20)
+    at workLoopSync (chunk-LPF6KSF2.js?v=489f14b6:19190:13)
+NewBooking.tsx:123 Uncaught ReferenceError: Cannot access 'slots' before initialization
+    at NewBooking (NewBooking.tsx:123:31)
+    at renderWithHooks (chunk-LPF6KSF2.js?v=489f14b6:11596:26)
+    at mountIndeterminateComponent (chunk-LPF6KSF2.js?v=489f14b6:14974:21)
+    at beginWork (chunk-LPF6KSF2.js?v=489f14b6:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-LPF6KSF2.js?v=489f14b6:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-LPF6KSF2.js?v=489f14b6:3705:24)
+    at invokeGuardedCallback (chunk-LPF6KSF2.js?v=489f14b6:3739:39)
+    at beginWork$1 (chunk-LPF6KSF2.js?v=489f14b6:19818:15)
+    at performUnitOfWork (chunk-LPF6KSF2.js?v=489f14b6:19251:20)
+    at workLoopSync (chunk-LPF6KSF2.js?v=489f14b6:19190:13)
+chunk-LPF6KSF2.js?v=489f14b6:14080 The above error occurred in the <NewBooking> component:
+
+    at NewBooking (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/src/pages/NewBooking.tsx:45:20)
+    at RenderedRoute (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=489f14b6:4130:5)
+    at Routes (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=489f14b6:4600:5)
+    at StoreProvider (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/src/components/StoreProvider.tsx:21:33)
+    at AppRoutes (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/src/App.tsx:187:20)
+    at Provider (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-647OWSWH.js?v=489f14b6:37:15)
+    at TooltipProvider (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=489f14b6:64:5)
+    at QueryClientProvider (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=489f14b6:2747:3)
+    at App (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/src/App.tsx:159:3)
+    at Router (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=489f14b6:4543:15)
+    at BrowserRouter (https://56917df8-c8c6-4fee-8a64-9874bf87c83f-00-1l28ghfrxf1f2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=489f14b6:5289:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-LPF6KSF2.js?v=489f14b6:14080
+chunk-LPF6KSF2.js?v=489f14b6:19466 Uncaught ReferenceError: Cannot access 'slots' before initialization
+    at NewBooking (NewBooking.tsx:123:31)
+    at renderWithHooks (chunk-LPF6KSF2.js?v=489f14b6:11596:26)
+    at mountIndeterminateComponent (chunk-LPF6KSF2.js?v=489f14b6:14974:21)
+    at beginWork (chunk-LPF6KSF2.js?v=489f14b6:15962:22)
+    at beginWork$1 (chunk-LPF6KSF2.js?v=489f14b6:19806:22)
+    at performUnitOfWork (chunk-LPF6KSF2.js?v=489f14b6:19251:20)
+    at workLoopSync (chunk-LPF6KSF2.js?v=489f14b6:19190:13)
+    at renderRootSync (chunk-LPF6KSF2.js?v=489f14b6:19169:15)
+    at recoverFromConcurrentError (chunk-LPF6KSF2.js?v=489f14b6:18786:28)
+    at performConcurrentWorkOnRoot (chunk-LPF6KSF2.js?v=489f14b6:18734:30)

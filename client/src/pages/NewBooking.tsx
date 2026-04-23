@@ -90,6 +90,25 @@ export default function NewBooking() {
     }
   };
 
+  // Derived values needed by the availability hook below. Declared up here
+  // so that effects which reference `slots`/`slotsLoading` in their dep
+  // arrays don't hit a temporal dead zone (TDZ) when the deps array is
+  // evaluated. (Hooks must still be called in the same order every render.)
+  const addonTotalEarly = selectedAddons.reduce((sum, a) => sum + Number(a.price), 0);
+  const addonDurationEarly = selectedAddons.reduce((sum, a) => sum + a.duration, 0);
+  const totalDurationEarly = (selectedService?.duration || 0) + addonDurationEarly;
+  const dateStringEarly = selectedDate
+    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
+    : null;
+
+  const { data: slots, isLoading: slotsLoading } = useAvailableSlots(
+    selectedService?.id || null,
+    selectedStore?.id || null,
+    dateStringEarly,
+    totalDurationEarly,
+    staffMode === "specific" ? specificStaffId : null
+  );
+
   useEffect(() => {
     if (isCalendarBooking && staffList && !calendarSlotInitialized) {
       const staffMember = staffList.find((s: Staff) => s.id === calStaffId);
@@ -216,23 +235,17 @@ export default function NewBooking() {
 
   const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(selectedService?.id || null);
 
-  const addonTotal = selectedAddons.reduce((sum, a) => sum + Number(a.price), 0);
-  const addonDuration = selectedAddons.reduce((sum, a) => sum + a.duration, 0);
+  // `addonDuration`, `totalDuration`, `dateString`, `slots`, `slotsLoading`
+  // are declared earlier in the component (above the effects that use them
+  // in their dep arrays) to avoid a TDZ error. We re-alias here so the rest
+  // of the component (which still references the original names) continues
+  // to work without changes.
+  const addonTotal = addonTotalEarly;
+  const addonDuration = addonDurationEarly;
   const servicePrice = selectedService ? Number(selectedService.price) : 0;
   const totalPrice = servicePrice + addonTotal;
-  const totalDuration = (selectedService?.duration || 0) + addonDuration;
-
-  const dateString = selectedDate
-    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
-    : null;
-
-  const { data: slots, isLoading: slotsLoading } = useAvailableSlots(
-    selectedService?.id || null,
-    selectedStore?.id || null,
-    dateString,
-    totalDuration,
-    staffMode === "specific" ? specificStaffId : null
-  );
+  const totalDuration = totalDurationEarly;
+  const dateString = dateStringEarly;
 
   // Auto-advance to the next day with available slots when current date has none.
   const autoAdvanceOriginRef = useRef<Date | null>(null);
