@@ -1721,14 +1721,90 @@ If you have any questions, please contact your administrator.
         return res.json({ store: existingStores[0] ?? null, user: safeUser });
       }
 
-      // Guard: user has a store but onboardingCompleted was never set (partial prior onboarding)
+      // Guard: user has a store but onboardingCompleted was never set (partial prior onboarding).
+      // We must NOT silently drop businessHours/staff in this case — process them against the
+      // existing store, otherwise hours submitted on a retry/double-submit are lost.
       const priorStores = await db.select().from(locations).where(eq(locations.userId, userId));
       if (priorStores.length > 0) {
-        console.log("Onboarding: User already has a store, marking onboarding complete");
+        console.log(
+          "Onboarding: User already has a store, recovering partial onboarding for store:",
+          priorStores[0].id,
+          "- hours present:", Array.isArray(req.body?.businessHours) ? req.body.businessHours.length : 0,
+          "- staff present:", Array.isArray(req.body?.staff) ? req.body.staff.length : 0,
+        );
+        const existingStore = priorStores[0];
+
+        // Best-effort validation of just the hours/staff payload so a retry can still save them.
+        const recoverySchema = z.object({
+          businessHours: z.array(z.object({
+            dayOfWeek: z.number().min(0).max(6),
+            openTime: z.string(),
+            closeTime: z.string(),
+            isClosed: z.boolean(),
+          })).optional(),
+          staff: z.array(z.object({
+            name: z.string().min(1),
+            color: z.string().optional(),
+          })).optional(),
+        });
+        const recovery = recoverySchema.safeParse(req.body ?? {});
+        const hoursData = recovery.success ? recovery.data.businessHours : undefined;
+        const staffData = recovery.success ? recovery.data.staff : undefined;
+
+        // Save hours only if none exist yet for this store (don't clobber later edits).
+        if (hoursData && hoursData.length > 0) {
+          const existingHours = await db
+            .select()
+            .from(businessHours)
+            .where(eq(businessHours.storeId, existingStore.id));
+          if (existingHours.length === 0) {
+            console.log("Onboarding recovery: saving", hoursData.length, "business hours");
+            await storage.setBusinessHours(existingStore.id, hoursData.map(h => ({
+              storeId: existingStore.id,
+              dayOfWeek: h.dayOfWeek,
+              openTime: h.openTime,
+              closeTime: h.closeTime,
+              isClosed: h.isClosed,
+            })));
+          } else {
+            console.log("Onboarding recovery: store already has business hours, skipping");
+          }
+        }
+
+        // Create staff only if the store has none yet (avoid duplicates on retry).
+        if (staffData && staffData.length > 0) {
+          const existingStaff = await storage.getStaff(existingStore.id);
+          if (existingStaff.length === 0) {
+            console.log("Onboarding recovery: creating", staffData.length, "staff members");
+            for (const s of staffData) {
+              const newStaff = await storage.createStaff({
+                name: s.name,
+                color: s.color || "#3b82f6",
+                storeId: existingStore.id,
+              });
+              if (hoursData && hoursData.length > 0) {
+                const availabilityRules = hoursData
+                  .filter(h => !h.isClosed)
+                  .map(h => ({
+                    staffId: newStaff.id,
+                    dayOfWeek: h.dayOfWeek,
+                    startTime: h.openTime,
+                    endTime: h.closeTime,
+                  }));
+                if (availabilityRules.length > 0) {
+                  await storage.setStaffAvailability(newStaff.id, availabilityRules);
+                }
+              }
+            }
+          } else {
+            console.log("Onboarding recovery: store already has staff, skipping");
+          }
+        }
+
         await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, userId));
         const [updatedUser] = await db.select().from(users).where(eq(users.id, userId));
         const { password: _, ...safeUser } = updatedUser;
-        return res.json({ store: priorStores[0], user: safeUser });
+        return res.json({ store: existingStore, user: safeUser });
       }
 
       console.log("Onboarding: Validating request body:", req.body);
