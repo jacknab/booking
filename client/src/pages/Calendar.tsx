@@ -758,9 +758,10 @@ export default function Calendar() {
                     if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
                     if (m !== 0 && m !== 30) return null;
                     const isHour = m === 0;
-                    const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
-                    const ampm = h >= 12 ? "PM" : "AM";
-                    const timePart = h === 0 ? `12:${String(m).padStart(2, "0")}` : h === 12 ? `12:${String(m).padStart(2, "0")}` : `${displayH}:${String(m).padStart(2, "0")}`;
+                    const hMod = h % 24;
+                    const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
+                    const ampm = hMod >= 12 ? "PM" : "AM";
+                    const timePart = `${displayH}:${String(m).padStart(2, "0")}`;
                     const topPx = (totalMins / 60) * HOUR_HEIGHT;
                     return (
                       <div
