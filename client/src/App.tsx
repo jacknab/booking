@@ -8,8 +8,10 @@ import { StoreProvider } from "@/components/StoreProvider";
 import { useTheme } from "@/hooks/use-theme";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TrainingProvider } from "@/contexts/TrainingContext";
+import { PracticeModeProvider } from "@/contexts/PracticeModeContext";
 import { HelpBubble } from "@/components/training/HelpBubble";
 import { GraduationNotifier } from "@/components/training/GraduationNotifier";
+import { PracticeOverlay } from "@/components/training/PracticeOverlay";
 import { GraduationCard } from "@/components/training/GraduationCard";
 import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
@@ -159,10 +161,13 @@ function App() {
         <Toaster />
         <ErrorBoundary>
           <TrainingProvider>
-            <AppRoutes />
-            <HelpBubble />
-            <GraduationNotifier />
-            <GraduationCard />
+            <PracticeModeProvider>
+              <AppRoutes />
+              <HelpBubble />
+              <GraduationNotifier />
+              <GraduationCard />
+              <PracticeOverlay />
+            </PracticeModeProvider>
           </TrainingProvider>
         </ErrorBoundary>
       </TooltipProvider>

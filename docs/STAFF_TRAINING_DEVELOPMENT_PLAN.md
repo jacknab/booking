@@ -199,10 +199,14 @@ Built in parallel with Phases 5–8. Each sub-phase is its own PR.
 - All call sites already route through these three helpers, so reminder/dialer/queue flows inherit the guard automatically.
 - Smoke-tested live: SMS + email return `{skipped: true}` for sandbox storeIds and behave normally for real ones.
 
-### 9.3 — `<PracticeOverlay />` portal
-- Renders as a portal over the live app, ~90% of viewport, leaving live calendar visible at the edges.
-- Closes on **✕**, **Esc**, outside-click.
-- **Done when:** can be opened and closed in <300ms with no lag.
+### 9.3 — `<PracticeOverlay />` portal ✅ DONE
+- `client/src/contexts/PracticeModeContext.tsx` — `inPractice` state + `enterPractice` / `exitPractice` / `togglePractice`.
+- `client/src/components/training/PracticeOverlay.tsx` — `createPortal` to `document.body`, 90vw × 90vh panel with rounded edges over a `bg-black/40` backdrop so the live calendar stays visible at the edges.
+- Closes on **✕** button, **Esc** keydown (capture phase), and outside-click (mousedown on backdrop).
+- Body scroll locked while open to prevent layout shift on open/close.
+- Animated in <200ms via Tailwind `animate-in fade-in zoom-in-95 duration-150` — well under the 300ms target.
+- Temporary trigger: **Cmd/Ctrl + Shift + P** opens or closes the overlay (sidebar entry comes in 9.8).
+- Mounted inside `TrainingProvider` in App.tsx so it inherits training state for future phases.
 
 ### 9.4 — `StoreContext` override + route remount
 - Inside the overlay, the existing app routes mount with a sandbox `storeId`.
