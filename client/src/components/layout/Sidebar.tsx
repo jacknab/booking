@@ -42,14 +42,15 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   permission?: string;
   anyOf?: string[];
+  hideForStaff?: boolean;
 };
 
 const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Overview",
     items: [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/analytics", label: "Analytics", icon: TrendingUp, permission: PERMISSIONS.REPORTS_VIEW },
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, hideForStaff: true },
+      { to: "/analytics", label: "Analytics", icon: TrendingUp, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
       { to: "/calendar", label: "Calendar", icon: Calendar, anyOf: [PERMISSIONS.APPOINTMENTS_VIEW_ALL, PERMISSIONS.APPOINTMENTS_VIEW_OWN] },
     ],
   },
@@ -67,8 +68,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Business",
     items: [
-      { to: "/services", label: "Services", icon: Scissors, permission: PERMISSIONS.SERVICES_MANAGE },
-      { to: "/staff", label: "Staff", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE },
+      { to: "/services", label: "Services", icon: Scissors, permission: PERMISSIONS.SERVICES_MANAGE, hideForStaff: true },
+      { to: "/staff", label: "Staff", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE, hideForStaff: true },
       { to: "/dashboard/training", label: "Staff Training", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/dashboard/training/settings", label: "Training Settings", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/products", label: "Products", icon: ShoppingBag, permission: PERMISSIONS.PRODUCTS_MANAGE },
@@ -79,7 +80,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Finance",
     items: [
-      { to: "/reports", label: "Reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW },
+      { to: "/reports", label: "Reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
       { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote, permission: PERMISSIONS.CASH_DRAWER_VIEW },
       {
         to: "/commission-report",
@@ -95,7 +96,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/online-booking", label: "Online Booking", icon: Globe, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/mail-settings", label: "Email Notifications", icon: Mail, permission: PERMISSIONS.STORE_SETTINGS },
-      { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS },
+      { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
       { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/team-permissions", label: "Team Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
     ],
@@ -108,7 +109,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const { logoutAsync, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { selectedStore } = useSelectedStore();
-  const { can, canAny } = usePermissions();
+  const { can, canAny, isStaff } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
 
   const handleLogout = async () => {
@@ -136,6 +137,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                 ? group.items
                 : group.items.filter((item) => !posHiddenRoutes.includes(item.to))
               ).filter((item) => {
+                if (isStaff && item.hideForStaff) return false;
                 if (item.permission && !can(item.permission)) return false;
                 if (item.anyOf && !canAny(...item.anyOf)) return false;
                 return true;
