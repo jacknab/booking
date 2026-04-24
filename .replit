@@ -83,7 +83,7 @@ MAILGUN_SENDER_EMAIL = "noreply@mysalon.me"
 MAILGUN_FROM_EMAIL = "noreply@mysalon.me"
 MAILGUN_FROM_NAME = "Toby"
 CORS_ORIGINS = "https://dashboard.certxa.com,https://mysalon.me"
-GOOGLE_CLIENT_ID = "1085460104488-nhs437qp1on1tgshp577s6pjdl4ltqvk.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com"
 TWILIO_PHONE_NUMBER = "+18888147623"
 ACTIVE_GROUPS = "3"
 
