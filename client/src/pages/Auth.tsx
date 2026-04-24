@@ -51,6 +51,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -86,9 +87,9 @@ export default function Auth() {
     try {
       let result: any;
       if (mode === "login") {
-        result = await login({ email, password });
+        result = await login({ email, password, keepSignedIn });
       } else {
-        result = await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
+        result = await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined, keepSignedIn });
       }
       postAuthRedirect(!!(result && result.onboardingCompleted));
     } catch (error: any) {
@@ -231,7 +232,7 @@ export default function Auth() {
 
           {/* Google */}
           <button
-            onClick={loginWithGoogle}
+            onClick={() => loginWithGoogle({ keepSignedIn })}
             className="w-full flex items-center justify-center gap-3 bg-white/8 hover:bg-white/12 border border-white/15 text-white font-semibold text-sm py-3.5 rounded-xl transition-all mb-5"
           >
             <FaGoogle className="w-4 h-4" />
@@ -312,6 +313,26 @@ export default function Auth() {
                 className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
               />
             </div>
+
+            {/* Kiosk-mode toggle — keeps front-desk computers signed in indefinitely */}
+            <label className="flex items-start gap-3 cursor-pointer select-none pt-1">
+              <input
+                type="checkbox"
+                checked={keepSignedIn}
+                onChange={e => setKeepSignedIn(e.target.checked)}
+                data-testid="checkbox-keep-signed-in"
+                className="mt-0.5 h-4 w-4 rounded border-white/25 bg-white/6 accent-current cursor-pointer"
+                style={{ accentColor: accent }}
+              />
+              <span className="flex-1">
+                <span className="block text-sm font-semibold text-white/85">
+                  Keep me signed in on this device
+                </span>
+                <span className="block text-xs text-white/45 mt-0.5">
+                  Use for the front-desk computer — staff won't have to log in.
+                </span>
+              </span>
+            </label>
 
             <button
               type="submit"

@@ -30,7 +30,7 @@ export function useAuth() {
 
   // --- Email/Password Mutations ---
   const loginMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string }) => {
+    mutationFn: async (data: { email: string; password: string; keepSignedIn?: boolean }) => {
       const res = await apiRequest("POST", "/api/auth/login", data);
       return res.json();
     },
@@ -41,7 +41,7 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string }) => {
+    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string; keepSignedIn?: boolean }) => {
       const res = await apiRequest("POST", "/api/auth/register", data);
       return res.json();
     },
@@ -62,9 +62,10 @@ export function useAuth() {
   });
 
   // --- Google OAuth Login ---
-  const loginWithGoogle = () => {
+  const loginWithGoogle = (opts?: { keepSignedIn?: boolean }) => {
     // Redirects browser to backend Google OAuth endpoint
-    window.location.href = "/api/auth/google";
+    const qs = opts?.keepSignedIn ? "?keepSignedIn=1" : "";
+    window.location.href = `/api/auth/google${qs}`;
   };
 
   return {

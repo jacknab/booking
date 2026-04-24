@@ -27,14 +27,18 @@ export function setupAuth(app: Express) {
       store: sessionStore,
       resave: false,
       saveUninitialized: false,
+      rolling: true, // Refresh cookie expiration on every request — keeps active devices signed in
       cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        maxAge: 1000 * 60 * 60 * 24 * 7, // Default: 7 days (overridden to 10 years for kiosk-mode logins)
       },
     })
   );
+
+  // 10 years — practically "never expires", used for front-desk / kiosk devices
+  const KIOSK_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 10;
 
   // --- Google OAuth Routes ---
   // Registered immediately after session middleware so the session is
@@ -43,8 +47,16 @@ export function setupAuth(app: Express) {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
       return res.status(500).send("Google OAuth is not configured on the server. Please check environment variables.");
     }
+    // Stash kiosk-mode flag (from query string) into the session so the callback can apply it
+    if (req.query.keepSignedIn === "1") {
+      (req.session as any).pendingKiosk = true;
+    } else {
+      delete (req.session as any).pendingKiosk;
+    }
     console.log("Google OAuth: Initiating authentication...");
-    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+    req.session.save(() => {
+      passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+    });
   });
 
   app.get(
@@ -54,6 +66,11 @@ export function setupAuth(app: Express) {
       console.log("Google OAuth: Callback received, user:", (req.user as any)?.email);
       if (req.user) {
         (req.session as any).userId = (req.user as any).id;
+        if ((req.session as any).pendingKiosk) {
+          req.session.cookie.maxAge = KIOSK_MAX_AGE;
+          delete (req.session as any).pendingKiosk;
+          console.log("Google OAuth: Kiosk mode enabled (10-year session)");
+        }
         req.session.save((err) => {
           if (err) {
             console.error("Session save error:", err);
@@ -71,7 +88,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { password, firstName, lastName } = req.body;
+      const { password, firstName, lastName, keepSignedIn } = req.body;
       const email = typeof req.body.email === "string" ? req.body.email.toLowerCase().trim() : req.body.email;
 
       if (!email || !password) {
@@ -99,6 +116,9 @@ export function setupAuth(app: Express) {
         .returning();
 
       (req.session as any).userId = user.id;
+      if (keepSignedIn) {
+        req.session.cookie.maxAge = KIOSK_MAX_AGE;
+      }
       const { password: _, ...safeUser } = user;
       req.session.save((err) => {
         if (err) {
@@ -115,7 +135,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, keepSignedIn } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -137,6 +157,9 @@ export function setupAuth(app: Express) {
         const valid = await bcrypt.compare(password, user.password);
         if (valid) {
           (req.session as any).userId = user.id;
+          if (keepSignedIn) {
+            req.session.cookie.maxAge = KIOSK_MAX_AGE;
+          }
           const { password: _, ...safeUser } = user;
           return req.session.save((err) => {
             if (err) {
@@ -159,6 +182,9 @@ export function setupAuth(app: Express) {
         const validStaffPw = await bcrypt.compare(password, staffMember.password);
         if (validStaffPw) {
           (req.session as any).staffId = staffMember.id;
+          if (keepSignedIn) {
+            req.session.cookie.maxAge = KIOSK_MAX_AGE;
+          }
           const { password: _pw, ...safeStaff } = staffMember;
           const staffResponse = {
             id: `staff-${staffMember.id}`,
