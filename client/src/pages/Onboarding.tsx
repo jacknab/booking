@@ -237,6 +237,31 @@ export default function Onboarding() {
     }
   }, [user?.email]);
 
+  // Auto-detect City and State from the user's IP address (one-time, on mount)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("https://ipapi.co/json/", { credentials: "omit" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const detectedCity: string | undefined = data?.city;
+        const detectedState: string | undefined = data?.region_code;
+        // Only populate fields that the user hasn't already filled in
+        setCity((prev) => (prev.trim() ? prev : detectedCity || prev));
+        if (detectedState && usStates.some((s) => s.value === detectedState)) {
+          setState((prev) => (prev ? prev : detectedState));
+        }
+      } catch {
+        // Silent fail — user can still enter manually
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Validation functions
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) return true; // Optional field
