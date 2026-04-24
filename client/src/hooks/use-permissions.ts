@@ -1,28 +1,33 @@
 import { useAuth } from "./use-auth";
-import type { Permission, Role } from "@shared/permissions";
+import {
+  computePermissions,
+  normalizeRole,
+  type Permission,
+} from "@shared/permissions";
 
 interface AuthUserWithPermissions {
   role?: string | null;
-  permissions?: string[];
+  permissions?: string[] | Record<string, boolean> | null;
 }
 
 export function usePermissions() {
   const { user } = useAuth();
   const u = user as AuthUserWithPermissions | null | undefined;
 
-  const role = ((u?.role ?? "owner") as Role) === "manager"
-    ? "manager"
-    : u?.role === "staff"
-      ? "staff"
-      : ("owner" as Role);
+  const role = normalizeRole(u?.role);
 
-  const permSet = new Set<string>(u?.permissions ?? []);
+  const overrides =
+    u?.permissions && !Array.isArray(u.permissions)
+      ? (u.permissions as Record<string, boolean>)
+      : null;
 
-  const can = (perm: Permission | string): boolean => permSet.has(perm);
+  const permSet = computePermissions(role, overrides);
+
+  const can = (perm: Permission | string): boolean => permSet.has(perm as Permission);
   const canAny = (...perms: (Permission | string)[]): boolean =>
-    perms.some((p) => permSet.has(p));
+    perms.some((p) => permSet.has(p as Permission));
   const canAll = (...perms: (Permission | string)[]): boolean =>
-    perms.every((p) => permSet.has(p));
+    perms.every((p) => permSet.has(p as Permission));
 
   return {
     role,
