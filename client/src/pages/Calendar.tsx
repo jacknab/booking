@@ -494,7 +494,7 @@ export default function Calendar() {
               value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
               onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
             >
-              <SelectTrigger className="w-[160px]" data-testid="select-staff-filter">
+              <SelectTrigger className="w-[160px] ml-5" data-testid="select-staff-filter">
                 <Users className="w-4 h-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="All Staff" />
               </SelectTrigger>
@@ -506,10 +506,6 @@ export default function Calendar() {
               </SelectContent>
             </Select>
           )}
-          <Badge variant="secondary" className="no-default-active-elevate gap-1" data-testid="badge-timezone">
-            <Globe className="w-3 h-3" />
-            {tzAbbr}
-          </Badge>
         </div>
 
         <div className="flex items-center gap-1">
@@ -561,11 +557,6 @@ export default function Calendar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/calendar-settings">
-            <Button variant="ghost" size="icon" data-testid="button-calendar-settings">
-              <Settings className="w-4 h-4" />
-            </Button>
-          </Link>
           <div className="relative">
             <Button onClick={() => setShowNewApptMenu(v => !v)} data-testid="button-new-appointment">
               APPOINTMENT
