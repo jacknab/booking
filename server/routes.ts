@@ -3139,8 +3139,21 @@ If you have any questions, please contact your administrator.
         profileId: profileRow.id,
         googleEmail: userInfo?.email ?? null,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in Google callback:", error);
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      if (status === 429) {
+        return res.status(429).json({
+          message:
+            "Google API quota exceeded. The Google Business Profile API has a default quota of 0 — you must request a quota increase from Google at https://support.google.com/business/contact/api_default_quota_increase before this connect flow will work.",
+        });
+      }
+      if (status === 403) {
+        return res.status(403).json({
+          message:
+            "Google denied access. Make sure the Google Business Profile API is enabled in your Google Cloud project and that your OAuth consent screen lists the business.manage scope.",
+        });
+      }
       res.status(500).json({ message: "Failed to authenticate with Google" });
     }
   });
@@ -3173,8 +3186,15 @@ If you have any questions, please contact your administrator.
       const locs = locationsData.locations ?? [];
 
       res.json({ locations: locs });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching locations:", error);
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      if (status === 429) {
+        return res.status(429).json({
+          message:
+            "Google API quota exceeded. Request a quota increase at https://support.google.com/business/contact/api_default_quota_increase before fetching locations.",
+        });
+      }
       res.status(500).json({ message: "Failed to fetch locations" });
     }
   });
