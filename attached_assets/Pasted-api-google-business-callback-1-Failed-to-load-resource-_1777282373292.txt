@@ -1,0 +1,237 @@
+api/google-business/callback:1  Failed to load resource: the server responded with a status of 429 ()
+index-BFXQtCSJ.js:352 Failed to authenticate: AxiosError: Request failed with status code 429
+    at Fee (index-BFXQtCSJ.js:349:1094)
+    at XMLHttpRequest.S (index-BFXQtCSJ.js:349:5977)
+    at Qh.request (index-BFXQtCSJ.js:351:2102)
+    at async K (index-BFXQtCSJ.js:352:7108)
+K @ index-BFXQtCSJ.js:352
+index-BFXQtCSJ.js:14 Fetch finished loading: GET "https://certxa.com/api/stores".
+queryFn @ index-BFXQtCSJ.js:14
+a @ index-BFXQtCSJ.js:8
+v @ index-BFXQtCSJ.js:8
+start @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+#u @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+refetch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+batch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+await in (anonymous)
+(anonymous) @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+n @ index-BFXQtCSJ.js:8
+index-BFXQtCSJ.js:8 Fetch finished loading: GET "https://certxa.com/api/training/notifications".
+(anonymous) @ index-BFXQtCSJ.js:8
+a @ index-BFXQtCSJ.js:8
+v @ index-BFXQtCSJ.js:8
+start @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+#u @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+refetch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+batch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+await in (anonymous)
+(anonymous) @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+n @ index-BFXQtCSJ.js:8
+index-BFXQtCSJ.js:14 Fetch finished loading: GET "https://certxa.com/api/stores".
+queryFn @ index-BFXQtCSJ.js:14
+a @ index-BFXQtCSJ.js:8
+v @ index-BFXQtCSJ.js:8
+start @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+#u @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+refetch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+batch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+await in (anonymous)
+(anonymous) @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+n @ index-BFXQtCSJ.js:8
+index-BFXQtCSJ.js:8 Fetch finished loading: GET "https://certxa.com/api/training/notifications".
+(anonymous) @ index-BFXQtCSJ.js:8
+a @ index-BFXQtCSJ.js:8
+v @ index-BFXQtCSJ.js:8
+start @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+#u @ index-BFXQtCSJ.js:8
+fetch @ index-BFXQtCSJ.js:8
+refetch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+batch @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+await in (anonymous)
+(anonymous) @ index-BFXQtCSJ.js:8
+onFocus @ index-BFXQtCSJ.js:8
+(anonymous) @ index-BFXQtCSJ.js:8
+n @ index-BFXQtCSJ.js:8
+index-BFXQtCSJ.js:349 XHR finished loading: GET "https://certxa.com/api/google-business/reviews/1?limit=50".
+(anonymous) @ index-BFXQtCSJ.js:349
+xhr @ index-BFXQtCSJ.js:349
+W7 @ index-BFXQtCSJ.js:351
+_request @ index-BFXQtCSJ.js:352
+request @ index-BFXQtCSJ.js:351
+Qh.<computed> @ index-BFXQtCSJ.js:352
+(anonymous) @ index-BFXQtCSJ.js:347
+S @ index-BFXQtCSJ.js:354
+(anonymous) @ index-BFXQtCSJ.js:354
+lb @ index-BFXQtCSJ.js:8
+vf @ index-BFXQtCSJ.js:8
+Vte @ index-BFXQtCSJ.js:8
+fh @ index-BFXQtCSJ.js:8
+q6 @ index-BFXQtCSJ.js:8
+qd @ index-BFXQtCSJ.js:6
+(anonymous) @ index-BFXQtCSJ.js:8
+index-BFXQtCSJ.js:349 XHR finished loading: GET "https://certxa.com/api/google-business/reviews-stats/1".
+(anonymous) @ index-BFXQtCSJ.js:349
+xhr @ index-BFXQtCSJ.js:349
+W7 @ index-BFXQtCSJ.js:351
+_request @ index-BFXQtCSJ.js:352
+request @ index-BFXQtCSJ.js:351
+Qh.<computed> @ index-BFXQtCSJ.js:352
+(anonymous) @ index-BFXQtCSJ.js:347
+k @ index-BFXQtCSJ.js:354
+(anonymous) @ index-BFXQtCSJ.js:354
+lb @ index-BFXQtCSJ.js:8
+vf @ index-BFXQtCSJ.js:8
+Vte @ index-BFXQtCSJ.js:8
+fh @ index-BFXQtCSJ.js:8
+q6 @ index-BFXQtCSJ.js:8
+qd @ index-BFXQtCSJ.js:6
+(anonymous) @ index-BFXQtCSJ.js:8
+index-BFXQtCSJ.js:349  POST https://certxa.com/api/google-business/sync-reviews/1 500 (Internal Server Error)
+(anonymous) @ index-BFXQtCSJ.js:349
+xhr @ index-BFXQtCSJ.js:349
+W7 @ index-BFXQtCSJ.js:351
+_request @ index-BFXQtCSJ.js:352
+request @ index-BFXQtCSJ.js:351
+(anonymous) @ index-BFXQtCSJ.js:352
+(anonymous) @ index-BFXQtCSJ.js:347
+P @ index-BFXQtCSJ.js:354
+$t @ index-BFXQtCSJ.js:5
+xn @ index-BFXQtCSJ.js:5
+Tn @ index-BFXQtCSJ.js:5
+zx @ index-BFXQtCSJ.js:5
+qx @ index-BFXQtCSJ.js:5
+(anonymous) @ index-BFXQtCSJ.js:5
+jS @ index-BFXQtCSJ.js:8
+bt @ index-BFXQtCSJ.js:5
+m @ index-BFXQtCSJ.js:5
+Xu @ index-BFXQtCSJ.js:5
+m2 @ index-BFXQtCSJ.js:5
+index-BFXQtCSJ.js:354 Failed to sync reviews: AxiosError: Request failed with status code 500
+    at Fee (index-BFXQtCSJ.js:349:1094)
+    at XMLHttpRequest.S (index-BFXQtCSJ.js:349:5977)
+    at Qh.request (index-BFXQtCSJ.js:351:2102)
+    at async P (index-BFXQtCSJ.js:354:12303)
+P @ index-BFXQtCSJ.js:354
+await in P
+$t @ index-BFXQtCSJ.js:5
+xn @ index-BFXQtCSJ.js:5
+Tn @ index-BFXQtCSJ.js:5
+zx @ index-BFXQtCSJ.js:5
+qx @ index-BFXQtCSJ.js:5
+(anonymous) @ index-BFXQtCSJ.js:5
+jS @ index-BFXQtCSJ.js:8
+bt @ index-BFXQtCSJ.js:5
+m @ index-BFXQtCSJ.js:5
+Xu @ index-BFXQtCSJ.js:5
+m2 @ index-BFXQtCSJ.js:5
+index-BFXQtCSJ.js:349 XHR failed loading: POST "https://certxa.com/api/google-business/sync-reviews/1".
+(anonymous) @ index-BFXQtCSJ.js:349
+xhr @ index-BFXQtCSJ.js:349
+W7 @ index-BFXQtCSJ.js:351
+_request @ index-BFXQtCSJ.js:352
+request @ index-BFXQtCSJ.js:351
+(anonymous) @ index-BFXQtCSJ.js:352
+(anonymous) @ index-BFXQtCSJ.js:347
+P @ index-BFXQtCSJ.js:354
+$t @ index-BFXQtCSJ.js:5
+xn @ index-BFXQtCSJ.js:5
+Tn @ index-BFXQtCSJ.js:5
+zx @ index-BFXQtCSJ.js:5
+qx @ index-BFXQtCSJ.js:5
+(anonymous) @ index-BFXQtCSJ.js:5
+jS @ index-BFXQtCSJ.js:8
+bt @ index-BFXQtCSJ.js:5
+m @ index-BFXQtCSJ.js:5
+Xu @ index-BFXQtCSJ.js:5
+m2 @ index-BFXQtCSJ.js:5
+index-BFXQtCSJ.js:349  POST https://certxa.com/api/google-business/sync-reviews/1 500 (Internal Server Error)
+(anonymous) @ index-BFXQtCSJ.js:349
+xhr @ index-BFXQtCSJ.js:349
+W7 @ index-BFXQtCSJ.js:351
+_request @ index-BFXQtCSJ.js:352
+request @ index-BFXQtCSJ.js:351
+(anonymous) @ index-BFXQtCSJ.js:352
+(anonymous) @ index-BFXQtCSJ.js:347
+P @ index-BFXQtCSJ.js:354
+$t @ index-BFXQtCSJ.js:5
+xn @ index-BFXQtCSJ.js:5
+Tn @ index-BFXQtCSJ.js:5
+zx @ index-BFXQtCSJ.js:5
+qx @ index-BFXQtCSJ.js:5
+(anonymous) @ index-BFXQtCSJ.js:5
+jS @ index-BFXQtCSJ.js:8
+bt @ index-BFXQtCSJ.js:5
+m @ index-BFXQtCSJ.js:5
+Xu @ index-BFXQtCSJ.js:5
+m2 @ index-BFXQtCSJ.js:5
+index-BFXQtCSJ.js:354 Failed to sync reviews: AxiosError: Request failed with status code 500
+    at Fee (index-BFXQtCSJ.js:349:1094)
+    at XMLHttpRequest.S (index-BFXQtCSJ.js:349:5977)
+    at Qh.request (index-BFXQtCSJ.js:351:2102)
+    at async P (index-BFXQtCSJ.js:354:12303)
+P @ index-BFXQtCSJ.js:354
+await in P
+$t @ index-BFXQtCSJ.js:5
+xn @ index-BFXQtCSJ.js:5
+Tn @ index-BFXQtCSJ.js:5
+zx @ index-BFXQtCSJ.js:5
+qx @ index-BFXQtCSJ.js:5
+(anonymous) @ index-BFXQtCSJ.js:5
+jS @ index-BFXQtCSJ.js:8
+bt @ index-BFXQtCSJ.js:5
+m @ index-BFXQtCSJ.js:5
+Xu @ index-BFXQtCSJ.js:5
+m2 @ index-BFXQtCSJ.js:5
+index-BFXQtCSJ.js:349 XHR failed loading: POST "https://certxa.com/api/google-business/sync-reviews/1".
+(anonymous) @ index-BFXQtCSJ.js:349
+xhr @ index-BFXQtCSJ.js:349
+W7 @ index-BFXQtCSJ.js:351
+_request @ index-BFXQtCSJ.js:352
+request @ index-BFXQtCSJ.js:351
+(anonymous) @ index-BFXQtCSJ.js:352
+(anonymous) @ index-BFXQtCSJ.js:347
+P @ index-BFXQtCSJ.js:354
+$t @ index-BFXQtCSJ.js:5
+xn @ index-BFXQtCSJ.js:5
+Tn @ index-BFXQtCSJ.js:5
+zx @ index-BFXQtCSJ.js:5
+qx @ index-BFXQtCSJ.js:5
+(anonymous) @ index-BFXQtCSJ.js:5
+jS @ index-BFXQtCSJ.js:8
+bt @ index-BFXQtCSJ.js:5
+m @ index-BFXQtCSJ.js:5
+Xu @ index-BFXQtCSJ.js:5
+m2 @ index-BFXQtCSJ.js:5
