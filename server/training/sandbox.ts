@@ -812,21 +812,47 @@ export async function resetAllSandboxes(): Promise<{ resetCount: number }> {
 }
 
 /**
- * Resolve the sandbox storeId for a given user (looks up via their staff
- * record → store → sandbox). Returns null if the user isn't linked to a
- * staff member or their store has no sandbox yet.
+ * Resolve the parent storeId a user belongs to. Owners are linked directly
+ * via locations.userId; staff members are linked via users.staffId →
+ * staff.storeId. Returns null if neither path resolves.
+ */
+async function parentStoreIdForUser(userId: string): Promise<number | null> {
+  const [u] = await db.select().from(users).where(eq(users.id, userId));
+  if (!u) return null;
+
+  // Owner path: the user owns one or more stores directly.
+  const ownedStores = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(
+      and(
+        eq(locations.userId, userId),
+        eq(locations.isTrainingSandbox, false),
+      ),
+    );
+  if (ownedStores[0]) return ownedStores[0].id;
+
+  // Staff path: the user is linked to a staff record on a store.
+  if (u.staffId) {
+    const [s] = await db.select().from(staff).where(eq(staff.id, u.staffId));
+    if (s?.storeId) return s.storeId;
+  }
+  return null;
+}
+
+/**
+ * Resolve the sandbox storeId for a given user. Returns null if the user
+ * isn't linked to a store or their store has no sandbox yet.
  */
 export async function sandboxStoreIdForUser(userId: string): Promise<number | null> {
-  const [u] = await db.select().from(users).where(eq(users.id, userId));
-  if (!u?.staffId) return null;
-  const [s] = await db.select().from(staff).where(eq(staff.id, u.staffId));
-  if (!s?.storeId) return null;
+  const parentId = await parentStoreIdForUser(userId);
+  if (!parentId) return null;
   const [sandbox] = await db
     .select({ id: locations.id })
     .from(locations)
     .where(
       and(
-        eq(locations.sandboxParentStoreId, s.storeId),
+        eq(locations.sandboxParentStoreId, parentId),
         eq(locations.isTrainingSandbox, true),
       ),
     );
@@ -834,13 +860,11 @@ export async function sandboxStoreIdForUser(userId: string): Promise<number | nu
 }
 
 /**
- * Convenience: find the parent store for a user via staff, then ensure a
- * sandbox exists for it. Returns null if the user isn't linked to a store.
+ * Convenience: find the parent store for a user, then ensure a sandbox
+ * exists for it. Returns null if the user isn't linked to a store.
  */
 export async function ensureSandboxForUser(userId: string): Promise<number | null> {
-  const [u] = await db.select().from(users).where(eq(users.id, userId));
-  if (!u?.staffId) return null;
-  const [s] = await db.select().from(staff).where(eq(staff.id, u.staffId));
-  if (!s?.storeId) return null;
-  return ensureSandboxForStore(s.storeId);
+  const parentId = await parentStoreIdForUser(userId);
+  if (!parentId) return null;
+  return ensureSandboxForStore(parentId);
 }
