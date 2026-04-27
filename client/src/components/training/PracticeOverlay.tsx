@@ -9,11 +9,11 @@
  * sandbox storeId. For now this is an empty shell with a header — enough to
  * verify open/close UX and the portal plumbing.
  */
-import { useEffect, useRef, useState } from "react";
+import { Component, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { MemoryRouter } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Beaker, X, Loader2, Sparkles } from "lucide-react";
+import { AlertTriangle, Beaker, X, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { usePracticeMode } from "@/contexts/PracticeModeContext";
 import { SandboxStoreProvider } from "@/components/training/SandboxStoreProvider";
 import { SandboxRoutes } from "@/components/training/SandboxRoutes";
@@ -219,6 +219,72 @@ function ScenarioScoreboard({
   );
 }
 
+interface SandboxBoundaryState {
+  error: Error | null;
+}
+
+class SandboxErrorBoundary extends Component<
+  { onReset: () => void; children: ReactNode },
+  SandboxBoundaryState
+> {
+  state: SandboxBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): SandboxBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[PracticeOverlay] sandbox render crashed:", error, info);
+  }
+
+  reset = () => {
+    this.setState({ error: null });
+  };
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div
+          role="alert"
+          data-testid="sandbox-error"
+          className="h-full w-full flex flex-col items-center justify-center gap-3 p-8 text-center"
+        >
+          <AlertTriangle className="w-8 h-8 text-amber-600" />
+          <div className="text-base font-semibold">
+            Practice Mode hit an error
+          </div>
+          <div className="text-sm text-muted-foreground max-w-md">
+            {this.state.error.message ||
+              "Something inside the practice sandbox failed to render."}
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => {
+                this.reset();
+                this.props.onReset();
+              }}
+              data-testid="button-sandbox-reset-state"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border hover:bg-muted transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Reset practice state
+            </button>
+            <button
+              type="button"
+              onClick={this.reset}
+              data-testid="button-sandbox-retry"
+              className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return <>{this.props.children}</>;
+  }
+}
+
 export function PracticeOverlay() {
   const { inPractice, exitPractice } = usePracticeMode();
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -345,10 +411,28 @@ export function PracticeOverlay() {
            * scroll position so re-opening picks up exactly where you left off.
            */}
           <MemoryRouter initialEntries={["/calendar"]}>
-            <PracticePersistence scrollRef={scrollRef} />
-            <SandboxStoreProvider>
-              <SandboxRoutes />
-            </SandboxStoreProvider>
+            <SandboxErrorBoundary
+              onReset={() => {
+                try {
+                  for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const k = localStorage.key(i);
+                    if (k && k.startsWith("practice-mode:")) {
+                      localStorage.removeItem(k);
+                    }
+                  }
+                } catch {
+                  /* ignore storage errors */
+                }
+                queryClient.invalidateQueries({
+                  queryKey: ["/api/training/sandbox"],
+                });
+              }}
+            >
+              <PracticePersistence scrollRef={scrollRef} />
+              <SandboxStoreProvider>
+                <SandboxRoutes />
+              </SandboxStoreProvider>
+            </SandboxErrorBoundary>
           </MemoryRouter>
         </div>
 
