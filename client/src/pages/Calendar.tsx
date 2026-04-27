@@ -20,10 +20,11 @@ import { cn } from "@/lib/utils";
 import type { AppointmentWithDetails } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { CashDrawerPanel } from "@/pages/CashDrawer";
 
 type SidebarItem =
   | { kind: "link"; to: string; label: string; icon: any }
-  | { kind: "action"; action: "quick-checkout" | "day-close"; label: string; icon: any };
+  | { kind: "action"; action: "quick-checkout" | "cash-drawer"; label: string; icon: any };
 
 const calendarSidebarItems: SidebarItem[] = [
   { kind: "link", to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -34,7 +35,7 @@ const calendarSidebarItems: SidebarItem[] = [
   { kind: "link", to: "/staff", label: "Staff", icon: UserCircle },
   { kind: "link", to: "/reports", label: "Reports", icon: FileText },
   { kind: "action", action: "quick-checkout", label: "Quick Cash Out", icon: Receipt },
-  { kind: "action", action: "day-close", label: "Day Close", icon: Lock },
+  { kind: "action", action: "cash-drawer", label: "Cash Drawer", icon: Banknote },
   { kind: "link", to: "/business-settings", label: "Business Settings", icon: Building2 },
 ];
 
@@ -112,6 +113,7 @@ export default function Calendar() {
   const [lookupMode, setLookupMode] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: number; hour: number; minute: number } | null>(null);
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
+  const [showCashDrawer, setShowCashDrawer] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const navDrawerRef = useRef<HTMLElement | null>(null);
 
@@ -646,7 +648,7 @@ export default function Calendar() {
           </button>
           {calendarSidebarItems.filter((item) => {
             if (!posEnabled) {
-              if (item.kind === "action" && (item.action === "quick-checkout" || item.action === "day-close")) return false;
+              if (item.kind === "action" && (item.action === "quick-checkout" || item.action === "cash-drawer")) return false;
               if (item.kind === "link" && (item.to === "/analytics" || item.to === "/reports")) return false;
             }
             return true;
@@ -656,20 +658,20 @@ export default function Calendar() {
               navOpen ? "px-2" : "px-0"
             );
             if (item.kind === "action") {
-              const isDayClose = item.action === "day-close";
+              const isCashDrawer = item.action === "cash-drawer";
               return (
                 <button
                   key={`action-${idx}`}
                   type="button"
                   onClick={() => {
-                    if (isDayClose) {
-                      navigate("/cash-drawer?action=close");
+                    if (isCashDrawer) {
+                      setShowCashDrawer(true);
                     } else {
                       setQuickCheckoutOpen(true);
                     }
                     setNavOpen(false);
                   }}
-                  data-testid={isDayClose ? "button-day-close" : "button-quick-checkout"}
+                  data-testid={isCashDrawer ? "button-cash-drawer" : "button-quick-checkout"}
                   className={cn(
                     baseClasses,
                     "text-muted-foreground hover:border-border/70 hover:bg-background hover:text-foreground hover:shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
@@ -709,6 +711,17 @@ export default function Calendar() {
         </nav>
 
         <div className="flex-1 overflow-hidden relative">
+          {showCashDrawer && (
+            <div
+              className="absolute inset-0 z-40 bg-background"
+              data-testid="cash-drawer-overlay"
+            >
+              <CashDrawerPanel
+                embedded
+                onClose={() => setShowCashDrawer(false)}
+              />
+            </div>
+          )}
           {showJumpToNow && (
             <button
               onClick={scrollToNow}

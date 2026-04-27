@@ -55,6 +55,19 @@ function useDenominationCounter() {
 }
 
 export default function CashDrawer() {
+  return (
+    <AppLayout>
+      <CashDrawerPanel />
+    </AppLayout>
+  );
+}
+
+interface CashDrawerPanelProps {
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+export function CashDrawerPanel({ embedded = false, onClose }: CashDrawerPanelProps = {}) {
   const { selectedStore } = useSelectedStore();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -246,15 +259,13 @@ export default function CashDrawer() {
 
   if (loadingOpen) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className={cn(embedded ? "h-full overflow-auto" : "")}>
+      <div className={cn(embedded ? "max-w-5xl mx-auto p-4 sm:p-6 space-y-6" : "max-w-5xl mx-auto p-6 space-y-6")}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold" data-testid="page-title">Cash Drawer</h1>
@@ -279,6 +290,17 @@ export default function CashDrawer() {
                 <Unlock className="w-3.5 h-3.5" />
                 Drawer Open
               </Badge>
+            )}
+            {embedded && onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                aria-label="Close cash drawer"
+                data-testid="button-close-cash-drawer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </div>
@@ -665,7 +687,7 @@ export default function CashDrawer() {
           </div>
         )}
       </div>
-    </AppLayout>
+    </div>
   );
 }
 
