@@ -1707,6 +1707,25 @@ If you have any questions, please contact your administrator.
       if (!session) return res.status(404).json({ message: "Session not found" });
       if (session.status === "closed") return res.status(400).json({ message: "Session already closed" });
 
+      const storeAppointments = session.storeId
+        ? await storage.getAppointments({ storeId: session.storeId })
+        : [];
+      const unpaidTickets = storeAppointments.filter((apt) => apt.status === "started");
+      if (unpaidTickets.length > 0) {
+        return res.status(409).json({
+          code: "UNPAID_TICKETS",
+          message: `Cannot close the day — ${unpaidTickets.length} booking ticket${unpaidTickets.length === 1 ? "" : "s"} still need${unpaidTickets.length === 1 ? "s" : ""} to be checked out.`,
+          unpaidCount: unpaidTickets.length,
+          unpaidTickets: unpaidTickets.map((apt) => ({
+            id: apt.id,
+            customerName: apt.customer ? `${apt.customer.firstName ?? ""} ${apt.customer.lastName ?? ""}`.trim() : null,
+            staffName: apt.staff?.name ?? null,
+            serviceName: apt.service?.name ?? null,
+            startedAt: apt.startedAt ?? apt.date,
+          })),
+        });
+      }
+
       const input = api.cashDrawer.close.input.parse(req.body);
 
       const updated = await storage.updateCashDrawerSession(id, {
