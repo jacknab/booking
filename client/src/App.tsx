@@ -1,5 +1,5 @@
 
-import { Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -162,10 +162,17 @@ function App() {
         <ErrorBoundary>
           <TrainingProvider>
             <PracticeModeProvider>
-              <AppRoutes />
-              <HelpBubble />
-              <GraduationNotifier />
-              <GraduationCard />
+              {/*
+               * BrowserRouter wraps only the live app. PracticeOverlay sits
+               * outside it so the overlay's own MemoryRouter isn't nested
+               * inside another router (React Router v6 forbids that).
+               */}
+              <BrowserRouter>
+                <AppRoutes />
+                <HelpBubble />
+                <GraduationNotifier />
+                <GraduationCard />
+              </BrowserRouter>
               <PracticeOverlay />
             </PracticeModeProvider>
           </TrainingProvider>
