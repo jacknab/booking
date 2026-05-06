@@ -3387,29 +3387,6 @@ function MonthCalendarOverlay({
         </div>
       </div>
 
-      {isMobile && createPortal(
-        <MobileBottomNav
-          onBook={() => {
-            setLookupMode(false);
-            setSelectedAppointment(null);
-            setShowCancelFlow(false);
-            setShowCheckout(false);
-            setShowClientLookup(true);
-          }}
-          onToday={goToday}
-          onLookup={() => {
-            setLookupMode(true);
-            setSelectedAppointment(null);
-            setShowCancelFlow(false);
-            setShowCheckout(false);
-            setShowClientLookup(true);
-          }}
-          onCheckout={() => setQuickCheckoutOpen(true)}
-          posEnabled={posEnabled}
-          isToday={isToday}
-        />,
-        document.body
-      )}
     </div>
   );
 }

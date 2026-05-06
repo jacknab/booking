@@ -204,6 +204,21 @@ export function MobileCalendarView({
             {/* Time grid */}
             {!isCollapsed && (
               <div className="relative flex" style={{ backgroundColor: "#d9e2ea" }}>
+                {/* Current time line — spans full width: pill over time col, line over appt col */}
+                {isToday && timeLinePosition !== null && (
+                  <div
+                    className="absolute left-0 right-0 z-20 pointer-events-none flex items-center -translate-y-1/2"
+                    style={{ top: `${timeLinePosition}px` }}
+                  >
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white rounded"
+                      style={{ width: MOBILE_TIME_COL_WIDTH, backgroundColor: "#2563eb", padding: "2px 4px" }}
+                    >
+                      {timeLineLabel}
+                    </div>
+                    <div className="flex-1 h-[2px]" style={{ backgroundColor: "#2563eb" }} />
+                  </div>
+                )}
                 {/* Time label column */}
                 <div
                   className="flex-shrink-0 bg-card z-10 sticky left-0"
@@ -270,21 +285,6 @@ export function MobileCalendarView({
                     borderLeftColor: "#d9e2ea",
                   }}
                 >
-                  {/* Current time line */}
-                  {isToday && timeLinePosition !== null && (
-                    <div
-                      className="absolute left-0 right-0 z-[15] pointer-events-none flex items-center -translate-y-1/2"
-                      style={{ top: `${timeLinePosition}px` }}
-                    >
-                      <div className="flex-1 h-[2px]" style={{ backgroundColor: "#2563eb" }} />
-                      <div
-                        className="flex-shrink-0 text-[10px] font-bold text-white px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: "#2563eb" }}
-                      >
-                        {timeLineLabel}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Time slot clickable rows */}
                   {timeSlots.map((slot) => {
