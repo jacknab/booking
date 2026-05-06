@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -3372,7 +3373,7 @@ function MonthCalendarOverlay({
         </div>
       </div>
 
-      {isMobile && (
+      {isMobile && createPortal(
         <MobileBottomNav
           onBook={() => {
             setLookupMode(false);
@@ -3392,7 +3393,8 @@ function MonthCalendarOverlay({
           onCheckout={() => setQuickCheckoutOpen(true)}
           posEnabled={posEnabled}
           isToday={isToday}
-        />
+        />,
+        document.body
       )}
     </div>
   );
