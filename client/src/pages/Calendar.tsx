@@ -21,6 +21,7 @@ import type { AppointmentWithDetails } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { CashDrawerPanel } from "@/pages/CashDrawer";
+import { MobileCalendarView } from "@/components/MobileCalendarView";
 
 type SidebarItem =
   | { kind: "link"; to: string; label: string; icon: any }
@@ -41,6 +42,16 @@ const calendarSidebarItems: SidebarItem[] = [
 
 const HOUR_HEIGHT = 180;
 const STAFF_CALENDAR_COLUMN_WIDTH = 180;
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return isMobile;
+}
 const CALENDAR_COLUMN_SEPARATOR_COLOR = "#d9e2ea";
 const DEFAULT_BUSINESS_START = 9;
 const DEFAULT_BUSINESS_END = 18;
@@ -144,6 +155,7 @@ export default function Calendar() {
   const shouldAutoCenterTimeLineRef = useRef(true);
   const programmaticScrollRef = useRef(false);
 
+  const isMobile = useIsMobile();
   const updateAppointment = useUpdateAppointment();
   const { toast } = useToast();
 
@@ -733,6 +745,33 @@ export default function Calendar() {
             </button>
           )}
           <div ref={scrollContainerRef} className="h-full overflow-auto">
+            {isMobile ? (
+              <MobileCalendarView
+                filteredStaff={filteredStaff}
+                timeSlots={timeSlots}
+                START_HOUR={START_HOUR}
+                END_HOUR={END_HOUR}
+                TOTAL_HOURS={TOTAL_HOURS}
+                HOUR_HEIGHT={HOUR_HEIGHT}
+                getAppointmentsForStaff={getAppointmentsForStaff}
+                getAppointmentStyle={getAppointmentStyle}
+                getStaffColor={getStaffColor}
+                timezone={timezone}
+                selectedAppointment={selectedAppointment}
+                onSelectAppointment={(apt) => { setSelectedAppointment(apt); setShowCheckout(false); setShowCancelFlow(false); }}
+                handleSlotClick={handleSlotClick}
+                selectedSlot={selectedSlot}
+                setSelectedSlot={(s) => setSelectedSlot(s)}
+                handleBookSlot={handleBookSlot}
+                isToday={isToday}
+                timeLinePosition={timeLinePosition}
+                timeLineLabel={timeLineLabel}
+                showPrices={showPrices}
+                lateGracePeriodMinutes={lateGracePeriodMinutes}
+                storeNow={storeNow}
+                settings={settings}
+              />
+            ) : (
             <div className="flex min-w-[600px] relative">
               {isToday && timeLinePosition !== null && (
                 <div
@@ -1015,6 +1054,7 @@ export default function Calendar() {
                 )}
               </div>
             </div>
+            )}
           </div>
         </div>
 
@@ -1387,7 +1427,7 @@ function AppointmentDetailsPanel({
         onClick={onClose}
       />
       <div className={cn(
-        "absolute right-0 top-0 h-full w-[460px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l",
+        "absolute right-0 top-0 h-full w-full sm:w-[460px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l",
         isOverdue && "ring-2 ring-red-400 ring-inset",
       )}>
       {isOverdue && (
@@ -1632,7 +1672,7 @@ function CancelAppointmentPanel({
         className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 h-full w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <h2 className="font-semibold text-lg">Cancel Appointment</h2>
         <button onClick={onClose} className="text-muted-foreground" data-testid="button-close-cancel">
@@ -2084,7 +2124,7 @@ function CheckoutPOSPanel({
           className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
           onClick={onClose}
         />
-        <div className="absolute left-0 top-0 h-full w-[420px] bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r">
+        <div className="absolute left-0 top-0 h-full w-full sm:w-[420px] bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-muted-foreground" />
@@ -2271,7 +2311,7 @@ function CheckoutPOSPanel({
         className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      <div className="absolute left-0 top-0 h-full w-[680px] bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r">
+      <div className="absolute left-0 top-0 h-full w-full sm:w-[680px] bg-card flex flex-col shadow-[8px_0_24px_rgba(0,0,0,0.12)] border-r">
       <div className="p-3 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-muted-foreground" />
@@ -2665,7 +2705,7 @@ function ChooseClientPanel({
           className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
           onClick={onClose}
         />
-        <div className="absolute right-0 top-0 h-full w-[740px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+        <div className="absolute right-0 top-0 h-full w-full sm:w-[740px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
@@ -2810,7 +2850,7 @@ function ChooseClientPanel({
         className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 h-full w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-back-client-lookup">
