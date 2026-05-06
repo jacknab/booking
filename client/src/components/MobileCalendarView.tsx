@@ -1,9 +1,11 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { addMinutes } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
+
+const SWIPE_HINT_KEY = "certxa_cal_swipe_hint_seen";
 
 const MOBILE_TIME_COL_WIDTH = 72;
 
@@ -62,8 +64,20 @@ export function MobileCalendarView({
   onSwipeRight,
 }: MobileCalendarViewProps) {
   const [collapsedStaff, setCollapsedStaff] = useState<Set<number>>(new Set());
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!localStorage.getItem(SWIPE_HINT_KEY)) {
+      setShowSwipeHint(true);
+      const timer = setTimeout(() => {
+        setShowSwipeHint(false);
+        localStorage.setItem(SWIPE_HINT_KEY, "1");
+      }, 2200);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const toggleCollapse = useCallback((staffId: number) => {
     setCollapsedStaff(prev => {
@@ -101,10 +115,35 @@ export function MobileCalendarView({
 
   return (
     <div
-      className="flex flex-col w-full"
+      className="flex flex-col w-full relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* One-time swipe hint overlay */}
+      {showSwipeHint && (
+        <div
+          className="fixed bottom-20 inset-x-0 flex justify-center z-[60] pointer-events-none"
+          style={{
+            animation: "swipeHintFade 2.2s ease forwards",
+          }}
+        >
+          <div className="flex items-center gap-3 bg-gray-900/85 text-white px-5 py-2.5 rounded-full shadow-xl backdrop-blur-sm">
+            <span className="text-lg select-none" aria-hidden>←</span>
+            <span className="text-sm font-medium tracking-wide">Swipe to change day</span>
+            <span className="text-lg select-none" aria-hidden>→</span>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes swipeHintFade {
+          0%   { opacity: 0; transform: translateY(8px); }
+          15%  { opacity: 1; transform: translateY(0); }
+          75%  { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-6px); }
+        }
+      `}</style>
+
       {filteredStaff.map((member: any, idx: number) => {
         const staffApts = getAppointmentsForStaff(member.id);
         const color = getStaffColor(member);
