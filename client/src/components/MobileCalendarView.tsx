@@ -81,6 +81,7 @@ export function MobileCalendarView({
   const gridRef = useRef<HTMLDivElement>(null);
   const didAutoScrollRef = useRef(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const weekStripTouchRef = useRef<{ x: number; y: number } | null>(null);
 
   const [staffPage, setStaffPage] = useState(0);
   const [swipeDir, setSwipeDir] = useState<1 | -1>(1);
@@ -162,8 +163,24 @@ export function MobileCalendarView({
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-background">
 
-      {/* ── Week strip ── */}
-      <div className="flex-shrink-0 border-b flex" style={{ backgroundColor: "#0f172a" }}>
+      {/* ── Week strip (swipe left/right to jump a week) ── */}
+      <div
+        className="flex-shrink-0 border-b flex"
+        style={{ backgroundColor: "#0f172a" }}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          weekStripTouchRef.current = { x: t.clientX, y: t.clientY };
+        }}
+        onTouchEnd={(e) => {
+          if (!weekStripTouchRef.current) return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - weekStripTouchRef.current.x;
+          const dy = t.clientY - weekStripTouchRef.current.y;
+          weekStripTouchRef.current = null;
+          if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+          onSelectDate(addDays(currentDate, dx < 0 ? 7 : -7));
+        }}
+      >
         <div className="flex-shrink-0" style={{ width: TIME_COL_W }} />
         <div className="flex flex-1">
           {weekDayLabels.map((wd) => {
@@ -296,12 +313,12 @@ export function MobileCalendarView({
             {/* Timeline pill */}
             {isToday && timeLinePosition !== null && (
               <div
-                className="absolute right-0 z-20 pointer-events-none"
-                style={{ top: timeLinePosition, transform: "translateY(-50%)", right: -1 }}
+                className="absolute z-20 pointer-events-none"
+                style={{ top: timeLinePosition, transform: "translateY(-50%)", right: -2, left: 0 }}
               >
                 <span
-                  className="text-[9px] font-bold text-white px-1 py-0.5 rounded leading-none block"
-                  style={{ backgroundColor: "#2563eb" }}
+                  className="text-[11px] font-extrabold text-white px-1.5 py-1 rounded-md leading-none block text-center shadow-lg"
+                  style={{ backgroundColor: "#2563eb", boxShadow: "0 2px 8px rgba(37,99,235,0.55)" }}
                 >
                   {timeLineLabel}
                 </span>
@@ -400,15 +417,12 @@ export function MobileCalendarView({
         />
       )}
 
-      {/* ── Now pill ── */}
+      {/* ── Now pill — centered above nav, same style as desktop ── */}
       {showJumpToNow && (
         <button
           onClick={scrollToNow}
-          className="fixed z-40 flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-lg active:bg-blue-700 transition-colors"
-          style={{
-            right: 80,
-            bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
-          }}
+          className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold shadow-xl active:bg-blue-700 active:scale-95 transition-all"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)" }}
           data-testid="button-jump-to-now"
         >
           <Clock className="w-4 h-4" />
