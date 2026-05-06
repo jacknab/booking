@@ -464,6 +464,11 @@ export default function NewBooking() {
                     <span className="text-sm text-white/60 truncate max-w-[120px]">{selectedCustomer.name}</span>
                   )}
                 </div>
+                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                  {[1,2,3,4,5,6].map((s) => (
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 1 ? "bg-primary" : "bg-white/15")} />
+                  ))}
+                </div>
 
                 {/* Category list — full page, desktop sidebar style */}
                 <div className="flex-1 overflow-y-auto bg-gray-950">
@@ -515,6 +520,7 @@ export default function NewBooking() {
                     data-testid="button-back-categories"
                   >
                     <ArrowLeft className="w-5 h-5" />
+
                   </Button>
                   <div className="flex-1 min-w-0">
                     <h1 className="font-bold text-base text-white leading-tight truncate">{activeCategory}</h1>
@@ -522,6 +528,11 @@ export default function NewBooking() {
                       <p className="text-xs text-white/50 truncate">{selectedCustomer.name}</p>
                     )}
                   </div>
+                </div>
+                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                  {[1,2,3,4,5,6].map((s) => (
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 2 ? "bg-primary" : "bg-white/15")} />
+                  ))}
                 </div>
 
                 {/* Service grid */}
@@ -756,6 +767,11 @@ export default function NewBooking() {
                 <h2 className="font-semibold text-lg text-white" data-testid="text-extras-heading">Extras</h2>
                 <p className="text-xs text-white/50" data-testid="text-extras-subheading">for {selectedService?.name}</p>
               </div>
+            </div>
+            <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+              {[1,2,3,4,5,6].map((s) => (
+                <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 3 ? "bg-primary" : "bg-white/15")} />
+              ))}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 pb-28 bg-gray-50">
@@ -1000,6 +1016,11 @@ export default function NewBooking() {
                   </div>
                   <span className="text-xs text-white/30 font-medium">1 of 3</span>
                 </div>
+                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                  {[1,2,3,4,5,6].map((s) => (
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 4 ? "bg-primary" : "bg-white/15")} />
+                  ))}
+                </div>
 
                 <div className="flex-1 overflow-y-auto bg-white">
                   <div className="p-5">
@@ -1100,6 +1121,11 @@ export default function NewBooking() {
                   </div>
                   <span className="text-xs text-white/30 font-medium">2 of 3</span>
                 </div>
+                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                  {[1,2,3,4,5,6].map((s) => (
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 5 ? "bg-primary" : "bg-white/15")} />
+                  ))}
+                </div>
 
                 <div className="flex-1 overflow-y-auto bg-white">
                   <div className="p-4">
@@ -1161,6 +1187,11 @@ export default function NewBooking() {
                     </p>
                   </div>
                   <span className="text-xs text-white/30 font-medium">3 of 3</span>
+                </div>
+                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                  {[1,2,3,4,5,6].map((s) => (
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 6 ? "bg-primary" : "bg-white/15")} />
+                  ))}
                 </div>
 
                 <div className="flex-1 overflow-y-auto bg-white">
