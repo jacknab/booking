@@ -309,7 +309,7 @@ export function MobileCalendarView({
               if (!isHour) {
                 return (
                   <div key={`t-${h}-${m}`} className="absolute right-0 flex items-center justify-end pr-1 -translate-y-1/2" style={{ top: topPx }}>
-                    <span className="text-[9px] text-muted-foreground/40 tabular-nums">:30</span>
+                    <span className="text-[9px] font-medium text-muted-foreground/60 tabular-nums">:30</span>
                   </div>
                 );
               }
@@ -317,9 +317,9 @@ export function MobileCalendarView({
               const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
               const ampm = hMod >= 12 ? "pm" : "am";
               return (
-                <div key={`t-${h}-${m}`} className="absolute right-0 left-0 flex flex-col items-end pr-1 -translate-y-1/2" style={{ top: topPx }}>
-                  <span className="text-[11px] font-bold text-foreground tabular-nums leading-none">{displayH}:{String(m).padStart(2, "0")}</span>
-                  <span className="text-[8px] font-semibold text-muted-foreground leading-none">{ampm}</span>
+                <div key={`t-${h}-${m}`} className="absolute right-0 left-0 flex flex-col items-end pr-1.5 -translate-y-1/2" style={{ top: topPx }}>
+                  <span className="text-[13px] font-extrabold text-foreground tabular-nums leading-none">{displayH}</span>
+                  <span className="text-[9px] font-bold text-muted-foreground leading-none mt-0.5">{ampm}</span>
                 </div>
               );
             })}
