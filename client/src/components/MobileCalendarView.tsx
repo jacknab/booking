@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { addMinutes, isSameDay } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { Plus, Check, CalendarPlus, Search } from "lucide-react";
+import { Plus, Check, CalendarPlus, Search, Clock } from "lucide-react";
 
 const TIME_COL_W = 44;
 const STAFF_HEADER_H = 68;
@@ -84,6 +84,7 @@ export function MobileCalendarView({
 
   const [staffPage, setStaffPage] = useState(0);
   const [swipeDir, setSwipeDir] = useState<1 | -1>(1);
+  const [showJumpToNow, setShowJumpToNow] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(filteredStaff.length / COLS_PER_PAGE));
   const safeStaffPage = Math.min(staffPage, totalPages - 1);
@@ -111,6 +112,22 @@ export function MobileCalendarView({
   useEffect(() => {
     didAutoScrollRef.current = false;
   }, [currentDate]);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el || !isToday || timeLinePosition === null) {
+      setShowJumpToNow(false);
+      return;
+    }
+    const check = () => {
+      const { scrollTop, clientHeight } = el;
+      const visible = timeLinePosition >= scrollTop && timeLinePosition <= scrollTop + clientHeight;
+      setShowJumpToNow(!visible);
+    };
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    return () => el.removeEventListener("scroll", check);
+  }, [isToday, timeLinePosition]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
@@ -372,6 +389,22 @@ export function MobileCalendarView({
         />
       )}
 
+      {/* ── Now pill ── */}
+      {showJumpToNow && (
+        <button
+          onClick={scrollToNow}
+          className="fixed z-40 flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-lg active:bg-blue-700 transition-colors"
+          style={{
+            right: 80,
+            bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+          }}
+          data-testid="button-jump-to-now"
+        >
+          <Clock className="w-4 h-4" />
+          Now
+        </button>
+      )}
+
       {/* ── FAB ── */}
       <button
         className="fixed z-40 right-4 flex items-center justify-center rounded-full shadow-2xl active:scale-95 transition-transform duration-100"
@@ -391,13 +424,12 @@ export function MobileCalendarView({
       {/* ── FAB bottom-sheet menu ── */}
       {showFabMenu && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center px-6"
           onClick={() => setShowFabMenu(false)}
         >
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="relative z-10 w-full max-w-sm mb-safe px-4 pb-6 pt-0"
-            style={{ paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))" }}
+            className="relative z-10 w-full max-w-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-card rounded-2xl shadow-2xl border overflow-hidden">
