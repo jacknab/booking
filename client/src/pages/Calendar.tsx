@@ -2999,8 +2999,11 @@ function ChooseClientPanel({
           </Button>
         </div>
 
-        {/* Content fills all remaining height */}
-        <div className="flex-1 flex flex-col px-4 pt-5 pb-4 min-h-0 bg-gray-950">
+        {/* Content fills all remaining height — bottom padding clears the mobile nav bar (56px + safe area) */}
+        <div
+          className="flex-1 flex flex-col px-4 pt-5 min-h-0 bg-gray-950 md:pb-4"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+        >
           {/* Phone number display */}
           <div className="w-full rounded-2xl bg-gray-900 border border-gray-800 py-6 px-4 mb-5 text-center">
             {phoneDigits.length > 0 ? (
