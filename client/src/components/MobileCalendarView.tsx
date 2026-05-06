@@ -532,7 +532,7 @@ function StaffColumn({
             className="absolute left-0 right-0 pointer-events-none"
             style={{
               top: topPx,
-              borderTop: m === 0 ? "1px solid rgba(0,0,0,0.07)" : "1px dashed rgba(0,0,0,0.04)",
+              borderTop: m === 0 ? "1px solid rgba(0,0,0,0.18)" : "1px dashed rgba(0,0,0,0.10)",
             }}
           />
         );
