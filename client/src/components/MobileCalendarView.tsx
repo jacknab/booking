@@ -559,7 +559,19 @@ function StaffColumn({
               isSlotSel ? "bg-blue-100/60" : ""
             )}
             style={{ top: topPx, height: slotH }}
-            onTouchEnd={(e) => { e.stopPropagation(); handleSlotClick(member.id, slot.hour, slot.minute); }}
+            onTouchStart={(e) => {
+              const t = e.touches[0];
+              e.currentTarget.dataset.tx = String(t.clientX);
+              e.currentTarget.dataset.ty = String(t.clientY);
+            }}
+            onTouchEnd={(e) => {
+              const t = e.changedTouches[0];
+              const dx = Math.abs(t.clientX - Number(e.currentTarget.dataset.tx ?? t.clientX));
+              const dy = Math.abs(t.clientY - Number(e.currentTarget.dataset.ty ?? t.clientY));
+              if (dx > 8 || dy > 8) return;
+              e.stopPropagation();
+              handleSlotClick(member.id, slot.hour, slot.minute);
+            }}
             onClick={(e) => { e.stopPropagation(); handleSlotClick(member.id, slot.hour, slot.minute); }}
           />
         );
@@ -657,7 +669,11 @@ function SlotModal({
   const m = String(slot.minute).padStart(2, "0");
   const ampm = slot.hour >= 12 ? "PM" : "AM";
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center px-4"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)" }}
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/30" />
       <div
         className="relative z-10 bg-card rounded-2xl shadow-2xl border w-full max-w-sm overflow-hidden"
