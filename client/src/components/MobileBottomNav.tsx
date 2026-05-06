@@ -1,133 +1,50 @@
-import { CalendarPlus, Clock, DollarSign, Search } from "lucide-react";
+import { CalendarDays, Users, ClipboardList, Megaphone, Receipt } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-interface MobileBottomNavProps {
-  onBook: () => void;
-  onToday: () => void;
-  onLookup: () => void;
-  onCheckout: () => void;
-  posEnabled: boolean;
-  isToday: boolean;
-}
+const TABS = [
+  { icon: CalendarDays, label: "Calendar",  to: "/calendar" },
+  { icon: Users,        label: "Clients",   to: "/customers" },
+  { icon: ClipboardList,label: "Queue",     to: "/queue" },
+  { icon: Megaphone,    label: "Marketing", to: "/marketing" },
+  { icon: Receipt,      label: "Checkout",  to: "/pos" },
+];
 
-export function MobileBottomNav({
-  onBook,
-  onToday,
-  onLookup,
-  onCheckout,
-  posEnabled,
-  isToday,
-}: MobileBottomNavProps) {
+export function MobileBottomNav() {
+  const { pathname } = useLocation();
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden select-none"
-      style={{ height: 100 }}
+      className="fixed bottom-0 inset-x-0 z-50 md:hidden flex items-stretch"
+      style={{
+        backgroundColor: "#0f172a",
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+        height: "calc(56px + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
     >
-      {/* SVG background — crown molding arch */}
-      <svg
-        viewBox="0 0 414 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 w-full h-full drop-shadow-[0_-4px_16px_rgba(0,0,0,0.10)]"
-        aria-hidden
-      >
-        {/* Bar + arch fill */}
-        <path
-          d="M 0 100 L 0 68 H 114 C 142 68 156 0 207 0 C 258 0 272 68 300 68 H 414 V 100 Z"
-          className="fill-card"
-        />
-        {/* Top border of flat bar sections */}
-        <line x1="0" y1="68" x2="114" y2="68" className="stroke-border" strokeWidth="1" />
-        <line x1="300" y1="68" x2="414" y2="68" className="stroke-border" strokeWidth="1" />
-        {/* Crown molding — the decorative arch stroke over the circle */}
-        <path
-          d="M 0 68 H 114 C 142 68 156 0 207 0 C 258 0 272 68 300 68 H 414"
-          fill="none"
-          className="stroke-border"
-          strokeWidth="1"
-        />
-        {/* Inner crown detail — a second, inset arch line for the "molding" depth effect */}
-        <path
-          d="M 114 68 C 140 68 157 8 207 8 C 257 8 274 68 300 68"
-          fill="none"
-          className="stroke-border/40"
-          strokeWidth="0.75"
-          strokeDasharray="3 3"
-        />
-      </svg>
-
-      {/* FAB — large circle button, centered at the arch peak */}
-      <button
-        onClick={onBook}
-        data-testid="mobile-fab-new-appointment"
-        aria-label="New appointment"
-        className={cn(
-          "absolute left-1/2 -translate-x-1/2 flex items-center justify-center rounded-full",
-          "bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(0,0,0,0.22)]",
-          "active:scale-95 transition-transform duration-100",
-          "ring-4 ring-card"
-        )}
-        style={{ top: 4, width: 60, height: 60 }}
-      >
-        <CalendarPlus className="w-6 h-6" />
-      </button>
-
-      {/* Left side buttons */}
-      <div className="absolute left-0 flex items-center justify-around"
-        style={{ top: 68, bottom: 0, width: "calc(50% - 46px)" }}
-      >
-        {/* Today button */}
-        <button
-          onClick={onToday}
-          data-testid="mobile-nav-today"
-          aria-label="Go to today"
-          className={cn(
-            "flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-colors",
-            isToday
-              ? "text-primary"
-              : "text-muted-foreground active:text-foreground"
-          )}
-        >
-          <Clock className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Today</span>
-        </button>
-
-        {/* Look up button */}
-        <button
-          onClick={onLookup}
-          data-testid="mobile-nav-lookup"
-          aria-label="Look up appointment"
-          className="flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg text-muted-foreground active:text-foreground transition-colors"
-        >
-          <Search className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Search</span>
-        </button>
-      </div>
-
-      {/* Right side buttons */}
-      <div className="absolute right-0 flex items-center justify-around"
-        style={{ top: 68, bottom: 0, width: "calc(50% - 46px)" }}
-      >
-        {/* Checkout button */}
-        {posEnabled ? (
-          <button
-            onClick={onCheckout}
-            data-testid="mobile-nav-checkout"
-            aria-label="Quick checkout"
-            className="flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg text-muted-foreground active:text-foreground transition-colors"
+      {TABS.map(({ icon: Icon, label, to }) => {
+        const active = pathname === to || (to === "/calendar" && pathname.startsWith("/calendar"));
+        return (
+          <Link
+            key={to}
+            to={to}
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] select-none active:opacity-50 transition-opacity relative"
           >
-            <DollarSign className="w-5 h-5" />
-            <span className="text-[10px] font-medium leading-none">Checkout</span>
-          </button>
-        ) : (
-          <div />
-        )}
-
-        {/* Spacer slot (can add a 4th button here later) */}
-        <div className="w-12" />
-      </div>
-
-      {/* iPhone home-indicator safe area */}
-      <div className="absolute bottom-0 left-0 right-0 bg-card" style={{ height: "env(safe-area-inset-bottom, 0px)" }} />
+            {active && (
+              <span className="absolute top-0 inset-x-0 flex justify-center">
+                <span className="w-5 h-[2px] rounded-full bg-white/80" />
+              </span>
+            )}
+            <Icon
+              className={cn("w-[22px] h-[22px]", active ? "text-white" : "text-white/28")}
+              strokeWidth={active ? 2.2 : 1.7}
+            />
+            <span className={cn("text-[10px] font-medium leading-none", active ? "text-white" : "text-white/28")}>
+              {label}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }

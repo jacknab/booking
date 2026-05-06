@@ -1,12 +1,14 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { addMinutes, isSameDay } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
+import { Plus, Check } from "lucide-react";
 
-const TIME_COL_W = 52;
-const STAFF_COL_W = 140;
-const STAFF_HEADER_H = 64;
+const TIME_COL_W = 44;
+const STAFF_HEADER_H = 68;
+const COLS_PER_PAGE = 2;
 
 interface WeekDay {
   date: Date;
@@ -41,6 +43,7 @@ interface MobileCalendarViewProps {
   weekDayLabels: WeekDay[];
   currentDate: Date;
   onSelectDate: (date: Date) => void;
+  onNewBooking: () => void;
 }
 
 export function MobileCalendarView({
@@ -70,11 +73,24 @@ export function MobileCalendarView({
   weekDayLabels,
   currentDate,
   onSelectDate,
+  onNewBooking,
 }: MobileCalendarViewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const didAutoScrollRef = useRef(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [staffPage, setStaffPage] = useState(0);
+  const [swipeDir, setSwipeDir] = useState<1 | -1>(1);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStaff.length / COLS_PER_PAGE));
+  const safeStaffPage = Math.min(staffPage, totalPages - 1);
+  const visibleStaff = filteredStaff.slice(safeStaffPage * COLS_PER_PAGE, (safeStaffPage + 1) * COLS_PER_PAGE);
 
   const totalGridH = TOTAL_HOURS * HOUR_HEIGHT;
+
+  useEffect(() => {
+    setStaffPage(0);
+  }, [filteredStaff.length]);
 
   const scrollToNow = useCallback(() => {
     if (!gridRef.current || timeLinePosition === null) return;
@@ -93,357 +109,250 @@ export function MobileCalendarView({
     didAutoScrollRef.current = false;
   }, [currentDate]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0 && safeStaffPage < totalPages - 1) {
+        setSwipeDir(1);
+        setStaffPage((p) => p + 1);
+      } else if (dx > 0 && safeStaffPage > 0) {
+        setSwipeDir(-1);
+        setStaffPage((p) => Math.max(0, p - 1));
+      }
+    }
+  };
+
   if (filteredStaff.length === 0) {
     return (
       <div className="flex items-center justify-center text-muted-foreground text-sm py-20">
-        No staff members found for this store.
+        No staff members found.
       </div>
     );
   }
 
-  const totalContentW = TIME_COL_W + filteredStaff.length * STAFF_COL_W;
-
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-background">
 
       {/* ── Week strip ── */}
-      <div className="flex-shrink-0 bg-card border-b flex">
-        {/* Corner spacer aligned with time column */}
+      <div className="flex-shrink-0 border-b flex" style={{ backgroundColor: "#0f172a" }}>
         <div className="flex-shrink-0" style={{ width: TIME_COL_W }} />
-        {/* Day cells */}
-        <div className="flex-1 overflow-x-auto scrollbar-none">
-          <div className="flex min-w-max">
-            {weekDayLabels.map((wd) => {
-              const isSelected = isSameDay(wd.date, currentDate);
-              return (
-                <button
-                  key={wd.date.toISOString()}
-                  className="flex flex-col items-center justify-center py-1.5 px-2 min-w-[40px] flex-1 transition-colors active:bg-muted/60"
-                  onClick={() => onSelectDate(wd.date)}
-                >
-                  <span
-                    className={cn(
-                      "text-[10px] font-semibold uppercase tracking-wide leading-none mb-1",
-                      wd.isToday ? "text-red-500" : "text-muted-foreground"
-                    )}
-                  >
-                    {wd.label}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[15px] font-bold leading-none w-7 h-7 flex items-center justify-center rounded-full",
-                      wd.isToday && isSelected
-                        ? "bg-red-500 text-white"
-                        : wd.isToday
-                          ? "text-red-500"
-                          : isSelected
-                            ? "bg-foreground text-background"
-                            : "text-foreground"
-                    )}
-                  >
-                    {wd.date.getDate()}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex flex-1">
+          {weekDayLabels.map((wd) => {
+            const isSelected = isSameDay(wd.date, currentDate);
+            return (
+              <button
+                key={wd.date.toISOString()}
+                className="flex-1 flex flex-col items-center justify-center py-1.5 active:opacity-60 transition-opacity"
+                onClick={() => onSelectDate(wd.date)}
+              >
+                <span className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wide leading-none mb-1",
+                  wd.isToday ? "text-red-400" : "text-white/40"
+                )}>
+                  {wd.label}
+                </span>
+                <span className={cn(
+                  "text-[15px] font-bold leading-none w-7 h-7 flex items-center justify-center rounded-full",
+                  wd.isToday && isSelected
+                    ? "bg-red-500 text-white"
+                    : wd.isToday
+                      ? "text-red-400"
+                      : isSelected
+                        ? "bg-white/15 text-white"
+                        : "text-white/55"
+                )}>
+                  {wd.date.getDate()}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── Main grid: horizontal + vertical scroll ── */}
-      <div
-        ref={gridRef}
-        className="flex-1 overflow-auto relative"
-        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-      >
-        {/* Inner content: fixed total width so both axes scroll */}
+      {/* ── Staff headers row ── */}
+      <div className="flex-shrink-0 bg-card border-b flex overflow-hidden" style={{ height: STAFF_HEADER_H }}>
+        {/* Corner: page dots */}
         <div
-          className="relative flex"
-          style={{ minWidth: totalContentW, minHeight: STAFF_HEADER_H + totalGridH }}
+          className="flex-shrink-0 flex items-center justify-center"
+          style={{ width: TIME_COL_W }}
         >
-
-          {/* ── Sticky time column ── */}
-          <div
-            className="sticky left-0 z-30 flex-shrink-0 bg-card flex flex-col"
-            style={{ width: TIME_COL_W }}
-          >
-            {/* Top-left corner — sticky in both axes so it masks time labels behind staff headers */}
-            <div
-              className="flex-shrink-0 sticky top-0 z-40 border-b border-r bg-card"
-              style={{ height: STAFF_HEADER_H }}
-            />
-
-            {/* Time labels */}
-            <div
-              className="relative border-r bg-card"
-              style={{ height: totalGridH, flex: "0 0 auto" }}
-            >
-              {/* Current time pill — sits inside the sticky time column */}
-              {isToday && timeLinePosition !== null && (
-                <div
-                  className="absolute right-0 z-20 flex items-center justify-center pointer-events-none"
-                  style={{
-                    top: timeLinePosition,
-                    transform: "translateY(-50%)",
-                    right: -1,
-                  }}
-                >
-                  <span
-                    className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: "#2563eb" }}
-                  >
-                    {timeLineLabel}
-                  </span>
-                </div>
-              )}
-
-              {/* Hour / half-hour labels */}
-              {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
-                const totalMins = i * 15;
-                const h = START_HOUR + Math.floor(totalMins / 60);
-                const m = totalMins % 60;
-                if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
-                if (m !== 0 && m !== 30) return null;
-                const topPx = (totalMins / 60) * HOUR_HEIGHT;
-                const isHour = m === 0;
-
-                if (isHour) {
-                  const hMod = h % 24;
-                  const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
-                  const ampm = hMod >= 12 ? "pm" : "am";
-                  return (
-                    <div
-                      key={`t-${h}-${m}`}
-                      className="absolute right-0 left-0 flex flex-col items-end pr-1.5 -translate-y-1/2"
-                      style={{ top: topPx }}
-                    >
-                      <span className="text-[12px] font-bold text-foreground tabular-nums leading-none">
-                        {displayH}:{String(m).padStart(2, "0")}
-                      </span>
-                      <span className="text-[9px] font-semibold text-muted-foreground leading-none">
-                        {ampm}
-                      </span>
-                    </div>
-                  );
-                }
-                return (
-                  <div
-                    key={`t-${h}-${m}`}
-                    className="absolute right-0 flex items-center justify-end pr-1.5 -translate-y-1/2"
-                    style={{ top: topPx }}
-                  >
-                    <span className="text-[10px] text-muted-foreground/50 tabular-nums">:30</span>
-                  </div>
-                );
-              })}
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-1">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setSwipeDir(i > safeStaffPage ? 1 : -1); setStaffPage(i); }}
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full transition-all",
+                    i === safeStaffPage ? "bg-primary scale-125" : "bg-muted-foreground/25"
+                  )}
+                />
+              ))}
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* ── Staff columns ── */}
-          {filteredStaff.map((member: any) => {
-            const staffApts = getAppointmentsForStaff(member.id);
-            const color = getStaffColor(member);
-
-            return (
-              <div
-                key={member.id}
-                className="flex-shrink-0 flex flex-col"
-                style={{ width: STAFF_COL_W }}
-              >
-                {/* Sticky staff header */}
+        {/* Staff header cells — animated on page change */}
+        <AnimatePresence mode="wait" custom={swipeDir}>
+          <motion.div
+            key={`hdr-${safeStaffPage}`}
+            custom={swipeDir}
+            initial={(dir: number) => ({ x: dir * 40, opacity: 0 })}
+            animate={{ x: 0, opacity: 1 }}
+            exit={(dir: number) => ({ x: -dir * 40, opacity: 0 })}
+            transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="flex flex-1"
+          >
+            {visibleStaff.map((member: any) => {
+              const color = getStaffColor(member);
+              const aptCount = getAppointmentsForStaff(member.id).length;
+              return (
                 <div
-                  className="sticky top-0 z-20 flex-shrink-0 border-b border-l bg-card flex items-center gap-2 px-2"
-                  style={{ height: STAFF_HEADER_H }}
+                  key={member.id}
+                  className="flex-1 flex items-center gap-2 px-3 border-l"
+                  style={{ minWidth: 0 }}
                 >
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    {member.avatarUrl && (
-                      <AvatarImage src={member.avatarUrl} alt={member.name} className="object-cover" />
-                    )}
+                  <Avatar className="w-9 h-9 flex-shrink-0 ring-2 ring-offset-1" style={{ ["--tw-ring-color" as any]: color + "60" }}>
+                    {member.avatarUrl && <AvatarFallback className="object-cover" />}
                     <AvatarFallback
                       style={{ backgroundColor: color + "22", color }}
-                      className="text-[10px] font-bold"
+                      className="text-[11px] font-extrabold"
                     >
-                      {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                      {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-bold truncate leading-tight">{member.name}</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight">
-                      {staffApts.length === 0 ? "No appts" : `${staffApts.length} appt${staffApts.length !== 1 ? "s" : ""}`}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold truncate leading-tight text-foreground">{member.name}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {aptCount === 0 ? "No bookings" : `${aptCount} booking${aptCount !== 1 ? "s" : ""}`}
                     </p>
                   </div>
                 </div>
+              );
+            })}
+            {/* empty placeholder if odd staff on last page */}
+            {visibleStaff.length < COLS_PER_PAGE && (
+              <div className="flex-1 border-l" />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-                {/* Appointment grid */}
-                <div
-                  className="relative border-l bg-slate-50"
-                  style={{
-                    height: totalGridH,
-                    flex: "0 0 auto",
-                    borderLeftColor: "#d9e2ea",
-                  }}
+      {/* ── Scrollable grid ── */}
+      <div
+        ref={gridRef}
+        className="flex-1 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="flex" style={{ height: totalGridH }}>
+
+          {/* Time column */}
+          <div
+            className="flex-shrink-0 bg-card relative border-r border-border/40"
+            style={{ width: TIME_COL_W }}
+          >
+            {/* Timeline pill */}
+            {isToday && timeLinePosition !== null && (
+              <div
+                className="absolute right-0 z-20 pointer-events-none"
+                style={{ top: timeLinePosition, transform: "translateY(-50%)", right: -1 }}
+              >
+                <span
+                  className="text-[9px] font-bold text-white px-1 py-0.5 rounded leading-none block"
+                  style={{ backgroundColor: "#2563eb" }}
                 >
-                  {/* Horizontal hour/half-hour grid lines */}
-                  {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
-                    const totalMins = i * 15;
-                    const h = START_HOUR + Math.floor(totalMins / 60);
-                    const m = totalMins % 60;
-                    if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
-                    if (m !== 0 && m !== 30) return null;
-                    const topPx = (totalMins / 60) * HOUR_HEIGHT;
-                    return (
-                      <div
-                        key={`g-${h}-${m}`}
-                        className="absolute left-0 right-0 pointer-events-none"
-                        style={{
-                          top: topPx,
-                          borderTop: m === 0 ? "1px solid #d9e2ea" : "1px dashed #e5eaef",
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Current time line for this column */}
-                  {isToday && timeLinePosition !== null && (
-                    <div
-                      className="absolute left-0 right-0 z-10 pointer-events-none"
-                      style={{
-                        top: timeLinePosition,
-                        height: 2,
-                        backgroundColor: "#2563eb",
-                      }}
-                    />
-                  )}
-
-                  {/* Tappable time slots */}
-                  {timeSlots.map((slot) => {
-                    const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
-                    const slotHeight = (settings.timeSlotInterval / 60) * HOUR_HEIGHT;
-                    const isSlotSelected =
-                      selectedSlot?.staffId === member.id &&
-                      selectedSlot?.hour === slot.hour &&
-                      selectedSlot?.minute === slot.minute;
-
-                    return (
-                      <div
-                        key={`s-${slot.hour}-${slot.minute}`}
-                        className={cn(
-                          "absolute left-0 right-0 cursor-pointer transition-colors active:bg-primary/10",
-                          isSlotSelected ? "bg-blue-100/70" : ""
-                        )}
-                        style={{ top: topPx, height: slotHeight }}
-                        onTouchEnd={(e) => {
-                          e.stopPropagation();
-                          handleSlotClick(member.id, slot.hour, slot.minute);
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSlotClick(member.id, slot.hour, slot.minute);
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Appointment blocks */}
-                  {staffApts.map((apt: any) => {
-                    const style = getAppointmentStyle(apt);
-                    const startTime = formatInTz(apt.date, timezone, "h:mm");
-                    const endTime = formatInTz(
-                      addMinutes(new Date(apt.date), apt.duration),
-                      timezone,
-                      "h:mm"
-                    );
-                    const isSelected = selectedAppointment?.id === apt.id;
-                    const isOnlineBooking = apt.source === "online";
-
-                    const bandColor =
-                      apt.status === "completed" ? "#9ca3af"
-                      : apt.status === "started" ? "#22c55e"
-                      : apt.status === "late" ? "#fb923c"
-                      : apt.status === "no_show" ? "#fb7185"
-                      : "#3b82f6";
-
-                    const bgColor =
-                      apt.status === "completed" ? "#f3f4f6"
-                      : apt.status === "started" ? "#f0fdf4"
-                      : apt.status === "late" ? "#fff7ed"
-                      : apt.status === "no_show" ? "#fff1f2"
-                      : "#eff6ff";
-
-                    const aptMinutesPastStart = Math.floor(
-                      (Date.now() - new Date(apt.date).getTime()) / 60000
-                    );
-                    const isOverdue =
-                      aptMinutesPastStart >= lateGracePeriodMinutes &&
-                      (apt.status === "pending" || apt.status === "confirmed");
-
-                    const aptAddons = apt.appointmentAddons?.map((aa: any) => aa.addon).filter(Boolean) || [];
-                    const addonTotal = aptAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
-                    const serviceTotal = Number(apt.service?.price || 0) + addonTotal;
-
-                    const blockBg = isOverdue ? "#fef2f2" : bgColor;
-                    const blockBorder = isOverdue ? "1.5px solid #dc2626" : `1px solid ${bandColor}40`;
-
-                    return (
-                      <div
-                        key={apt.id}
-                        className={cn(
-                          "absolute left-[3px] right-[3px] rounded overflow-hidden cursor-pointer z-[5] flex select-none",
-                          apt.status === "completed" && "opacity-70"
-                        )}
-                        style={{
-                          ...style,
-                          backgroundColor: blockBg,
-                          border: blockBorder,
-                          ...(isSelected ? { boxShadow: `0 0 0 2px ${isOverdue ? "#dc2626" : bandColor}` } : {}),
-                        }}
-                        onTouchEnd={(e) => {
-                          e.stopPropagation();
-                          onSelectAppointment(apt);
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectAppointment(apt);
-                        }}
-                        data-testid={`mobile-appt-block-${apt.id}`}
-                      >
-                        {/* Status band — left for walk-in/store, right for online */}
-                        {!isOnlineBooking && (
-                          <div className="w-[3px] flex-shrink-0 rounded-l" style={{ backgroundColor: bandColor }} />
-                        )}
-
-                        <div className="flex-1 px-1 py-0.5 overflow-hidden flex flex-col min-h-0">
-                          <span className="text-[9px] font-semibold text-gray-600 leading-tight tabular-nums truncate">
-                            {startTime}–{endTime}
-                          </span>
-                          <span className="text-[11px] font-bold text-gray-900 leading-tight truncate">
-                            {apt.service?.name || "Service"}
-                          </span>
-                          {apt.customer?.name && (
-                            <span className="text-[10px] text-gray-600 leading-tight truncate">
-                              {apt.customer.name}
-                            </span>
-                          )}
-                          {showPrices && serviceTotal > 0 && (
-                            <span
-                              className="text-[9px] font-bold tabular-nums mt-auto leading-tight"
-                              style={{ color: bandColor }}
-                            >
-                              ${serviceTotal.toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-
-                        {isOnlineBooking && (
-                          <div className="w-[3px] flex-shrink-0 rounded-r" style={{ backgroundColor: bandColor }} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                  {timeLineLabel}
+                </span>
               </div>
-            );
-          })}
+            )}
+
+            {/* Hour labels */}
+            {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
+              const totalMins = i * 15;
+              const h = START_HOUR + Math.floor(totalMins / 60);
+              const m = totalMins % 60;
+              if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+              if (m !== 0 && m !== 30) return null;
+              const topPx = (totalMins / 60) * HOUR_HEIGHT;
+              const isHour = m === 0;
+              if (!isHour) {
+                return (
+                  <div key={`t-${h}-${m}`} className="absolute right-0 flex items-center justify-end pr-1 -translate-y-1/2" style={{ top: topPx }}>
+                    <span className="text-[9px] text-muted-foreground/40 tabular-nums">:30</span>
+                  </div>
+                );
+              }
+              const hMod = h % 24;
+              const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
+              const ampm = hMod >= 12 ? "pm" : "am";
+              return (
+                <div key={`t-${h}-${m}`} className="absolute right-0 left-0 flex flex-col items-end pr-1 -translate-y-1/2" style={{ top: topPx }}>
+                  <span className="text-[11px] font-bold text-foreground tabular-nums leading-none">{displayH}:{String(m).padStart(2, "0")}</span>
+                  <span className="text-[8px] font-semibold text-muted-foreground leading-none">{ampm}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Staff columns — animated on page change */}
+          <div className="flex-1 relative overflow-hidden">
+            <AnimatePresence mode="wait" custom={swipeDir}>
+              <motion.div
+                key={`cols-${safeStaffPage}`}
+                custom={swipeDir}
+                initial={(dir: number) => ({ x: dir * 50, opacity: 0 })}
+                animate={{ x: 0, opacity: 1 }}
+                exit={(dir: number) => ({ x: -dir * 50, opacity: 0 })}
+                transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="absolute inset-0 flex"
+              >
+                {visibleStaff.map((member: any) => {
+                  const staffApts = getAppointmentsForStaff(member.id);
+                  const color = getStaffColor(member);
+                  return (
+                    <StaffColumn
+                      key={member.id}
+                      member={member}
+                      staffApts={staffApts}
+                      staffColor={color}
+                      totalGridH={totalGridH}
+                      START_HOUR={START_HOUR}
+                      END_HOUR={END_HOUR}
+                      TOTAL_HOURS={TOTAL_HOURS}
+                      HOUR_HEIGHT={HOUR_HEIGHT}
+                      timeSlots={timeSlots}
+                      settings={settings}
+                      isToday={isToday}
+                      timeLinePosition={timeLinePosition}
+                      selectedSlot={selectedSlot}
+                      selectedAppointment={selectedAppointment}
+                      lateGracePeriodMinutes={lateGracePeriodMinutes}
+                      showPrices={showPrices}
+                      timezone={timezone}
+                      getAppointmentStyle={getAppointmentStyle}
+                      onSelectAppointment={onSelectAppointment}
+                      handleSlotClick={handleSlotClick}
+                    />
+                  );
+                })}
+                {visibleStaff.length < COLS_PER_PAGE && (
+                  <div className="flex-1 bg-slate-50/40" />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
         </div>
       </div>
 
@@ -459,10 +368,199 @@ export function MobileCalendarView({
           }}
         />
       )}
+
+      {/* ── FAB ── */}
+      <button
+        className="fixed z-40 right-4 flex items-center justify-center rounded-full shadow-2xl active:scale-95 transition-transform duration-100"
+        style={{
+          bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+          width: 56,
+          height: 56,
+          backgroundColor: "#0f172a",
+        }}
+        onClick={onNewBooking}
+        data-testid="mobile-fab-new-appointment"
+        aria-label="New appointment"
+      >
+        <Plus className="w-6 h-6 text-white" />
+      </button>
     </div>
   );
 }
 
+/* ─── StaffColumn sub-component ─── */
+function StaffColumn({
+  member,
+  staffApts,
+  staffColor,
+  totalGridH,
+  START_HOUR,
+  END_HOUR,
+  TOTAL_HOURS,
+  HOUR_HEIGHT,
+  timeSlots,
+  settings,
+  isToday,
+  timeLinePosition,
+  selectedSlot,
+  selectedAppointment,
+  lateGracePeriodMinutes,
+  showPrices,
+  timezone,
+  getAppointmentStyle,
+  onSelectAppointment,
+  handleSlotClick,
+}: {
+  member: any;
+  staffApts: any[];
+  staffColor: string;
+  totalGridH: number;
+  START_HOUR: number;
+  END_HOUR: number;
+  TOTAL_HOURS: number;
+  HOUR_HEIGHT: number;
+  timeSlots: { hour: number; minute: number; label: string; isHour: boolean }[];
+  settings: { timeSlotInterval: number };
+  isToday: boolean;
+  timeLinePosition: number | null;
+  selectedSlot: { staffId: number; hour: number; minute: number } | null;
+  selectedAppointment: any | null;
+  lateGracePeriodMinutes: number;
+  showPrices: boolean;
+  timezone: string;
+  getAppointmentStyle: (apt: any) => { top: string; height: string };
+  onSelectAppointment: (apt: any) => void;
+  handleSlotClick: (staffId: number, hour: number, minute: number) => void;
+}) {
+  return (
+    <div
+      className="flex-1 relative border-l border-border/50"
+      style={{ height: totalGridH, backgroundColor: staffColor + "09" }}
+    >
+      {/* Grid lines */}
+      {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
+        const totalMins = i * 15;
+        const h = START_HOUR + Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+        if (m !== 0 && m !== 30) return null;
+        const topPx = (totalMins / 60) * HOUR_HEIGHT;
+        return (
+          <div
+            key={`g-${h}-${m}`}
+            className="absolute left-0 right-0 pointer-events-none"
+            style={{
+              top: topPx,
+              borderTop: m === 0 ? "1px solid rgba(0,0,0,0.07)" : "1px dashed rgba(0,0,0,0.04)",
+            }}
+          />
+        );
+      })}
+
+      {/* Current time line */}
+      {isToday && timeLinePosition !== null && (
+        <div
+          className="absolute left-0 right-0 z-10 pointer-events-none"
+          style={{ top: timeLinePosition, height: 2, backgroundColor: "#2563eb" }}
+        />
+      )}
+
+      {/* Tappable slots */}
+      {timeSlots.map((slot) => {
+        const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
+        const slotH = (settings.timeSlotInterval / 60) * HOUR_HEIGHT;
+        const isSlotSel = selectedSlot?.staffId === member.id && selectedSlot?.hour === slot.hour && selectedSlot?.minute === slot.minute;
+        return (
+          <div
+            key={`s-${slot.hour}-${slot.minute}`}
+            className={cn(
+              "absolute left-0 right-0 cursor-pointer transition-colors active:bg-primary/10",
+              isSlotSel ? "bg-blue-100/60" : ""
+            )}
+            style={{ top: topPx, height: slotH }}
+            onTouchEnd={(e) => { e.stopPropagation(); handleSlotClick(member.id, slot.hour, slot.minute); }}
+            onClick={(e) => { e.stopPropagation(); handleSlotClick(member.id, slot.hour, slot.minute); }}
+          />
+        );
+      })}
+
+      {/* Appointment blocks */}
+      {staffApts.map((apt: any) => {
+        const style = getAppointmentStyle(apt);
+        const startTime = formatInTz(apt.date, timezone, "h:mm");
+        const endTime = formatInTz(addMinutes(new Date(apt.date), apt.duration), timezone, "h:mm");
+        const isSelected = selectedAppointment?.id === apt.id;
+        const isOnlineBooking = apt.source === "online";
+
+        const aptMinsElapsed = Math.floor((Date.now() - new Date(apt.date).getTime()) / 60000);
+        const isOverdue = aptMinsElapsed >= lateGracePeriodMinutes && (apt.status === "pending" || apt.status === "confirmed");
+
+        const bandColor =
+          isOverdue ? "#dc2626"
+          : apt.status === "completed" ? "#9ca3af"
+          : apt.status === "started" ? "#16a34a"
+          : apt.status === "late" ? "#ea580c"
+          : apt.status === "no_show" ? "#e11d48"
+          : staffColor;
+
+        const aptAddons = apt.appointmentAddons?.map((aa: any) => aa.addon).filter(Boolean) || [];
+        const serviceTotal = Number(apt.service?.price || 0) + aptAddons.reduce((s: number, a: any) => s + Number(a.price), 0);
+        const isPaid = apt.status === "completed" && apt.paymentMethod;
+        const isConfirmed = apt.status === "confirmed" || isOnlineBooking;
+
+        const cardBg = isOverdue ? "#fef2f2" : apt.status === "completed" ? "#f9fafb" : staffColor + "18";
+
+        return (
+          <div
+            key={apt.id}
+            className={cn(
+              "absolute left-[2px] right-[2px] rounded-lg overflow-hidden cursor-pointer z-[5] flex select-none",
+              isSelected ? "ring-2 ring-offset-0" : "",
+              apt.status === "completed" && "opacity-70"
+            )}
+            style={{
+              ...style,
+              backgroundColor: cardBg,
+              borderLeft: `3px solid ${bandColor}`,
+              border: `1px solid ${bandColor}35`,
+              borderLeftWidth: 3,
+              borderLeftColor: bandColor,
+              ...(isSelected ? { boxShadow: `0 0 0 2px ${bandColor}` } : {}),
+            }}
+            onTouchEnd={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
+            onClick={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
+            data-testid={`mobile-appt-block-${apt.id}`}
+          >
+            <div className="flex-1 px-1.5 py-1 min-w-0 overflow-hidden">
+              <p className="text-[9px] text-gray-500 leading-none tabular-nums">{startTime}–{endTime}</p>
+              <p className="text-[11px] font-semibold leading-tight mt-0.5 truncate" style={{ color: "#1e293b" }}>
+                {[apt.customer?.name, apt.service?.name].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+            {/* Right badges */}
+            <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1 pr-1 py-1">
+              {showPrices && serviceTotal > 0 && (
+                <span
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-white font-extrabold leading-none"
+                  style={{ fontSize: 8, backgroundColor: isPaid ? "#16a34a" : "#4ade80" }}
+                >
+                  $
+                </span>
+              )}
+              {isConfirmed && (
+                <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Slot tap modal ─── */
 function SlotModal({
   slot,
   staffName,
@@ -477,8 +575,6 @@ function SlotModal({
   const h = slot.hour > 12 ? slot.hour - 12 : slot.hour === 0 ? 12 : slot.hour;
   const m = String(slot.minute).padStart(2, "0");
   const ampm = slot.hour >= 12 ? "PM" : "AM";
-  const timeLabel = `${h}:${m} ${ampm}`;
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
@@ -488,7 +584,7 @@ function SlotModal({
       >
         <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/40">
           <div>
-            <p className="text-sm font-bold">{timeLabel}</p>
+            <p className="text-sm font-bold">{h}:{m} {ampm}</p>
             {staffName && <p className="text-xs text-muted-foreground">{staffName}</p>}
           </div>
           <button onClick={onClose} className="text-muted-foreground p-1">

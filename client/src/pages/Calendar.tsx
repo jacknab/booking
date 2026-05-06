@@ -12,7 +12,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -527,44 +527,47 @@ export default function Calendar() {
     <div className="h-screen w-full overflow-hidden flex flex-col bg-background">
       {/* ── Mobile header ── */}
       {isMobile && (
-        <div className="flex items-center h-12 px-1 border-b bg-card" data-testid="calendar-header">
-          <Link to="/dashboard">
-            <Button variant="ghost" size="icon" className="w-10 h-10 shrink-0" data-testid="button-back-dashboard">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
+        <div
+          className="flex-shrink-0 flex items-center gap-1 px-2 h-12"
+          style={{ backgroundColor: "#0f172a" }}
+          data-testid="calendar-header"
+        >
+          {/* Bell */}
+          <button className="w-9 h-9 flex items-center justify-center rounded-full text-white/50 active:text-white transition-colors shrink-0">
+            <Bell className="w-[18px] h-[18px]" />
+          </button>
 
-          <div className="flex-1 flex items-center justify-center min-w-0">
-            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={goPrev} data-testid="button-prev-day">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <button
-              className="flex flex-col items-center px-1 leading-none"
-              onClick={() => setShowDatePicker(true)}
-              data-testid="button-current-date"
-            >
-              <span className={cn("text-[10px] font-bold uppercase tracking-widest", isToday ? "text-primary" : "text-muted-foreground")}>
-                {isToday ? "Today · " : ""}{formatInTz(currentDate, timezone, "EEE")}
+          {/* Center: date + hours */}
+          <button
+            className="flex-1 flex flex-col items-center leading-none active:opacity-70 transition-opacity"
+            onClick={() => setShowDatePicker(true)}
+            data-testid="button-current-date"
+          >
+            <div className="flex items-center gap-1">
+              <span className="text-[13px] font-bold text-white">
+                {isToday ? "Today" : formatInTz(currentDate, timezone, "EEE, MMM d")}
               </span>
-              <span className="text-[15px] font-bold text-foreground leading-snug">
-                {formatInTz(currentDate, timezone, "MMM d, yyyy")}
-              </span>
-            </button>
-            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={goNext} data-testid="button-next-day">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+              <ChevronDown className="w-3 h-3 text-white/50" />
+            </div>
+            <span className="text-[10px] text-white/40 mt-0.5">
+              {START_HOUR}:00 – {END_HOUR}:00
+            </span>
+          </button>
 
+          {/* Staff filter */}
           {!isStaffUser ? (
             <Select
               value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
               onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
             >
-              <SelectTrigger className="w-10 h-10 border-0 shadow-none px-0 flex items-center justify-center shrink-0 [&>svg]:hidden" data-testid="select-staff-filter">
+              <SelectTrigger
+                className="w-9 h-9 border-0 shadow-none px-0 bg-transparent [&>svg]:hidden text-white/50 data-[state=open]:text-white shrink-0"
+                data-testid="select-staff-filter"
+              >
                 <div className="relative flex items-center justify-center">
-                  <Users className="w-5 h-5 text-muted-foreground" />
+                  <ListFilter className="w-[18px] h-[18px]" />
                   {selectedStaffId !== "all" && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary" />
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-blue-400" />
                   )}
                 </div>
               </SelectTrigger>
@@ -576,8 +579,13 @@ export default function Calendar() {
               </SelectContent>
             </Select>
           ) : (
-            <div className="w-10 shrink-0" />
+            <div className="w-9 shrink-0" />
           )}
+
+          {/* More */}
+          <button className="w-9 h-9 flex items-center justify-center rounded-full text-white/50 active:text-white transition-colors shrink-0">
+            <MoreVertical className="w-[18px] h-[18px]" />
+          </button>
         </div>
       )}
 
@@ -842,7 +850,7 @@ export default function Calendar() {
             exit={(dir: string) => ({ x: dir === 'next' ? '-100%' : '100%' })}
             transition={{ type: 'tween', ease: [0.25, 0.46, 0.45, 0.94], duration: 0.22 }}
             className={isMobile ? "absolute inset-0 overflow-hidden" : "absolute inset-0 overflow-auto"}
-            style={isMobile ? { paddingBottom: 64 } : undefined}
+            style={isMobile ? { paddingBottom: 128 } : undefined}
           >
             {isMobile ? (
               <MobileCalendarView
@@ -872,6 +880,13 @@ export default function Calendar() {
                 weekDayLabels={weekDayLabels}
                 currentDate={currentDate}
                 onSelectDate={(date) => { setCurrentDate(date); }}
+                onNewBooking={() => {
+                  setLookupMode(false);
+                  setSelectedAppointment(null);
+                  setShowCancelFlow(false);
+                  setShowCheckout(false);
+                  setShowClientLookup(true);
+                }}
               />
             ) : (
             <div className="flex min-w-[600px] relative">
@@ -1439,6 +1454,7 @@ export default function Calendar() {
           />
         )}
       </div>
+      {isMobile && <MobileBottomNav />}
     </div>
   );
 }
