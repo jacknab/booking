@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -364,8 +365,9 @@ export default function Calendar() {
     shouldAutoCenterTimeLineRef.current = true;
     setCurrentDate(getNowInTimezone(timezone));
   };
-  const goPrev = useCallback(() => setCurrentDate(d => subDays(d, 1)), []);
-  const goNext = useCallback(() => setCurrentDate(d => addDays(d, 1)), []);
+  const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next');
+  const goPrev = useCallback(() => { setSlideDir('prev'); setCurrentDate(d => subDays(d, 1)); }, []);
+  const goNext = useCallback(() => { setSlideDir('next'); setCurrentDate(d => addDays(d, 1)); }, []);
 
   useEffect(() => {
     if (isMobile) return;
@@ -830,7 +832,18 @@ export default function Calendar() {
               Now
             </button>
           )}
-          <div ref={scrollContainerRef} className="h-full overflow-auto" style={isMobile ? { paddingBottom: 108 } : undefined}>
+          <AnimatePresence initial={false} custom={slideDir}>
+          <motion.div
+            key={currentDate.toISOString().slice(0, 10)}
+            ref={scrollContainerRef}
+            custom={slideDir}
+            initial={(dir: string) => ({ x: dir === 'next' ? '100%' : '-100%' })}
+            animate={{ x: 0 }}
+            exit={(dir: string) => ({ x: dir === 'next' ? '-100%' : '100%' })}
+            transition={{ type: 'tween', ease: [0.25, 0.46, 0.45, 0.94], duration: 0.22 }}
+            className="absolute inset-0 overflow-auto"
+            style={isMobile ? { paddingBottom: 108 } : undefined}
+          >
             {isMobile ? (
               <MobileCalendarView
                 filteredStaff={filteredStaff}
@@ -1143,7 +1156,8 @@ export default function Calendar() {
               </div>
             </div>
             )}
-          </div>
+          </motion.div>
+          </AnimatePresence>
         </div>
 
         <Sheet open={quickCheckoutOpen} onOpenChange={setQuickCheckoutOpen}>
