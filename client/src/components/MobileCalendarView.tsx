@@ -238,8 +238,8 @@ export function MobileCalendarView({
               return (
                 <div
                   key={member.id}
-                  className="flex-1 flex items-center gap-2 px-3 border-l"
-                  style={{ minWidth: 0 }}
+                  className="flex-1 flex items-center gap-2 px-3"
+                  style={{ minWidth: 0, borderLeft: `3px solid ${color}` }}
                 >
                   <Avatar className="w-9 h-9 flex-shrink-0 ring-2 ring-offset-1" style={{ ["--tw-ring-color" as any]: color + "60" }}>
                     {member.avatarUrl && <AvatarFallback className="object-cover" />}
@@ -515,8 +515,8 @@ function StaffColumn({
 }) {
   return (
     <div
-      className="flex-1 relative border-l border-border/50"
-      style={{ height: totalGridH, backgroundColor: staffColor + "09" }}
+      className="flex-1 relative"
+      style={{ height: totalGridH, backgroundColor: staffColor + "09", borderLeft: `3px solid ${staffColor}` }}
     >
       {/* Grid lines */}
       {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
