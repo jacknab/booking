@@ -56,7 +56,6 @@ export default function NewBooking() {
   const { data: editAvailableTimeData } = useAvailableTime(editAppointmentId);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  // Category order state (loaded from localStorage for display)
   const [categoryOrder, setCategoryOrder] = useState<string[] | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
@@ -95,10 +94,6 @@ export default function NewBooking() {
     }
   };
 
-  // Derived values needed by the availability hook below. Declared up here
-  // so that effects which reference `slots`/`slotsLoading` in their dep
-  // arrays don't hit a temporal dead zone (TDZ) when the deps array is
-  // evaluated. (Hooks must still be called in the same order every render.)
   const addonTotalEarly = selectedAddons.reduce((sum, a) => sum + Number(a.price), 0);
   const addonDurationEarly = selectedAddons.reduce((sum, a) => sum + a.duration, 0);
   const totalDurationEarly = (selectedService?.duration || 0) + addonDurationEarly;
@@ -134,7 +129,6 @@ export default function NewBooking() {
     }
   }, [isCalendarBooking, staffList, calStaffId, calTime, calDate, timezone, calendarSlotInitialized, navigate]);
 
-  // Walk-in: auto-pick the soonest available slot once slots arrive.
   useEffect(() => {
     if (!isWalkIn) return;
     if (selectedSlot) return;
@@ -146,7 +140,6 @@ export default function NewBooking() {
     setSelectedStaff(staffList?.find((s: Staff) => s.id === next.staffId) || null);
   }, [isWalkIn, selectedSlot, slots, slotsLoading, staffList]);
 
-  // Walk-in: if user requested booking before the slot was ready, fire it once it is.
   useEffect(() => {
     if (!walkInBookingPending) return;
     if (!selectedSlot) return;
@@ -155,7 +148,6 @@ export default function NewBooking() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walkInBookingPending, selectedSlot]);
 
-  // Walk-in: surface a clear failure if we can't find any slot today.
   useEffect(() => {
     if (!walkInBookingPending) return;
     if (slotsLoading) return;
@@ -217,7 +209,6 @@ export default function NewBooking() {
           } else {
             const aptDate = new Date(apt.date);
             setSelectedDate(aptDate);
-
             setSelectedSlot({
               time: apt.date,
               staffId: apt.staffId,
@@ -230,7 +221,6 @@ export default function NewBooking() {
           if (isReschedule) {
             setStep("details");
           } else if (apt.appointmentAddons && apt.appointmentAddons.length > 0) {
-            // If appointment already has addons, open directly on the addons step
             setStep("addons");
           }
         })
@@ -240,11 +230,6 @@ export default function NewBooking() {
 
   const { data: availableAddons, isLoading: addonsLoading } = useAddonsForService(selectedService?.id || null);
 
-  // `addonDuration`, `totalDuration`, `dateString`, `slots`, `slotsLoading`
-  // are declared earlier in the component (above the effects that use them
-  // in their dep arrays) to avoid a TDZ error. We re-alias here so the rest
-  // of the component (which still references the original names) continues
-  // to work without changes.
   const addonTotal = addonTotalEarly;
   const addonDuration = addonDurationEarly;
   const servicePrice = selectedService ? Number(selectedService.price) : 0;
@@ -252,7 +237,6 @@ export default function NewBooking() {
   const totalDuration = totalDurationEarly;
   const dateString = dateStringEarly;
 
-  // Auto-advance to the next day with available slots when current date has none.
   const autoAdvanceOriginRef = useRef<Date | null>(null);
   const [autoAdvancing, setAutoAdvancing] = useState(false);
 
@@ -310,15 +294,12 @@ export default function NewBooking() {
       services.forEach((s: Service) => catSet.add(s.category));
       names = Array.from(catSet);
     }
-    // Use custom order if set
     if (categoryOrder) {
-      // Keep only categories that exist
       return categoryOrder.filter((c) => names.includes(c)).concat(names.filter((c) => !categoryOrder.includes(c)));
     }
     return names.sort();
   }, [services, categories, categoryOrder]);
 
-  // Load category order from localStorage for display purposes only
   useEffect(() => {
     const stored = localStorage.getItem("categoryOrder");
     if (stored) setCategoryOrder(JSON.parse(stored));
@@ -463,15 +444,124 @@ export default function NewBooking() {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-background">
+    <div className="h-screen w-screen flex bg-background overflow-hidden">
       <CoachOverlay
         category="create-booking"
         steps={CREATE_BOOKING_STEPS}
         active={true}
       />
+
+      {/* ── SERVICES STEP ── */}
       {step === "services" && (
         <>
-          <div className="flex flex-1 overflow-hidden">
+          {/* ── Mobile layout ── */}
+          <div className="flex flex-col flex-1 overflow-hidden md:hidden">
+            {/* Header */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b bg-card shrink-0">
+              <Button variant="ghost" size="icon" onClick={handleCancel} data-testid="button-cancel-booking">
+                <X className="w-5 h-5" />
+              </Button>
+              <h1 className="font-bold text-lg flex-1">New Booking</h1>
+              {selectedCustomer && (
+                <span className="text-sm text-muted-foreground truncate max-w-[120px]">{selectedCustomer.name}</span>
+              )}
+            </div>
+
+            {/* Horizontal category tabs */}
+            <div
+              className="flex overflow-x-auto gap-2 px-4 py-3 border-b shrink-0"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+            >
+              {categoryNames.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
+                  className={cn(
+                    "shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap",
+                    activeCategory === cat
+                      ? "bg-gray-900 text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Service grid */}
+            <div className="flex-1 overflow-y-auto p-4 pb-28">
+              {servicesLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {filteredServices.map((service: Service) => {
+                    const isSelected = selectedService?.id === service.id;
+                    return (
+                      <Card
+                        key={service.id}
+                        className={cn(
+                          "p-3 cursor-pointer transition-all flex flex-col",
+                          isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
+                        )}
+                        onClick={() => handleSelectService(service)}
+                        data-testid={`card-service-${service.id}`}
+                      >
+                        {service.imageUrl && (
+                          <div className="w-full aspect-[4/3] rounded-md bg-muted/50 mb-2 overflow-hidden">
+                            <img
+                              src={service.imageUrl.replace(/_/g, '/').replace(/-/g, '+')}
+                              alt={service.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <h3 className="font-semibold text-sm leading-tight" data-testid={`text-service-name-${service.id}`}>
+                          {service.name}
+                        </h3>
+                        <div className="flex items-center justify-between mt-auto pt-2">
+                          <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
+                          <Badge variant="secondary" className="no-default-active-elevate text-xs">
+                            {service.duration}m
+                          </Badge>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile bottom action bar */}
+            <div className="fixed bottom-0 left-0 right-0 border-t bg-card px-4 pt-3 pb-6 z-20">
+              {selectedService ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate" data-testid="text-summary-service">{selectedService.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ${Number(selectedService.price).toFixed(2)} · {selectedService.duration} min
+                    </p>
+                  </div>
+                  <Button
+                    className="h-12 px-6 bg-gray-900 hover:bg-gray-800 text-white shrink-0"
+                    onClick={handleContinueToAddons}
+                    data-testid="button-request-booking"
+                  >
+                    Continue
+                  </Button>
+                </div>
+              ) : (
+                <Button className="w-full h-12" disabled variant="outline" data-testid="button-request-booking">
+                  Select a service to continue
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* ── Desktop layout ── */}
+          <div className="hidden md:flex flex-1 overflow-hidden">
             <div className="w-[180px] flex-shrink-0 border-r bg-gray-50 flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.1)] z-10">
               <div className="px-5 py-4 border-b">
                 <span className="font-bold text-lg tracking-tight font-display">Services</span>
@@ -528,15 +618,14 @@ export default function NewBooking() {
                           <div className="flex flex-col gap-2 flex-1">
                             {service.imageUrl && (
                               <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1 overflow-hidden relative">
-                                <img 
-                                  src={service.imageUrl.replace(/_/g, '/').replace(/-/g, '+')} 
-                                  alt={service.name} 
+                                <img
+                                  src={service.imageUrl.replace(/_/g, '/').replace(/-/g, '+')}
+                                  alt={service.name}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
                             )}
                             <h3 className="font-semibold text-base leading-tight" data-testid={`text-service-name-${service.id}`}>{service.name}</h3>
-
                             <div className="flex items-center justify-between gap-2 mt-auto pt-1">
                               <span className="font-bold text-base">${Number(service.price).toFixed(2)}</span>
                               <Badge variant="secondary" className="no-default-active-elevate text-xs">
@@ -548,69 +637,161 @@ export default function NewBooking() {
                       );
                     })}
                   </div>
-
-                  {/* Extras section removed as requested */}
                 </div>
               )}
             </div>
           </div>
 
-          <BookingSummaryPanel
-            selectedService={selectedService}
-            selectedAddons={selectedAddons}
-            selectedStaff={selectedStaff}
-            selectedCustomer={selectedCustomer}
-            customers={customers}
-            totalPrice={totalPrice}
-            totalDuration={totalDuration}
-            onSetCustomer={setSelectedCustomer}
-            onRemoveService={handleRemoveService}
-            onRemoveAddon={handleRemoveAddon}
-            onEditAddons={() => setStep("addons")}
-            availableMinutes={availableMinutes}
-            isCalendarBooking={isCalendarBooking}
-            isEditMode={!!editAppointmentId}
-            footerContent={
-              editAppointmentId ? (
-                <div className="flex gap-3">
+          <div className="hidden md:flex">
+            <BookingSummaryPanel
+              selectedService={selectedService}
+              selectedAddons={selectedAddons}
+              selectedStaff={selectedStaff}
+              selectedCustomer={selectedCustomer}
+              customers={customers}
+              totalPrice={totalPrice}
+              totalDuration={totalDuration}
+              onSetCustomer={setSelectedCustomer}
+              onRemoveService={handleRemoveService}
+              onRemoveAddon={handleRemoveAddon}
+              onEditAddons={() => setStep("addons")}
+              availableMinutes={availableMinutes}
+              isCalendarBooking={isCalendarBooking}
+              isEditMode={!!editAppointmentId}
+              footerContent={
+                editAppointmentId ? (
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 border-2 border-gray-400 text-gray-800 font-semibold hover:bg-gray-50"
+                      onClick={() => navigate("/calendar")}
+                      data-testid="button-edit-checkout"
+                    >
+                      Checkout
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold"
+                      onClick={handleSaveEdit}
+                      disabled={setAppointmentAddons.isPending}
+                      data-testid="button-save-edit"
+                    >
+                      {setAppointmentAddons.isPending ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
+                ) : (
                   <Button
-                    variant="outline"
-                    className="flex-1 h-12 border-2 border-gray-400 text-gray-800 font-semibold hover:bg-gray-50"
-                    onClick={() => navigate("/calendar")}
-                    data-testid="button-edit-checkout"
+                    className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
+                    onClick={handleContinueToAddons}
+                    disabled={!selectedService}
+                    data-testid="button-request-booking"
                   >
-                    Checkout
+                    <span className="flex flex-col items-center leading-tight">
+                      <span className="font-semibold">Request Booking</span>
+                      <span className="font-semibold opacity-90">{totalDuration} min</span>
+                    </span>
                   </Button>
-                  <Button
-                    className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold"
-                    onClick={handleSaveEdit}
-                    disabled={setAppointmentAddons.isPending}
-                    data-testid="button-save-edit"
-                  >
-                    {setAppointmentAddons.isPending ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
-                  onClick={handleContinueToAddons}
-                  disabled={!selectedService}
-                  data-testid="button-request-booking"
-                >
-                  <span className="flex flex-col items-center leading-tight">
-                    <span className="font-semibold">Request Booking</span>
-                    <span className="font-semibold opacity-90">{totalDuration} min</span>
-                  </span>
-                </Button>
-              )
-            }
-          />
+                )
+              }
+            />
+          </div>
         </>
       )}
 
+      {/* ── ADDONS STEP ── */}
       {step === "addons" && (
         <>
-          <div className="flex-1 overflow-y-auto">
+          {/* ── Mobile layout ── */}
+          <div className="flex flex-col flex-1 overflow-hidden md:hidden">
+            <div className="p-4 border-b flex items-center gap-3 bg-card shrink-0">
+              {!editAppointmentId && (
+                <Button variant="ghost" size="icon" onClick={() => setStep("services")} data-testid="button-back-services">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              )}
+              <div className="flex-1">
+                <h2 className="font-semibold text-lg" data-testid="text-extras-heading">Extras</h2>
+                <p className="text-xs text-muted-foreground" data-testid="text-extras-subheading">for {selectedService?.name}</p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 pb-28">
+              {addonsLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : !availableAddons || availableAddons.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
+                  <Sparkles className="w-10 h-10 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">No extras for this service</p>
+                  <Button onClick={handleContinueToDetails} className="mt-2 bg-gray-900 text-white h-11 px-8">
+                    Continue
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {availableAddons.map((addon: Addon) => {
+                    const isSelected = selectedAddons.some(a => a.id === addon.id);
+                    return (
+                      <Card
+                        key={addon.id}
+                        className={cn(
+                          "p-3 cursor-pointer transition-all relative",
+                          isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
+                        )}
+                        onClick={() => handleToggleAddon(addon)}
+                        data-testid={`card-addon-${addon.id}`}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center" data-testid={`addon-selected-${addon.id}`}>
+                            <Check className="w-3 h-3 text-primary-foreground" />
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1.5">
+                          {addon.imageUrl && (
+                            <div className="w-full aspect-[4/3] rounded-md bg-muted/50 mb-1 overflow-hidden">
+                              <img
+                                src={addon.imageUrl.replace(/_/g, '/').replace(/-/g, '+')}
+                                alt={addon.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <h3 className="font-semibold text-xs leading-tight" data-testid={`text-addon-name-${addon.id}`}>{addon.name}</h3>
+                          <div className="flex items-center justify-between mt-auto pt-1">
+                            <span className="font-bold text-xs">${Number(addon.price).toFixed(2)}</span>
+                            <Badge variant="secondary" className="no-default-active-elevate text-[10px]">{addon.duration}m</Badge>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile bottom action bar */}
+            <div className="fixed bottom-0 left-0 right-0 border-t bg-card px-4 pt-3 pb-6 z-20">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate">{selectedService?.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ${totalPrice.toFixed(2)} · {totalDuration} min
+                    {selectedAddons.length > 0 && ` · ${selectedAddons.length} extra${selectedAddons.length > 1 ? "s" : ""}`}
+                  </p>
+                </div>
+                <Button
+                  className="h-12 px-6 bg-gray-900 hover:bg-gray-800 text-white shrink-0"
+                  onClick={handleContinueToDetails}
+                  data-testid="button-request-booking-addons"
+                >
+                  {isCalendarBooking || isWalkIn ? "Book" : "Continue"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Desktop layout ── */}
+          <div className="hidden md:flex flex-1 overflow-y-auto flex-col">
             <div className="p-4 border-b flex items-center gap-3 bg-card">
               {!editAppointmentId && (
                 <Button variant="ghost" size="icon" onClick={() => setStep("services")} data-testid="button-back-services">
@@ -622,12 +803,7 @@ export default function NewBooking() {
                 <p className="text-xs text-muted-foreground" data-testid="text-extras-subheading">for {selectedService?.name}</p>
               </div>
               {!editAppointmentId && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStep("services")}
-                  data-testid="button-no-addons"
-                >
+                <Button variant="outline" size="sm" onClick={() => setStep("services")} data-testid="button-no-addons">
                   No Addons
                 </Button>
               )}
@@ -659,9 +835,9 @@ export default function NewBooking() {
                         <div className="flex flex-col gap-2">
                           <div className="w-full aspect-[4/3] rounded-md bg-muted/50 flex items-center justify-center mb-1 overflow-hidden relative">
                             {addon.imageUrl ? (
-                              <img 
-                                src={addon.imageUrl.replace(/_/g, '/').replace(/-/g, '+')} 
-                                alt={addon.name} 
+                              <img
+                                src={addon.imageUrl.replace(/_/g, '/').replace(/-/g, '+')}
+                                alt={addon.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
@@ -693,62 +869,241 @@ export default function NewBooking() {
             </div>
           </div>
 
-          <BookingSummaryPanel
-            selectedService={selectedService}
-            selectedAddons={selectedAddons}
-            selectedStaff={selectedStaff}
-            selectedCustomer={selectedCustomer}
-            customers={customers}
-            totalPrice={totalPrice}
-            totalDuration={totalDuration}
-            onSetCustomer={setSelectedCustomer}
-            onRemoveService={handleRemoveService}
-            onRemoveAddon={handleRemoveAddon}
-            onEditAddons={() => setStep("addons")}
-            availableMinutes={availableMinutes}
-            editAvailableMinutes={editAvailableTimeData?.availableMinutes}
-            isCalendarBooking={isCalendarBooking}
-            isEditMode={!!editAppointmentId}
-            footerContent={
-              editAppointmentId ? (
-                <div className="flex gap-3">
+          <div className="hidden md:flex">
+            <BookingSummaryPanel
+              selectedService={selectedService}
+              selectedAddons={selectedAddons}
+              selectedStaff={selectedStaff}
+              selectedCustomer={selectedCustomer}
+              customers={customers}
+              totalPrice={totalPrice}
+              totalDuration={totalDuration}
+              onSetCustomer={setSelectedCustomer}
+              onRemoveService={handleRemoveService}
+              onRemoveAddon={handleRemoveAddon}
+              onEditAddons={() => setStep("addons")}
+              availableMinutes={availableMinutes}
+              editAvailableMinutes={editAvailableTimeData?.availableMinutes}
+              isCalendarBooking={isCalendarBooking}
+              isEditMode={!!editAppointmentId}
+              footerContent={
+                editAppointmentId ? (
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 border-2 border-gray-400 text-gray-800 font-semibold hover:bg-gray-50"
+                      onClick={() => navigate("/calendar")}
+                      data-testid="button-edit-checkout-addons"
+                    >
+                      Checkout
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold"
+                      onClick={handleSaveEdit}
+                      disabled={setAppointmentAddons.isPending}
+                      data-testid="button-save-edit-addons"
+                    >
+                      {setAppointmentAddons.isPending ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
+                ) : (
                   <Button
-                    variant="outline"
-                    className="flex-1 h-12 border-2 border-gray-400 text-gray-800 font-semibold hover:bg-gray-50"
-                    onClick={() => navigate("/calendar")}
-                    data-testid="button-edit-checkout-addons"
+                    className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
+                    onClick={handleContinueToDetails}
+                    data-testid="button-request-booking-addons"
                   >
-                    Checkout
+                    <span className="flex flex-col items-center leading-tight">
+                      <span className="font-semibold">Request Booking</span>
+                      <span className="font-semibold opacity-90">{totalDuration} min</span>
+                    </span>
                   </Button>
-                  <Button
-                    className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold"
-                    onClick={handleSaveEdit}
-                    disabled={setAppointmentAddons.isPending}
-                    data-testid="button-save-edit-addons"
-                  >
-                    {setAppointmentAddons.isPending ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12"
-                  onClick={handleContinueToDetails}
-                  data-testid="button-request-booking-addons"
-                >
-                  <span className="flex flex-col items-center leading-tight">
-                    <span className="font-semibold">Request Booking</span>
-                    <span className="font-semibold opacity-90">{totalDuration} min</span>
-                  </span>
-                </Button>
-              )
-            }
-          />
+                )
+              }
+            />
+          </div>
         </>
       )}
 
+      {/* ── DETAILS STEP ── */}
       {step === "details" && (
         <>
-          <div className="flex-1 overflow-hidden flex">
+          {/* ── Mobile layout ── */}
+          <div className="flex flex-col flex-1 overflow-hidden md:hidden">
+            <div className="p-4 border-b flex items-center gap-2 bg-card shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (availableAddons && availableAddons.length > 0) setStep("addons");
+                  else setStep("services");
+                }}
+                data-testid="button-back-from-details"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <span className="font-semibold text-lg">Date & Time</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pb-28">
+              {/* Date picker */}
+              <div className="p-4 border-b">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Select Date</p>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateChange}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  className="rounded-md border mx-auto"
+                  data-testid="calendar-date-picker"
+                />
+              </div>
+
+              {/* Staff selector */}
+              <div className="p-4 border-b">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Staff</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => handleStaffModeChange("any")}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors min-h-[90px]",
+                      staffMode === "any" ? "border-primary bg-primary/5" : "border-border"
+                    )}
+                    data-testid="card-staff-any"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-xs font-semibold text-center leading-tight">Any Staff</p>
+                    {staffMode === "any" && <Check className="w-3.5 h-3.5 text-primary" />}
+                  </button>
+                  {staffList?.map((member: Staff) => {
+                    const isSelected = staffMode === "specific" && specificStaffId === member.id;
+                    const color = member.color || "#3b82f6";
+                    return (
+                      <button
+                        key={member.id}
+                        onClick={() => { setStaffMode("specific"); handleSpecificStaffSelect(member.id); }}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors min-h-[90px]",
+                          isSelected ? "border-primary bg-primary/5" : "border-border"
+                        )}
+                        data-testid={`card-staff-${member.id}`}
+                      >
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback style={{ backgroundColor: color + "22", color }} className="text-sm font-bold">
+                            {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="text-xs font-semibold text-center leading-tight truncate w-full">{member.name.split(" ")[0]}</p>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time slots */}
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Available Times</p>
+                  {selectedDate && (
+                    <span className="text-xs text-muted-foreground">
+                      {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  )}
+                </div>
+
+                {!selectedDate ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-center">
+                    <CalendarDays className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Pick a date above</p>
+                  </div>
+                ) : staffMode === "specific" && !specificStaffId ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-center">
+                    <User className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Select a staff member above</p>
+                  </div>
+                ) : slotsLoading || autoAdvancing ? (
+                  <div className="flex flex-col items-center justify-center h-32 gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    {autoAdvancing && <p className="text-sm text-muted-foreground">Finding next available date…</p>}
+                  </div>
+                ) : !slots || slots.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-center">
+                    <Clock className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">No slots in the next 60 days</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {slots.length} slot{slots.length !== 1 ? "s" : ""} · {totalDuration} min
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {slots.map((slot) => {
+                        const timePart = formatInTz(slot.time, timezone, "h:mm");
+                        const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
+                        const isSelected = selectedSlot?.time === slot.time;
+                        return (
+                          <button
+                            key={slot.time}
+                            onClick={() => {
+                              setSelectedSlot(slot);
+                              setSelectedStaff(staffList?.find((s: Staff) => s.id === slot.staffId) || null);
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center py-3 rounded-xl border text-sm transition-colors",
+                              isSelected
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "hover-elevate"
+                            )}
+                            data-testid={`button-slot-${slot.time}`}
+                          >
+                            <span className="font-semibold leading-tight">{timePart}</span>
+                            <span className={cn(
+                              "text-[11px] font-medium",
+                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                            )}>{periodPart}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {/* Notes field */}
+                <div className="mt-5 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes</p>
+                  <Input
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any special requests?"
+                    data-testid="input-booking-notes"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile bottom action bar */}
+            <div className="fixed bottom-0 left-0 right-0 border-t bg-card px-4 pt-3 pb-6 z-20">
+              {selectedSlot && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{formatInTz(selectedSlot.time, timezone, "h:mm a")} · {selectedSlot.staffName}</span>
+                </div>
+              )}
+              <Button
+                className="w-full h-12 bg-primary text-primary-foreground"
+                onClick={handleRequestBooking}
+                disabled={!selectedService || !selectedSlot || createAppointment.isPending}
+                data-testid="button-complete-booking"
+              >
+                {createAppointment.isPending ? "Booking..." : "Complete Booking"}
+              </Button>
+            </div>
+          </div>
+
+          {/* ── Desktop layout ── */}
+          <div className="hidden md:flex flex-1 overflow-hidden">
             <div className="w-[300px] flex-shrink-0 border-r bg-card flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.1)] z-10">
               <div className="p-4 border-b flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => {
@@ -909,7 +1264,7 @@ export default function NewBooking() {
                               style={{ backgroundColor: color + "22", color: color }}
                               className="text-base font-bold"
                             >
-                              {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                              {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <p className="text-sm font-semibold text-center leading-tight truncate max-w-full">{member.name}</p>
@@ -933,124 +1288,127 @@ export default function NewBooking() {
                   </div>
                 </div>
               ) : (
-              <div className="p-6">
-                {!selectedDate ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center">
-                    <CalendarDays className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">Pick a date to see available time slots</p>
-                  </div>
-                ) : staffMode === "specific" && !specificStaffId ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center">
-                    <User className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">Select a staff member to see their availability</p>
-                  </div>
-                ) : slotsLoading || autoAdvancing ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    {autoAdvancing && (
-                      <p className="text-sm text-muted-foreground">Finding next available date…</p>
-                    )}
-                  </div>
-                ) : !slots || slots.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center">
-                    <Clock className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">No available time slots in the next 60 days</p>
-                    <p className="text-xs text-muted-foreground mt-1">Try a different staff preference or service</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      {slots.length} available slot{slots.length !== 1 ? "s" : ""} &middot; {totalDuration} min per booking
-                    </p>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                      {slots.map((slot) => {
-                        const timePart = formatInTz(slot.time, timezone, "h:mm");
-                        const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
-                        const isSelected = selectedSlot?.time === slot.time;
-                        const slotStaffColor = staffList?.find((s: Staff) => s.id === slot.staffId)?.color || "#3b82f6";
-
-                        return (
-                          <button
-                            key={slot.time}
-                            onClick={() => {
-                              setSelectedSlot(slot);
-                              setSelectedStaff(staffList?.find((s: Staff) => s.id === slot.staffId) || null);
-                            }}
-                            className={cn(
-                              "flex flex-col items-center justify-center gap-0 px-3 py-3 rounded-md border text-sm transition-colors",
-                              isSelected
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "hover-elevate"
-                            )}
-                            data-testid={`button-slot-${slot.time}`}
-                          >
-                            <span className="font-semibold leading-tight">{timePart}</span>
-                            <span className={cn(
-                              "text-[11px] font-medium leading-tight",
-                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
-                            )}>{periodPart}</span>
-                            {staffMode === "specific" && (
-                              <span className={cn(
-                                "flex items-center gap-1 text-[10px] truncate max-w-full mt-0.5",
-                                isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
-                              )}>
-                                <span
-                                  className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.7)" : slotStaffColor }}
-                                />
-                                {slot.staffName}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
+                <div className="p-6">
+                  {!selectedDate ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center">
+                      <CalendarDays className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">Pick a date to see available time slots</p>
                     </div>
-                  </div>
-                )}
-              </div>
+                  ) : staffMode === "specific" && !specificStaffId ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center">
+                      <User className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">Select a staff member to see their availability</p>
+                    </div>
+                  ) : slotsLoading || autoAdvancing ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      {autoAdvancing && (
+                        <p className="text-sm text-muted-foreground">Finding next available date…</p>
+                      )}
+                    </div>
+                  ) : !slots || slots.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center">
+                      <Clock className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">No available time slots in the next 60 days</p>
+                      <p className="text-xs text-muted-foreground mt-1">Try a different staff preference or service</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {slots.length} available slot{slots.length !== 1 ? "s" : ""} &middot; {totalDuration} min per booking
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                        {slots.map((slot) => {
+                          const timePart = formatInTz(slot.time, timezone, "h:mm");
+                          const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
+                          const isSelected = selectedSlot?.time === slot.time;
+                          const slotStaffColor = staffList?.find((s: Staff) => s.id === slot.staffId)?.color || "#3b82f6";
+
+                          return (
+                            <button
+                              key={slot.time}
+                              onClick={() => {
+                                setSelectedSlot(slot);
+                                setSelectedStaff(staffList?.find((s: Staff) => s.id === slot.staffId) || null);
+                              }}
+                              className={cn(
+                                "flex flex-col items-center justify-center gap-0 px-3 py-3 rounded-md border text-sm transition-colors",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "hover-elevate"
+                              )}
+                              data-testid={`button-slot-${slot.time}`}
+                            >
+                              <span className="font-semibold leading-tight">{timePart}</span>
+                              <span className={cn(
+                                "text-[11px] font-medium leading-tight",
+                                isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                              )}>{periodPart}</span>
+                              {staffMode === "specific" && (
+                                <span className={cn(
+                                  "flex items-center gap-1 text-[10px] truncate max-w-full mt-0.5",
+                                  isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                                )}>
+                                  <span
+                                    className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.7)" : slotStaffColor }}
+                                  />
+                                  {slot.staffName}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
 
-          <BookingSummaryPanel
-            selectedService={selectedService}
-            selectedAddons={selectedAddons}
-            selectedStaff={selectedStaff}
-            selectedCustomer={selectedCustomer}
-            customers={customers}
-            totalPrice={totalPrice}
-            totalDuration={totalDuration}
-            onSetCustomer={setSelectedCustomer}
-            onRemoveService={handleRemoveService}
-            onRemoveAddon={handleRemoveAddon}
-            onEditAddons={() => setStep("addons")}
-            availableMinutes={availableMinutes}
-            isCalendarBooking={isCalendarBooking}
-            isEditMode={!!editAppointmentId}
-            footerContent={
-              <div className="space-y-2">
-                {selectedSlot && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>
-                      {formatInTz(selectedSlot.time, timezone, "h:mm a")} &middot; {selectedSlot.staffName}
-                    </span>
-                  </div>
-                )}
-                <Button
-                  className="w-full h-12 bg-primary text-primary-foreground"
-                  onClick={handleRequestBooking}
-                  disabled={!selectedService || !selectedSlot || createAppointment.isPending}
-                  data-testid="button-complete-booking"
-                >
-                  {createAppointment.isPending ? "Booking..." : "Complete Booking"}
-                </Button>
-              </div>
-            }
-          />
+          <div className="hidden md:flex">
+            <BookingSummaryPanel
+              selectedService={selectedService}
+              selectedAddons={selectedAddons}
+              selectedStaff={selectedStaff}
+              selectedCustomer={selectedCustomer}
+              customers={customers}
+              totalPrice={totalPrice}
+              totalDuration={totalDuration}
+              onSetCustomer={setSelectedCustomer}
+              onRemoveService={handleRemoveService}
+              onRemoveAddon={handleRemoveAddon}
+              onEditAddons={() => setStep("addons")}
+              availableMinutes={availableMinutes}
+              isCalendarBooking={isCalendarBooking}
+              isEditMode={!!editAppointmentId}
+              footerContent={
+                <div className="space-y-2">
+                  {selectedSlot && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>
+                        {formatInTz(selectedSlot.time, timezone, "h:mm a")} &middot; {selectedSlot.staffName}
+                      </span>
+                    </div>
+                  )}
+                  <Button
+                    className="w-full h-12 bg-primary text-primary-foreground"
+                    onClick={handleRequestBooking}
+                    disabled={!selectedService || !selectedSlot || createAppointment.isPending}
+                    data-testid="button-complete-booking"
+                  >
+                    {createAppointment.isPending ? "Booking..." : "Complete Booking"}
+                  </Button>
+                </div>
+              }
+            />
+          </div>
         </>
       )}
 
+      {/* Booking confirmation dialog */}
       <Dialog open={showConfirmation} onOpenChange={(open) => { if (!open) navigate("/calendar"); }}>
         <DialogContent className="sm:max-w-md" data-testid="booking-confirmation-dialog">
           <h2 className="text-xl font-bold">Appointment Confirmation</h2>
@@ -1096,6 +1454,7 @@ export default function NewBooking() {
         </DialogContent>
       </Dialog>
 
+      {/* Cancel confirmation dialog */}
       <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <DialogContent className="max-w-sm text-center" data-testid="cancel-confirm-dialog">
           <div className="flex flex-col items-center gap-4 py-2">
@@ -1237,8 +1596,6 @@ function BookingSummaryPanel({
   const isOverTime = remainingMinutes != null && remainingMinutes < 0;
   const [highlightedServiceId, setHighlightedServiceId] = useState<number | null>(null);
 
-  // Format a phone number as (555) 123-4567 — strips non-digits and falls
-  // back to the original string if we don't have exactly 10 digits.
   const formatPhoneNumber = (raw: string) => {
     const digits = (raw || "").replace(/\D/g, "");
     const ten = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
