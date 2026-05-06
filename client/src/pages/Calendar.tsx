@@ -887,6 +887,13 @@ export default function Calendar() {
                   setShowCheckout(false);
                   setShowClientLookup(true);
                 }}
+                onLookup={() => {
+                  setLookupMode(true);
+                  setSelectedAppointment(null);
+                  setShowCancelFlow(false);
+                  setShowCheckout(false);
+                  setShowClientLookup(true);
+                }}
               />
             ) : (
             <div className="flex min-w-[600px] relative">

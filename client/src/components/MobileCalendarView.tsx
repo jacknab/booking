@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { addMinutes, isSameDay } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, CalendarPlus, Search } from "lucide-react";
 
 const TIME_COL_W = 44;
 const STAFF_HEADER_H = 68;
@@ -44,6 +44,7 @@ interface MobileCalendarViewProps {
   currentDate: Date;
   onSelectDate: (date: Date) => void;
   onNewBooking: () => void;
+  onLookup: () => void;
 }
 
 export function MobileCalendarView({
@@ -74,7 +75,9 @@ export function MobileCalendarView({
   currentDate,
   onSelectDate,
   onNewBooking,
+  onLookup,
 }: MobileCalendarViewProps) {
+  const [showFabMenu, setShowFabMenu] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const didAutoScrollRef = useRef(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -378,12 +381,58 @@ export function MobileCalendarView({
           height: 56,
           backgroundColor: "#0f172a",
         }}
-        onClick={onNewBooking}
+        onClick={() => setShowFabMenu(true)}
         data-testid="mobile-fab-new-appointment"
         aria-label="New appointment"
       >
         <Plus className="w-6 h-6 text-white" />
       </button>
+
+      {/* ── FAB bottom-sheet menu ── */}
+      {showFabMenu && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          onClick={() => setShowFabMenu(false)}
+        >
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative z-10 w-full max-w-sm mb-safe px-4 pb-6 pt-0"
+            style={{ paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-card rounded-2xl shadow-2xl border overflow-hidden">
+              <div className="px-4 py-3 border-b bg-muted/40">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Appointment</p>
+              </div>
+              <div className="p-3 flex flex-col gap-2">
+                <button
+                  className="w-full min-h-[56px] px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+                  onClick={() => { setShowFabMenu(false); onNewBooking(); }}
+                  data-testid="button-create-new-appointment"
+                >
+                  <CalendarPlus className="w-4 h-4 shrink-0" />
+                  <span>BOOK</span>
+                </button>
+                <button
+                  className="w-full min-h-[56px] px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+                  onClick={() => { setShowFabMenu(false); onLookup(); }}
+                  data-testid="button-lookup-appointment"
+                >
+                  <Search className="w-4 h-4 shrink-0" />
+                  <span>LOOK UP</span>
+                </button>
+                <button
+                  className="w-full min-h-[56px] px-4 py-3 rounded-xl border border-border text-sm font-semibold text-foreground active:bg-muted transition-colors flex items-center justify-center"
+                  onClick={() => setShowFabMenu(false)}
+                  data-testid="button-cancel-new-appointment-menu"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
