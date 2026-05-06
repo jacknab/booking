@@ -2832,137 +2832,146 @@ function ChooseClientPanel({
           onClick={onClose}
         />
         <div className="absolute right-0 top-0 h-full w-full sm:w-[740px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
-        <div className="p-4 border-b flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
-              <ArrowLeft className="w-4 h-4" />
+          <div className="p-4 border-b flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <span className="font-semibold text-sm">Enter Client Name</span>
+            </div>
+            <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={onClose} data-testid="button-close-name-entry">
+              <X className="w-4 h-4" />
             </Button>
-            <span className="font-semibold text-sm">Enter Client Name</span>
-          </div>
-          <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={onClose} data-testid="button-close-name-entry">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-
-        <div className="flex-1 flex flex-col items-center px-5 pt-6">
-          <p className="text-3xl font-bold tracking-wide min-h-[44px]" data-testid="text-client-name-display">
-            {clientName || <span className="text-muted-foreground/40">Name</span>}
-          </p>
-          <p className="text-xs text-green-600 mt-2" data-testid="text-creating-for-phone">
-            Creating new client for {formatPhoneFull(phoneDigits)}
-          </p>
-
-          <div className="w-full mt-6 space-y-2">
-            <div className="flex justify-center gap-[6px]">
-              {kbRow1.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onPointerDown={e => e.preventDefault()}
-                  onClick={() => handleNameKey(k)}
-                  className="w-[62px] h-[58px] rounded-md bg-muted text-base font-semibold text-foreground hover-elevate active-elevate-2"
-                  data-testid={`kb-${k.toLowerCase()}`}
-                >
-                  {shiftActive ? k : k.toLowerCase()}
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-center gap-[6px]">
-              {kbRow2.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onPointerDown={e => e.preventDefault()}
-                  onClick={() => handleNameKey(k)}
-                  className="w-[70px] h-[58px] rounded-md bg-muted text-base font-semibold text-foreground hover-elevate active-elevate-2"
-                  data-testid={`kb-${k.toLowerCase()}`}
-                >
-                  {shiftActive ? k : k.toLowerCase()}
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-center gap-[6px]">
-              <button
-                type="button"
-                onPointerDown={e => e.preventDefault()}
-                onClick={() => setShiftActive(prev => !prev)}
-                className={`w-[76px] h-[58px] rounded-md text-sm font-semibold flex items-center justify-center hover-elevate active-elevate-2 ${shiftActive ? "bg-foreground text-background" : "bg-muted text-foreground"}`}
-                data-testid="kb-shift"
-              >
-                <ArrowUp className="w-4 h-4" />
-              </button>
-              {kbRow3.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onPointerDown={e => e.preventDefault()}
-                  onClick={() => handleNameKey(k)}
-                  className="w-[62px] h-[58px] rounded-md bg-muted text-base font-semibold text-foreground hover-elevate active-elevate-2"
-                  data-testid={`kb-${k.toLowerCase()}`}
-                >
-                  {shiftActive ? k : k.toLowerCase()}
-                </button>
-              ))}
-              <button
-                type="button"
-                onPointerDown={e => e.preventDefault()}
-                onClick={handleNameBackspace}
-                className="w-[76px] h-[58px] rounded-md bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
-                data-testid="kb-backspace"
-              >
-                <Delete className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex justify-center gap-[6px]">
-              <button
-                type="button"
-                onPointerDown={e => e.preventDefault()}
-                onClick={handleGuestDone}
-                className="h-[52px] px-5 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
-                data-testid="kb-guest"
-              >
-                Guest
-              </button>
-              <button
-                type="button"
-                onPointerDown={e => e.preventDefault()}
-                onClick={() => handleNameKey("@")}
-                className="h-[52px] px-5 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
-                data-testid="kb-at"
-              >
-                @
-              </button>
-              <button
-                type="button"
-                onPointerDown={e => e.preventDefault()}
-                onClick={() => { handleNameKey(" "); setShiftActive(true); }}
-                className="flex-1 h-[52px] rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
-                data-testid="kb-space"
-              >
-                Spacebar
-              </button>
-              <button
-                type="button"
-                onPointerDown={e => e.preventDefault()}
-                onClick={handleNameDone}
-                className="h-[52px] px-5 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
-                data-testid="kb-return"
-              >
-                Return
-              </button>
-            </div>
           </div>
 
-          <Button
-            className="mt-4 w-full bg-green-600 text-white h-[56px] text-base font-semibold"
-            onPointerDown={e => e.preventDefault()}
-            onClick={handleNameDone}
-            disabled={!clientName.trim() || isCreating}
-            data-testid="button-name-done"
-          >
-            {isCreating ? "Creating..." : "Done"}
-          </Button>
-        </div>
+          <div className="flex-1 flex flex-col px-3 pt-5 pb-3 min-h-0">
+            <div className="text-center mb-4 px-2">
+              <p className="text-3xl font-bold tracking-wide min-h-[44px]" data-testid="text-client-name-display">
+                {clientName || <span className="text-muted-foreground/40">Name</span>}
+              </p>
+              <p className="text-xs text-green-600 mt-1" data-testid="text-creating-for-phone">
+                Creating new client for {formatPhoneFull(phoneDigits)}
+              </p>
+            </div>
+
+            <div className="flex-1 flex flex-col gap-1.5 min-h-0 justify-end">
+              {/* Row 1: QWERTYUIOP */}
+              <div className="flex gap-1">
+                {kbRow1.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onPointerDown={e => e.preventDefault()}
+                    onClick={() => handleNameKey(k)}
+                    className="flex-1 h-[52px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2 flex items-center justify-center"
+                    data-testid={`kb-${k.toLowerCase()}`}
+                  >
+                    {shiftActive ? k : k.toLowerCase()}
+                  </button>
+                ))}
+              </div>
+              {/* Row 2: ASDFGHJKL */}
+              <div className="flex gap-1 px-[4%]">
+                {kbRow2.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onPointerDown={e => e.preventDefault()}
+                    onClick={() => handleNameKey(k)}
+                    className="flex-1 h-[52px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2 flex items-center justify-center"
+                    data-testid={`kb-${k.toLowerCase()}`}
+                  >
+                    {shiftActive ? k : k.toLowerCase()}
+                  </button>
+                ))}
+              </div>
+              {/* Row 3: Shift + ZXCVBNM + Backspace */}
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onPointerDown={e => e.preventDefault()}
+                  onClick={() => setShiftActive(prev => !prev)}
+                  className={cn(
+                    "w-[52px] h-[52px] rounded-md text-sm font-semibold flex items-center justify-center hover-elevate active-elevate-2 flex-shrink-0",
+                    shiftActive ? "bg-foreground text-background" : "bg-muted text-foreground"
+                  )}
+                  data-testid="kb-shift"
+                >
+                  <ArrowUp className="w-4 h-4" />
+                </button>
+                {kbRow3.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onPointerDown={e => e.preventDefault()}
+                    onClick={() => handleNameKey(k)}
+                    className="flex-1 h-[52px] rounded-md bg-muted text-sm font-semibold text-foreground hover-elevate active-elevate-2 flex items-center justify-center"
+                    data-testid={`kb-${k.toLowerCase()}`}
+                  >
+                    {shiftActive ? k : k.toLowerCase()}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onPointerDown={e => e.preventDefault()}
+                  onClick={handleNameBackspace}
+                  className="w-[52px] h-[52px] rounded-md bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2 flex-shrink-0"
+                  data-testid="kb-backspace"
+                >
+                  <Delete className="w-5 h-5" />
+                </button>
+              </div>
+              {/* Row 4: Guest / @ / Space / Return */}
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onPointerDown={e => e.preventDefault()}
+                  onClick={handleGuestDone}
+                  className="h-[52px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2 flex-shrink-0"
+                  data-testid="kb-guest"
+                >
+                  Guest
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={e => e.preventDefault()}
+                  onClick={() => handleNameKey("@")}
+                  className="h-[52px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2 flex-shrink-0"
+                  data-testid="kb-at"
+                >
+                  @
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={e => e.preventDefault()}
+                  onClick={() => { handleNameKey(" "); setShiftActive(true); }}
+                  className="flex-1 h-[52px] rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2"
+                  data-testid="kb-space"
+                >
+                  space
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={e => e.preventDefault()}
+                  onClick={handleNameDone}
+                  className="h-[52px] px-3 rounded-md bg-muted text-sm font-medium text-foreground hover-elevate active-elevate-2 flex-shrink-0"
+                  data-testid="kb-return"
+                >
+                  return
+                </button>
+              </div>
+            </div>
+
+            <Button
+              className="mt-3 w-full bg-green-600 text-white h-[58px] text-base font-semibold rounded-xl"
+              onPointerDown={e => e.preventDefault()}
+              onClick={handleNameDone}
+              disabled={!clientName.trim() || isCreating}
+              data-testid="button-name-done"
+            >
+              {isCreating ? "Creating..." : "Done"}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -2977,40 +2986,44 @@ function ChooseClientPanel({
         onClick={onClose}
       />
       <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+        {/* Header */}
         <div className="p-4 border-b flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-back-client-lookup">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <span className="font-semibold text-sm">Choose A Client</span>
+            <span className="font-semibold text-base">Choose A Client</span>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-client-lookup">
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="flex-1 flex flex-col items-center px-6 pt-8 overflow-y-auto">
-          <div className="w-full rounded-lg border p-6 mb-8 text-center">
+        {/* Content fills all remaining height */}
+        <div className="flex-1 flex flex-col px-4 pt-5 pb-4 min-h-0">
+          {/* Phone number display */}
+          <div className="w-full rounded-2xl border-2 py-5 px-4 mb-5 text-center">
             {phoneDigits.length > 0 ? (
-              <p className="text-xl font-semibold tracking-wide" data-testid="text-phone-display">
+              <p className="text-4xl font-bold tracking-widest text-foreground" data-testid="text-phone-display">
                 {formatPhone(phoneDigits)}
               </p>
             ) : (
               <>
-                <p className="text-sm font-medium text-foreground" data-testid="text-enter-phone">Enter Telephone Number</p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                  Use <PersonStanding className="w-3.5 h-3.5 inline" /> for walk-in
+                <p className="text-base font-semibold text-foreground" data-testid="text-enter-phone">Enter Phone Number</p>
+                <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
+                  Tap <PersonStanding className="w-4 h-4 inline" /> for walk-in
                 </p>
               </>
             )}
             {isSearching && (
-              <p className="text-xs text-muted-foreground mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
+              <p className="text-sm text-muted-foreground mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
             )}
           </div>
 
-          <div className="w-full max-w-[280px] space-y-3">
+          {/* Numpad — flex-1 rows fill remaining height equally */}
+          <div className="flex-1 flex flex-col gap-3 min-h-0">
             {numKeys.map((row, ri) => (
-              <div key={ri} className="flex justify-center gap-3">
+              <div key={ri} className="flex gap-3 flex-1">
                 {row.map((key) => {
                   if (key === "walk-in") {
                     return (
@@ -3019,15 +3032,15 @@ function ChooseClientPanel({
                         type="button"
                         onPointerDown={e => e.preventDefault()}
                         onClick={onWalkIn}
-                        className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                        className="flex-1 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
                         data-testid="numpad-walkin"
                       >
-                        <PersonStanding className="w-5 h-5" />
+                        <PersonStanding className="w-7 h-7" />
                       </button>
                     );
                   }
                   if (key === "blank") {
-                    return <div key={key} className="w-[80px] h-[56px]" aria-hidden="true" />;
+                    return <div key={key} className="flex-1" aria-hidden="true" />;
                   }
                   if (key === "backspace") {
                     return (
@@ -3036,10 +3049,10 @@ function ChooseClientPanel({
                         type="button"
                         onPointerDown={e => e.preventDefault()}
                         onClick={handleBackspace}
-                        className="w-[80px] h-[56px] rounded-lg bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                        className="flex-1 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
                         data-testid="numpad-backspace"
                       >
-                        <Delete className="w-5 h-5" />
+                        <Delete className="w-7 h-7" />
                       </button>
                     );
                   }
@@ -3049,7 +3062,7 @@ function ChooseClientPanel({
                       type="button"
                       onPointerDown={e => e.preventDefault()}
                       onClick={() => handleDigit(key)}
-                      className="w-[80px] h-[56px] rounded-lg bg-muted text-xl font-semibold text-foreground hover-elevate active-elevate-2"
+                      className="flex-1 rounded-2xl bg-muted text-3xl font-bold text-foreground hover-elevate active-elevate-2"
                       data-testid={`numpad-${key}`}
                     >
                       {key}
