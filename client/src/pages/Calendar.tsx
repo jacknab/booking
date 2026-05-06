@@ -268,6 +268,31 @@ export default function Calendar() {
   }, [timeLinePosition]);
 
   useEffect(() => {
+    if (isMobile) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    let startX = 0;
+    let startY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      const deltaX = e.changedTouches[0].clientX - startX;
+      const deltaY = e.changedTouches[0].clientY - startY;
+      if (Math.abs(deltaX) < 50) return;
+      if (Math.abs(deltaX) < Math.abs(deltaY)) return;
+      if (deltaX < 0) goNext(); else goPrev();
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isMobile, goPrev, goNext]);
+
+  useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
     const checkVisibility = () => {
@@ -363,8 +388,8 @@ export default function Calendar() {
     shouldAutoCenterTimeLineRef.current = true;
     setCurrentDate(getNowInTimezone(timezone));
   };
-  const goPrev = () => setCurrentDate(subDays(currentDate, 1));
-  const goNext = () => setCurrentDate(addDays(currentDate, 1));
+  const goPrev = useCallback(() => setCurrentDate(d => subDays(d, 1)), []);
+  const goNext = useCallback(() => setCurrentDate(d => addDays(d, 1)), []);
 
   const getAvailableMinutesForSlot = useCallback((staffId: number, slotHour: number, slotMinute: number) => {
     if (!appointments) return END_HOUR * 60 - (slotHour * 60 + slotMinute);

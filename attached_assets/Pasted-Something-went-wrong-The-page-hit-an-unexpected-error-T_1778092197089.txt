@@ -1,0 +1,36 @@
+Something went wrong
+The page hit an unexpected error. The details below are intended to help track down the issue.
+
+Go back
+Reload page
+Error message
+Cannot access 'goPrev' before initialization
+Stack trace
+ReferenceError: Cannot access 'goPrev' before initialization
+    at Calendar (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/pages/Calendar.tsx?t=1778092185512:273:18)
+    at renderWithHooks (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:11596:26)
+    at mountIndeterminateComponent (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:14974:21)
+    at beginWork (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:15962:22)
+    at beginWork$1 (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:19806:22)
+    at performUnitOfWork (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:19251:20)
+    at workLoopSync (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:19190:13)
+    at renderRootSync (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:19169:15)
+    at recoverFromConcurrentError (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:18786:28)
+    at performSyncWorkOnRoot (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=3a675a84:18932:28)
+Component stack
+
+    at Calendar (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/pages/Calendar.tsx?t=1778092185512:101:44)
+    at RenderedRoute (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4130:5)
+    at Routes (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4600:5)
+    at StoreProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/components/StoreProvider.tsx:21:33)
+    at AppRoutes (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/App.tsx?t=1778091893852:238:20)
+    at Router (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4543:15)
+    at BrowserRouter (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:5289:5)
+    at PracticeModeProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/contexts/PracticeModeContext.tsx:35:40)
+    at TrainingProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/contexts/TrainingContext.tsx:24:36)
+    at ErrorBoundary (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/components/ErrorBoundary.tsx:20:5)
+    at Provider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-647OWSWH.js?v=3a675a84:37:15)
+    at TooltipProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3a675a84:64:5)
+    at QueryClientProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3a675a84:2747:3)
+    at App (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/App.tsx?t=1778091893852:170:3)
+URL: https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/calendar
