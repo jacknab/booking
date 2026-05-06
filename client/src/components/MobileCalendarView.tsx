@@ -252,9 +252,20 @@ export function MobileCalendarView({
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] font-bold truncate leading-tight text-foreground">{member.name}</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                      {aptCount === 0 ? "No bookings" : `${aptCount} booking${aptCount !== 1 ? "s" : ""}`}
-                    </p>
+                    <div className="mt-1">
+                      {aptCount === 0 ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-muted text-muted-foreground">
+                          No appts
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white leading-none"
+                          style={{ backgroundColor: color }}
+                        >
+                          {aptCount} appt{aptCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
