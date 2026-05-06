@@ -36,10 +36,10 @@ export function MobileBottomNav() {
               </span>
             )}
             <Icon
-              className={cn("w-[22px] h-[22px]", active ? "text-white" : "text-white/28")}
+              className={cn("w-[22px] h-[22px]", active ? "text-white" : "text-white/55")}
               strokeWidth={active ? 2.2 : 1.7}
             />
-            <span className={cn("text-[10px] font-medium leading-none", active ? "text-white" : "text-white/28")}>
+            <span className={cn("text-[10px] font-medium leading-none", active ? "text-white" : "text-white/55")}>
               {label}
             </span>
           </Link>
