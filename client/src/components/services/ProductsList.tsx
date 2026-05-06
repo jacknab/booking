@@ -165,7 +165,7 @@ export function ProductsList() {
           <p className="text-muted-foreground">Loading products...</p>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table data-testid="products-table">
             <TableHeader>
               <TableRow>

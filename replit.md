@@ -18,7 +18,7 @@ Certxa is a full-stack booking and business management application for service p
 
 ## Stack
 
-- **Frontend**: React 18, TypeScript, Wouter, TanStack React Query, shadcn/ui (Radix UI), Tailwind CSS, Recharts, Framer Motion, React Hook Form, Zod.
+- **Frontend**: React 18, TypeScript, React Router v6, TanStack React Query, shadcn/ui (Radix UI), Tailwind CSS, Recharts, Framer Motion, React Hook Form, Zod.
 - **Backend**: Node.js, TypeScript, Express.js.
 - **Database**: PostgreSQL.
 - **ORM**: Drizzle ORM with `drizzle-zod`.

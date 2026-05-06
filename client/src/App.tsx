@@ -1,5 +1,5 @@
 
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -248,6 +248,7 @@ function AppRoutes() {
       <Route path="/staff" element={<Staff />} />
       <Route path="/staff/:id" element={<StaffDetail />} />
       <Route path="/customers" element={<Customers />} />
+      <Route path="/marketing" element={<Navigate to="/reviews" replace />} />
       <Route path="/calendar" element={<Calendar />} />
       <Route path="/appointments" element={<Calendar />} />
       <Route path="/booking/new" element={<NewBooking />} />

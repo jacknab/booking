@@ -219,6 +219,7 @@ export default function POSInterface() {
   const [stripeSwipeInput, setStripeSwipeInput] = useState("");
   const [stripeSwipeStatus, setStripeSwipeStatus] = useState("");
   const [stripeProcessing, setStripeProcessing] = useState(false);
+  const [mobileView, setMobileView] = useState<"menu" | "cart">("menu");
   const { printReceipt } = useReceiptPrinter();
 
   const { data: services, isLoading: servicesLoading } = useServices();
@@ -454,7 +455,247 @@ export default function POSInterface() {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-background">
+    <>
+      {/* ── MOBILE LAYOUT ── */}
+      <div className="md:hidden flex flex-col h-screen bg-background">
+        {showTipScreen && (
+          <TipScreen
+            amountDue={ticketTotal}
+            staffMember={primaryStaff}
+            onAddTip={handleAddTip}
+            onCancel={() => setShowTipScreen(false)}
+          />
+        )}
+
+        {/* Tab bar */}
+        <div className="flex border-b flex-shrink-0">
+          <button
+            onClick={() => setMobileView("menu")}
+            className={cn(
+              "flex-1 py-3 text-sm font-semibold border-b-2 transition-colors",
+              mobileView === "menu" ? "border-primary text-primary" : "border-transparent text-muted-foreground"
+            )}
+          >
+            Menu
+          </button>
+          <button
+            onClick={() => setMobileView("cart")}
+            className={cn(
+              "flex-1 py-3 text-sm font-semibold border-b-2 transition-colors",
+              mobileView === "cart" ? "border-primary text-primary" : "border-transparent text-muted-foreground"
+            )}
+          >
+            Cart
+            {ticketItems.length > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold align-middle">
+                {ticketItems.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {mobileView === "menu" && (
+          <>
+            {/* Category chips - horizontal scroll */}
+            <div className="flex overflow-x-auto border-b flex-shrink-0 px-3 py-2 gap-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                onClick={() => navigate("/client-lookup")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-medium flex-shrink-0 text-muted-foreground"
+              >
+                <ArrowLeft className="w-3 h-3" /> Back
+              </button>
+              {categoryNames.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 transition-colors",
+                    activeCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Services / add-ons */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {activeItemIndex !== null && availableAddons && availableAddons.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold">
+                      Add-ons for {ticketItems[activeItemIndex]?.service.name}
+                    </h2>
+                    <Button variant="outline" size="sm" onClick={handleDismissAddons}>Done</Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {availableAddons.map((addon: Addon) => {
+                      const isSelected = ticketItems[activeItemIndex]?.addons.some(a => a.id === addon.id) || false;
+                      return (
+                        <Card
+                          key={addon.id}
+                          className={cn("p-3 cursor-pointer transition-all", isSelected ? "ring-2 ring-primary" : "hover-elevate")}
+                          onClick={() => handleToggleAddon(addon)}
+                        >
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-start justify-between gap-1">
+                              <h3 className="font-semibold text-xs leading-tight">{addon.name}</h3>
+                              {isSelected && (
+                                <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                  <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between gap-1 mt-auto">
+                              <span className="font-bold text-xs">+${Number(addon.price).toFixed(2)}</span>
+                              <Badge variant="secondary" className="text-[9px]">+{addon.duration}m</Badge>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : servicesLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {filteredServices.map((service: Service) => (
+                    <Card
+                      key={service.id}
+                      className="p-3 cursor-pointer hover-elevate active:scale-95 transition-transform"
+                      onClick={() => { handleAddService(service); setMobileView("cart"); }}
+                    >
+                      <div className="flex flex-col gap-1.5">
+                        <h3 className="font-semibold text-xs leading-tight">{service.name}</h3>
+                        <div className="flex items-center justify-between gap-1 mt-auto pt-0.5">
+                          <span className="font-bold text-xs">${Number(service.price).toFixed(2)}</span>
+                          <Badge variant="secondary" className="text-[9px]">{service.duration}m</Badge>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {mobileView === "cart" && (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Client selector */}
+            <div
+              className="p-4 border-b flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => navigate("/client-lookup")}
+            >
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                <User className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-semibold uppercase">{client ? client.name : "GUEST"}</span>
+              </div>
+              <User className="w-4 h-4 text-muted-foreground" />
+            </div>
+
+            {primaryStaff && (
+              <div className="px-4 py-2 border-b flex items-center gap-2">
+                <Avatar className="w-6 h-6">
+                  {primaryStaff.avatarUrl && <AvatarImage src={primaryStaff.avatarUrl} alt={primaryStaff.name} />}
+                  <AvatarFallback className="text-[10px]">
+                    {primaryStaff.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground">with</span>
+                <span className="text-xs font-medium">{primaryStaff.name}</span>
+              </div>
+            )}
+
+            {/* Cart items */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {ticketItems.length > 0 ? (
+                <div className="space-y-3">
+                  {ticketItems.map((item, index) => (
+                    <div key={index}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => { setActiveItemIndex(index); setMobileView("menu"); }}
+                        >
+                          <h4 className={cn("font-semibold text-sm", activeItemIndex === index && "text-primary")}>{item.service.name}</h4>
+                          <p className="text-xs text-muted-foreground">{item.service.duration} min</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">${Number(item.service.price).toFixed(2)}</span>
+                          <button onClick={() => handleRemoveItem(index)} className="text-muted-foreground">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      {item.addons.length > 0 && (
+                        <div className="space-y-1 pl-3 mt-1 border-l-2 border-muted">
+                          {item.addons.map((addon) => (
+                            <div key={addon.id} className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium">+{addon.name}</span>
+                              <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-32 text-center">
+                  <Sparkles className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Add services from the Menu tab</p>
+                </div>
+              )}
+            </div>
+
+            {/* Checkout footer */}
+            <div className="border-t p-4 space-y-3">
+              {tipAmount > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Tip</span>
+                  <span className="font-medium">${tipAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-semibold">Total</span>
+                  {ticketDuration > 0 && <p className="text-xs text-muted-foreground">{ticketDuration} min</p>}
+                </div>
+                <span className="font-bold text-lg">${grandTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-shrink-0"
+                  disabled={ticketItems.length === 0}
+                  onClick={() => setShowTipScreen(true)}
+                >
+                  <Heart className="w-4 h-4 mr-1" /> Tip
+                </Button>
+                <Button
+                  className="flex-1"
+                  size="lg"
+                  disabled={ticketItems.length === 0}
+                  onClick={() => handleCheckout()}
+                >
+                  Checkout — ${grandTotal.toFixed(2)}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP LAYOUT ── */}
+      <div className="hidden md:flex h-screen w-screen bg-background">
       {showTipScreen && (
         <TipScreen
           amountDue={ticketTotal}
@@ -742,6 +983,7 @@ export default function POSInterface() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

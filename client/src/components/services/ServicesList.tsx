@@ -180,7 +180,7 @@ export function ServicesList() {
           <p className="text-muted-foreground">Loading services...</p>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table data-testid="services-table">
             <TableHeader>
               <TableRow>

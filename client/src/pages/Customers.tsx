@@ -48,7 +48,7 @@ export default function Customers() {
 
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b">
-          <div className="relative max-w-sm">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="Search clients..." 
@@ -58,8 +58,36 @@ export default function Customers() {
             />
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
+
+        {/* ── Mobile card list ── */}
+        <div className="md:hidden divide-y">
+          {isLoading ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">Loading...</div>
+          ) : filteredCustomers?.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">No clients found.</div>
+          ) : (
+            filteredCustomers?.map((customer: Customer) => (
+              <Link
+                key={customer.id}
+                to={`/client/${customer.id}`}
+                className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors active:bg-muted/50"
+                data-testid={`link-client-profile-${customer.id}`}
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                  {customer.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{customer.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{customer.email || customer.phone || "No contact info"}</p>
+                </div>
+                <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              </Link>
+            ))
+          )}
+        </div>
+
+        {/* ── Desktop table ── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground font-medium uppercase text-xs">
               <tr>

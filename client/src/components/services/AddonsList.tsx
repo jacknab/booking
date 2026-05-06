@@ -186,7 +186,7 @@ export function AddonsList() {
           <p className="text-muted-foreground">Loading add-ons...</p>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table data-testid="addons-table">
             <TableHeader>
               <TableRow>

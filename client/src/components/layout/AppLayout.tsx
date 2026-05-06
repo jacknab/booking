@@ -44,8 +44,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </SheetContent>
           </Sheet>
         </header>
-        <div className="container mx-auto p-8">
+        <div className="container mx-auto p-4 md:p-8">
           {children}
+          {/* Spacer so content clears the fixed mobile bottom nav */}
+          <div className="md:hidden" style={{ height: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }} aria-hidden="true" />
         </div>
       </main>
     </div>
