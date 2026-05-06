@@ -644,7 +644,7 @@ export default function Calendar() {
         <nav
           ref={navDrawerRef}
           className={cn(
-            "flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex flex-col items-stretch py-3 gap-1.5 z-30 transition-[width] duration-200 ease-out overflow-hidden",
+            "hidden sm:flex flex-shrink-0 border-r border-border/70 bg-card/95 shadow-[4px_0_18px_rgba(15,23,42,0.06)] flex-col items-stretch py-3 gap-1.5 z-30 transition-[width] duration-200 ease-out overflow-hidden",
             navOpen ? "w-44" : "w-16"
           )}
           data-testid="calendar-nav-drawer"

@@ -5,7 +5,7 @@ import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-const MOBILE_TIME_COL_WIDTH = 58;
+const MOBILE_TIME_COL_WIDTH = 76;
 
 interface MobileCalendarViewProps {
   filteredStaff: any[];
