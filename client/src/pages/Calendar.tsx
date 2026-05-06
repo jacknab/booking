@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { CashDrawerPanel } from "@/pages/CashDrawer";
 import { MobileCalendarView } from "@/components/MobileCalendarView";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 type SidebarItem =
   | { kind: "link"; to: string; label: string; icon: any }
@@ -572,7 +573,7 @@ export default function Calendar() {
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Button onClick={() => setShowNewApptMenu(v => !v)} data-testid="button-new-appointment" className="gap-3">
+            <Button onClick={() => setShowNewApptMenu(v => !v)} data-testid="button-new-appointment" className={cn("gap-3", isMobile && "hidden")}>
               <Sparkle className="w-4 h-4 fill-current" />
               <Sparkle className="w-4 h-4 fill-current" />
               <Sparkle className="w-4 h-4 fill-current" />
@@ -744,7 +745,7 @@ export default function Calendar() {
               Now
             </button>
           )}
-          <div ref={scrollContainerRef} className="h-full overflow-auto">
+          <div ref={scrollContainerRef} className="h-full overflow-auto" style={isMobile ? { paddingBottom: 108 } : undefined}>
             {isMobile ? (
               <MobileCalendarView
                 filteredStaff={filteredStaff}
@@ -3286,6 +3287,29 @@ function MonthCalendarOverlay({
 
         </div>
       </div>
+
+      {isMobile && (
+        <MobileBottomNav
+          onBook={() => {
+            setLookupMode(false);
+            setSelectedAppointment(null);
+            setShowCancelFlow(false);
+            setShowCheckout(false);
+            setShowClientLookup(true);
+          }}
+          onToday={goToday}
+          onLookup={() => {
+            setLookupMode(true);
+            setSelectedAppointment(null);
+            setShowCancelFlow(false);
+            setShowCheckout(false);
+            setShowClientLookup(true);
+          }}
+          onCheckout={() => setQuickCheckoutOpen(true)}
+          posEnabled={posEnabled}
+          isToday={isToday}
+        />
+      )}
     </div>
   );
 }
