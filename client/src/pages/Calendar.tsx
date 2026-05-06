@@ -497,6 +497,64 @@ export default function Calendar() {
 
   return (
     <div className="h-screen w-full overflow-x-hidden flex flex-col bg-background">
+      {/* ── Mobile header ── */}
+      {isMobile && (
+        <div className="flex items-center h-12 px-1 border-b bg-card" data-testid="calendar-header">
+          <Link to="/dashboard">
+            <Button variant="ghost" size="icon" className="w-10 h-10 shrink-0" data-testid="button-back-dashboard">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+
+          <div className="flex-1 flex items-center justify-center min-w-0">
+            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={goPrev} data-testid="button-prev-day">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <button
+              className="flex flex-col items-center px-1 leading-none"
+              onClick={() => setShowDatePicker(true)}
+              data-testid="button-current-date"
+            >
+              <span className={cn("text-[10px] font-bold uppercase tracking-widest", isToday ? "text-primary" : "text-muted-foreground")}>
+                {isToday ? "Today · " : ""}{formatInTz(currentDate, timezone, "EEE")}
+              </span>
+              <span className="text-[15px] font-bold text-foreground leading-snug">
+                {formatInTz(currentDate, timezone, "MMM d, yyyy")}
+              </span>
+            </button>
+            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0" onClick={goNext} data-testid="button-next-day">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {!isStaffUser ? (
+            <Select
+              value={selectedStaffId === "all" ? "all" : String(selectedStaffId)}
+              onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
+            >
+              <SelectTrigger className="w-10 h-10 border-0 shadow-none px-0 flex items-center justify-center shrink-0 [&>svg]:hidden" data-testid="select-staff-filter">
+                <div className="relative flex items-center justify-center">
+                  <Users className="w-5 h-5 text-muted-foreground" />
+                  {selectedStaffId !== "all" && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary" />
+                  )}
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Staff</SelectItem>
+                {staffList?.map((s: any) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="w-10 shrink-0" />
+          )}
+        </div>
+      )}
+
+      {/* ── Desktop header ── */}
+      {!isMobile && (
       <div className="flex items-center justify-between gap-2 flex-wrap py-2 px-3 border-b bg-card" data-testid="calendar-header">
         <div className="flex items-center gap-2">
           <Link to="/dashboard">
@@ -639,6 +697,7 @@ export default function Calendar() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Collapsible navigation drawer */}
