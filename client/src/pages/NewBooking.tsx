@@ -55,6 +55,7 @@ export default function NewBooking() {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryOrder, setCategoryOrder] = useState<string[] | null>(null);
+  const [mobileCatStep, setMobileCatStep] = useState<"categories" | "services">("categories");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
@@ -448,112 +449,158 @@ export default function NewBooking() {
         <>
           {/* ── Mobile layout ── */}
           <div className="flex flex-col flex-1 overflow-hidden md:hidden">
-            {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-4 bg-gray-950 shrink-0">
-              <Button variant="ghost" size="icon" onClick={handleCancel} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-cancel-booking">
-                <X className="w-5 h-5" />
-              </Button>
-              <h1 className="font-bold text-lg flex-1 text-white tracking-tight">New Booking</h1>
-              {selectedCustomer && (
-                <span className="text-sm text-white/60 truncate max-w-[120px]">{selectedCustomer.name}</span>
-              )}
-            </div>
 
-            {/* Horizontal category tabs */}
-            <div
-              className="flex overflow-x-auto gap-2 px-4 py-3 bg-gray-950 shrink-0"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
-            >
-              {categoryNames.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
-                  className={cn(
-                    "shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap",
-                    activeCategory === cat
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-white/10 text-white/70 hover:bg-white/20"
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            {/* Service grid */}
-            <div className="flex-1 overflow-y-auto p-4 pb-28 bg-gray-50">
-              {servicesLoading ? (
-                <div className="flex items-center justify-center h-40">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredServices.map((service: Service) => {
-                    const isSelected = selectedService?.id === service.id;
-                    return (
-                      <Card
-                        key={service.id}
-                        className={cn(
-                          "p-3 cursor-pointer transition-all flex flex-col",
-                          isSelected
-                            ? "ring-2 ring-primary bg-primary/5 shadow-lg shadow-primary/20"
-                            : "bg-white hover-elevate"
-                        )}
-                        onClick={() => handleSelectService(service)}
-                        data-testid={`card-service-${service.id}`}
-                      >
-                        {service.imageUrl && (
-                          <div className="w-full aspect-[4/3] rounded-md bg-muted/50 mb-2 overflow-hidden">
-                            <img
-                              src={service.imageUrl.replace(/_/g, '/').replace(/-/g, '+')}
-                              alt={service.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <h3 className="font-semibold text-sm leading-tight" data-testid={`text-service-name-${service.id}`}>
-                          {service.name}
-                        </h3>
-                        <div className="flex items-center justify-between mt-auto pt-2">
-                          <span className={cn("font-bold text-sm", isSelected ? "text-primary" : "text-foreground")}>
-                            ${Number(service.price).toFixed(2)}
-                          </span>
-                          <Badge variant="secondary" className="no-default-active-elevate text-xs">
-                            {service.duration}m
-                          </Badge>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Mobile bottom action bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 pb-8 z-20">
-              {selectedService ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate text-white" data-testid="text-summary-service">{selectedService.name}</p>
-                    <p className="text-xs text-white/50">
-                      ${Number(selectedService.price).toFixed(2)} · {selectedService.duration} min
-                    </p>
-                  </div>
-                  <Button
-                    className="h-12 px-6 bg-primary hover:bg-primary/90 text-white shrink-0 rounded-xl font-semibold"
-                    onClick={handleContinueToAddons}
-                    data-testid="button-request-booking"
-                  >
-                    Continue
+            {/* ── Mobile: Category picker page ── */}
+            {mobileCatStep === "categories" && (
+              <>
+                {/* Header */}
+                <div className="flex items-center gap-3 px-4 py-4 bg-gray-950 shrink-0">
+                  <Button variant="ghost" size="icon" onClick={handleCancel} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-cancel-booking">
+                    <X className="w-5 h-5" />
                   </Button>
+                  <h1 className="font-bold text-lg flex-1 text-white tracking-tight">New Booking</h1>
+                  {selectedCustomer && (
+                    <span className="text-sm text-white/60 truncate max-w-[120px]">{selectedCustomer.name}</span>
+                  )}
                 </div>
-              ) : (
-                <Button className="w-full h-12 rounded-xl bg-white/10 text-white/40 border-0 hover:bg-white/10" disabled data-testid="button-request-booking">
-                  Select a service to continue
-                </Button>
-              )}
-            </div>
+
+                {/* Category list — full page, desktop sidebar style */}
+                <div className="flex-1 overflow-y-auto bg-gray-950">
+                  <div className="px-4 py-3 border-b border-white/8">
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Services</p>
+                  </div>
+                  {servicesLoading ? (
+                    <div className="flex items-center justify-center h-40">
+                      <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+                    </div>
+                  ) : (
+                    <nav className="py-2">
+                      {categoryNames.map((cat) => {
+                        const count = services?.filter((s: Service) => s.category === cat).length ?? 0;
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              setSelectedCategory(cat);
+                              setMobileCatStep("services");
+                            }}
+                            data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
+                            className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 border-l-[3px] border-transparent hover:bg-white/5 active:bg-white/10 transition-colors"
+                          >
+                            <span className="font-semibold text-base text-white/90">{cat}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs text-white/40">{count} service{count !== 1 ? "s" : ""}</span>
+                              <ArrowLeft className="w-4 h-4 text-white/30 rotate-180" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </nav>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Mobile: Services list page (after category selected) ── */}
+            {mobileCatStep === "services" && (
+              <>
+                {/* Header with back to categories */}
+                <div className="flex items-center gap-3 px-4 py-4 bg-gray-950 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileCatStep("categories")}
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    data-testid="button-back-categories"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="font-bold text-base text-white leading-tight truncate">{activeCategory}</h1>
+                    {selectedCustomer && (
+                      <p className="text-xs text-white/50 truncate">{selectedCustomer.name}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Service grid */}
+                <div className="flex-1 overflow-y-auto p-4 pb-32 bg-gray-50">
+                  {servicesLoading ? (
+                    <div className="flex items-center justify-center h-40">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {filteredServices.map((service: Service) => {
+                        const isSelected = selectedService?.id === service.id;
+                        return (
+                          <Card
+                            key={service.id}
+                            className={cn(
+                              "p-3 cursor-pointer transition-all flex flex-col",
+                              isSelected
+                                ? "ring-2 ring-primary bg-primary/5 shadow-lg shadow-primary/20"
+                                : "bg-white hover-elevate"
+                            )}
+                            onClick={() => handleSelectService(service)}
+                            data-testid={`card-service-${service.id}`}
+                          >
+                            {service.imageUrl && (
+                              <div className="w-full aspect-[4/3] rounded-md bg-muted/50 mb-2 overflow-hidden">
+                                <img
+                                  src={service.imageUrl.replace(/_/g, '/').replace(/-/g, '+')}
+                                  alt={service.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <h3 className="font-semibold text-sm leading-tight" data-testid={`text-service-name-${service.id}`}>
+                              {service.name}
+                            </h3>
+                            <div className="flex items-center justify-between mt-auto pt-2">
+                              <span className={cn("font-bold text-sm", isSelected ? "text-primary" : "text-foreground")}>
+                                ${Number(service.price).toFixed(2)}
+                              </span>
+                              <Badge variant="secondary" className="no-default-active-elevate text-xs">
+                                {service.duration}m
+                              </Badge>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile bottom action bar */}
+                <div
+                  className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 md:pb-4 z-20"
+                  style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+                >
+                  {selectedService ? (
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate text-white" data-testid="text-summary-service">{selectedService.name}</p>
+                        <p className="text-xs text-white/50">
+                          ${Number(selectedService.price).toFixed(2)} · {selectedService.duration} min
+                        </p>
+                      </div>
+                      <Button
+                        className="h-12 px-6 bg-primary hover:bg-primary/90 text-white shrink-0 rounded-xl font-semibold"
+                        onClick={handleContinueToAddons}
+                        data-testid="button-request-booking"
+                      >
+                        Continue
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button className="w-full h-12 rounded-xl bg-white/10 text-white/40 border-0 hover:bg-white/10" disabled data-testid="button-request-booking">
+                      Select a service to continue
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* ── Desktop layout ── */}
