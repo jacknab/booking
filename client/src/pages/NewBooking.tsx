@@ -56,6 +56,7 @@ export default function NewBooking() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryOrder, setCategoryOrder] = useState<string[] | null>(null);
   const [mobileCatStep, setMobileCatStep] = useState<"categories" | "services">("categories");
+  const [mobileDetailsStep, setMobileDetailsStep] = useState<"staff" | "date" | "time">("staff");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
@@ -813,7 +814,10 @@ export default function NewBooking() {
             </div>
 
             {/* Mobile bottom action bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 pb-8 z-20">
+            <div
+              className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 md:pb-4 z-20"
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+            >
               <div className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm truncate text-white">{selectedService?.name}</p>
@@ -970,180 +974,278 @@ export default function NewBooking() {
       {/* ── DETAILS STEP ── */}
       {step === "details" && (
         <>
-          {/* ── Mobile layout ── */}
+          {/* ── Mobile layout — 3 dedicated pages ── */}
           <div className="flex flex-col flex-1 overflow-hidden md:hidden">
-            <div className="px-4 py-4 flex items-center gap-2 bg-gray-950 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (availableAddons && availableAddons.length > 0) setStep("addons");
-                  else setStep("services");
-                }}
-                className="text-white/70 hover:text-white hover:bg-white/10"
-                data-testid="button-back-from-details"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <span className="font-semibold text-lg text-white">Date & Time</span>
-            </div>
 
-            <div className="flex-1 overflow-y-auto pb-28">
-              {/* Date picker */}
-              <div className="p-4 border-b">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Select Date</p>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateChange}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  className="rounded-md border mx-auto"
-                  data-testid="calendar-date-picker"
-                />
-              </div>
-
-              {/* Staff selector */}
-              <div className="p-4 border-b">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Staff</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => handleStaffModeChange("any")}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors min-h-[90px]",
-                      staffMode === "any" ? "border-primary bg-primary/5" : "border-border"
-                    )}
-                    data-testid="card-staff-any"
+            {/* ─── Page 1: Choose Staff ─── */}
+            {mobileDetailsStep === "staff" && (
+              <>
+                <div className="px-4 py-4 flex items-center gap-2 bg-gray-950 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (availableAddons && availableAddons.length > 0) setStep("addons");
+                      else setMobileCatStep("services");
+                      if (availableAddons && availableAddons.length === 0) setStep("services");
+                    }}
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    data-testid="button-back-from-details"
                   >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <p className="text-xs font-semibold text-center leading-tight">Any Staff</p>
-                    {staffMode === "any" && <Check className="w-3.5 h-3.5 text-primary" />}
-                  </button>
-                  {staffList?.map((member: Staff) => {
-                    const isSelected = staffMode === "specific" && specificStaffId === member.id;
-                    const color = member.color || "#3b82f6";
-                    return (
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="flex-1">
+                    <span className="font-semibold text-lg text-white">Choose Staff</span>
+                    <p className="text-xs text-white/40">{selectedService?.name}</p>
+                  </div>
+                  <span className="text-xs text-white/30 font-medium">1 of 3</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto bg-white">
+                  <div className="p-5">
+                    <p className="text-sm text-muted-foreground mb-5">Pick who will perform the service, or let us choose the first available.</p>
+                    <div className="space-y-3">
+                      {/* Any Staff */}
                       <button
-                        key={member.id}
-                        onClick={() => { setStaffMode("specific"); handleSpecificStaffSelect(member.id); }}
+                        onClick={() => handleStaffModeChange("any")}
                         className={cn(
-                          "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors min-h-[90px]",
-                          isSelected ? "border-primary bg-primary/5" : "border-border"
+                          "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left",
+                          staffMode === "any" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300 bg-white"
                         )}
-                        data-testid={`card-staff-${member.id}`}
+                        data-testid="card-staff-any"
                       >
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback style={{ backgroundColor: color + "22", color }} className="text-sm font-bold">
-                            {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <p className="text-xs font-semibold text-center leading-tight truncate w-full">{member.name.split(" ")[0]}</p>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Users className="w-7 h-7 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-base">Any Staff</p>
+                          <p className="text-sm text-muted-foreground">First available</p>
+                        </div>
+                        {staffMode === "any" && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
 
-              {/* Time slots */}
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Available Times</p>
-                  {selectedDate && (
-                    <span className="text-xs text-muted-foreground">
-                      {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                  )}
-                </div>
-
-                {!selectedDate ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-center">
-                    <CalendarDays className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">Pick a date above</p>
-                  </div>
-                ) : staffMode === "specific" && !specificStaffId ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-center">
-                    <User className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">Select a staff member above</p>
-                  </div>
-                ) : slotsLoading || autoAdvancing ? (
-                  <div className="flex flex-col items-center justify-center h-32 gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    {autoAdvancing && <p className="text-sm text-muted-foreground">Finding next available date…</p>}
-                  </div>
-                ) : !slots || slots.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-center">
-                    <Clock className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">No slots in the next 60 days</p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {slots.length} slot{slots.length !== 1 ? "s" : ""} · {totalDuration} min
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {slots.map((slot) => {
-                        const timePart = formatInTz(slot.time, timezone, "h:mm");
-                        const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
-                        const isSelected = selectedSlot?.time === slot.time;
+                      {/* Staff members */}
+                      {staffList?.map((member: Staff) => {
+                        const isSelected = staffMode === "specific" && specificStaffId === member.id;
+                        const color = member.color || "#3b82f6";
                         return (
                           <button
-                            key={slot.time}
-                            onClick={() => {
-                              setSelectedSlot(slot);
-                              setSelectedStaff(staffList?.find((s: Staff) => s.id === slot.staffId) || null);
-                            }}
+                            key={member.id}
+                            onClick={() => { setStaffMode("specific"); handleSpecificStaffSelect(member.id); }}
                             className={cn(
-                              "flex flex-col items-center justify-center py-3 rounded-xl border text-sm transition-colors",
-                              isSelected
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "hover-elevate"
+                              "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left",
+                              isSelected ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300 bg-white"
                             )}
-                            data-testid={`button-slot-${slot.time}`}
+                            data-testid={`card-staff-${member.id}`}
                           >
-                            <span className="font-semibold leading-tight">{timePart}</span>
-                            <span className={cn(
-                              "text-[11px] font-medium",
-                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
-                            )}>{periodPart}</span>
+                            <Avatar className="w-14 h-14 shrink-0">
+                              <AvatarFallback style={{ backgroundColor: color + "22", color }} className="text-lg font-bold">
+                                {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-base truncate">{member.name}</p>
+                              {member.role && <p className="text-sm text-muted-foreground capitalize truncate">{member.role}</p>}
+                            </div>
+                            {isSelected && (
+                              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                <Check className="w-3.5 h-3.5 text-white" />
+                              </div>
+                            )}
                           </button>
                         );
                       })}
                     </div>
-                  </>
-                )}
-
-                {/* Notes field */}
-                <div className="mt-5 space-y-2">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Notes</p>
-                  <Input
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any special requests?"
-                    data-testid="input-booking-notes"
-                  />
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Mobile bottom action bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 pb-8 z-20">
-              {selectedSlot && (
-                <div className="flex items-center gap-2 text-xs text-white/60 mb-3">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{formatInTz(selectedSlot.time, timezone, "h:mm a")} · {selectedSlot.staffName}</span>
+                <div
+                  className="bg-white border-t px-4 pt-4 md:pb-4"
+                  style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+                >
+                  <Button
+                    className="w-full h-13 rounded-2xl font-semibold text-base"
+                    onClick={() => setMobileDetailsStep("date")}
+                    disabled={staffMode === "specific" && !specificStaffId}
+                    data-testid="button-staff-next"
+                  >
+                    Next: Choose Date
+                  </Button>
                 </div>
-              )}
-              <Button
-                className="w-full h-13 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold text-base disabled:bg-white/10 disabled:text-white/30"
-                onClick={handleRequestBooking}
-                disabled={!selectedService || !selectedSlot || createAppointment.isPending}
-                data-testid="button-complete-booking"
-              >
-                {createAppointment.isPending ? "Booking..." : "Complete Booking"}
-              </Button>
-            </div>
+              </>
+            )}
+
+            {/* ─── Page 2: Choose Date ─── */}
+            {mobileDetailsStep === "date" && (
+              <>
+                <div className="px-4 py-4 flex items-center gap-2 bg-gray-950 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileDetailsStep("staff")}
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    data-testid="button-back-to-staff"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="flex-1">
+                    <span className="font-semibold text-lg text-white">Choose Date</span>
+                    <p className="text-xs text-white/40">
+                      {staffMode === "any" ? "Any Staff" : staffList?.find((s: Staff) => s.id === specificStaffId)?.name}
+                    </p>
+                  </div>
+                  <span className="text-xs text-white/30 font-medium">2 of 3</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto bg-white">
+                  <div className="p-4">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateChange}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      className="rounded-2xl border mx-auto w-full"
+                      data-testid="calendar-date-picker"
+                    />
+
+                    {/* Notes field on date page */}
+                    <div className="mt-5 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes (optional)</p>
+                      <Input
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Any special requests?"
+                        data-testid="input-booking-notes"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="bg-white border-t px-4 pt-4 md:pb-4"
+                  style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+                >
+                  <Button
+                    className="w-full h-13 rounded-2xl font-semibold text-base"
+                    onClick={() => setMobileDetailsStep("time")}
+                    disabled={!selectedDate}
+                    data-testid="button-date-next"
+                  >
+                    Next: Choose Time
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* ─── Page 3: Choose Time Slot ─── */}
+            {mobileDetailsStep === "time" && (
+              <>
+                <div className="px-4 py-4 flex items-center gap-2 bg-gray-950 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileDetailsStep("date")}
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    data-testid="button-back-to-date"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="flex-1">
+                    <span className="font-semibold text-lg text-white">Choose Time</span>
+                    <p className="text-xs text-white/40">
+                      {selectedDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                    </p>
+                  </div>
+                  <span className="text-xs text-white/30 font-medium">3 of 3</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto bg-white">
+                  <div className="p-4">
+                    {slotsLoading || autoAdvancing ? (
+                      <div className="flex flex-col items-center justify-center h-48 gap-3">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        {autoAdvancing && <p className="text-sm text-muted-foreground">Finding next available date…</p>}
+                      </div>
+                    ) : !slots || slots.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
+                        <Clock className="w-10 h-10 text-muted-foreground/30" />
+                        <div>
+                          <p className="text-base font-semibold text-foreground">No times available</p>
+                          <p className="text-sm text-muted-foreground mt-1">No slots in the next 60 days</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => setMobileDetailsStep("date")}>
+                          Change Date
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          {slots.length} slot{slots.length !== 1 ? "s" : ""} available · {totalDuration} min · {tzAbbr}
+                        </p>
+                        <div className="grid grid-cols-3 gap-2.5">
+                          {slots.map((slot) => {
+                            const timePart = formatInTz(slot.time, timezone, "h:mm");
+                            const periodPart = formatInTz(slot.time, timezone, "a").toUpperCase();
+                            const staffForSlot = staffList?.find((s: Staff) => s.id === slot.staffId);
+                            const isSelected = selectedSlot?.time === slot.time;
+                            return (
+                              <button
+                                key={slot.time}
+                                onClick={() => {
+                                  setSelectedSlot(slot);
+                                  setSelectedStaff(staffForSlot || null);
+                                }}
+                                className={cn(
+                                  "flex flex-col items-center justify-center py-4 rounded-2xl border-2 transition-all",
+                                  isSelected
+                                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/30"
+                                    : "border-gray-200 hover:border-primary/40 bg-white"
+                                )}
+                                data-testid={`button-slot-${slot.time}`}
+                              >
+                                <span className="font-bold text-base leading-tight">{timePart}</span>
+                                <span className={cn("text-xs font-medium mt-0.5", isSelected ? "text-white/80" : "text-muted-foreground")}>
+                                  {periodPart}
+                                </span>
+                                {staffMode === "any" && staffForSlot && (
+                                  <span className={cn("text-[10px] mt-1 truncate max-w-full px-1", isSelected ? "text-white/70" : "text-muted-foreground/70")}>
+                                    {staffForSlot.name.split(" ")[0]}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="bg-white border-t px-4 pt-4 md:pb-4"
+                  style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+                >
+                  {selectedSlot && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{formatInTz(selectedSlot.time, timezone, "h:mm a")} · {selectedSlot.staffName}</span>
+                    </div>
+                  )}
+                  <Button
+                    className="w-full h-13 rounded-2xl font-semibold text-base"
+                    onClick={handleRequestBooking}
+                    disabled={!selectedService || !selectedSlot || createAppointment.isPending}
+                    data-testid="button-complete-booking"
+                  >
+                    {createAppointment.isPending ? "Booking..." : "Complete Booking"}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* ── Desktop layout ── */}
