@@ -1,0 +1,176 @@
+capig.datah04.com/events/cceb2ebf75220c8134a7549dd711974a10988610afa2f5a674826898505ddf44:1  Failed to load resource: the server responded with a status of 422 ()
+chunk-LPF6KSF2.js?v=3a675a84:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+react-router-dom.js?v=3a675a84:4435 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+warnOnce @ react-router-dom.js?v=3a675a84:4435
+react-router-dom.js?v=3a675a84:4435 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+warnOnce @ react-router-dom.js?v=3a675a84:4435
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Calendar.tsx:3350 Uncaught ReferenceError: isMobile is not defined
+    at MonthCalendarOverlay (Calendar.tsx:3350:8)
+    at renderWithHooks (chunk-LPF6KSF2.js?v=3a675a84:11596:26)
+    at mountIndeterminateComponent (chunk-LPF6KSF2.js?v=3a675a84:14974:21)
+    at beginWork (chunk-LPF6KSF2.js?v=3a675a84:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-LPF6KSF2.js?v=3a675a84:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-LPF6KSF2.js?v=3a675a84:3705:24)
+    at invokeGuardedCallback (chunk-LPF6KSF2.js?v=3a675a84:3739:39)
+    at beginWork$1 (chunk-LPF6KSF2.js?v=3a675a84:19818:15)
+    at performUnitOfWork (chunk-LPF6KSF2.js?v=3a675a84:19251:20)
+    at workLoopSync (chunk-LPF6KSF2.js?v=3a675a84:19190:13)
+MonthCalendarOverlay @ Calendar.tsx:3350
+renderWithHooks @ chunk-LPF6KSF2.js?v=3a675a84:11596
+mountIndeterminateComponent @ chunk-LPF6KSF2.js?v=3a675a84:14974
+beginWork @ chunk-LPF6KSF2.js?v=3a675a84:15962
+callCallback2 @ chunk-LPF6KSF2.js?v=3a675a84:3680
+invokeGuardedCallbackDev @ chunk-LPF6KSF2.js?v=3a675a84:3705
+invokeGuardedCallback @ chunk-LPF6KSF2.js?v=3a675a84:3739
+beginWork$1 @ chunk-LPF6KSF2.js?v=3a675a84:19818
+performUnitOfWork @ chunk-LPF6KSF2.js?v=3a675a84:19251
+workLoopSync @ chunk-LPF6KSF2.js?v=3a675a84:19190
+renderRootSync @ chunk-LPF6KSF2.js?v=3a675a84:19169
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=3a675a84:18927
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=3a675a84:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=3a675a84:18677
+Calendar.tsx:3350 Uncaught ReferenceError: isMobile is not defined
+    at MonthCalendarOverlay (Calendar.tsx:3350:8)
+    at renderWithHooks (chunk-LPF6KSF2.js?v=3a675a84:11596:26)
+    at mountIndeterminateComponent (chunk-LPF6KSF2.js?v=3a675a84:14974:21)
+    at beginWork (chunk-LPF6KSF2.js?v=3a675a84:15962:22)
+    at HTMLUnknownElement.callCallback2 (chunk-LPF6KSF2.js?v=3a675a84:3680:22)
+    at Object.invokeGuardedCallbackDev (chunk-LPF6KSF2.js?v=3a675a84:3705:24)
+    at invokeGuardedCallback (chunk-LPF6KSF2.js?v=3a675a84:3739:39)
+    at beginWork$1 (chunk-LPF6KSF2.js?v=3a675a84:19818:15)
+    at performUnitOfWork (chunk-LPF6KSF2.js?v=3a675a84:19251:20)
+    at workLoopSync (chunk-LPF6KSF2.js?v=3a675a84:19190:13)
+MonthCalendarOverlay @ Calendar.tsx:3350
+renderWithHooks @ chunk-LPF6KSF2.js?v=3a675a84:11596
+mountIndeterminateComponent @ chunk-LPF6KSF2.js?v=3a675a84:14974
+beginWork @ chunk-LPF6KSF2.js?v=3a675a84:15962
+callCallback2 @ chunk-LPF6KSF2.js?v=3a675a84:3680
+invokeGuardedCallbackDev @ chunk-LPF6KSF2.js?v=3a675a84:3705
+invokeGuardedCallback @ chunk-LPF6KSF2.js?v=3a675a84:3739
+beginWork$1 @ chunk-LPF6KSF2.js?v=3a675a84:19818
+performUnitOfWork @ chunk-LPF6KSF2.js?v=3a675a84:19251
+workLoopSync @ chunk-LPF6KSF2.js?v=3a675a84:19190
+renderRootSync @ chunk-LPF6KSF2.js?v=3a675a84:19169
+recoverFromConcurrentError @ chunk-LPF6KSF2.js?v=3a675a84:18786
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=3a675a84:18932
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=3a675a84:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=3a675a84:18677
+chunk-LPF6KSF2.js?v=3a675a84:14080 The above error occurred in the <MonthCalendarOverlay> component:
+
+    at MonthCalendarOverlay (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/pages/Calendar.tsx:5067:3)
+    at div
+    at div
+    at Calendar (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/pages/Calendar.tsx:101:44)
+    at RenderedRoute (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4130:5)
+    at Routes (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4600:5)
+    at StoreProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/components/StoreProvider.tsx:21:33)
+    at AppRoutes (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/App.tsx:238:20)
+    at Router (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4543:15)
+    at BrowserRouter (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:5289:5)
+    at PracticeModeProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/contexts/PracticeModeContext.tsx:35:40)
+    at TrainingProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/contexts/TrainingContext.tsx:24:36)
+    at ErrorBoundary (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/components/ErrorBoundary.tsx:20:5)
+    at Provider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-647OWSWH.js?v=3a675a84:37:15)
+    at TooltipProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3a675a84:64:5)
+    at QueryClientProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3a675a84:2747:3)
+    at App (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/App.tsx:170:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+logCapturedError @ chunk-LPF6KSF2.js?v=3a675a84:14080
+callback @ chunk-LPF6KSF2.js?v=3a675a84:14126
+callCallback @ chunk-LPF6KSF2.js?v=3a675a84:11296
+commitUpdateQueue @ chunk-LPF6KSF2.js?v=3a675a84:11313
+commitLayoutEffectOnFiber @ chunk-LPF6KSF2.js?v=3a675a84:17123
+commitLayoutMountEffects_complete @ chunk-LPF6KSF2.js?v=3a675a84:18030
+commitLayoutEffects_begin @ chunk-LPF6KSF2.js?v=3a675a84:18019
+commitLayoutEffects @ chunk-LPF6KSF2.js?v=3a675a84:17970
+commitRootImpl @ chunk-LPF6KSF2.js?v=3a675a84:19406
+commitRoot @ chunk-LPF6KSF2.js?v=3a675a84:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=3a675a84:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=3a675a84:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=3a675a84:18677
+ErrorBoundary.tsx:22 [ErrorBoundary] Caught error: ReferenceError: isMobile is not defined
+    at MonthCalendarOverlay (Calendar.tsx:3350:8)
+    at renderWithHooks (chunk-LPF6KSF2.js?v=3a675a84:11596:26)
+    at mountIndeterminateComponent (chunk-LPF6KSF2.js?v=3a675a84:14974:21)
+    at beginWork (chunk-LPF6KSF2.js?v=3a675a84:15962:22)
+    at beginWork$1 (chunk-LPF6KSF2.js?v=3a675a84:19806:22)
+    at performUnitOfWork (chunk-LPF6KSF2.js?v=3a675a84:19251:20)
+    at workLoopSync (chunk-LPF6KSF2.js?v=3a675a84:19190:13)
+    at renderRootSync (chunk-LPF6KSF2.js?v=3a675a84:19169:15)
+    at recoverFromConcurrentError (chunk-LPF6KSF2.js?v=3a675a84:18786:28)
+    at performSyncWorkOnRoot (chunk-LPF6KSF2.js?v=3a675a84:18932:28)
+(anonymous) @ ErrorBoundary.tsx:22
+callback @ chunk-LPF6KSF2.js?v=3a675a84:14132
+callCallback @ chunk-LPF6KSF2.js?v=3a675a84:11296
+commitUpdateQueue @ chunk-LPF6KSF2.js?v=3a675a84:11313
+commitLayoutEffectOnFiber @ chunk-LPF6KSF2.js?v=3a675a84:17123
+commitLayoutMountEffects_complete @ chunk-LPF6KSF2.js?v=3a675a84:18030
+commitLayoutEffects_begin @ chunk-LPF6KSF2.js?v=3a675a84:18019
+commitLayoutEffects @ chunk-LPF6KSF2.js?v=3a675a84:17970
+commitRootImpl @ chunk-LPF6KSF2.js?v=3a675a84:19406
+commitRoot @ chunk-LPF6KSF2.js?v=3a675a84:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=3a675a84:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=3a675a84:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=3a675a84:18677
+ErrorBoundary.tsx:23 [ErrorBoundary] Component stack: 
+    at MonthCalendarOverlay (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/pages/Calendar.tsx:5067:3)
+    at div
+    at div
+    at Calendar (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/pages/Calendar.tsx:101:44)
+    at RenderedRoute (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4130:5)
+    at Routes (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4600:5)
+    at StoreProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/components/StoreProvider.tsx:21:33)
+    at AppRoutes (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/App.tsx:238:20)
+    at Router (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:4543:15)
+    at BrowserRouter (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=3a675a84:5289:5)
+    at PracticeModeProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/contexts/PracticeModeContext.tsx:35:40)
+    at TrainingProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/contexts/TrainingContext.tsx:24:36)
+    at ErrorBoundary (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/components/ErrorBoundary.tsx:20:5)
+    at Provider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-647OWSWH.js?v=3a675a84:37:15)
+    at TooltipProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3a675a84:64:5)
+    at QueryClientProvider (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3a675a84:2747:3)
+    at App (https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/src/App.tsx:170:3)
+(anonymous) @ ErrorBoundary.tsx:23
+callback @ chunk-LPF6KSF2.js?v=3a675a84:14132
+callCallback @ chunk-LPF6KSF2.js?v=3a675a84:11296
+commitUpdateQueue @ chunk-LPF6KSF2.js?v=3a675a84:11313
+commitLayoutEffectOnFiber @ chunk-LPF6KSF2.js?v=3a675a84:17123
+commitLayoutMountEffects_complete @ chunk-LPF6KSF2.js?v=3a675a84:18030
+commitLayoutEffects_begin @ chunk-LPF6KSF2.js?v=3a675a84:18019
+commitLayoutEffects @ chunk-LPF6KSF2.js?v=3a675a84:17970
+commitRootImpl @ chunk-LPF6KSF2.js?v=3a675a84:19406
+commitRoot @ chunk-LPF6KSF2.js?v=3a675a84:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=3a675a84:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=3a675a84:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=3a675a84:18677
+ErrorBoundary.tsx:27 Fetch finished loading: POST "https://9ba0a75e-9559-4dfb-8edc-8aaa63bf50a8-00-3h3my6al0g3v9.kirk.replit.dev/api/client-errors".
+(anonymous) @ ErrorBoundary.tsx:27
+callback @ chunk-LPF6KSF2.js?v=3a675a84:14132
+callCallback @ chunk-LPF6KSF2.js?v=3a675a84:11296
+commitUpdateQueue @ chunk-LPF6KSF2.js?v=3a675a84:11313
+commitLayoutEffectOnFiber @ chunk-LPF6KSF2.js?v=3a675a84:17123
+commitLayoutMountEffects_complete @ chunk-LPF6KSF2.js?v=3a675a84:18030
+commitLayoutEffects_begin @ chunk-LPF6KSF2.js?v=3a675a84:18019
+commitLayoutEffects @ chunk-LPF6KSF2.js?v=3a675a84:17970
+commitRootImpl @ chunk-LPF6KSF2.js?v=3a675a84:19406
+commitRoot @ chunk-LPF6KSF2.js?v=3a675a84:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=3a675a84:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=3a675a84:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=3a675a84:18677

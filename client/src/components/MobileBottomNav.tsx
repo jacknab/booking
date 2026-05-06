@@ -20,7 +20,7 @@ export function MobileBottomNav({
 }: MobileBottomNavProps) {
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 sm:hidden select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 md:hidden select-none"
       style={{ height: 100 }}
     >
       {/* SVG background — crown molding arch */}
