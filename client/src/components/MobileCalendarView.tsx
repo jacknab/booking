@@ -6,6 +6,84 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
 const SWIPE_HINT_KEY = "certxa_cal_swipe_hint_seen";
+const LONG_PRESS_DELAY = 500;
+
+function MobileSlotRow({
+  slot,
+  isSelected,
+  topPx,
+  slotHeight,
+  onTap,
+  onLongPress,
+}: {
+  slot: { hour: number; minute: number };
+  isSelected: boolean;
+  topPx: number;
+  slotHeight: number;
+  onTap: () => void;
+  onLongPress: () => void;
+}) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pressing, setPressing] = useState(false);
+  const movedRef = useRef(false);
+  const didTouchRef = useRef(false);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleTouchStart = () => {
+    didTouchRef.current = true;
+    movedRef.current = false;
+    setPressing(true);
+    timerRef.current = setTimeout(() => {
+      if (!movedRef.current) {
+        setPressing(false);
+        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
+        onLongPress();
+      }
+    }, LONG_PRESS_DELAY);
+  };
+
+  const handleTouchMove = () => {
+    movedRef.current = true;
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    setPressing(false);
+  };
+
+  const handleTouchEnd = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+      if (!movedRef.current) onTap();
+    }
+    setPressing(false);
+  };
+
+  const handleClick = () => {
+    if (didTouchRef.current) { didTouchRef.current = false; return; }
+    onTap();
+  };
+
+  return (
+    <div
+      className={cn(
+        "absolute left-0 right-0 border-b border-border/30 cursor-pointer overflow-hidden select-none",
+        isSelected ? "bg-blue-100 dark:bg-blue-950/60" : pressing ? "bg-primary/5" : "hover:bg-primary/5"
+      )}
+      style={{ top: `${topPx}px`, height: `${slotHeight}px` }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onClick={handleClick}
+    >
+      {pressing && (
+        <div
+          className="absolute inset-0 origin-left bg-primary/25"
+          style={{ animation: `longPressExpand ${LONG_PRESS_DELAY}ms linear forwards` }}
+        />
+      )}
+    </div>
+  );
+}
 
 const MOBILE_TIME_COL_WIDTH = 72;
 
@@ -141,6 +219,10 @@ export function MobileCalendarView({
           15%  { opacity: 1; transform: translateY(0); }
           75%  { opacity: 1; transform: translateY(0); }
           100% { opacity: 0; transform: translateY(-6px); }
+        }
+        @keyframes longPressExpand {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
         }
       `}</style>
 
@@ -296,14 +378,14 @@ export function MobileCalendarView({
                       selectedSlot?.minute === slot.minute;
 
                     return (
-                      <div
+                      <MobileSlotRow
                         key={`${slot.hour}-${slot.minute}`}
-                        className={cn(
-                          "absolute left-0 right-0 border-b border-border/30 cursor-pointer transition-colors active:bg-primary/10",
-                          isSlotSelected ? "bg-blue-100 dark:bg-blue-950/60" : "hover:bg-primary/5"
-                        )}
-                        style={{ top: `${topPx}px`, height: `${slotHeight}px` }}
-                        onClick={() => handleSlotClick(member.id, slot.hour, slot.minute)}
+                        slot={slot}
+                        isSelected={isSlotSelected}
+                        topPx={topPx}
+                        slotHeight={slotHeight}
+                        onTap={() => handleSlotClick(member.id, slot.hour, slot.minute)}
+                        onLongPress={() => handleBookSlot(member.id, slot.hour, slot.minute)}
                       />
                     );
                   })}
