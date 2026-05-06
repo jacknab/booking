@@ -24,8 +24,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, User, Users, X, Scissors, Sparkles, Loader2, Check, CalendarDays, Timer, AlertCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Staff, Customer, Addon } from "@shared/schema";
-import { CoachOverlay } from "@/components/training/CoachOverlay";
-import { CREATE_BOOKING_STEPS } from "@/components/training/steps/createBooking";
 
 type BookingStep = "services" | "addons" | "details";
 
@@ -445,31 +443,25 @@ export default function NewBooking() {
 
   return (
     <div className="h-screen w-screen flex bg-background overflow-hidden">
-      <CoachOverlay
-        category="create-booking"
-        steps={CREATE_BOOKING_STEPS}
-        active={true}
-      />
-
       {/* ── SERVICES STEP ── */}
       {step === "services" && (
         <>
           {/* ── Mobile layout ── */}
           <div className="flex flex-col flex-1 overflow-hidden md:hidden">
             {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b bg-card shrink-0">
-              <Button variant="ghost" size="icon" onClick={handleCancel} data-testid="button-cancel-booking">
+            <div className="flex items-center gap-3 px-4 py-4 bg-gray-950 shrink-0">
+              <Button variant="ghost" size="icon" onClick={handleCancel} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-cancel-booking">
                 <X className="w-5 h-5" />
               </Button>
-              <h1 className="font-bold text-lg flex-1">New Booking</h1>
+              <h1 className="font-bold text-lg flex-1 text-white tracking-tight">New Booking</h1>
               {selectedCustomer && (
-                <span className="text-sm text-muted-foreground truncate max-w-[120px]">{selectedCustomer.name}</span>
+                <span className="text-sm text-white/60 truncate max-w-[120px]">{selectedCustomer.name}</span>
               )}
             </div>
 
             {/* Horizontal category tabs */}
             <div
-              className="flex overflow-x-auto gap-2 px-4 py-3 border-b shrink-0"
+              className="flex overflow-x-auto gap-2 px-4 py-3 bg-gray-950 shrink-0"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
             >
               {categoryNames.map((cat) => (
@@ -478,10 +470,10 @@ export default function NewBooking() {
                   onClick={() => setSelectedCategory(cat)}
                   data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
                   className={cn(
-                    "shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap",
+                    "shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap",
                     activeCategory === cat
-                      ? "bg-gray-900 text-white"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-white/10 text-white/70 hover:bg-white/20"
                   )}
                 >
                   {cat}
@@ -490,7 +482,7 @@ export default function NewBooking() {
             </div>
 
             {/* Service grid */}
-            <div className="flex-1 overflow-y-auto p-4 pb-28">
+            <div className="flex-1 overflow-y-auto p-4 pb-28 bg-gray-50">
               {servicesLoading ? (
                 <div className="flex items-center justify-center h-40">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -504,7 +496,9 @@ export default function NewBooking() {
                         key={service.id}
                         className={cn(
                           "p-3 cursor-pointer transition-all flex flex-col",
-                          isSelected ? "ring-2 ring-primary shadow-md" : "hover-elevate"
+                          isSelected
+                            ? "ring-2 ring-primary bg-primary/5 shadow-lg shadow-primary/20"
+                            : "bg-white hover-elevate"
                         )}
                         onClick={() => handleSelectService(service)}
                         data-testid={`card-service-${service.id}`}
@@ -522,7 +516,9 @@ export default function NewBooking() {
                           {service.name}
                         </h3>
                         <div className="flex items-center justify-between mt-auto pt-2">
-                          <span className="font-bold text-sm">${Number(service.price).toFixed(2)}</span>
+                          <span className={cn("font-bold text-sm", isSelected ? "text-primary" : "text-foreground")}>
+                            ${Number(service.price).toFixed(2)}
+                          </span>
                           <Badge variant="secondary" className="no-default-active-elevate text-xs">
                             {service.duration}m
                           </Badge>
@@ -535,17 +531,17 @@ export default function NewBooking() {
             </div>
 
             {/* Mobile bottom action bar */}
-            <div className="fixed bottom-0 left-0 right-0 border-t bg-card px-4 pt-3 pb-6 z-20">
+            <div className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 pb-8 z-20">
               {selectedService ? (
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate" data-testid="text-summary-service">{selectedService.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-bold text-sm truncate text-white" data-testid="text-summary-service">{selectedService.name}</p>
+                    <p className="text-xs text-white/50">
                       ${Number(selectedService.price).toFixed(2)} · {selectedService.duration} min
                     </p>
                   </div>
                   <Button
-                    className="h-12 px-6 bg-gray-900 hover:bg-gray-800 text-white shrink-0"
+                    className="h-12 px-6 bg-primary hover:bg-primary/90 text-white shrink-0 rounded-xl font-semibold"
                     onClick={handleContinueToAddons}
                     data-testid="button-request-booking"
                   >
@@ -553,7 +549,7 @@ export default function NewBooking() {
                   </Button>
                 </div>
               ) : (
-                <Button className="w-full h-12" disabled variant="outline" data-testid="button-request-booking">
+                <Button className="w-full h-12 rounded-xl bg-white/10 text-white/40 border-0 hover:bg-white/10" disabled data-testid="button-request-booking">
                   Select a service to continue
                 </Button>
               )}
@@ -702,19 +698,19 @@ export default function NewBooking() {
         <>
           {/* ── Mobile layout ── */}
           <div className="flex flex-col flex-1 overflow-hidden md:hidden">
-            <div className="p-4 border-b flex items-center gap-3 bg-card shrink-0">
+            <div className="px-4 py-4 flex items-center gap-3 bg-gray-950 shrink-0">
               {!editAppointmentId && (
-                <Button variant="ghost" size="icon" onClick={() => setStep("services")} data-testid="button-back-services">
+                <Button variant="ghost" size="icon" onClick={() => setStep("services")} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-back-services">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
               )}
               <div className="flex-1">
-                <h2 className="font-semibold text-lg" data-testid="text-extras-heading">Extras</h2>
-                <p className="text-xs text-muted-foreground" data-testid="text-extras-subheading">for {selectedService?.name}</p>
+                <h2 className="font-semibold text-lg text-white" data-testid="text-extras-heading">Extras</h2>
+                <p className="text-xs text-white/50" data-testid="text-extras-subheading">for {selectedService?.name}</p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 pb-28">
+            <div className="flex-1 overflow-y-auto p-4 pb-28 bg-gray-50">
               {addonsLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -723,7 +719,7 @@ export default function NewBooking() {
                 <div className="flex flex-col items-center justify-center h-48 text-center gap-3">
                   <Sparkles className="w-10 h-10 text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">No extras for this service</p>
-                  <Button onClick={handleContinueToDetails} className="mt-2 bg-gray-900 text-white h-11 px-8">
+                  <Button onClick={handleContinueToDetails} className="mt-2 bg-primary text-white h-11 px-8 rounded-xl">
                     Continue
                   </Button>
                 </div>
@@ -770,17 +766,17 @@ export default function NewBooking() {
             </div>
 
             {/* Mobile bottom action bar */}
-            <div className="fixed bottom-0 left-0 right-0 border-t bg-card px-4 pt-3 pb-6 z-20">
+            <div className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 pb-8 z-20">
               <div className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{selectedService?.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-bold text-sm truncate text-white">{selectedService?.name}</p>
+                  <p className="text-xs text-white/50">
                     ${totalPrice.toFixed(2)} · {totalDuration} min
                     {selectedAddons.length > 0 && ` · ${selectedAddons.length} extra${selectedAddons.length > 1 ? "s" : ""}`}
                   </p>
                 </div>
                 <Button
-                  className="h-12 px-6 bg-gray-900 hover:bg-gray-800 text-white shrink-0"
+                  className="h-12 px-6 bg-primary hover:bg-primary/90 text-white shrink-0 rounded-xl font-semibold"
                   onClick={handleContinueToDetails}
                   data-testid="button-request-booking-addons"
                 >
@@ -929,7 +925,7 @@ export default function NewBooking() {
         <>
           {/* ── Mobile layout ── */}
           <div className="flex flex-col flex-1 overflow-hidden md:hidden">
-            <div className="p-4 border-b flex items-center gap-2 bg-card shrink-0">
+            <div className="px-4 py-4 flex items-center gap-2 bg-gray-950 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -937,17 +933,18 @@ export default function NewBooking() {
                   if (availableAddons && availableAddons.length > 0) setStep("addons");
                   else setStep("services");
                 }}
+                className="text-white/70 hover:text-white hover:bg-white/10"
                 data-testid="button-back-from-details"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <span className="font-semibold text-lg">Date & Time</span>
+              <span className="font-semibold text-lg text-white">Date & Time</span>
             </div>
 
             <div className="flex-1 overflow-y-auto pb-28">
               {/* Date picker */}
               <div className="p-4 border-b">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Select Date</p>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Select Date</p>
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -960,7 +957,7 @@ export default function NewBooking() {
 
               {/* Staff selector */}
               <div className="p-4 border-b">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Staff</p>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Staff</p>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => handleStaffModeChange("any")}
@@ -1005,7 +1002,7 @@ export default function NewBooking() {
               {/* Time slots */}
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Available Times</p>
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Available Times</p>
                   {selectedDate && (
                     <span className="text-xs text-muted-foreground">
                       {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -1072,7 +1069,7 @@ export default function NewBooking() {
 
                 {/* Notes field */}
                 <div className="mt-5 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes</p>
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider">Notes</p>
                   <Input
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -1084,15 +1081,15 @@ export default function NewBooking() {
             </div>
 
             {/* Mobile bottom action bar */}
-            <div className="fixed bottom-0 left-0 right-0 border-t bg-card px-4 pt-3 pb-6 z-20">
+            <div className="fixed bottom-0 left-0 right-0 bg-gray-950 px-4 pt-4 pb-8 z-20">
               {selectedSlot && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                <div className="flex items-center gap-2 text-xs text-white/60 mb-3">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{formatInTz(selectedSlot.time, timezone, "h:mm a")} · {selectedSlot.staffName}</span>
                 </div>
               )}
               <Button
-                className="w-full h-12 bg-primary text-primary-foreground"
+                className="w-full h-13 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold text-base disabled:bg-white/10 disabled:text-white/30"
                 onClick={handleRequestBooking}
                 disabled={!selectedService || !selectedSlot || createAppointment.isPending}
                 data-testid="button-complete-booking"

@@ -2831,26 +2831,26 @@ function ChooseClientPanel({
           className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
           onClick={onClose}
         />
-        <div className="absolute right-0 top-0 h-full w-full sm:w-[740px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
-          <div className="p-4 border-b flex items-center justify-between gap-2">
+        <div className="absolute right-0 top-0 h-full w-full sm:w-[740px] bg-background flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+          <div className="px-4 py-4 flex items-center justify-between gap-2 bg-gray-950">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} data-testid="button-back-name-entry">
+              <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-back-name-entry">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <span className="font-semibold text-sm">Enter Client Name</span>
+              <span className="font-semibold text-sm text-white">Enter Client Name</span>
             </div>
-            <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={onClose} data-testid="button-close-name-entry">
+            <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={onClose} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-close-name-entry">
               <X className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="flex-1 flex flex-col px-3 pt-5 pb-3 min-h-0">
+          <div className="flex-1 flex flex-col px-3 pt-6 pb-3 min-h-0">
             <div className="text-center mb-4 px-2">
               <p className="text-3xl font-bold tracking-wide min-h-[44px]" data-testid="text-client-name-display">
-                {clientName || <span className="text-muted-foreground/40">Name</span>}
+                {clientName || <span className="text-muted-foreground/30">Name</span>}
               </p>
-              <p className="text-xs text-green-600 mt-1" data-testid="text-creating-for-phone">
-                Creating new client for {formatPhoneFull(phoneDigits)}
+              <p className="text-xs text-primary mt-1 font-medium" data-testid="text-creating-for-phone">
+                New client · {formatPhoneFull(phoneDigits)}
               </p>
             </div>
 
@@ -2987,36 +2987,36 @@ function ChooseClientPanel({
       />
       <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
         {/* Header */}
-        <div className="p-4 border-b flex items-center justify-between gap-2">
+        <div className="px-4 py-4 flex items-center justify-between gap-2 bg-gray-950">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-back-client-lookup">
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-back-client-lookup">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <span className="font-semibold text-base">Choose A Client</span>
+            <span className="font-semibold text-base text-white">Choose A Client</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-client-lookup">
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-close-client-lookup">
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Content fills all remaining height */}
-        <div className="flex-1 flex flex-col px-4 pt-5 pb-4 min-h-0">
+        <div className="flex-1 flex flex-col px-4 pt-5 pb-4 min-h-0 bg-gray-950">
           {/* Phone number display */}
-          <div className="w-full rounded-2xl border-2 py-5 px-4 mb-5 text-center">
+          <div className="w-full rounded-2xl bg-gray-900 border border-gray-800 py-6 px-4 mb-5 text-center">
             {phoneDigits.length > 0 ? (
-              <p className="text-4xl font-bold tracking-widest text-foreground" data-testid="text-phone-display">
+              <p className="text-4xl font-bold tracking-widest text-primary" data-testid="text-phone-display">
                 {formatPhone(phoneDigits)}
               </p>
             ) : (
               <>
-                <p className="text-base font-semibold text-foreground" data-testid="text-enter-phone">Enter Phone Number</p>
-                <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
+                <p className="text-base font-semibold text-white" data-testid="text-enter-phone">Enter Phone Number</p>
+                <p className="text-sm text-white/40 mt-1 flex items-center justify-center gap-1.5">
                   Tap <PersonStanding className="w-4 h-4 inline" /> for walk-in
                 </p>
               </>
             )}
             {isSearching && (
-              <p className="text-sm text-muted-foreground mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
+              <p className="text-sm text-primary mt-2 animate-pulse" data-testid="text-searching">Searching...</p>
             )}
           </div>
 
@@ -3032,7 +3032,7 @@ function ChooseClientPanel({
                         type="button"
                         onPointerDown={e => e.preventDefault()}
                         onClick={onWalkIn}
-                        className="flex-1 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                        className="flex-1 rounded-2xl bg-gray-800 text-white/50 flex items-center justify-center hover:bg-gray-700 active:scale-95 transition-all"
                         data-testid="numpad-walkin"
                       >
                         <PersonStanding className="w-7 h-7" />
@@ -3049,7 +3049,7 @@ function ChooseClientPanel({
                         type="button"
                         onPointerDown={e => e.preventDefault()}
                         onClick={handleBackspace}
-                        className="flex-1 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center hover-elevate active-elevate-2"
+                        className="flex-1 rounded-2xl bg-gray-800 text-white/50 flex items-center justify-center hover:bg-gray-700 active:scale-95 transition-all"
                         data-testid="numpad-backspace"
                       >
                         <Delete className="w-7 h-7" />
@@ -3062,7 +3062,7 @@ function ChooseClientPanel({
                       type="button"
                       onPointerDown={e => e.preventDefault()}
                       onClick={() => handleDigit(key)}
-                      className="flex-1 rounded-2xl bg-muted text-3xl font-bold text-foreground hover-elevate active-elevate-2"
+                      className="flex-1 rounded-2xl bg-gray-800 text-3xl font-bold text-white hover:bg-gray-700 active:scale-95 transition-all"
                       data-testid={`numpad-${key}`}
                     >
                       {key}
