@@ -166,7 +166,7 @@ export function MobileCalendarView({
       {/* ── Week strip (swipe left/right to jump a week) ── */}
       <div
         className="flex-shrink-0 border-b flex"
-        style={{ backgroundColor: "#0f172a" }}
+        style={{ backgroundColor: "#f1f5f9" }}
         onTouchStart={(e) => {
           const t = e.touches[0];
           weekStripTouchRef.current = { x: t.clientX, y: t.clientY };
@@ -193,19 +193,19 @@ export function MobileCalendarView({
               >
                 <span className={cn(
                   "text-[10px] font-semibold uppercase tracking-wide leading-none mb-1",
-                  wd.isToday ? "text-red-400" : "text-white/40"
+                  wd.isToday ? "text-pink-400" : "text-slate-400"
                 )}>
                   {wd.label}
                 </span>
                 <span className={cn(
                   "text-[15px] font-bold leading-none w-7 h-7 flex items-center justify-center rounded-full",
                   wd.isToday && isSelected
-                    ? "bg-red-500 text-white"
+                    ? "bg-pink-300 text-pink-800"
                     : wd.isToday
-                      ? "text-red-400"
+                      ? "text-pink-400"
                       : isSelected
-                        ? "bg-white/15 text-white"
-                        : "text-white/55"
+                        ? "bg-pink-100 text-pink-700"
+                        : "text-slate-500"
                 )}>
                   {wd.date.getDate()}
                 </span>

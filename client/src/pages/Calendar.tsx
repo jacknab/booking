@@ -528,12 +528,12 @@ export default function Calendar() {
       {/* ── Mobile header ── */}
       {isMobile && (
         <div
-          className="flex-shrink-0 flex items-center gap-1 px-2 h-12"
-          style={{ backgroundColor: "#0f172a" }}
+          className="flex-shrink-0 flex items-center gap-1 px-2 h-12 border-b"
+          style={{ backgroundColor: "#f1f5f9" }}
           data-testid="calendar-header"
         >
           {/* Bell */}
-          <button className="w-9 h-9 flex items-center justify-center rounded-full text-white/50 active:text-white transition-colors shrink-0">
+          <button className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 active:text-slate-700 transition-colors shrink-0">
             <Bell className="w-[18px] h-[18px]" />
           </button>
 
@@ -544,12 +544,12 @@ export default function Calendar() {
             data-testid="button-current-date"
           >
             <div className="flex items-center gap-1">
-              <span className="text-[13px] font-bold text-white">
+              <span className="text-[13px] font-bold text-slate-700">
                 {isToday ? "Today" : formatInTz(currentDate, timezone, "EEE, MMM d")}
               </span>
-              <ChevronDown className="w-3 h-3 text-white/50" />
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </div>
-            <span className="text-[10px] text-white/40 mt-0.5">
+            <span className="text-[10px] text-slate-400 mt-0.5">
               {START_HOUR}:00 – {END_HOUR}:00
             </span>
           </button>
@@ -561,13 +561,13 @@ export default function Calendar() {
               onValueChange={(val) => setSelectedStaffId(val === "all" ? "all" : Number(val))}
             >
               <SelectTrigger
-                className="w-9 h-9 border-0 shadow-none px-0 bg-transparent [&>svg]:hidden text-white/50 data-[state=open]:text-white shrink-0"
+                className="w-9 h-9 border-0 shadow-none px-0 bg-transparent [&>svg]:hidden text-slate-400 data-[state=open]:text-slate-700 shrink-0"
                 data-testid="select-staff-filter"
               >
                 <div className="relative flex items-center justify-center">
                   <ListFilter className="w-[18px] h-[18px]" />
                   {selectedStaffId !== "all" && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-pink-300" />
                   )}
                 </div>
               </SelectTrigger>
@@ -583,7 +583,7 @@ export default function Calendar() {
           )}
 
           {/* More */}
-          <button className="w-9 h-9 flex items-center justify-center rounded-full text-white/50 active:text-white transition-colors shrink-0">
+          <button className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 active:text-slate-700 transition-colors shrink-0">
             <MoreVertical className="w-[18px] h-[18px]" />
           </button>
         </div>
