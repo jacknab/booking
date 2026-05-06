@@ -5,7 +5,7 @@ import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-const MOBILE_TIME_COL_WIDTH = 76;
+const MOBILE_TIME_COL_WIDTH = 72;
 
 interface MobileCalendarViewProps {
   filteredStaff: any[];
@@ -31,6 +31,8 @@ interface MobileCalendarViewProps {
   lateGracePeriodMinutes: number;
   storeNow: Date;
   settings: { timeSlotInterval: number };
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
 }
 
 export function MobileCalendarView({
@@ -56,8 +58,12 @@ export function MobileCalendarView({
   showPrices,
   lateGracePeriodMinutes,
   storeNow,
+  onSwipeLeft,
+  onSwipeRight,
 }: MobileCalendarViewProps) {
   const [collapsedStaff, setCollapsedStaff] = useState<Set<number>>(new Set());
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const toggleCollapse = useCallback((staffId: number) => {
     setCollapsedStaff(prev => {
@@ -68,6 +74,23 @@ export function MobileCalendarView({
     });
   }, []);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) onSwipeLeft?.();
+      else onSwipeRight?.();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
   if (filteredStaff.length === 0) {
     return (
       <div className="flex items-center justify-center text-muted-foreground text-sm py-20">
@@ -77,7 +100,11 @@ export function MobileCalendarView({
   }
 
   return (
-    <div className="flex flex-col w-full">
+    <div
+      className="flex flex-col w-full"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {filteredStaff.map((member: any, idx: number) => {
         const staffApts = getAppointmentsForStaff(member.id);
         const color = getStaffColor(member);
@@ -92,7 +119,7 @@ export function MobileCalendarView({
               idx > 0 && "border-t-4 border-t-border/60"
             )}
           >
-            {/* Sticky staff header — same look as desktop column header */}
+            {/* Sticky staff header */}
             <div
               className="sticky top-0 z-20 flex items-center gap-2.5 px-3 py-2.5 bg-card border-b cursor-pointer select-none"
               onClick={() => toggleCollapse(member.id)}
@@ -135,7 +162,7 @@ export function MobileCalendarView({
               </div>
             </div>
 
-            {/* Time grid — collapsible */}
+            {/* Time grid */}
             {!isCollapsed && (
               <div className="relative flex" style={{ backgroundColor: "#d9e2ea" }}>
                 {/* Time label column */}
@@ -152,40 +179,51 @@ export function MobileCalendarView({
                       const h = START_HOUR + Math.floor(totalMins / 60);
                       const m = totalMins % 60;
                       if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
-                      if (m !== 0 && m !== 30) return null;
                       const isHour = m === 0;
-                      const hMod = h % 24;
-                      const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
-                      const ampm = hMod >= 12 ? "PM" : "AM";
-                      const timePart = `${displayH}:${String(m).padStart(2, "0")}`;
+                      const isHalf = m === 30;
+                      if (!isHour && !isHalf) return null;
                       const topPx = (totalMins / 60) * HOUR_HEIGHT;
+
+                      if (isHour) {
+                        const hMod = h % 24;
+                        const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
+                        const ampm = hMod >= 12 ? "PM" : "AM";
+                        return (
+                          <div
+                            key={`label-${h}-${m}`}
+                            className="absolute left-0 right-0 flex items-center justify-end gap-1 pr-1.5 -translate-y-1/2"
+                            style={{ top: `${topPx}px` }}
+                          >
+                            <div className="flex flex-col items-end leading-none">
+                              <span className="text-[13px] font-bold text-foreground tabular-nums leading-none">
+                                {displayH}:00
+                              </span>
+                              <span className="text-[10px] font-semibold text-foreground/60 leading-none mt-[1px]">
+                                {ampm}
+                              </span>
+                            </div>
+                            <span className="block h-[10px] w-[2px] rounded-full bg-border/70" />
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={`label-${h}-${m}`}
-                          className="absolute left-0 right-0 flex items-center justify-end gap-0.5 pr-1 -translate-y-1/2"
-                          style={{ top: `${topPx}px` }}
+                          className="absolute right-0 flex items-center justify-end gap-1 pr-1.5 -translate-y-1/2"
+                          style={{ top: `${topPx}px`, left: 0 }}
                         >
-                          <span className="flex flex-col items-end leading-none">
-                            <span className="text-[10px] font-bold text-foreground tabular-nums">
-                              {timePart}
-                            </span>
-                            <span className="text-[8px] font-semibold text-foreground/70">
-                              {ampm}
-                            </span>
+                          <span className="text-[11px] font-medium text-foreground/40 tabular-nums">
+                            :30
                           </span>
-                          <span
-                            className={cn(
-                              "block",
-                              isHour ? "h-px w-2 bg-border" : "h-px w-1.5 bg-border/50"
-                            )}
-                          />
+                          <span className="block h-[6px] w-[1.5px] rounded-full bg-border/40" />
                         </div>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Appointment column — full remaining width */}
+                {/* Appointment column */}
                 <div
                   className="flex-1 relative bg-slate-50 border-l"
                   style={{
@@ -193,7 +231,7 @@ export function MobileCalendarView({
                     borderLeftColor: "#d9e2ea",
                   }}
                 >
-                  {/* Current time line within this staff section */}
+                  {/* Current time line */}
                   {isToday && timeLinePosition !== null && (
                     <div
                       className="absolute left-0 right-0 z-[15] pointer-events-none flex items-center -translate-y-1/2"
@@ -201,7 +239,7 @@ export function MobileCalendarView({
                     >
                       <div className="flex-1 h-[2px]" style={{ backgroundColor: "#2563eb" }} />
                       <div
-                        className="flex-shrink-0 text-[9px] font-bold text-white px-1 py-0.5 rounded"
+                        className="flex-shrink-0 text-[10px] font-bold text-white px-1.5 py-0.5 rounded"
                         style={{ backgroundColor: "#2563eb" }}
                       >
                         {timeLineLabel}
@@ -293,13 +331,11 @@ export function MobileCalendarView({
                         }}
                         data-testid={`mobile-appt-block-${apt.id}`}
                       >
-                        {/* Left color band */}
                         {!isOnlineBooking && (
                           <div className="w-[4px] flex-shrink-0" style={{ backgroundColor: bandColor }} />
                         )}
 
                         <div className="flex-1 px-1.5 py-1 overflow-hidden flex flex-col min-h-0">
-                          {/* Time row */}
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-[10px] font-semibold text-gray-700 leading-tight">
                               {startTime} – {endTime}
@@ -309,12 +345,10 @@ export function MobileCalendarView({
                             </span>
                           </div>
 
-                          {/* Service name */}
                           <div className="text-xs font-bold text-gray-900 truncate leading-tight mt-0.5">
                             {apt.service?.name || "Service"}
                           </div>
 
-                          {/* Addons */}
                           {aptAddons.map((addon: any) => (
                             <div
                               key={addon.id}
@@ -324,14 +358,12 @@ export function MobileCalendarView({
                             </div>
                           ))}
 
-                          {/* Customer name */}
                           {apt.customer?.name && (
                             <div className="text-[10px] text-gray-600 truncate leading-tight">
                               {apt.customer.name}
                             </div>
                           )}
 
-                          {/* Price */}
                           {showPrices && serviceTotal > 0 && (
                             <div className="mt-auto pt-0.5 flex items-center justify-end">
                               <span
@@ -344,7 +376,6 @@ export function MobileCalendarView({
                           )}
                         </div>
 
-                        {/* Right band for online bookings */}
                         {isOnlineBooking && (
                           <div className="w-[4px] flex-shrink-0" style={{ backgroundColor: bandColor }} />
                         )}
@@ -358,7 +389,6 @@ export function MobileCalendarView({
         );
       })}
 
-      {/* Slot-click modal — centered overlay for mobile */}
       {selectedSlot && (
         <MobileSlotModal
           slot={selectedSlot}

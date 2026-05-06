@@ -770,6 +770,8 @@ export default function Calendar() {
                 lateGracePeriodMinutes={lateGracePeriodMinutes}
                 storeNow={storeNow}
                 settings={settings}
+                onSwipeLeft={goNext}
+                onSwipeRight={goPrev}
               />
             ) : (
             <div className="flex min-w-[600px] relative">
