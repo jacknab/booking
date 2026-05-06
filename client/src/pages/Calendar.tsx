@@ -1654,7 +1654,10 @@ function AppointmentDetailsPanel({
         )}
       </div>
 
-      <div className="border-t p-4 space-y-3">
+      <div
+        className="border-t p-4 space-y-3 md:pb-4"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
+      >
         {showPrices && (
           <div className="flex items-center justify-between">
             <div>
