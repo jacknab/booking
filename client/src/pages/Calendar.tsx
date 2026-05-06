@@ -524,7 +524,7 @@ export default function Calendar() {
   }
 
   return (
-    <div className="h-screen w-full overflow-x-hidden flex flex-col bg-background">
+    <div className="h-screen w-full overflow-hidden flex flex-col bg-background">
       {/* ── Mobile header ── */}
       {isMobile && (
         <div className="flex items-center h-12 px-1 border-b bg-card" data-testid="calendar-header">
@@ -841,8 +841,8 @@ export default function Calendar() {
             animate={{ x: 0 }}
             exit={(dir: string) => ({ x: dir === 'next' ? '-100%' : '100%' })}
             transition={{ type: 'tween', ease: [0.25, 0.46, 0.45, 0.94], duration: 0.22 }}
-            className="absolute inset-0 overflow-auto"
-            style={isMobile ? { paddingBottom: 108 } : undefined}
+            className={isMobile ? "absolute inset-0 overflow-hidden" : "absolute inset-0 overflow-auto"}
+            style={isMobile ? { paddingBottom: 64 } : undefined}
           >
             {isMobile ? (
               <MobileCalendarView
@@ -869,8 +869,9 @@ export default function Calendar() {
                 lateGracePeriodMinutes={lateGracePeriodMinutes}
                 storeNow={storeNow}
                 settings={settings}
-                onSwipeLeft={goNext}
-                onSwipeRight={goPrev}
+                weekDayLabels={weekDayLabels}
+                currentDate={currentDate}
+                onSelectDate={(date) => { setCurrentDate(date); }}
               />
             ) : (
             <div className="flex min-w-[600px] relative">

@@ -1,91 +1,18 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { addMinutes } from "date-fns";
+import { addMinutes, isSameDay } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-const SWIPE_HINT_KEY = "certxa_cal_swipe_hint_seen";
-const LONG_PRESS_DELAY = 500;
+const TIME_COL_W = 52;
+const STAFF_COL_W = 140;
+const STAFF_HEADER_H = 64;
 
-function MobileSlotRow({
-  slot,
-  isSelected,
-  topPx,
-  slotHeight,
-  onTap,
-  onLongPress,
-}: {
-  slot: { hour: number; minute: number };
-  isSelected: boolean;
-  topPx: number;
-  slotHeight: number;
-  onTap: () => void;
-  onLongPress: () => void;
-}) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [pressing, setPressing] = useState(false);
-  const movedRef = useRef(false);
-  const didTouchRef = useRef(false);
-
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-
-  const handleTouchStart = () => {
-    didTouchRef.current = true;
-    movedRef.current = false;
-    setPressing(true);
-    timerRef.current = setTimeout(() => {
-      if (!movedRef.current) {
-        setPressing(false);
-        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
-        onLongPress();
-      }
-    }, LONG_PRESS_DELAY);
-  };
-
-  const handleTouchMove = () => {
-    movedRef.current = true;
-    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    setPressing(false);
-  };
-
-  const handleTouchEnd = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-      if (!movedRef.current) onTap();
-    }
-    setPressing(false);
-  };
-
-  const handleClick = () => {
-    if (didTouchRef.current) { didTouchRef.current = false; return; }
-    onTap();
-  };
-
-  return (
-    <div
-      className={cn(
-        "absolute left-0 right-0 border-b border-border/30 cursor-pointer overflow-hidden select-none",
-        isSelected ? "bg-blue-100 dark:bg-blue-950/60" : pressing ? "bg-primary/5" : "hover:bg-primary/5"
-      )}
-      style={{ top: `${topPx}px`, height: `${slotHeight}px` }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onClick={handleClick}
-    >
-      {pressing && (
-        <div
-          className="absolute inset-0 origin-left bg-primary/25"
-          style={{ animation: `longPressExpand ${LONG_PRESS_DELAY}ms linear forwards` }}
-        />
-      )}
-    </div>
-  );
+interface WeekDay {
+  date: Date;
+  label: string;
+  isToday: boolean;
 }
-
-const MOBILE_TIME_COL_WIDTH = 72;
 
 interface MobileCalendarViewProps {
   filteredStaff: any[];
@@ -111,8 +38,9 @@ interface MobileCalendarViewProps {
   lateGracePeriodMinutes: number;
   storeNow: Date;
   settings: { timeSlotInterval: number };
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
+  weekDayLabels: WeekDay[];
+  currentDate: Date;
+  onSelectDate: (date: Date) => void;
 }
 
 export function MobileCalendarView({
@@ -138,50 +66,32 @@ export function MobileCalendarView({
   showPrices,
   lateGracePeriodMinutes,
   storeNow,
-  onSwipeLeft,
-  onSwipeRight,
+  settings,
+  weekDayLabels,
+  currentDate,
+  onSelectDate,
 }: MobileCalendarViewProps) {
-  const [collapsedStaff, setCollapsedStaff] = useState<Set<number>>(new Set());
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const didAutoScrollRef = useRef(false);
+
+  const totalGridH = TOTAL_HOURS * HOUR_HEIGHT;
+
+  const scrollToNow = useCallback(() => {
+    if (!gridRef.current || timeLinePosition === null) return;
+    const target = Math.max(0, timeLinePosition - gridRef.current.clientHeight / 3);
+    gridRef.current.scrollTo({ top: target, behavior: "smooth" });
+  }, [timeLinePosition]);
 
   useEffect(() => {
-    if (!localStorage.getItem(SWIPE_HINT_KEY)) {
-      setShowSwipeHint(true);
-      const timer = setTimeout(() => {
-        setShowSwipeHint(false);
-        localStorage.setItem(SWIPE_HINT_KEY, "1");
-      }, 2200);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+    if (!isToday || timeLinePosition === null || didAutoScrollRef.current) return;
+    didAutoScrollRef.current = true;
+    const id = setTimeout(scrollToNow, 80);
+    return () => clearTimeout(id);
+  }, [isToday, timeLinePosition, scrollToNow]);
 
-  const toggleCollapse = useCallback((staffId: number) => {
-    setCollapsedStaff(prev => {
-      const next = new Set(prev);
-      if (next.has(staffId)) next.delete(staffId);
-      else next.add(staffId);
-      return next;
-    });
-  }, []);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      if (dx < 0) onSwipeLeft?.();
-      else onSwipeRight?.();
-    }
-    touchStartX.current = null;
-    touchStartY.current = null;
-  };
+  useEffect(() => {
+    didAutoScrollRef.current = false;
+  }, [currentDate]);
 
   if (filteredStaff.length === 0) {
     return (
@@ -191,215 +101,260 @@ export function MobileCalendarView({
     );
   }
 
+  const totalContentW = TIME_COL_W + filteredStaff.length * STAFF_COL_W;
+
   return (
-    <div
-      className="flex flex-col w-full relative"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* One-time swipe hint overlay */}
-      {showSwipeHint && (
-        <div
-          className="fixed bottom-20 inset-x-0 flex justify-center z-[60] pointer-events-none"
-          style={{
-            animation: "swipeHintFade 2.2s ease forwards",
-          }}
-        >
-          <div className="flex items-center gap-3 bg-gray-900/85 text-white px-5 py-2.5 rounded-full shadow-xl backdrop-blur-sm">
-            <span className="text-lg select-none" aria-hidden>←</span>
-            <span className="text-sm font-medium tracking-wide">Swipe to change day</span>
-            <span className="text-lg select-none" aria-hidden>→</span>
+    <div className="flex flex-col h-full w-full overflow-hidden">
+
+      {/* ── Week strip ── */}
+      <div className="flex-shrink-0 bg-card border-b flex">
+        {/* Corner spacer aligned with time column */}
+        <div className="flex-shrink-0" style={{ width: TIME_COL_W }} />
+        {/* Day cells */}
+        <div className="flex-1 overflow-x-auto scrollbar-none">
+          <div className="flex min-w-max">
+            {weekDayLabels.map((wd) => {
+              const isSelected = isSameDay(wd.date, currentDate);
+              return (
+                <button
+                  key={wd.date.toISOString()}
+                  className="flex flex-col items-center justify-center py-1.5 px-2 min-w-[40px] flex-1 transition-colors active:bg-muted/60"
+                  onClick={() => onSelectDate(wd.date)}
+                >
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold uppercase tracking-wide leading-none mb-1",
+                      wd.isToday ? "text-red-500" : "text-muted-foreground"
+                    )}
+                  >
+                    {wd.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[15px] font-bold leading-none w-7 h-7 flex items-center justify-center rounded-full",
+                      wd.isToday && isSelected
+                        ? "bg-red-500 text-white"
+                        : wd.isToday
+                          ? "text-red-500"
+                          : isSelected
+                            ? "bg-foreground text-background"
+                            : "text-foreground"
+                    )}
+                  >
+                    {wd.date.getDate()}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+      </div>
 
-      <style>{`
-        @keyframes swipeHintFade {
-          0%   { opacity: 0; transform: translateY(8px); }
-          15%  { opacity: 1; transform: translateY(0); }
-          75%  { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-6px); }
-        }
-        @keyframes longPressExpand {
-          from { transform: scaleX(0); }
-          to   { transform: scaleX(1); }
-        }
-      `}</style>
+      {/* ── Main grid: horizontal + vertical scroll ── */}
+      <div
+        ref={gridRef}
+        className="flex-1 overflow-auto relative"
+        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      >
+        {/* Inner content: fixed total width so both axes scroll */}
+        <div
+          className="relative flex"
+          style={{ minWidth: totalContentW, minHeight: STAFF_HEADER_H + totalGridH }}
+        >
 
-      {filteredStaff.map((member: any, idx: number) => {
-        const staffApts = getAppointmentsForStaff(member.id);
-        const color = getStaffColor(member);
-        const isCollapsed = collapsedStaff.has(member.id);
-        const aptCount = staffApts.length;
-
-        return (
+          {/* ── Sticky time column ── */}
           <div
-            key={member.id}
-            className={cn(
-              "flex flex-col border-b last:border-b-0",
-              idx > 0 && "border-t-4 border-t-border/60"
-            )}
+            className="sticky left-0 z-30 flex-shrink-0 bg-card flex flex-col"
+            style={{ width: TIME_COL_W }}
           >
-            {/* Sticky staff header */}
+            {/* Top-left corner — sticky in both axes so it masks time labels behind staff headers */}
             <div
-              className="sticky top-0 z-20 flex items-center gap-2.5 px-3 py-2.5 bg-card border-b cursor-pointer select-none"
-              onClick={() => toggleCollapse(member.id)}
+              className="flex-shrink-0 sticky top-0 z-40 border-b border-r bg-card"
+              style={{ height: STAFF_HEADER_H }}
+            />
+
+            {/* Time labels */}
+            <div
+              className="relative border-r bg-card"
+              style={{ height: totalGridH, flex: "0 0 auto" }}
             >
-              <Avatar className="w-9 h-9 flex-shrink-0">
-                {member.avatarUrl && (
-                  <AvatarImage src={member.avatarUrl} alt={member.name} className="object-cover" />
-                )}
-                <AvatarFallback
-                  style={{ backgroundColor: color + "22", color }}
-                  className="text-xs font-bold"
-                >
-                  {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold truncate">{member.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {aptCount === 0
-                    ? "No appointments"
-                    : `${aptCount} appointment${aptCount !== 1 ? "s" : ""}`}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {aptCount > 0 && (
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                    style={{ backgroundColor: color }}
-                  >
-                    {aptCount}
-                  </div>
-                )}
-                {isCollapsed ? (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-            </div>
-
-            {/* Time grid */}
-            {!isCollapsed && (
-              <div className="relative flex" style={{ backgroundColor: "#d9e2ea" }}>
-                {/* Current time line — spans full width: pill over time col, line over appt col */}
-                {isToday && timeLinePosition !== null && (
-                  <div
-                    className="absolute left-0 right-0 z-20 pointer-events-none flex items-center -translate-y-1/2"
-                    style={{ top: `${timeLinePosition}px` }}
-                  >
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white rounded"
-                      style={{ width: MOBILE_TIME_COL_WIDTH, backgroundColor: "#2563eb", padding: "2px 4px" }}
-                    >
-                      {timeLineLabel}
-                    </div>
-                    <div className="flex-1 h-[2px]" style={{ backgroundColor: "#2563eb" }} />
-                  </div>
-                )}
-                {/* Time label column */}
+              {/* Current time pill — sits inside the sticky time column */}
+              {isToday && timeLinePosition !== null && (
                 <div
-                  className="flex-shrink-0 bg-card z-10 sticky left-0"
-                  style={{ width: MOBILE_TIME_COL_WIDTH }}
+                  className="absolute right-0 z-20 flex items-center justify-center pointer-events-none"
+                  style={{
+                    top: timeLinePosition,
+                    transform: "translateY(-50%)",
+                    right: -1,
+                  }}
                 >
-                  <div
-                    className="relative"
-                    style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
+                  <span
+                    className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: "#2563eb" }}
                   >
-                    {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
-                      const totalMins = i * 15;
-                      const h = START_HOUR + Math.floor(totalMins / 60);
-                      const m = totalMins % 60;
-                      if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
-                      const isHour = m === 0;
-                      const isHalf = m === 30;
-                      if (!isHour && !isHalf) return null;
-                      const topPx = (totalMins / 60) * HOUR_HEIGHT;
+                    {timeLineLabel}
+                  </span>
+                </div>
+              )}
 
-                      if (isHour) {
-                        const hMod = h % 24;
-                        const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
-                        const ampm = hMod >= 12 ? "PM" : "AM";
-                        return (
-                          <div
-                            key={`label-${h}-${m}`}
-                            className="absolute left-0 right-0 flex items-center justify-end gap-1 pr-1.5 -translate-y-1/2"
-                            style={{ top: `${topPx}px` }}
-                          >
-                            <div className="flex flex-col items-end leading-none">
-                              <span className="text-[13px] font-bold text-foreground tabular-nums leading-none">
-                                {displayH}:00
-                              </span>
-                              <span className="text-[10px] font-semibold text-foreground/60 leading-none mt-[1px]">
-                                {ampm}
-                              </span>
-                            </div>
-                            <span className="block h-[10px] w-[2px] rounded-full bg-border/70" />
-                          </div>
-                        );
-                      }
+              {/* Hour / half-hour labels */}
+              {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
+                const totalMins = i * 15;
+                const h = START_HOUR + Math.floor(totalMins / 60);
+                const m = totalMins % 60;
+                if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+                if (m !== 0 && m !== 30) return null;
+                const topPx = (totalMins / 60) * HOUR_HEIGHT;
+                const isHour = m === 0;
 
-                      return (
-                        <div
-                          key={`label-${h}-${m}`}
-                          className="absolute right-0 flex items-center justify-end gap-1 pr-1.5 -translate-y-1/2"
-                          style={{ top: `${topPx}px`, left: 0 }}
-                        >
-                          <span className="text-[11px] font-medium text-foreground/40 tabular-nums">
-                            :30
-                          </span>
-                          <span className="block h-[6px] w-[1.5px] rounded-full bg-border/40" />
-                        </div>
-                      );
-                    })}
+                if (isHour) {
+                  const hMod = h % 24;
+                  const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
+                  const ampm = hMod >= 12 ? "pm" : "am";
+                  return (
+                    <div
+                      key={`t-${h}-${m}`}
+                      className="absolute right-0 left-0 flex flex-col items-end pr-1.5 -translate-y-1/2"
+                      style={{ top: topPx }}
+                    >
+                      <span className="text-[12px] font-bold text-foreground tabular-nums leading-none">
+                        {displayH}:{String(m).padStart(2, "0")}
+                      </span>
+                      <span className="text-[9px] font-semibold text-muted-foreground leading-none">
+                        {ampm}
+                      </span>
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    key={`t-${h}-${m}`}
+                    className="absolute right-0 flex items-center justify-end pr-1.5 -translate-y-1/2"
+                    style={{ top: topPx }}
+                  >
+                    <span className="text-[10px] text-muted-foreground/50 tabular-nums">:30</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Staff columns ── */}
+          {filteredStaff.map((member: any) => {
+            const staffApts = getAppointmentsForStaff(member.id);
+            const color = getStaffColor(member);
+
+            return (
+              <div
+                key={member.id}
+                className="flex-shrink-0 flex flex-col"
+                style={{ width: STAFF_COL_W }}
+              >
+                {/* Sticky staff header */}
+                <div
+                  className="sticky top-0 z-20 flex-shrink-0 border-b border-l bg-card flex items-center gap-2 px-2"
+                  style={{ height: STAFF_HEADER_H }}
+                >
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    {member.avatarUrl && (
+                      <AvatarImage src={member.avatarUrl} alt={member.name} className="object-cover" />
+                    )}
+                    <AvatarFallback
+                      style={{ backgroundColor: color + "22", color }}
+                      className="text-[10px] font-bold"
+                    >
+                      {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold truncate leading-tight">{member.name}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">
+                      {staffApts.length === 0 ? "No appts" : `${staffApts.length} appt${staffApts.length !== 1 ? "s" : ""}`}
+                    </p>
                   </div>
                 </div>
 
-                {/* Appointment column */}
+                {/* Appointment grid */}
                 <div
-                  className="flex-1 relative bg-slate-50 border-l"
+                  className="relative border-l bg-slate-50"
                   style={{
-                    height: `${TOTAL_HOURS * HOUR_HEIGHT}px`,
+                    height: totalGridH,
+                    flex: "0 0 auto",
                     borderLeftColor: "#d9e2ea",
                   }}
                 >
+                  {/* Horizontal hour/half-hour grid lines */}
+                  {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
+                    const totalMins = i * 15;
+                    const h = START_HOUR + Math.floor(totalMins / 60);
+                    const m = totalMins % 60;
+                    if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+                    if (m !== 0 && m !== 30) return null;
+                    const topPx = (totalMins / 60) * HOUR_HEIGHT;
+                    return (
+                      <div
+                        key={`g-${h}-${m}`}
+                        className="absolute left-0 right-0 pointer-events-none"
+                        style={{
+                          top: topPx,
+                          borderTop: m === 0 ? "1px solid #d9e2ea" : "1px dashed #e5eaef",
+                        }}
+                      />
+                    );
+                  })}
 
-                  {/* Time slot clickable rows */}
+                  {/* Current time line for this column */}
+                  {isToday && timeLinePosition !== null && (
+                    <div
+                      className="absolute left-0 right-0 z-10 pointer-events-none"
+                      style={{
+                        top: timeLinePosition,
+                        height: 2,
+                        backgroundColor: "#2563eb",
+                      }}
+                    />
+                  )}
+
+                  {/* Tappable time slots */}
                   {timeSlots.map((slot) => {
                     const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
-                    const slotHeight = HOUR_HEIGHT / (60 / 15);
+                    const slotHeight = (settings.timeSlotInterval / 60) * HOUR_HEIGHT;
                     const isSlotSelected =
                       selectedSlot?.staffId === member.id &&
                       selectedSlot?.hour === slot.hour &&
                       selectedSlot?.minute === slot.minute;
 
                     return (
-                      <MobileSlotRow
-                        key={`${slot.hour}-${slot.minute}`}
-                        slot={slot}
-                        isSelected={isSlotSelected}
-                        topPx={topPx}
-                        slotHeight={slotHeight}
-                        onTap={() => handleSlotClick(member.id, slot.hour, slot.minute)}
-                        onLongPress={() => handleBookSlot(member.id, slot.hour, slot.minute)}
+                      <div
+                        key={`s-${slot.hour}-${slot.minute}`}
+                        className={cn(
+                          "absolute left-0 right-0 cursor-pointer transition-colors active:bg-primary/10",
+                          isSlotSelected ? "bg-blue-100/70" : ""
+                        )}
+                        style={{ top: topPx, height: slotHeight }}
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          handleSlotClick(member.id, slot.hour, slot.minute);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSlotClick(member.id, slot.hour, slot.minute);
+                        }}
                       />
                     );
                   })}
 
-                  {/* Appointments */}
+                  {/* Appointment blocks */}
                   {staffApts.map((apt: any) => {
                     const style = getAppointmentStyle(apt);
                     const startTime = formatInTz(apt.date, timezone, "h:mm");
                     const endTime = formatInTz(
                       addMinutes(new Date(apt.date), apt.duration),
                       timezone,
-                      "h:mm a"
+                      "h:mm"
                     );
                     const isSelected = selectedAppointment?.id === apt.id;
+                    const isOnlineBooking = apt.source === "online";
 
                     const bandColor =
                       apt.status === "completed" ? "#9ca3af"
@@ -416,35 +371,35 @@ export function MobileCalendarView({
                       : "#eff6ff";
 
                     const aptMinutesPastStart = Math.floor(
-                      (Date.now() - new Date(apt.date).getTime()) / 60000,
+                      (Date.now() - new Date(apt.date).getTime()) / 60000
                     );
-                    const isAptOverdue =
+                    const isOverdue =
                       aptMinutesPastStart >= lateGracePeriodMinutes &&
                       (apt.status === "pending" || apt.status === "confirmed");
-
-                    const isLocked = apt.status === "completed";
-                    const isOnlineBooking = apt.source === "online";
 
                     const aptAddons = apt.appointmentAddons?.map((aa: any) => aa.addon).filter(Boolean) || [];
                     const addonTotal = aptAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
                     const serviceTotal = Number(apt.service?.price || 0) + addonTotal;
 
+                    const blockBg = isOverdue ? "#fef2f2" : bgColor;
+                    const blockBorder = isOverdue ? "1.5px solid #dc2626" : `1px solid ${bandColor}40`;
+
                     return (
                       <div
                         key={apt.id}
                         className={cn(
-                          "absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer z-[5] transition-shadow active:shadow-md flex",
-                          isLocked && "opacity-70"
+                          "absolute left-[3px] right-[3px] rounded overflow-hidden cursor-pointer z-[5] flex select-none",
+                          apt.status === "completed" && "opacity-70"
                         )}
                         style={{
                           ...style,
-                          backgroundColor: isAptOverdue ? "#fef2f2" : bgColor,
-                          border: isAptOverdue
-                            ? "1.5px solid #dc2626"
-                            : `1px solid ${bandColor}40`,
-                          ...(isSelected
-                            ? { boxShadow: `0 0 0 2px ${isAptOverdue ? "#dc2626" : bandColor}` }
-                            : {}),
+                          backgroundColor: blockBg,
+                          border: blockBorder,
+                          ...(isSelected ? { boxShadow: `0 0 0 2px ${isOverdue ? "#dc2626" : bandColor}` } : {}),
+                        }}
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          onSelectAppointment(apt);
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -452,89 +407,72 @@ export function MobileCalendarView({
                         }}
                         data-testid={`mobile-appt-block-${apt.id}`}
                       >
+                        {/* Status band — left for walk-in/store, right for online */}
                         {!isOnlineBooking && (
-                          <div className="w-[4px] flex-shrink-0" style={{ backgroundColor: bandColor }} />
+                          <div className="w-[3px] flex-shrink-0 rounded-l" style={{ backgroundColor: bandColor }} />
                         )}
 
-                        <div className="flex-1 px-1.5 py-1 overflow-hidden flex flex-col min-h-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] font-semibold text-gray-700 leading-tight">
-                              {startTime} – {endTime}
-                            </span>
-                            <span className="text-[10px] font-medium text-gray-500 flex-shrink-0">
-                              {apt.duration}m
-                            </span>
-                          </div>
-
-                          <div className="text-xs font-bold text-gray-900 truncate leading-tight mt-0.5">
+                        <div className="flex-1 px-1 py-0.5 overflow-hidden flex flex-col min-h-0">
+                          <span className="text-[9px] font-semibold text-gray-600 leading-tight tabular-nums truncate">
+                            {startTime}–{endTime}
+                          </span>
+                          <span className="text-[11px] font-bold text-gray-900 leading-tight truncate">
                             {apt.service?.name || "Service"}
-                          </div>
-
-                          {aptAddons.map((addon: any) => (
-                            <div
-                              key={addon.id}
-                              className="text-[10px] text-gray-500 truncate leading-tight"
-                            >
-                              + {addon.name}
-                            </div>
-                          ))}
-
+                          </span>
                           {apt.customer?.name && (
-                            <div className="text-[10px] text-gray-600 truncate leading-tight">
+                            <span className="text-[10px] text-gray-600 leading-tight truncate">
                               {apt.customer.name}
-                            </div>
+                            </span>
                           )}
-
                           {showPrices && serviceTotal > 0 && (
-                            <div className="mt-auto pt-0.5 flex items-center justify-end">
-                              <span
-                                className="text-[10px] font-bold tabular-nums"
-                                style={{ color: bandColor }}
-                              >
-                                ${serviceTotal.toFixed(2)}
-                              </span>
-                            </div>
+                            <span
+                              className="text-[9px] font-bold tabular-nums mt-auto leading-tight"
+                              style={{ color: bandColor }}
+                            >
+                              ${serviceTotal.toFixed(2)}
+                            </span>
                           )}
                         </div>
 
                         {isOnlineBooking && (
-                          <div className="w-[4px] flex-shrink-0" style={{ backgroundColor: bandColor }} />
+                          <div className="w-[3px] flex-shrink-0 rounded-r" style={{ backgroundColor: bandColor }} />
                         )}
                       </div>
                     );
                   })}
                 </div>
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      </div>
 
+      {/* ── Slot tap modal ── */}
       {selectedSlot && (
-        <MobileSlotModal
+        <SlotModal
           slot={selectedSlot}
+          staffName={filteredStaff.find((s) => s.id === selectedSlot.staffId)?.name || ""}
           onClose={() => setSelectedSlot(null)}
           onBook={() => {
             handleBookSlot(selectedSlot.staffId, selectedSlot.hour, selectedSlot.minute);
             setSelectedSlot(null);
           }}
-          staffName={filteredStaff.find(s => s.id === selectedSlot.staffId)?.name || ""}
         />
       )}
     </div>
   );
 }
 
-function MobileSlotModal({
+function SlotModal({
   slot,
+  staffName,
   onClose,
   onBook,
-  staffName,
 }: {
   slot: { staffId: number; hour: number; minute: number };
+  staffName: string;
   onClose: () => void;
   onBook: () => void;
-  staffName: string;
 }) {
   const h = slot.hour > 12 ? slot.hour - 12 : slot.hour === 0 ? 12 : slot.hour;
   const m = String(slot.minute).padStart(2, "0");
@@ -542,24 +480,21 @@ function MobileSlotModal({
   const timeLabel = `${h}:${m} ${ampm}`;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
       <div
         className="relative z-10 bg-card rounded-2xl shadow-2xl border w-full max-w-sm overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/40">
           <div>
             <p className="text-sm font-bold">{timeLabel}</p>
-            {staffName && (
-              <p className="text-xs text-muted-foreground">{staffName}</p>
-            )}
+            {staffName && <p className="text-xs text-muted-foreground">{staffName}</p>}
           </div>
           <button onClick={onClose} className="text-muted-foreground p-1">
-            <X className="w-4 h-4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div className="p-3 flex flex-col gap-2">
