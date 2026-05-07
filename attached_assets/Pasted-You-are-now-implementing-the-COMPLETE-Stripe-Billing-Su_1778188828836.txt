@@ -1,0 +1,549 @@
+You are now implementing the COMPLETE Stripe Billing + Subscription Infrastructure for Certxa SalonOS.
+
+This is NOT just “connect Stripe.”
+This is a production-grade SaaS billing architecture built for:
+- salon subscriptions
+- customer service agents
+- failed payment recovery
+- plan management
+- subscription lifecycle tracking
+- dispute handling
+- invoicing
+- audit logs
+- support visibility
+- future expansion
+
+The system must be clean, scalable, secure, and modular.
+
+====================================================
+CORE STACK
+====================================================
+
+Backend:
+- Node.js
+- Express
+- PostgreSQL
+- Redis
+- WebSockets already exist in system
+
+Frontend:
+- Existing React frontend
+
+Payments:
+- Stripe
+- Stripe Billing
+- Stripe Customer Portal
+- Stripe Webhooks
+
+====================================================
+PRIMARY GOAL
+====================================================
+
+Create a COMPLETE billing system where:
+
+1. Customers can:
+   - subscribe
+   - upgrade
+   - downgrade
+   - cancel
+   - update payment methods
+   - view invoices
+   - retry failed payments
+
+2. Admins and support agents can:
+   - see EVERYTHING about the account
+   - instantly understand billing history
+   - see subscription state
+   - see payment failures
+   - see disputes
+   - see trial status
+   - see coupon usage
+   - see refund history
+   - see Stripe sync logs
+   - see event timelines
+   - see account MRR value
+   - see lifetime spend
+
+3. System stores enough data internally so support does NOT depend entirely on Stripe dashboard.
+
+====================================================
+IMPORTANT RULES
+====================================================
+
+- NEVER trust frontend pricing
+- ALL pricing comes from backend
+- ALL plan IDs stored server-side
+- ALL Stripe webhook events verified
+- ALL billing changes logged
+- EVERYTHING timestamped
+- Build for auditability
+- Build for customer support visibility
+- Build for future multi-plan expansion
+
+====================================================
+SUBSCRIPTION PLANS
+====================================================
+
+Create architecture supporting:
+
+- Monthly plans
+- Yearly plans
+- Free trial support
+- Promotional coupons
+- Future add-ons
+- Future seat-based billing
+- Future usage billing
+
+Store plans in database.
+
+TABLE: billing_plans
+Fields:
+- id
+- stripe_price_id
+- stripe_product_id
+- internal_plan_code
+- display_name
+- billing_interval
+- price_cents
+- currency
+- active
+- features_json
+- created_at
+- updated_at
+
+====================================================
+CUSTOMER BILLING PROFILE
+====================================================
+
+TABLE: customer_billing_profiles
+
+Store:
+- user_id
+- salon_id
+- stripe_customer_id
+- default_payment_method_id
+- customer_email
+- customer_name
+- billing_phone
+- billing_address_line1
+- billing_address_line2
+- billing_city
+- billing_state
+- billing_zip
+- billing_country
+- tax_exempt_status
+- preferred_currency
+- current_plan_id
+- current_subscription_status
+- trial_ends_at
+- current_period_start
+- current_period_end
+- cancel_at_period_end
+- canceled_at
+- subscription_started_at
+- lifetime_value_cents
+- total_successful_payments
+- total_failed_payments
+- last_payment_date
+- last_payment_amount
+- last_failed_payment_date
+- last_failed_payment_reason
+- delinquent
+- account_hold
+- internal_billing_notes
+- created_at
+- updated_at
+
+====================================================
+STORE FULL SUBSCRIPTION DATA
+====================================================
+
+TABLE: subscriptions
+
+Store:
+- local_subscription_id
+- stripe_subscription_id
+- salon_id
+- stripe_customer_id
+- plan_id
+- status
+- collection_method
+- billing_cycle_anchor
+- current_period_start
+- current_period_end
+- cancel_at_period_end
+- canceled_at
+- ended_at
+- trial_start
+- trial_end
+- latest_invoice_id
+- latest_invoice_status
+- latest_payment_intent_id
+- quantity
+- currency
+- subtotal_cents
+- tax_cents
+- total_cents
+- discount_cents
+- coupon_code
+- created_at
+- updated_at
+
+====================================================
+STORE INVOICES
+====================================================
+
+TABLE: invoices
+
+Store FULL invoice visibility:
+- stripe_invoice_id
+- stripe_customer_id
+- stripe_subscription_id
+- salon_id
+- invoice_number
+- status
+- paid
+- attempted
+- forgiven
+- collection_method
+- currency
+- subtotal_cents
+- tax_cents
+- total_cents
+- amount_paid_cents
+- amount_remaining_cents
+- hosted_invoice_url
+- invoice_pdf_url
+- billing_reason
+- period_start
+- period_end
+- due_date
+- paid_at
+- attempted_at
+- next_payment_attempt
+- created_at
+- updated_at
+
+====================================================
+STORE PAYMENT TRANSACTIONS
+====================================================
+
+TABLE: payment_transactions
+
+Store:
+- stripe_payment_intent_id
+- stripe_charge_id
+- stripe_invoice_id
+- salon_id
+- user_id
+- status
+- payment_method_brand
+- payment_method_last4
+- payment_method_fingerprint
+- card_exp_month
+- card_exp_year
+- amount_cents
+- currency
+- failure_code
+- failure_message
+- receipt_url
+- refunded
+- refund_amount_cents
+- dispute_status
+- created_at
+- updated_at
+
+====================================================
+STORE WEBHOOK EVENTS
+====================================================
+
+TABLE: stripe_webhook_events
+
+Store ALL incoming webhook events:
+- stripe_event_id
+- event_type
+- api_version
+- processed
+- processing_attempts
+- processing_error
+- payload_json
+- received_at
+- processed_at
+
+NEVER discard webhook data.
+
+====================================================
+STORE BILLING ACTIVITY TIMELINE
+====================================================
+
+TABLE: billing_activity_logs
+
+This is CRITICAL for support agents.
+
+Store:
+- salon_id
+- user_id
+- event_type
+- severity
+- message
+- metadata_json
+- source
+- ip_address
+- created_at
+
+Examples:
+- subscription created
+- card declined
+- payment succeeded
+- refund issued
+- subscription canceled
+- coupon applied
+- plan upgraded
+- webhook failed
+- dispute opened
+
+====================================================
+BUILD STRIPE WEBHOOK SYSTEM
+====================================================
+
+Implement secure Stripe webhook endpoint.
+
+Verify signatures.
+
+Handle:
+- customer.created
+- customer.updated
+- customer.subscription.created
+- customer.subscription.updated
+- customer.subscription.deleted
+- invoice.created
+- invoice.payment_succeeded
+- invoice.payment_failed
+- payment_intent.succeeded
+- payment_intent.payment_failed
+- charge.refunded
+- charge.dispute.created
+- charge.dispute.closed
+- checkout.session.completed
+
+Webhook system MUST:
+- be idempotent
+- prevent duplicate processing
+- queue retries
+- log failures
+- never crash server
+
+====================================================
+CUSTOMER PORTAL
+====================================================
+
+Implement Stripe Customer Portal integration.
+
+Customers can:
+- update cards
+- cancel plans
+- download invoices
+- change billing info
+
+Generate portal sessions securely from backend only.
+
+====================================================
+CHECKOUT FLOW
+====================================================
+
+Implement Stripe Checkout Sessions.
+
+Flow:
+1. User selects plan
+2. Backend creates checkout session
+3. Frontend redirects to Stripe
+4. Webhook confirms payment
+5. Local DB updates
+6. Salon account activated
+
+NEVER activate account from frontend success redirect alone.
+
+====================================================
+FAILED PAYMENT AUTOMATION
+====================================================
+
+Implement delinquent handling.
+
+If payment fails:
+- mark account delinquent
+- store exact failure reason
+- notify salon owner
+- create activity log
+- notify support dashboard
+
+After X days:
+- optionally restrict features
+- eventually suspend account
+
+Must be configurable.
+
+====================================================
+ADMIN / AGENT BILLING DASHBOARD
+====================================================
+
+Create support-grade billing dashboard.
+
+Agents must instantly see:
+- active plan
+- next billing date
+- failed payments
+- payment methods
+- card brand + last4
+- invoice history
+- refunds
+- disputes
+- subscription history
+- lifecycle timeline
+- account standing
+- delinquent state
+- lifetime spend
+- MRR contribution
+- cancellation reasons
+
+====================================================
+CUSTOMER BILLING PAGE
+====================================================
+
+Customer billing UI should include:
+- current plan
+- renewal date
+- amount
+- payment method
+- billing history
+- downloadable invoices
+- upgrade/downgrade buttons
+- cancel subscription
+- retry payment button
+- update card button
+
+====================================================
+SECURITY REQUIREMENTS
+====================================================
+
+- NEVER store raw card numbers
+- NEVER store CVC
+- Use Stripe tokens/payment methods only
+- Encrypt sensitive billing metadata
+- Use environment variables correctly
+- Verify all webhook signatures
+- Validate all IDs
+- Add rate limiting to billing endpoints
+- Add audit logging
+
+====================================================
+REQUIRED API ROUTES
+====================================================
+
+Create complete backend routes for:
+- create checkout session
+- create portal session
+- get billing profile
+- get invoices
+- get transactions
+- get subscription
+- cancel subscription
+- resume subscription
+- change plan
+- retry invoice payment
+- apply coupon
+- admin billing overview
+- webhook receiver
+
+====================================================
+STATE MANAGEMENT
+====================================================
+
+Subscription states:
+- trialing
+- active
+- past_due
+- unpaid
+- canceled
+- incomplete
+- incomplete_expired
+- paused
+
+Implement clear state handling logic.
+
+====================================================
+REALTIME FEATURES
+====================================================
+
+Use WebSockets to push:
+- payment success
+- payment failure
+- subscription updates
+- account suspension warnings
+- invoice paid notifications
+
+====================================================
+FUTURE EXPANSION SUPPORT
+====================================================
+
+Architecture must support future:
+- SMS billing alerts
+- multiple salons per owner
+- add-on purchases
+- marketplace transactions
+- commission billing
+- metered usage billing
+- affiliate payouts
+- reseller accounts
+- white-label billing
+
+====================================================
+IMPORTANT UX REQUIREMENTS
+====================================================
+
+Billing UI must feel:
+- premium
+- trustworthy
+- modern SaaS
+- easy for salon owners
+- easy for support agents
+
+Agents should NEVER need to open Stripe dashboard for normal support tasks.
+
+====================================================
+DELIVERABLES
+====================================================
+
+Build:
+- database schema
+- migrations
+- backend Stripe services
+- webhook processor
+- billing APIs
+- frontend billing pages
+- admin billing dashboard
+- subscription state logic
+- retry logic
+- audit logging
+- Stripe integration service layer
+- environment variable template
+- testing utilities
+- seed data
+- clean folder structure
+
+====================================================
+CODE QUALITY
+====================================================
+
+- modular
+- production-grade
+- scalable
+- heavily commented
+- reusable services
+- clean architecture
+- proper error handling
+- async safe
+- transaction safe
+
+DO NOT generate placeholders.
+DO NOT generate fake logic.
+Implement real production-ready architecture.

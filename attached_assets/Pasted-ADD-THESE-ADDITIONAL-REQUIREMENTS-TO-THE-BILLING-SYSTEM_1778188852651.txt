@@ -1,0 +1,257 @@
+ADD THESE ADDITIONAL REQUIREMENTS TO THE BILLING SYSTEM IMPLEMENTATION:
+
+====================================================
+REFUNDS SYSTEM
+====================================================
+
+Implement COMPLETE refund infrastructure.
+
+Support:
+- full refunds
+- partial refunds
+- manual refunds
+- automatic refunds
+- refund history
+- refund auditing
+- refund reason tracking
+
+====================================================
+REFUND DATABASE STORAGE
+====================================================
+
+TABLE: refunds
+
+Store:
+- refund_id
+- stripe_refund_id
+- stripe_charge_id
+- stripe_payment_intent_id
+- stripe_invoice_id
+- salon_id
+- user_id
+- initiated_by_user_id
+- amount_cents
+- currency
+- reason
+- internal_reason_notes
+- refund_type
+- status
+- receipt_url
+- metadata_json
+- created_at
+- updated_at
+
+====================================================
+REFUND LOGIC
+====================================================
+
+Backend must support:
+- refund by invoice
+- refund by payment
+- partial refund amounts
+- multiple partial refunds per charge
+- refund validation checks
+- refund limits
+- permission checks
+- admin-only refund controls
+- refund notes for agents
+
+ALL refunds must:
+- create billing activity logs
+- update payment transaction records
+- update customer lifetime value
+- sync with Stripe immediately
+- update dashboards in realtime
+
+====================================================
+REFUND SUPPORT DASHBOARD
+====================================================
+
+Agents/Admins must see:
+- refund history
+- refunded amounts
+- who issued refund
+- why refund was issued
+- dispute-related refunds
+- refund status
+- partial vs full refund
+
+Add:
+- refund button
+- partial refund modal
+- refund reason selector
+- internal notes field
+
+====================================================
+REFUND WEBHOOK EVENTS
+====================================================
+
+Handle:
+- charge.refunded
+- refund.created
+- refund.updated
+- refund.failed
+
+Webhook system must sync local DB accurately.
+
+====================================================
+UPGRADE / DOWNGRADE SYSTEM
+====================================================
+
+Implement COMPLETE subscription plan change handling.
+
+Support:
+- upgrades
+- downgrades
+- immediate upgrades
+- scheduled downgrades
+- proration
+- no-proration mode
+- billing cycle preservation
+- trial-aware upgrades
+- coupon preservation
+- add-on compatibility
+
+====================================================
+PLAN CHANGE DATABASE TRACKING
+====================================================
+
+TABLE: subscription_plan_changes
+
+Store:
+- change_id
+- salon_id
+- user_id
+- stripe_subscription_id
+- old_plan_id
+- new_plan_id
+- old_price_cents
+- new_price_cents
+- change_type
+- proration_used
+- prorated_amount_cents
+- effective_date
+- initiated_by
+- reason
+- metadata_json
+- created_at
+
+====================================================
+UPGRADE LOGIC
+====================================================
+
+UPGRADES should:
+- apply immediately
+- calculate prorated charges
+- invoice correctly
+- update feature access instantly
+- generate activity logs
+- notify customer
+- update realtime dashboard state
+
+====================================================
+DOWNGRADE LOGIC
+====================================================
+
+DOWNGRADES should support:
+- immediate downgrade
+- end-of-cycle downgrade
+- scheduled downgrade queue
+
+When scheduled:
+- retain current features until renewal
+- automatically switch plans at renewal
+- notify customer before switch
+
+====================================================
+PRORATION HANDLING
+====================================================
+
+Implement Stripe proration handling correctly.
+
+Support:
+- prorated upgrade charges
+- prorated credits
+- invoice previews before confirming
+- customer-visible proration breakdowns
+
+====================================================
+PLAN CHANGE UI
+====================================================
+
+Customer billing UI must show:
+- current plan
+- available plans
+- upgrade options
+- downgrade options
+- prorated pricing preview
+- next invoice estimate
+- feature comparison
+
+====================================================
+ADMIN VISIBILITY
+====================================================
+
+Agents/Admins must see:
+- complete subscription history
+- every plan change ever made
+- why plan changed
+- who changed it
+- proration details
+- failed upgrade attempts
+- downgrade schedules
+- pending changes
+
+====================================================
+REALTIME EVENTS
+====================================================
+
+Push websocket updates for:
+- refund issued
+- refund failed
+- plan upgraded
+- plan downgraded
+- downgrade scheduled
+- proration invoice created
+
+====================================================
+IMPORTANT BUSINESS LOGIC
+====================================================
+
+When upgrading:
+- NEVER double-charge incorrectly
+- ALWAYS preview invoice first
+- ALWAYS sync local DB with Stripe
+
+When downgrading:
+- NEVER remove features early unless intended
+- ALWAYS preserve access through paid period
+- ALWAYS log scheduled changes
+
+====================================================
+AUDIT REQUIREMENTS
+====================================================
+
+ALL refund and subscription change actions must:
+- create audit logs
+- store actor identity
+- store timestamps
+- store IP address
+- store metadata
+- be searchable by agents
+
+====================================================
+CUSTOMER EXPERIENCE
+====================================================
+
+Billing experience must feel:
+- transparent
+- trustworthy
+- enterprise-grade
+- easy to understand
+
+Customers should ALWAYS understand:
+- what they are paying
+- why charges changed
+- when changes take effect
+- how refunds were processed
