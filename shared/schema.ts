@@ -1159,12 +1159,30 @@ export type InsertName = typeof names.$inferInsert;
 
 export const onboardingSubmissions = pgTable("onboarding_submissions", {
   id: serial("id").primaryKey(),
+  // Legacy column — kept for backward compat; new rows use contact_email
   email: text("email"),
+  contactEmail: text("contact_email"),
   businessName: text("business_name"),
   templateId: text("template_id"),
-  status: text("status").default("pending_payment"),
+  phone: text("phone"),
+  addressLine1: text("address_line1"),
+  addressLine2: text("address_line2"),
+  city: text("city"),
+  countyState: text("county_state"),
+  postcode: text("postcode"),
+  country: text("country").default("GB"),
   hours: jsonb("hours"),
+  bookingEnabled: boolean("booking_enabled").default(false),
+  domainType: text("domain_type").default("subdomain"), // 'subdomain' | 'custom'
+  subdomain: text("subdomain"),
+  customDomain: text("custom_domain"),
+  domainPaymentStatus: text("domain_payment_status").default("n/a"),
+  heroImage: text("hero_image"),
+  plan: text("plan").default("free"),
+  poweredByCertxa: boolean("powered_by_certxa").default(true),
+  status: text("status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const subdomains = pgTable("subdomains", {
@@ -1173,3 +1191,8 @@ export const subdomains = pgTable("subdomains", {
   slug: text("slug").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export type OnboardingSubmission = typeof onboardingSubmissions.$inferSelect;
+export type InsertOnboardingSubmission = typeof onboardingSubmissions.$inferInsert;
+export type Subdomain = typeof subdomains.$inferSelect;
+export type InsertSubdomain = typeof subdomains.$inferInsert;
