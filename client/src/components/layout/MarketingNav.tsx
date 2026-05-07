@@ -20,8 +20,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "SalonOS",    href: "/salonos.php",   style: { fontWeight: 700, color: PLUM_MID } },
-  { label: "LaunchSite", href: "/launchsite.php", style: { fontWeight: 700, color: INDIGO } },
+  { label: "SalonOS", href: "/salonos.php", style: { fontWeight: 700, color: PLUM_MID } },
   {
     label: "How It Works",
     dropdown: [
@@ -60,6 +59,12 @@ const NAV_ITEMS: NavItem[] = [
           { label: "Hair Salons",          href: "/hair-salon-software.php" },
           { label: "Nail Studios",         href: "/nail-salon-software.php" },
           { label: "Barbershops",          href: "/barbershop-software.php" },
+        ],
+      },
+      {
+        section: "Website Builder",
+        items: [
+          { label: "LaunchSite", href: "/launchsite.php", section: "Website Builder" },
         ],
       },
       {

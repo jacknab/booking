@@ -11,11 +11,6 @@
           <a href="/salonos.php" style="font-weight:700;color:var(--plum);">SalonOS</a>
         </li>
 
-        <!-- LaunchSite — top-level prominent link -->
-        <li>
-          <a href="/launchsite.php" style="font-weight:700;color:#6366f1;">LaunchSite</a>
-        </li>
-
         <li class="has-dropdown">
           <a href="#">How It Works</a>
           <div class="dropdown">
@@ -41,6 +36,8 @@
             <a href="/hair-salon-software.php"><span class="nav-dot"></span>Hair Salons</a>
             <a href="/nail-salon-software.php"><span class="nav-dot"></span>Nail Studios</a>
             <a href="/barbershop-software.php"><span class="nav-dot"></span>Barbershops</a>
+            <div class="dropdown-section" style="margin-top:10px;">Website Builder</div>
+            <a href="/launchsite.php" style="font-weight:600;color:#6366f1;"><span class="nav-dot"></span>LaunchSite</a>
             <div class="dropdown-section" style="margin-top:10px;">Compare</div>
             <a href="/vs-glossgenius.php"><span class="nav-dot"></span>Certxa vs GlossGenius</a>
             <a href="/vs-vagaro.php"><span class="nav-dot"></span>Certxa vs Vagaro</a>
