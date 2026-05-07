@@ -1,14 +1,13 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { addMinutes, isSameDay } from "date-fns";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { addDays, addMinutes, isSameDay } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { Plus, Check, CalendarPlus, Search, Clock } from "lucide-react";
+import { Plus, Check, CalendarPlus, Search, Clock, Play, CheckCircle2, XCircle } from "lucide-react";
 
 const TIME_COL_W = 44;
 const STAFF_HEADER_H = 68;
-const COLS_PER_PAGE = 2;
 
 interface WeekDay {
   date: Date;
@@ -45,6 +44,35 @@ interface MobileCalendarViewProps {
   onSelectDate: (date: Date) => void;
   onNewBooking: () => void;
   onLookup: () => void;
+  selectedStaffId: number | "all";
+  onFilterStaff: (staffId: number | "all") => void;
+  onQuickStart: (apt: any) => void;
+  onQuickComplete: (apt: any) => void;
+  onQuickCancel: (apt: any) => void;
+}
+
+function useColsPerPage(staffCount: number) {
+  const getIsLandscape = () =>
+    typeof window !== "undefined" && window.innerWidth > window.innerHeight;
+
+  const [isLandscape, setIsLandscape] = useState(getIsLandscape);
+
+  useEffect(() => {
+    const update = () => setIsLandscape(getIsLandscape());
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+
+  if (!isLandscape || staffCount <= 2) return 2;
+  const w = typeof window !== "undefined" ? window.innerWidth : 400;
+  if (w >= 700) return Math.min(staffCount, 5);
+  if (w >= 580) return Math.min(staffCount, 4);
+  if (w >= 460) return Math.min(staffCount, 3);
+  return 2;
 }
 
 export function MobileCalendarView({
@@ -76,17 +104,23 @@ export function MobileCalendarView({
   onSelectDate,
   onNewBooking,
   onLookup,
+  selectedStaffId,
+  onFilterStaff,
+  onQuickStart,
+  onQuickComplete,
+  onQuickCancel,
 }: MobileCalendarViewProps) {
   const [showFabMenu, setShowFabMenu] = useState(false);
+  const [quickActionApt, setQuickActionApt] = useState<any | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const didAutoScrollRef = useRef(false);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const weekStripTouchRef = useRef<{ x: number; y: number } | null>(null);
 
   const [staffPage, setStaffPage] = useState(0);
   const [swipeDir, setSwipeDir] = useState<1 | -1>(1);
   const [showJumpToNow, setShowJumpToNow] = useState(false);
 
+  const COLS_PER_PAGE = useColsPerPage(filteredStaff.length);
   const totalPages = Math.max(1, Math.ceil(filteredStaff.length / COLS_PER_PAGE));
   const safeStaffPage = Math.min(staffPage, totalPages - 1);
   const visibleStaff = filteredStaff.slice(safeStaffPage * COLS_PER_PAGE, (safeStaffPage + 1) * COLS_PER_PAGE);
@@ -95,7 +129,7 @@ export function MobileCalendarView({
 
   useEffect(() => {
     setStaffPage(0);
-  }, [filteredStaff.length]);
+  }, [filteredStaff.length, COLS_PER_PAGE]);
 
   const scrollToNow = useCallback(() => {
     if (!gridRef.current || timeLinePosition === null) return;
@@ -130,6 +164,8 @@ export function MobileCalendarView({
     return () => el.removeEventListener("scroll", check);
   }, [isToday, timeLinePosition]);
 
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY };
@@ -163,7 +199,7 @@ export function MobileCalendarView({
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-background">
 
-      {/* ── Week strip (swipe left/right to jump a week) ── */}
+      {/* ── Week strip ── */}
       <div
         className="flex-shrink-0 border-b flex"
         style={{ backgroundColor: "#f1f5f9" }}
@@ -238,10 +274,10 @@ export function MobileCalendarView({
           )}
         </div>
 
-        {/* Staff header cells — animated on page change */}
+        {/* Staff header cells — tappable to filter */}
         <AnimatePresence mode="wait" custom={swipeDir}>
           <motion.div
-            key={`hdr-${safeStaffPage}`}
+            key={`hdr-${safeStaffPage}-${COLS_PER_PAGE}`}
             custom={swipeDir}
             initial={(dir: number) => ({ x: dir * 40, opacity: 0 })}
             animate={{ x: 0, opacity: 1 }}
@@ -252,14 +288,22 @@ export function MobileCalendarView({
             {visibleStaff.map((member: any) => {
               const color = getStaffColor(member);
               const aptCount = getAppointmentsForStaff(member.id).length;
+              const isFiltered = selectedStaffId === member.id;
               return (
-                <div
+                <button
                   key={member.id}
-                  className="flex-1 flex items-center gap-2 px-3"
-                  style={{ minWidth: 0, borderLeft: `3px solid ${color}` }}
+                  className="flex-1 flex items-center gap-2 px-3 active:opacity-70 transition-opacity text-left"
+                  style={{
+                    minWidth: 0,
+                    borderLeft: `3px solid ${color}`,
+                    backgroundColor: isFiltered ? color + "14" : undefined,
+                  }}
+                  onClick={() => onFilterStaff(isFiltered ? "all" : member.id)}
                 >
-                  <Avatar className="w-9 h-9 flex-shrink-0 ring-2 ring-offset-1" style={{ ["--tw-ring-color" as any]: color + "60" }}>
-                    {member.avatarUrl && <AvatarFallback className="object-cover" />}
+                  <Avatar
+                    className="w-9 h-9 flex-shrink-0 ring-2 ring-offset-1"
+                    style={{ ["--tw-ring-color" as any]: color + "60" }}
+                  >
                     <AvatarFallback
                       style={{ backgroundColor: color + "22", color }}
                       className="text-[11px] font-extrabold"
@@ -269,7 +313,7 @@ export function MobileCalendarView({
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] font-bold truncate leading-tight text-foreground">{member.name}</p>
-                    <div className="mt-1">
+                    <div className="mt-1 flex items-center gap-1">
                       {aptCount === 0 ? (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-muted text-muted-foreground">
                           No appts
@@ -282,12 +326,16 @@ export function MobileCalendarView({
                           {aptCount} appt{aptCount !== 1 ? "s" : ""}
                         </span>
                       )}
+                      {isFiltered && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary">
+                          filtered
+                        </span>
+                      )}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
-            {/* empty placeholder if odd staff on last page */}
             {visibleStaff.length < COLS_PER_PAGE && (
               <div className="flex-1 border-l" />
             )}
@@ -299,7 +347,7 @@ export function MobileCalendarView({
       <div
         ref={gridRef}
         className="flex-1 overflow-y-auto"
-        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+        style={{ WebkitOverflowScrolling: "touch", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -357,7 +405,7 @@ export function MobileCalendarView({
           <div className="flex-1 relative overflow-hidden">
             <AnimatePresence mode="wait" custom={swipeDir}>
               <motion.div
-                key={`cols-${safeStaffPage}`}
+                key={`cols-${safeStaffPage}-${COLS_PER_PAGE}`}
                 custom={swipeDir}
                 initial={(dir: number) => ({ x: dir * 50, opacity: 0 })}
                 animate={{ x: 0, opacity: 1 }}
@@ -390,7 +438,10 @@ export function MobileCalendarView({
                       timezone={timezone}
                       getAppointmentStyle={getAppointmentStyle}
                       onSelectAppointment={onSelectAppointment}
+                      onLongPressAppointment={(apt) => setQuickActionApt(apt)}
                       handleSlotClick={handleSlotClick}
+                      handleBookSlot={handleBookSlot}
+                      storeNow={storeNow}
                     />
                   );
                 })}
@@ -417,7 +468,19 @@ export function MobileCalendarView({
         />
       )}
 
-      {/* ── Now pill — centered above nav, same style as desktop ── */}
+      {/* ── Quick action menu (long-press on appointment) ── */}
+      {quickActionApt && (
+        <QuickActionMenu
+          apt={quickActionApt}
+          onClose={() => setQuickActionApt(null)}
+          onStart={() => { onQuickStart(quickActionApt); setQuickActionApt(null); }}
+          onComplete={() => { onQuickComplete(quickActionApt); setQuickActionApt(null); }}
+          onCancel={() => { onQuickCancel(quickActionApt); setQuickActionApt(null); }}
+          onViewDetails={() => { onSelectAppointment(quickActionApt); setQuickActionApt(null); }}
+        />
+      )}
+
+      {/* ── Now pill ── */}
       {showJumpToNow && (
         <button
           onClick={scrollToNow}
@@ -446,7 +509,7 @@ export function MobileCalendarView({
         <Plus className="w-6 h-6 text-white" />
       </button>
 
-      {/* ── FAB bottom-sheet menu ── */}
+      {/* ── FAB menu ── */}
       {showFabMenu && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-6"
@@ -515,7 +578,10 @@ function StaffColumn({
   timezone,
   getAppointmentStyle,
   onSelectAppointment,
+  onLongPressAppointment,
   handleSlotClick,
+  handleBookSlot,
+  storeNow,
 }: {
   member: any;
   staffApts: any[];
@@ -536,14 +602,31 @@ function StaffColumn({
   timezone: string;
   getAppointmentStyle: (apt: any) => { top: string; height: string };
   onSelectAppointment: (apt: any) => void;
+  onLongPressAppointment: (apt: any) => void;
   handleSlotClick: (staffId: number, hour: number, minute: number) => void;
+  handleBookSlot: (staffId: number, hour: number, minute: number) => void;
+  storeNow: Date;
 }) {
+  const slotLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slotLongPressFiredRef = useRef(false);
+  const slotTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const aptLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aptLongPressFiredRef = useRef(false);
+  const aptTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   return (
     <div
-      className="flex-1 relative"
-      style={{ height: totalGridH, backgroundColor: staffColor + "09", borderLeft: `3px solid ${staffColor}` }}
+      className="flex-1 relative select-none"
+      style={{
+        height: totalGridH,
+        backgroundColor: staffColor + "09",
+        borderLeft: `3px solid ${staffColor}`,
+        WebkitUserSelect: "none",
+        userSelect: "none",
+      } as React.CSSProperties}
     >
-      {/* Grid lines */}
+      {/* Grid lines — hour lines solid/visible, half-hour dashed */}
       {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
         const totalMins = i * 15;
         const h = START_HOUR + Math.floor(totalMins / 60);
@@ -557,8 +640,27 @@ function StaffColumn({
             className="absolute left-0 right-0 pointer-events-none"
             style={{
               top: topPx,
-              borderTop: m === 0 ? "1px solid rgba(0,0,0,0.18)" : "1px dashed rgba(0,0,0,0.10)",
+              borderTop: m === 0
+                ? "1.5px solid rgba(0,0,0,0.22)"
+                : "1px dashed rgba(0,0,0,0.18)",
             }}
+          />
+        );
+      })}
+
+      {/* Quarter-hour guides (very faint) */}
+      {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
+        const totalMins = i * 15;
+        const h = START_HOUR + Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
+        if (m === 0 || m === 30) return null;
+        const topPx = (totalMins / 60) * HOUR_HEIGHT;
+        return (
+          <div
+            key={`q-${h}-${m}`}
+            className="absolute left-0 right-0 pointer-events-none"
+            style={{ top: topPx, borderTop: "1px dotted rgba(0,0,0,0.08)" }}
           />
         );
       })}
@@ -571,33 +673,67 @@ function StaffColumn({
         />
       )}
 
-      {/* Tappable slots */}
+      {/* Tappable slots — tap = select, long-press = immediately book */}
       {timeSlots.map((slot) => {
         const topPx = ((slot.hour - START_HOUR) + slot.minute / 60) * HOUR_HEIGHT;
         const slotH = (settings.timeSlotInterval / 60) * HOUR_HEIGHT;
         const isSlotSel = selectedSlot?.staffId === member.id && selectedSlot?.hour === slot.hour && selectedSlot?.minute === slot.minute;
+
+        const slotStart = new Date(
+          storeNow.getFullYear(), storeNow.getMonth(), storeNow.getDate(),
+          slot.hour, slot.minute, 0
+        );
+        const isPast = slotStart.getTime() <= storeNow.getTime();
+
         return (
           <div
             key={`s-${slot.hour}-${slot.minute}`}
             className={cn(
-              "absolute left-0 right-0 cursor-pointer transition-colors active:bg-primary/10",
-              isSlotSel ? "bg-blue-100/60" : ""
+              "absolute left-0 right-0 transition-colors",
+              isPast ? "cursor-default" : "cursor-pointer active:bg-primary/10",
+              isSlotSel ? "bg-blue-100/70" : ""
             )}
-            style={{ top: topPx, height: slotH }}
+            style={{ top: topPx, height: slotH, WebkitTouchCallout: "none" } as React.CSSProperties}
+            onContextMenu={(e) => e.preventDefault()}
             onTouchStart={(e) => {
+              if (isPast) return;
               const t = e.touches[0];
-              e.currentTarget.dataset.tx = String(t.clientX);
-              e.currentTarget.dataset.ty = String(t.clientY);
+              slotTouchStartRef.current = { x: t.clientX, y: t.clientY };
+              slotLongPressFiredRef.current = false;
+              slotLongPressTimerRef.current = setTimeout(() => {
+                slotLongPressFiredRef.current = true;
+                handleBookSlot(member.id, slot.hour, slot.minute);
+              }, 550);
+            }}
+            onTouchMove={(e) => {
+              if (!slotTouchStartRef.current) return;
+              const t = e.touches[0];
+              const dx = Math.abs(t.clientX - slotTouchStartRef.current.x);
+              const dy = Math.abs(t.clientY - slotTouchStartRef.current.y);
+              if ((dx > 8 || dy > 8) && slotLongPressTimerRef.current) {
+                clearTimeout(slotLongPressTimerRef.current);
+                slotLongPressTimerRef.current = null;
+              }
             }}
             onTouchEnd={(e) => {
+              if (slotLongPressTimerRef.current) {
+                clearTimeout(slotLongPressTimerRef.current);
+                slotLongPressTimerRef.current = null;
+              }
+              if (slotLongPressFiredRef.current) return;
+              if (!slotTouchStartRef.current) return;
               const t = e.changedTouches[0];
-              const dx = Math.abs(t.clientX - Number(e.currentTarget.dataset.tx ?? t.clientX));
-              const dy = Math.abs(t.clientY - Number(e.currentTarget.dataset.ty ?? t.clientY));
+              const dx = Math.abs(t.clientX - slotTouchStartRef.current.x);
+              const dy = Math.abs(t.clientY - slotTouchStartRef.current.y);
               if (dx > 8 || dy > 8) return;
               e.stopPropagation();
               handleSlotClick(member.id, slot.hour, slot.minute);
             }}
-            onClick={(e) => { e.stopPropagation(); handleSlotClick(member.id, slot.hour, slot.minute); }}
+            onClick={(e) => {
+              if (isPast) return;
+              e.stopPropagation();
+              handleSlotClick(member.id, slot.hour, slot.minute);
+            }}
           />
         );
       })}
@@ -627,12 +763,13 @@ function StaffColumn({
         const isConfirmed = apt.status === "confirmed" || isOnlineBooking;
 
         const cardBg = isOverdue ? "#fef2f2" : apt.status === "completed" ? "#f9fafb" : staffColor + "18";
+        const canQuickAction = apt.status !== "cancelled" && apt.status !== "completed" && apt.status !== "no_show";
 
         return (
           <div
             key={apt.id}
             className={cn(
-              "absolute left-[2px] right-[2px] rounded-lg overflow-hidden cursor-pointer z-[5] flex select-none",
+              "absolute left-[2px] right-[2px] rounded-lg overflow-hidden z-[5] flex select-none",
               isSelected ? "ring-2 ring-offset-0" : "",
               apt.status === "completed" && "opacity-70"
             )}
@@ -644,8 +781,43 @@ function StaffColumn({
               borderLeftWidth: 3,
               borderLeftColor: bandColor,
               ...(isSelected ? { boxShadow: `0 0 0 2px ${bandColor}` } : {}),
+              WebkitTouchCallout: "none",
+              cursor: "pointer",
+            } as React.CSSProperties}
+            onContextMenu={(e) => e.preventDefault()}
+            onTouchStart={(e) => {
+              const t = e.touches[0];
+              aptTouchStartRef.current = { x: t.clientX, y: t.clientY };
+              aptLongPressFiredRef.current = false;
+              if (canQuickAction) {
+                aptLongPressTimerRef.current = setTimeout(() => {
+                  aptLongPressFiredRef.current = true;
+                  onLongPressAppointment(apt);
+                }, 500);
+              }
             }}
-            onTouchEnd={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
+            onTouchMove={(e) => {
+              if (!aptTouchStartRef.current) return;
+              const t = e.touches[0];
+              const dx = Math.abs(t.clientX - aptTouchStartRef.current.x);
+              const dy = Math.abs(t.clientY - aptTouchStartRef.current.y);
+              if ((dx > 8 || dy > 8) && aptLongPressTimerRef.current) {
+                clearTimeout(aptLongPressTimerRef.current);
+                aptLongPressTimerRef.current = null;
+              }
+            }}
+            onTouchEnd={(e) => {
+              if (aptLongPressTimerRef.current) {
+                clearTimeout(aptLongPressTimerRef.current);
+                aptLongPressTimerRef.current = null;
+              }
+              if (aptLongPressFiredRef.current) {
+                e.stopPropagation();
+                return;
+              }
+              e.stopPropagation();
+              onSelectAppointment(apt);
+            }}
             onClick={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
             data-testid={`mobile-appt-block-${apt.id}`}
           >
@@ -655,7 +827,6 @@ function StaffColumn({
                 {[apt.customer?.name, apt.service?.name].filter(Boolean).join(" · ")}
               </p>
             </div>
-            {/* Right badges */}
             <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1 pr-1 py-1">
               {showPrices && serviceTotal > 0 && (
                 <span
@@ -693,6 +864,10 @@ function SlotModal({
   const h = slot.hour > 12 ? slot.hour - 12 : slot.hour === 0 ? 12 : slot.hour;
   const m = String(slot.minute).padStart(2, "0");
   const ampm = slot.hour >= 12 ? "PM" : "AM";
+
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center px-4"
@@ -700,10 +875,26 @@ function SlotModal({
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/30" />
-      <div
+      <motion.div
+        ref={sheetRef}
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 80, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 34 }}
         className="relative z-10 bg-card rounded-2xl shadow-2xl border w-full max-w-sm overflow-hidden"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; }}
+        onTouchEnd={(e) => {
+          if (dragStartY.current === null) return;
+          const dy = e.changedTouches[0].clientY - dragStartY.current;
+          if (dy > 60) onClose();
+          dragStartY.current = null;
+        }}
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-2 pb-0">
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+        </div>
         <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/40">
           <div>
             <p className="text-sm font-bold">{h}:{m} {ampm}</p>
@@ -729,7 +920,101 @@ function SlotModal({
             Cancel
           </button>
         </div>
-      </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── Quick-action bottom sheet (long-press on appointment) ─── */
+function QuickActionMenu({
+  apt,
+  onClose,
+  onStart,
+  onComplete,
+  onCancel,
+  onViewDetails,
+}: {
+  apt: any;
+  onClose: () => void;
+  onStart: () => void;
+  onComplete: () => void;
+  onCancel: () => void;
+  onViewDetails: () => void;
+}) {
+  const dragStartY = useRef<number | null>(null);
+  const customerName = apt.customer?.name || "Walk-In";
+  const serviceName = apt.service?.name || "Service";
+  const canStart = apt.status === "pending" || apt.status === "confirmed";
+  const canComplete = apt.status === "started";
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/40" />
+      <motion.div
+        initial={{ y: 120, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 120, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 34 }}
+        className="relative z-10 w-full bg-card rounded-t-2xl shadow-2xl border-t"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; }}
+        onTouchEnd={(e) => {
+          if (dragStartY.current === null) return;
+          const dy = e.changedTouches[0].clientY - dragStartY.current;
+          if (dy > 60) onClose();
+          dragStartY.current = null;
+        }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+        </div>
+
+        {/* Header */}
+        <div className="px-5 pb-3 border-b">
+          <p className="text-sm font-bold text-foreground truncate">{customerName}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{serviceName}</p>
+        </div>
+
+        {/* Actions */}
+        <div className="p-3 flex flex-col gap-2">
+          {canStart && (
+            <button
+              className="w-full min-h-[54px] flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm active:opacity-80 transition-opacity"
+              onClick={onStart}
+            >
+              <Play className="w-5 h-5 fill-white flex-shrink-0" />
+              <span>Start Service</span>
+            </button>
+          )}
+          {canComplete && (
+            <button
+              className="w-full min-h-[54px] flex items-center gap-3 px-4 py-3 rounded-xl bg-green-600 text-white font-semibold text-sm active:opacity-80 transition-opacity"
+              onClick={onComplete}
+            >
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <span>Complete</span>
+            </button>
+          )}
+          <button
+            className="w-full min-h-[54px] flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-red-200 text-red-700 font-semibold text-sm active:bg-red-50 transition-colors"
+            onClick={onCancel}
+          >
+            <XCircle className="w-5 h-5 flex-shrink-0" />
+            <span>Cancel Appointment</span>
+          </button>
+          <button
+            className="w-full min-h-[46px] flex items-center justify-center px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-foreground active:bg-muted transition-colors"
+            onClick={onViewDetails}
+          >
+            View Full Details
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

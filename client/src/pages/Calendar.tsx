@@ -894,6 +894,15 @@ export default function Calendar() {
                   setShowCheckout(false);
                   setShowClientLookup(true);
                 }}
+                selectedStaffId={selectedStaffId}
+                onFilterStaff={(id) => setSelectedStaffId(id)}
+                onQuickStart={(apt) => handleStartService(apt)}
+                onQuickComplete={(apt) => handleComplete(apt)}
+                onQuickCancel={(apt) => {
+                  setSelectedAppointment(apt);
+                  setShowCancelFlow(true);
+                  setShowCheckout(false);
+                }}
               />
             ) : (
             <div className="flex min-w-[600px] relative">
@@ -1544,6 +1553,9 @@ function AppointmentDetailsPanel({
     return phone;
   };
 
+  const panelDragStartY = useRef<number | null>(null);
+  const panelScrollRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="fixed inset-0 z-50" data-testid="appointment-details-panel">
       <button
@@ -1555,7 +1567,26 @@ function AppointmentDetailsPanel({
       <div className={cn(
         "absolute right-0 top-0 h-full w-full sm:w-[460px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l",
         isOverdue && "ring-2 ring-red-400 ring-inset",
-      )}>
+      )}
+        onTouchStart={(e) => {
+          const scrollTop = panelScrollRef.current?.scrollTop ?? 0;
+          if (scrollTop === 0) {
+            panelDragStartY.current = e.touches[0].clientY;
+          } else {
+            panelDragStartY.current = null;
+          }
+        }}
+        onTouchEnd={(e) => {
+          if (panelDragStartY.current === null) return;
+          const dy = e.changedTouches[0].clientY - panelDragStartY.current;
+          panelDragStartY.current = null;
+          if (dy > 80) onClose();
+        }}
+      >
+      {/* Mobile swipe-down handle */}
+      <div className="sm:hidden flex justify-center pt-2 pb-0 flex-shrink-0">
+        <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+      </div>
       {isOverdue && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center gap-2 text-red-700 text-sm font-semibold" data-testid="overdue-banner">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -1588,7 +1619,7 @@ function AppointmentDetailsPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={panelScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-base font-bold" data-testid="text-detail-date">{dateStr}</p>

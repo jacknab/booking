@@ -1585,8 +1585,8 @@ export default function NewBooking() {
         </>
       )}
 
-      {/* Booking confirmation dialog */}
-      <Dialog open={showConfirmation} onOpenChange={(open) => { if (!open) navigate("/calendar"); }}>
+      {/* Desktop booking confirmation dialog */}
+      <Dialog open={showConfirmation && window.innerWidth >= 768} onOpenChange={(open) => { if (!open) navigate("/calendar"); }}>
         <DialogContent className="sm:max-w-md" data-testid="booking-confirmation-dialog">
           <h2 className="text-xl font-bold">Appointment Confirmation</h2>
           <div className="space-y-4 mt-2">
@@ -1630,6 +1630,105 @@ export default function NewBooking() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile full-screen booking confirmed success screen */}
+      {showConfirmation && window.innerWidth < 768 && (
+        <div
+          className="fixed inset-0 z-[70] flex flex-col bg-background"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+          data-testid="mobile-booking-success-screen"
+        >
+          {/* Top gradient accent */}
+          <div className="flex-shrink-0 h-2 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400" />
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto flex flex-col items-center px-6 pt-10 pb-6">
+            {/* Animated checkmark */}
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-5 shadow-lg">
+              <Check className="w-10 h-10 text-green-600" strokeWidth={2.5} />
+            </div>
+
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Booked!</h1>
+            <p className="text-sm text-muted-foreground mt-1 mb-8">Appointment successfully created</p>
+
+            {/* Summary card */}
+            <div className="w-full max-w-sm bg-card border rounded-2xl shadow-sm overflow-hidden">
+              {/* Service */}
+              <div className="px-5 py-4 border-b">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Service</p>
+                <p className="text-base font-bold text-foreground" data-testid="confirm-service-name">{selectedService?.name}</p>
+                {selectedAddons.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{selectedAddons.map(a => a.name).join(", ")}</p>
+                )}
+              </div>
+
+              {/* Date & time */}
+              {selectedSlot && (
+                <div className="px-5 py-4 border-b flex items-start gap-3">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold" data-testid="confirm-date">
+                      {formatInTz(selectedSlot.time, timezone, "EEEE, MMM d, yyyy")}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-0.5" data-testid="confirm-time">
+                      {formatInTz(selectedSlot.time, timezone, "h:mm a")}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Customer & staff */}
+              <div className="px-5 py-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Customer</p>
+                  <p className="text-sm font-semibold" data-testid="confirm-customer">{selectedCustomer?.name || "Walk-In"}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Staff</p>
+                  <p className="text-sm font-semibold" data-testid="confirm-staff">{selectedSlot?.staffName}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom action buttons */}
+          <div className="flex-shrink-0 px-6 pb-4 space-y-3">
+            {/* Share button — only shown if Web Share API is available */}
+            {typeof navigator !== "undefined" && typeof (navigator as any).share === "function" && selectedSlot && (
+              <button
+                className="w-full min-h-[52px] flex items-center justify-center gap-2 rounded-2xl border-2 border-primary/20 bg-primary/5 text-primary font-semibold text-sm active:opacity-70 transition-opacity"
+                onClick={async () => {
+                  try {
+                    await (navigator as any).share({
+                      title: "Appointment Confirmed",
+                      text: `${selectedCustomer?.name || "Walk-In"} booked ${selectedService?.name} with ${selectedSlot?.staffName} on ${formatInTz(selectedSlot.time, timezone, "EEEE, MMM d")} at ${formatInTz(selectedSlot.time, timezone, "h:mm a")}`,
+                    });
+                  } catch (_) {}
+                }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share Appointment
+              </button>
+            )}
+            <button
+              className="w-full min-h-[52px] flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-bold text-sm active:opacity-80 transition-opacity"
+              onClick={() => { navigate("/booking/new"); window.location.reload(); }}
+              data-testid="button-book-another"
+            >
+              Book Another
+            </button>
+            <button
+              className="w-full min-h-[48px] flex items-center justify-center rounded-2xl border border-border text-sm font-semibold text-foreground active:bg-muted transition-colors"
+              onClick={() => navigate("/calendar")}
+              data-testid="button-confirmation-ok"
+            >
+              Back to Calendar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Cancel confirmation dialog */}
       <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
