@@ -3,30 +3,27 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowRight, ArrowLeft, Calendar, Users, Wrench } from "lucide-react";
+import { Loader2, ArrowRight, Calendar, Users, Wrench } from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
 
 const GROUP_CONFIG = {
   booking: {
-    accent: "#00D4AA",
+    accent: "#F5A623",
     label: "Certxa Booking",
     tagline: "Fill your calendar. Automate the rest.",
-    video: "/videos/salon_booking.mp4",
     icon: <Calendar className="w-5 h-5" />,
   },
   queue: {
-    accent: "#F59E0B",
+    accent: "#F5A623",
     label: "Certxa Queue",
     tagline: "No appointments. No chaos.",
-    video: "/videos/barbershop_queue.mp4",
     icon: <Users className="w-5 h-5" />,
   },
   pro: {
-    accent: "#3B82F6",
+    accent: "#F5A623",
     label: "Certxa Pro",
     tagline: "Run the office. Empower the crew.",
-    video: "/videos/handyman_pro.mp4",
     icon: <Wrench className="w-5 h-5" />,
   },
 } as const;
@@ -45,7 +42,7 @@ export default function Auth() {
   const rawGroup = searchParams.get("group") ?? "";
   const group: GroupKey | null = rawGroup in GROUP_CONFIG ? (rawGroup as GroupKey) : null;
   const cfg = group ? GROUP_CONFIG[group] : null;
-  const accent = cfg?.accent ?? "#00D4AA";
+  const accent = "#F5A623";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -109,7 +106,7 @@ export default function Auth() {
 
   if (isLoading && hasStoredSession) {
     return (
-      <div className="min-h-screen bg-[#050C18] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0D0523 0%, #1A0A3B 50%, #0D0523 100%)" }}>
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: accent }} />
           <p className="text-white/60 text-sm">Welcome back! Restoring your session…</p>
@@ -119,103 +116,104 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050C18] text-white flex font-['Plus_Jakarta_Sans',sans-serif]">
-
-      {/* ── Left panel — branded video ── */}
+    <div
+      className="min-h-screen text-white flex font-['Plus_Jakarta_Sans',sans-serif]"
+      style={{ background: "linear-gradient(135deg, #0D0523 0%, #1A0A3B 60%, #0D0523 100%)" }}
+    >
+      {/* ── Left panel — brand ── */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden">
-        {/* Video background */}
-        {cfg ? (
-          <video
-            key={cfg.video}
-            src={cfg.video}
-            autoPlay muted loop playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <video
-            src="/videos/salon_booking.mp4"
-            autoPlay muted loop playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#050C18]/85 via-[#050C18]/60 to-[#050C18]/40" />
+        {/* Decorative purple orbs */}
+        <div className="absolute top-[-80px] left-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(109,40,217,0.35) 0%, transparent 70%)" }} />
+        <div className="absolute bottom-[-60px] right-[-60px] w-[320px] h-[320px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(245,166,35,0.18) 0%, transparent 70%)" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(109,40,217,0.12) 0%, transparent 70%)" }} />
 
-        {/* Content over video */}
-        <div className="relative z-10 flex flex-col h-full p-12">
+        {/* Subtle grid */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+
+        <div className="relative z-10 flex flex-col h-full p-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 mb-auto">
-            <img src="/web-app.png" alt="Certxa" className="w-9 h-9 rounded-lg shadow" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            <span className="font-extrabold text-xl tracking-tight">Certxa</span>
-          </Link>
+          <div className="mb-auto">
+            <CertxaWordmark />
+          </div>
 
-          {/* Group badge + pitch */}
-          <div className="mb-12">
+          {/* Main pitch */}
+          <div className="mb-10">
             {cfg && (
               <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border mb-6"
-                style={{ background: cfg.accent + "18", borderColor: cfg.accent + "35", color: cfg.accent }}>
+                style={{ background: "rgba(245,166,35,0.12)", borderColor: "rgba(245,166,35,0.3)", color: accent }}>
                 {cfg.icon}
                 <span className="font-bold text-sm">{cfg.label}</span>
               </div>
             )}
-            <h2 className="text-4xl font-black leading-tight mb-3" style={{ WebkitTextStroke: "2px #000", paintOrder: "stroke fill" } as any}>
-              {cfg ? cfg.tagline : "The platform built for service pros."}
+            <h2 className="text-5xl font-black leading-[1.1] tracking-tight mb-5">
+              The platform<br />
+              <span style={{ color: accent }}>built for</span><br />
+              service pros.
             </h2>
-            <p className="text-white text-lg leading-relaxed">
-              {cfg
-                ? `Join thousands of businesses already using ${cfg.label} to run smarter.`
-                : "Built by service pros, for service pros — simple tools to help you book more, work smarter, and grow on your terms."}
+            <p className="text-white/55 text-lg leading-relaxed max-w-sm">
+              Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one.
             </p>
           </div>
 
+          {/* Stats row */}
+          <div className="flex items-center gap-8 mb-10">
+            {[
+              { num: "50K+", label: "businesses" },
+              { num: "2M+", label: "bookings/mo" },
+              { num: "4.9★", label: "avg rating" },
+            ].map(({ num, label }) => (
+              <div key={label}>
+                <p className="text-2xl font-black" style={{ color: accent }}>{num}</p>
+                <p className="text-white/40 text-xs uppercase tracking-wider mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
           {/* Testimonial */}
-          <div className="bg-white/8 backdrop-blur-sm border border-white/12 rounded-2xl p-6">
+          <div className="rounded-2xl p-6"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(10px)" }}>
             <div className="flex gap-0.5 mb-3">
               {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-4 h-4 fill-current" style={{ color: accent }} viewBox="0 0 20 20">
+                <svg key={i} className="w-3.5 h-3.5" style={{ fill: accent }} viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               ))}
             </div>
-            <p className="text-white text-sm leading-relaxed mb-4">
-              "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. The automation alone is worth every penny."
+            <p className="text-white/75 text-sm leading-relaxed mb-4 italic">
+              "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
             </p>
-            <div>
-              <p className="text-white font-semibold text-sm">Jasmine R.</p>
-              <p className="text-white text-xs">Owner, Luxe Hair Studio</p>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #6D28D9, #4C1D95)" }}>JR</div>
+              <div>
+                <p className="text-white font-semibold text-sm leading-none">Jasmine R.</p>
+                <p className="text-white/40 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Right panel separator */}
+      <div className="hidden lg:block w-px" style={{ background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.08) 80%, transparent)" }} />
+
       {/* ── Right panel — form ── */}
-      <div className="flex flex-col w-full lg:w-[480px] lg:flex-shrink-0 relative">
+      <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 relative">
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center justify-between px-6 pt-6 pb-2">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/web-app.png" alt="Certxa" className="w-7 h-7 rounded-md" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            <span className="font-extrabold text-base">Certxa</span>
-          </Link>
-          {mode === "register" && (
-            <Link to="/get-started" className="flex items-center gap-1.5 text-white/40 hover:text-white/70 text-xs transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> Choose product
-            </Link>
-          )}
+        <div className="lg:hidden flex items-center justify-center px-6 pt-8 pb-2">
+          <CertxaWordmark />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-12">
-          {/* Back link on desktop */}
-          {mode === "register" && (
-            <Link to="/get-started" className="hidden lg:flex items-center gap-1.5 text-white/35 hover:text-white/60 text-xs transition-colors mb-10 w-fit">
-              <ArrowLeft className="w-3.5 h-3.5" /> Change product
-            </Link>
-          )}
-
+        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-10">
           {/* Header */}
           <div className="mb-8">
             {cfg && mode === "register" && (
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border mb-5"
-                style={{ background: cfg.accent + "14", borderColor: cfg.accent + "30", color: cfg.accent }}>
+                style={{ background: "rgba(245,166,35,0.12)", borderColor: "rgba(245,166,35,0.25)", color: accent }}>
                 {cfg.icon}
                 Starting with {cfg.label}
               </div>
@@ -233,7 +231,10 @@ export default function Auth() {
           {/* Google */}
           <button
             onClick={() => loginWithGoogle({ keepSignedIn })}
-            className="w-full flex items-center justify-center gap-3 bg-white/8 hover:bg-white/12 border border-white/15 text-white font-semibold text-sm py-3.5 rounded-xl transition-all mb-5"
+            className="w-full flex items-center justify-center gap-3 font-semibold text-sm py-3.5 rounded-xl transition-all mb-5"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", color: "white" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.11)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
           >
             <FaGoogle className="w-4 h-4" />
             {mode === "login" ? "Sign in with Google" : "Sign up with Google"}
@@ -242,10 +243,11 @@ export default function Auth() {
           {/* Divider */}
           <div className="relative mb-5">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/10" />
+              <span className="w-full border-t" style={{ borderColor: "rgba(255,255,255,0.1)" }} />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-[#050C18] px-3 text-white/30 uppercase tracking-widest">or</span>
+              <span className="px-3 text-white/30 uppercase tracking-widest"
+                style={{ background: "transparent" }}>or</span>
             </div>
           </div>
 
@@ -254,32 +256,34 @@ export default function Auth() {
             {mode === "register" && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className="text-white/60 text-xs font-semibold uppercase tracking-wider">First name</Label>
+                  <Label htmlFor="firstName" className="text-white/50 text-xs font-semibold uppercase tracking-wider">First name</Label>
                   <Input
                     id="firstName"
                     data-testid="input-first-name"
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
                     placeholder="Jane"
-                    className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
+                    className="h-12 rounded-xl text-white placeholder:text-white/25"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Last name</Label>
+                  <Label htmlFor="lastName" className="text-white/50 text-xs font-semibold uppercase tracking-wider">Last name</Label>
                   <Input
                     id="lastName"
                     data-testid="input-last-name"
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
                     placeholder="Doe"
-                    className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
+                    className="h-12 rounded-xl text-white placeholder:text-white/25"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Email</Label>
+              <Label htmlFor="email" className="text-white/50 text-xs font-semibold uppercase tracking-wider">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -288,15 +292,16 @@ export default function Auth() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
                 required
-                className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
+                className="h-12 rounded-xl text-white placeholder:text-white/25"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Password</Label>
+                <Label htmlFor="password" className="text-white/50 text-xs font-semibold uppercase tracking-wider">Password</Label>
                 {mode === "login" && (
-                  <Link to="/forgot-password" className="text-xs transition-colors" style={{ color: accent }}>
+                  <Link to="/forgot-password" className="text-xs font-medium transition-colors" style={{ color: accent }}>
                     Forgot password?
                   </Link>
                 )}
@@ -310,35 +315,37 @@ export default function Auth() {
                 placeholder="At least 6 characters"
                 required
                 minLength={6}
-                className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-white/40 h-12 rounded-xl"
+                className="h-12 rounded-xl text-white placeholder:text-white/25"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
               />
             </div>
 
-            {/* Kiosk-mode toggle — keeps front-desk computers signed in indefinitely */}
+            {/* Keep signed in */}
             <label className="flex items-start gap-3 cursor-pointer select-none pt-1">
               <input
                 type="checkbox"
                 checked={keepSignedIn}
                 onChange={e => setKeepSignedIn(e.target.checked)}
                 data-testid="checkbox-keep-signed-in"
-                className="mt-0.5 h-4 w-4 rounded border-white/25 bg-white/6 accent-current cursor-pointer"
+                className="mt-0.5 h-4 w-4 rounded cursor-pointer"
                 style={{ accentColor: accent }}
               />
               <span className="flex-1">
-                <span className="block text-sm font-semibold text-white/85">
+                <span className="block text-sm font-semibold text-white/80">
                   Keep me signed in on this device
                 </span>
-                <span className="block text-xs text-white/45 mt-0.5">
+                <span className="block text-xs text-white/40 mt-0.5">
                   Use for the front-desk computer — staff won't have to log in.
                 </span>
               </span>
             </label>
 
+            {/* CTA */}
             <button
               type="submit"
               disabled={isPending}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-base transition-all hover:opacity-90 disabled:opacity-50 mt-2"
-              style={{ background: accent, color: "#050C18" }}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all disabled:opacity-50 mt-2"
+              style={{ background: `linear-gradient(135deg, ${accent} 0%, #E8950F 100%)`, color: "#0D0523", boxShadow: `0 0 24px rgba(245,166,35,0.35), 0 4px 12px rgba(0,0,0,0.3)` }}
               data-testid="button-submit-auth"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -370,14 +377,31 @@ export default function Auth() {
             )}
           </p>
 
-          {/* Footer links */}
-          <div className="flex items-center justify-center gap-5 mt-8 pt-8 border-t border-white/8">
-            <Link to="/privacy-policy" className="text-white/25 hover:text-white/50 text-xs transition-colors">Privacy</Link>
-            <Link to="/terms-of-service" className="text-white/25 hover:text-white/50 text-xs transition-colors">Terms</Link>
+          {/* Footer */}
+          <div className="flex items-center justify-center gap-5 mt-8 pt-6" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <a href="https://certxa.com/privacy" target="_blank" rel="noopener noreferrer" className="text-white/25 hover:text-white/50 text-xs transition-colors">Privacy</a>
+            <a href="https://certxa.com/terms" target="_blank" rel="noopener noreferrer" className="text-white/25 hover:text-white/50 text-xs transition-colors">Terms</a>
             <Link to="/staff-auth" className="text-white/25 hover:text-white/50 text-xs transition-colors">Staff login</Link>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CertxaWordmark() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm"
+        style={{ background: "linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%)", boxShadow: "0 0 20px rgba(109,40,217,0.4)" }}>
+        <span className="text-white" style={{ letterSpacing: "-0.05em" }}>C</span>
+      </div>
+      <span
+        className="font-black text-[22px] text-white"
+        style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      >
+        Certxa<span style={{ color: "#F5A623" }}>.</span>
+      </span>
     </div>
   );
 }
