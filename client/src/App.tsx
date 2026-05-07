@@ -13,7 +13,6 @@ import { HelpBubble } from "@/components/training/HelpBubble";
 import { GraduationNotifier } from "@/components/training/GraduationNotifier";
 import { PracticeOverlay } from "@/components/training/PracticeOverlay";
 import { GraduationCard } from "@/components/training/GraduationCard";
-import SubdomainRouter from "@/pages/SubdomainRouter";
 import Dashboard from "@/pages/Dashboard";
 import Services from "@/pages/Services";
 import Staff from "@/pages/Staff";
@@ -32,7 +31,6 @@ import AddonsPage from "@/pages/Addons";
 import CommissionReport from "@/pages/CommissionReport";
 import Analytics from "@/pages/Analytics";
 import Reports from "@/pages/Reports";
-import IndustriesHub from "@/pages/IndustriesHub";
 import Waitlist from "@/pages/Waitlist";
 import QueueDashboard from "@/pages/queue/QueueDashboard";
 import QueueSettings from "@/pages/queue/QueueSettings";
@@ -60,37 +58,8 @@ import Onboarding from "@/pages/Onboarding";
 import PublicBooking from "@/pages/PublicBooking";
 import BookingWidgetPage from "@/pages/BookingWidgetPage";
 import BookingConfirmation from "@/pages/public-booking/BookingConfirmation";
-import Pricing from "@/pages/Pricing";
-import PrivacyPolicy from "@/pages/PrivacyPolicy";
-import TermsOfService from "@/pages/TermsOfService";
 import StaffCalendar from "@/pages/StaffCalendar";
 import NotFound from "@/pages/not-found";
-import BarberLanding from "@/pages/BarberLanding";
-import SpaLanding from "@/pages/SpaLanding";
-import NailSalonLanding from "@/pages/NailSalonLanding";
-import TattooLanding from "@/pages/TattooLanding";
-import WalkInLanding from "@/pages/WalkInLanding";
-import HairSalonLanding from "@/pages/HairSalonLanding";
-import PetGroomerLanding from "@/pages/PetGroomerLanding";
-import EstheticianLanding from "@/pages/EstheticianLanding";
-import HouseCleaningLanding from "@/pages/HouseCleaningLanding";
-import HandymanLanding from "@/pages/HandymanLanding";
-import RideServiceLanding from "@/pages/RideServiceLanding";
-import SnowRemovalLanding from "@/pages/SnowRemovalLanding";
-import LawnCareLanding from "@/pages/LawnCareLanding";
-import TutoringLanding from "@/pages/TutoringLanding";
-import DogWalkingLanding from "@/pages/DogWalkingLanding";
-import HVACLanding from "@/pages/HVACLanding";
-import PlumbingLanding from "@/pages/PlumbingLanding";
-import ElectricalLanding from "@/pages/ElectricalLanding";
-import CarpetCleaningLanding from "@/pages/CarpetCleaningLanding";
-import PressureWashingLanding from "@/pages/PressureWashingLanding";
-import WindowCleaningLanding from "@/pages/WindowCleaningLanding";
-import ProHub from "@/pages/pro/ProHub";
-import ProIndustryPage from "@/pages/pro/ProIndustryPage";
-import QueueLanding from "@/pages/QueueLanding";
-import Landing from "@/pages/Landing";
-import GetStarted from "@/pages/GetStarted";
 import ProDashboardLayout from "@/pages/pro-dashboard/ProDashboardLayout";
 import DispatchDashboard from "@/pages/pro-dashboard/DispatchDashboard";
 import JobsBoard from "@/pages/pro-dashboard/JobsBoard";
@@ -106,14 +75,12 @@ import GoogleReviewsPage from "@/pages/pro-dashboard/GoogleReviewsPage";
 import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
-import SeoManager from "@/components/SeoManager";
 import TeamPermissions from "@/pages/TeamPermissions";
 import TrainingAdmin from "@/pages/TrainingAdmin";
 import TrainingSettings from "@/pages/TrainingSettings";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
 
-// List of authenticated routes that require StoreProvider
 const authenticatedPaths = [
   "/onboarding",
   "/dashboard",
@@ -162,11 +129,6 @@ function App() {
         <ErrorBoundary>
           <TrainingProvider>
             <PracticeModeProvider>
-              {/*
-               * BrowserRouter wraps only the live app. PracticeOverlay sits
-               * outside it so the overlay's own MemoryRouter isn't nested
-               * inside another router (React Router v6 forbids that).
-               */}
               <BrowserRouter>
                 <AppRoutes />
                 <HelpBubble />
@@ -191,64 +153,46 @@ function AppRoutes() {
   ) && !isPublicConfirmation;
 
   const routes = (
-    <>
-    <SeoManager />
     <Routes>
-      <Route path="/" element={<SubdomainRouter />} />
-      <Route path="/barbers" element={<BarberLanding />} />
-      <Route path="/spa" element={<SpaLanding />} />
-      <Route path="/nails" element={<NailSalonLanding />} />
-      <Route path="/tattoo" element={<TattooLanding />} />
-      <Route path="/haircuts" element={<WalkInLanding />} />
-      <Route path="/hair-salons" element={<HairSalonLanding />} />
-      <Route path="/groomers" element={<PetGroomerLanding />} />
-      <Route path="/estheticians" element={<EstheticianLanding />} />
-      <Route path="/industries" element={<IndustriesHub />} />
-      <Route path="/house-cleaning" element={<HouseCleaningLanding />} />
-      <Route path="/handyman" element={<HandymanLanding />} />
-      <Route path="/ride-service" element={<RideServiceLanding />} />
-      <Route path="/snow-removal" element={<SnowRemovalLanding />} />
-      <Route path="/lawn-care" element={<LawnCareLanding />} />
-      <Route path="/tutoring" element={<TutoringLanding />} />
-      <Route path="/dog-walking" element={<DogWalkingLanding />} />
-      <Route path="/hvac" element={<HVACLanding />} />
-      <Route path="/plumbing" element={<PlumbingLanding />} />
-      <Route path="/electrical" element={<ElectricalLanding />} />
-      <Route path="/carpet-cleaning" element={<CarpetCleaningLanding />} />
-      <Route path="/pressure-washing" element={<PressureWashingLanding />} />
-      <Route path="/window-cleaning" element={<WindowCleaningLanding />} />
-      <Route path="/pro" element={<ProHub />} />
-      <Route path="/pro/:industry" element={<ProIndustryPage />} />
-      <Route path="/queue" element={<QueueLanding />} />
-      <Route path="/booking" element={<Landing />} />
-      <Route path="/get-started" element={<GetStarted />} />
-      <Route path="/pricing" element={<Pricing />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/terms-of-service" element={<TermsOfService />} />
-      <Route path="/widget" element={<BookingWidgetPage />} />
-      <Route path="/book/:slug" element={<PublicBooking />} />
-      <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />
-      <Route path="/review/:appointmentId" element={<ReviewSubmit />} />
-      <Route path="/q/:slug" element={<PublicCheckIn />} />
-      <Route path="/q/:slug/display" element={<QueueDisplay />} />
+      {/* Root → login */}
+      <Route path="/" element={<Navigate to="/auth" replace />} />
+
+      {/* Auth */}
       <Route path="/auth" element={<Auth />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Staff portal */}
       <Route path="/staff-auth" element={<StaffAuth />} />
       <Route path="/staff-change-password" element={<StaffPasswordChange />} />
       <Route path="/staff-dashboard" element={<StaffDashboard />} />
       <Route path="/staff-calendar" element={<StaffCalendar />} />
+
+      {/* Public booking & review */}
+      <Route path="/widget" element={<BookingWidgetPage />} />
+      <Route path="/book/:slug" element={<PublicBooking />} />
+      <Route path="/booking/:confirmationNumber" element={<BookingConfirmation />} />
+      <Route path="/review/:appointmentId" element={<ReviewSubmit />} />
+
+      {/* Public queue */}
+      <Route path="/q/:slug" element={<PublicCheckIn />} />
+      <Route path="/q/:slug/display" element={<QueueDisplay />} />
+
+      {/* Admin */}
       <Route path="/isadmin/*" element={<AdminDashboard />} />
       <Route path="/admin/seo-regions" element={<SeoRegionsAdmin />} />
       <Route path="/admin/accounts" element={<AccountsAdmin />} />
+
+      {/* Onboarding */}
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/pro-setup" element={<ProFeaturesSetup />} />
+
+      {/* Core booking system */}
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/services" element={<Services />} />
       <Route path="/staff" element={<Staff />} />
       <Route path="/staff/:id" element={<StaffDetail />} />
       <Route path="/customers" element={<Customers />} />
-      <Route path="/marketing" element={<Navigate to="/reviews" replace />} />
       <Route path="/calendar" element={<Calendar />} />
       <Route path="/appointments" element={<Calendar />} />
       <Route path="/booking/new" element={<NewBooking />} />
@@ -259,10 +203,6 @@ function AppRoutes() {
       <Route path="/addons" element={<AddonsPage />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/waitlist" element={<Waitlist />} />
-      <Route path="/dashboard/training" element={<TrainingAdmin />} />
-      <Route path="/dashboard/training/settings" element={<TrainingSettings />} />
-      <Route path="/dashboard/queue" element={<QueueDashboard />} />
-      <Route path="/dashboard/queue/settings" element={<QueueSettings />} />
       <Route path="/gift-cards" element={<GiftCards />} />
       <Route path="/intake-forms" element={<IntakeForms />} />
       <Route path="/loyalty" element={<Loyalty />} />
@@ -284,6 +224,15 @@ function AppRoutes() {
       <Route path="/sms-settings" element={<SmsSettings />} />
       <Route path="/mail-settings" element={<MailSettings />} />
       <Route path="/cash-drawer" element={<CashDrawer />} />
+      <Route path="/marketing" element={<Navigate to="/reviews" replace />} />
+
+      {/* Training */}
+      <Route path="/dashboard/training" element={<TrainingAdmin />} />
+      <Route path="/dashboard/training/settings" element={<TrainingSettings />} />
+
+      {/* Queue */}
+      <Route path="/dashboard/queue" element={<QueueDashboard />} />
+      <Route path="/dashboard/queue/settings" element={<QueueSettings />} />
 
       {/* Certxa Pro Dashboard */}
       <Route path="/pro-dashboard" element={<ProDashboardLayout><DispatchDashboard /></ProDashboardLayout>} />
@@ -302,7 +251,6 @@ function AppRoutes() {
 
       <Route path="*" element={<NotFound />} />
     </Routes>
-    </>
   );
 
   if (isAuthenticatedRoute) {
