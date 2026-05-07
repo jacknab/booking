@@ -63,11 +63,13 @@ import {
 } from "./google-business-api";
 import { TrialService } from "./services/trial-service";
 import { requireActiveTrial } from "./middleware/trial-middleware";
+import { setupNotificationServer, broadcastNotification } from "./notifications";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  setupNotificationServer(httpServer);
   // Note: setupAuth(app) is called in server/index.ts before registerRoutes.
   // Auth routes (register, login, logout, user) are registered there via auth.ts.
 
@@ -1506,6 +1508,17 @@ If you have any questions, please contact your administrator.
       if (fullAppointment) {
         sendBookingConfirmation(fullAppointment).catch(console.error);
         sendBookingConfirmationEmail(fullAppointment).catch(console.error);
+
+        if (appointment.storeId) {
+          broadcastNotification({
+            type: "new_booking",
+            storeId: appointment.storeId,
+            customerName: (fullAppointment as any).customer?.name || "Someone",
+            serviceName: (fullAppointment as any).service?.name || "a service",
+            staffName: (fullAppointment as any).staff?.name,
+            time: new Date(appointment.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+          });
+        }
       }
 
       res.status(201).json(appointment);
@@ -1529,6 +1542,28 @@ If you have any questions, please contact your administrator.
       }
       const appointment = await storage.updateAppointment(Number(req.params.id), input);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      if (appointment.storeId) {
+        const full = await storage.getAppointment(appointment.id);
+        const customerName = (full as any)?.customer?.name || "A client";
+        const serviceName = (full as any)?.service?.name || "service";
+
+        if (input.status === "completed" && input.totalPaid) {
+          broadcastNotification({
+            type: "payment_received",
+            storeId: appointment.storeId,
+            customerName,
+            amount: parseFloat(String(input.totalPaid)),
+          });
+        } else if (input.status === "cancelled") {
+          broadcastNotification({
+            type: "appointment_cancelled",
+            storeId: appointment.storeId,
+            customerName,
+            serviceName,
+          });
+        }
+      }
 
       res.json(appointment);
     } catch (error) {
