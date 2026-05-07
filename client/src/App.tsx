@@ -79,6 +79,7 @@ import TeamPermissions from "@/pages/TeamPermissions";
 import TrainingAdmin from "@/pages/TrainingAdmin";
 import TrainingSettings from "@/pages/TrainingSettings";
 import ManageDashboard from "@/pages/manage/ManageDashboard";
+import BillingPage from "@/pages/manage/BillingPage";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
 
@@ -160,6 +161,7 @@ function AppRoutes() {
 
       {/* Manage hub — unified subscriber dashboard (manage.certxa.com) */}
       <Route path="/manage" element={<ManageDashboard />} />
+      <Route path="/manage/billing" element={<ManageBillingWrapper />} />
 
       {/* Auth */}
       <Route path="/auth" element={<Auth />} />
@@ -262,6 +264,40 @@ function AppRoutes() {
   }
 
   return routes;
+}
+
+// ── Billing page wrapper: resolves the salonId from the manage overview ───────
+function ManageBillingWrapper() {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/manage/overview"],
+    queryFn: () =>
+      fetch("/api/manage/overview", { credentials: "include" }).then((r) => {
+        if (!r.ok) throw new Error("unauthorized");
+        return r.json();
+      }),
+    retry: false,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
+      </div>
+    );
+  }
+
+  const stores: any[] = data?.salonos?.stores ?? [];
+  const salonId = stores[0]?.id ?? null;
+
+  if (!salonId) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+        No salon found. Please complete onboarding first.
+      </div>
+    );
+  }
+
+  return <BillingPage salonId={salonId} />;
 }
 
 export default App;

@@ -241,6 +241,9 @@ export async function registerRoutes(
     if (req.path.startsWith("/admin/users")) return next(); // Allow admin users endpoint
     if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
     if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
+    if (req.path === "/billing/status") return next(); // Stripe config check — public
+    if (req.path === "/billing/plans") return next(); // Plan listing — public
+    if (req.path === "/billing/webhook") return next(); // Stripe webhooks — uses own signature auth
     if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
     if (req.path.startsWith("/appointments/confirmation/")) return next(); // Public booking confirmation lookup & cancel
     if (req.path.endsWith("/respond")) return next(); // Public intake form submission
@@ -5306,6 +5309,14 @@ If you have any questions, please contact your administrator.
   // ── Manage Hub (unified subscriber dashboard) ────────────────────────────────
   const { default: manageRouter } = await import("./routes/manage.js");
   app.use("/api/manage", manageRouter);
+
+  // ── Billing & Subscriptions ──────────────────────────────────────────────────
+  const { default: billingRouter } = await import("./routes/billing.js");
+  // Webhook endpoint needs raw body — mount before JSON parser catches it.
+  // The raw body is already captured by the verify callback in express.json above.
+  const { default: billingWebhookRouter } = await import("./routes/billing-webhooks.js");
+  app.use("/api/billing", billingWebhookRouter);
+  app.use("/api/billing", billingRouter);
 
   // Phase 8 — graduation sweep + day-7 owner digest.
   const { startGraduationScheduler } = await import("./training/graduation-scheduler.js");

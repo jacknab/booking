@@ -7,6 +7,49 @@ import { users, sessions } from "./models/auth";
 // Re-export users and sessions for use with db schema
 export { users, sessions };
 
+// Re-export billing schema tables so callers can import from @shared/schema
+export {
+  billingPlans,
+  stripeCustomers,
+  stripeSubscriptions,
+  subscriptions,
+  stripeOrders,
+  scheduledPlanChanges,
+  customerBillingProfiles,
+  invoiceRecords,
+  paymentTransactions,
+  stripeWebhookEvents,
+  billingActivityLogs,
+  refunds,
+  subscriptionPlanChanges,
+} from "./schema/billing";
+export type {
+  BillingPlan,
+  InsertBillingPlan,
+  StripeCustomer,
+  InsertStripeCustomer,
+  StripeSubscription,
+  InsertStripeSubscription,
+  Subscription,
+  InsertSubscription,
+  StripeOrder,
+  InsertStripeOrder,
+  CustomerBillingProfile,
+  InsertCustomerBillingProfile,
+  InvoiceRecord,
+  InsertInvoiceRecord,
+  PaymentTransaction,
+  InsertPaymentTransaction,
+  StripeWebhookEvent,
+  InsertStripeWebhookEvent,
+  BillingActivityLog,
+  InsertBillingActivityLog,
+  Refund,
+  InsertRefund,
+  SubscriptionPlanChange,
+  InsertSubscriptionPlanChange,
+} from "./schema/billing";
+
 // === TABLE DEFINITIONS ===
 
 export const locations = pgTable("locations", {

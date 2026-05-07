@@ -201,7 +201,7 @@ export default function ManageDashboard() {
           {[
             { label: "Calendar",     href: "/calendar",          icon: <Calendar className="w-4 h-4" /> },
             { label: "Dashboard",    href: "/dashboard",         icon: <LayoutDashboard className="w-4 h-4" /> },
-            { label: "Browse Templates", href: "/launchsite/",   icon: <Sparkles className="w-4 h-4" /> },
+            { label: "Billing",      href: "/manage/billing",    icon: <Sparkles className="w-4 h-4" /> },
             { label: "Account Settings", href: "/business-settings", icon: <ExternalLink className="w-4 h-4" /> },
           ].map(({ label, href, icon }) => (
             <a
