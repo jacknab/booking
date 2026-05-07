@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,11 +12,101 @@ import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2, CreditCard } from "lucide-react";
+import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2, CreditCard, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Addon, Customer, Staff } from "@shared/schema";
 import { ReceiptContent, useReceiptPrinter, type ReceiptData } from "@/components/Receipt";
 import { useToast } from "@/hooks/use-toast";
+
+const SWIPE_REVEAL_PX = 72;
+const SWIPE_THRESHOLD_PX = 48;
+
+function SwipeableCartItem({
+  children,
+  onDelete,
+}: {
+  children: React.ReactNode;
+  onDelete: () => void;
+}) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    isDragging.current = false;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (startX.current === null || startY.current === null) return;
+    const dx = e.touches[0].clientX - startX.current;
+    const dy = Math.abs(e.touches[0].clientY - startY.current);
+    if (!isDragging.current && dy > 8) { startX.current = null; return; }
+    if (Math.abs(dx) > 4) isDragging.current = true;
+    if (!isDragging.current) return;
+    const base = revealed ? -SWIPE_REVEAL_PX : 0;
+    const raw = base + dx;
+    const clamped = Math.max(-SWIPE_REVEAL_PX - 8, Math.min(0, raw));
+    setOffsetX(clamped);
+  }, [revealed]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (startX.current === null) return;
+    startX.current = null;
+    if (offsetX < -SWIPE_THRESHOLD_PX) {
+      setOffsetX(-SWIPE_REVEAL_PX);
+      setRevealed(true);
+    } else {
+      setOffsetX(0);
+      setRevealed(false);
+    }
+  }, [offsetX]);
+
+  const collapse = useCallback(() => {
+    setOffsetX(0);
+    setRevealed(false);
+  }, []);
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Red delete button revealed on swipe */}
+      <div
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-center bg-red-500"
+        style={{ width: SWIPE_REVEAL_PX }}
+      >
+        <button
+          className="w-full h-full flex flex-col items-center justify-center gap-1 text-white active:bg-red-600 transition-colors"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        >
+          <Trash2 className="w-4 h-4" />
+          <span className="text-[9px] font-bold uppercase tracking-wide">Remove</span>
+        </button>
+      </div>
+
+      {/* Swipeable content */}
+      <div
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: isDragging.current ? "none" : "transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94)",
+          willChange: "transform",
+          backgroundColor: "hsl(var(--background))",
+          position: "relative",
+          zIndex: 1,
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={revealed ? collapse : undefined}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 type TicketItem = { service: Service; addons: Addon[]; staffId: number | null };
 
@@ -617,36 +707,42 @@ export default function POSInterface() {
             {/* Cart items */}
             <div className="flex-1 overflow-y-auto p-4">
               {ticketItems.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {ticketItems.map((item, index) => (
-                    <div key={index}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className="flex-1 cursor-pointer"
-                          onClick={() => { setActiveItemIndex(index); setMobileView("menu"); }}
-                        >
-                          <h4 className={cn("font-semibold text-sm", activeItemIndex === index && "text-primary")}>{item.service.name}</h4>
-                          <p className="text-xs text-muted-foreground">{item.service.duration} min</p>
+                    <SwipeableCartItem key={index} onDelete={() => handleRemoveItem(index)}>
+                      <div className="py-2 px-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div
+                            className="flex-1 cursor-pointer"
+                            onClick={() => { setActiveItemIndex(index); setMobileView("menu"); }}
+                          >
+                            <h4 className={cn("font-semibold text-sm", activeItemIndex === index && "text-primary")}>{item.service.name}</h4>
+                            <p className="text-xs text-muted-foreground">{item.service.duration} min</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm">${Number(item.service.price).toFixed(2)}</span>
+                            <button
+                              onClick={() => handleRemoveItem(index)}
+                              className="text-muted-foreground p-1 -mr-1"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">${Number(item.service.price).toFixed(2)}</span>
-                          <button onClick={() => handleRemoveItem(index)} className="text-muted-foreground">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
+                        {item.addons.length > 0 && (
+                          <div className="space-y-1 pl-3 mt-1.5 border-l-2 border-muted">
+                            {item.addons.map((addon) => (
+                              <div key={addon.id} className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium">+{addon.name}</span>
+                                <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {item.addons.length > 0 && (
-                        <div className="space-y-1 pl-3 mt-1 border-l-2 border-muted">
-                          {item.addons.map((addon) => (
-                            <div key={addon.id} className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium">+{addon.name}</span>
-                              <span className="text-xs font-medium">${Number(addon.price).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    </SwipeableCartItem>
                   ))}
+                  <p className="text-center text-[10px] text-muted-foreground/50 mt-1">Swipe left to remove</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-32 text-center">
