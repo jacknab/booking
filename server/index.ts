@@ -60,7 +60,11 @@ const rawCorsOrigins =
   process.env.CORS_ORIGIN ||
   "";
 const allowAllCorsOrigins = process.env.CORS_ALLOW_ALL === "true";
-const defaultCorsOrigins = ["https://certxa.com", "https://www.certxa.com"];
+const defaultCorsOrigins = [
+  "https://certxa.com",
+  "https://www.certxa.com",
+  "https://manage.certxa.com",
+];
 if (process.env.NODE_ENV !== "production") {
   defaultCorsOrigins.push("http://localhost:5173", "http://localhost:3000");
 }
@@ -74,6 +78,8 @@ app.use(
       if (!origin) return callback(null, true);
       if (allowAllCorsOrigins) return callback(null, true);
       if (allowedCorsOrigins.includes(origin)) return callback(null, true);
+      // Allow any *.certxa.com subdomain (manage., booking slugs, user sites, etc.)
+      if (origin && (origin.endsWith(".certxa.com") || origin === "https://certxa.com")) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,

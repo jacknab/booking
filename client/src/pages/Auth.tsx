@@ -43,6 +43,9 @@ export default function Auth() {
   const group: GroupKey | null = rawGroup in GROUP_CONFIG ? (rawGroup as GroupKey) : null;
   const cfg = group ? GROUP_CONFIG[group] : null;
 
+  // After login, honor ?redirect= if present (e.g. from manage.certxa.com → /manage)
+  const redirectTo = searchParams.get("redirect") ?? null;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -58,6 +61,8 @@ export default function Auth() {
   }, []);
 
   const postAuthRedirect = (onboardingCompleted: boolean) => {
+    // Explicit redirect param always wins (e.g. ?redirect=/manage from manage subdomain)
+    if (redirectTo) return navigate(redirectTo, { replace: true });
     if (!onboardingCompleted) {
       if (group === "pro") return navigate("/pro-setup");
       return navigate("/onboarding");
@@ -68,6 +73,10 @@ export default function Auth() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true });
+        return;
+      }
       if (user && !user.onboardingCompleted) {
         if (group === "pro") navigate("/pro-setup");
         else navigate("/onboarding");
@@ -76,7 +85,7 @@ export default function Auth() {
         else navigate("/calendar");
       }
     }
-  }, [isAuthenticated, user, navigate, group]);
+  }, [isAuthenticated, user, navigate, group, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

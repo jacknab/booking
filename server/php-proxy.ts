@@ -92,22 +92,21 @@ process.on("SIGINT", () => { stopPhpServer(); process.exit(); });
 process.on("SIGTERM", () => { stopPhpServer(); process.exit(); });
 
 // ── Routes that belong to the PHP site ──────────────────────────────────────
+// Exact paths served by the main certxa.com PHP site
 const PHP_EXACT_PATHS = new Set([
   "/",
-  "/hair-salons",
-  "/barbershops",
-  "/nail-salons",
-  "/preview",
-  "/select",
-  "/admin",
-  "/generate-thumbs",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/favicon.svg",
 ]);
 
+// Path prefixes that belong to PHP (main site + launchsite catalog)
 const PHP_PREFIXES = [
-  "/assets/",
-  "/media/",
-  "/templates/",
-  "/admin-",
+  "/assets/",   // main certxa site CSS/JS/images
+  "/videos/",   // main site product videos
+  "/launchsite/", // entire LaunchSite template catalog
+  "/editor/",   // template editor
+  "/templates/", // main certxa site templates pages
 ];
 
 // Express/booking-app paths — must never be forwarded to PHP
@@ -163,6 +162,8 @@ const phpProxy = createProxyMiddleware({
 
 // Combined middleware: waits for PHP readiness then proxies
 export async function phpMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // manage.certxa.com is served entirely by Express/React — never send to PHP
+  if ((req as any).isManageSubdomain) return next();
   if (!isPhpRoute(req.path)) return next();
 
   if (!phpReady && phpReadyPromise) {

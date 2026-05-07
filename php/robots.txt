@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Block query-string duplicates
+Disallow: /*?*
+
+# Block admin or private paths (none yet, but good hygiene)
+Disallow: /includes/
+Disallow: /assets/
+
+# Sitemap
+Sitemap: https://certxa.com/sitemap.xml
+
+# Crawl-delay for well-behaved bots
+Crawl-delay: 2

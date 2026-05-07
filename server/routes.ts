@@ -5268,6 +5268,10 @@ If you have any questions, please contact your administrator.
   const { default: trainingRouter } = await import("./routes/training.js");
   app.use("/api/training", trainingRouter);
 
+  // ── Manage Hub (unified subscriber dashboard) ────────────────────────────────
+  const { default: manageRouter } = await import("./routes/manage.js");
+  app.use("/api/manage", manageRouter);
+
   // Phase 8 — graduation sweep + day-7 owner digest.
   const { startGraduationScheduler } = await import("./training/graduation-scheduler.js");
   startGraduationScheduler();

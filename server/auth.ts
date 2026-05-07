@@ -33,6 +33,8 @@ export function setupAuth(app: Express) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 1000 * 60 * 60 * 24 * 7, // Default: 7 days (overridden to 10 years for kiosk-mode logins)
+        // Share session across all *.certxa.com subdomains (manage., app., etc.)
+        domain: process.env.NODE_ENV === "production" ? ".certxa.com" : undefined,
       },
     })
   );

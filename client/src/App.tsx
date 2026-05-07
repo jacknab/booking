@@ -78,6 +78,7 @@ import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
 import TeamPermissions from "@/pages/TeamPermissions";
 import TrainingAdmin from "@/pages/TrainingAdmin";
 import TrainingSettings from "@/pages/TrainingSettings";
+import ManageDashboard from "@/pages/manage/ManageDashboard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
 
@@ -156,6 +157,9 @@ function AppRoutes() {
     <Routes>
       {/* Root → login */}
       <Route path="/" element={<Navigate to="/auth" replace />} />
+
+      {/* Manage hub — unified subscriber dashboard (manage.certxa.com) */}
+      <Route path="/manage" element={<ManageDashboard />} />
 
       {/* Auth */}
       <Route path="/auth" element={<Auth />} />

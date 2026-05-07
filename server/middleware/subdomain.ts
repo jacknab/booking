@@ -19,6 +19,7 @@ const RESERVED_SUBDOMAINS = new Set([
   'www', 'app', 'api', 'mail', 'ftp', 'admin', 'certxa',
   'launchit', 'support', 'help', 'blog', 'shop', 'store',
   'test', 'demo', 'staging', 'dev', 'secure',
+  'manage', // unified subscriber hub — handled by Express/React, not a user site
 ]);
 
 export async function subdomainMiddleware(req: Request, res: Response, next: NextFunction) {
@@ -31,6 +32,13 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
   if (parts.length < 2) return next();
 
   const subdomain = parts[0];
+
+  // manage.certxa.com → unified subscriber hub served by the React SPA
+  if (subdomain === 'manage') {
+    (req as any).isManageSubdomain = true;
+    return next();
+  }
+
   if (RESERVED_SUBDOMAINS.has(subdomain)) return next();
 
   try {
