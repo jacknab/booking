@@ -391,17 +391,11 @@ export default function Auth() {
 
 function CertxaWordmark() {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm"
-        style={{ background: "linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%)", boxShadow: "0 0 20px rgba(109,40,217,0.4)" }}>
-        <span className="text-white" style={{ letterSpacing: "-0.05em" }}>C</span>
-      </div>
-      <span
-        className="font-black text-[22px] text-white"
-        style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      >
-        Certxa<span style={{ color: "#F5A623" }}>.</span>
-      </span>
-    </div>
+    <span
+      className="font-black text-[22px] text-white"
+      style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+    >
+      Certxa<span style={{ color: "#F5A623" }}>.</span>
+    </span>
   );
 }
