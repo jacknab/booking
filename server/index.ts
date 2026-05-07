@@ -11,11 +11,13 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+import { startPhpServer, phpMiddleware } from "./php-proxy";
 // In the esbuild CJS bundle, require is a real global — grab it the same
 // way __dirname is grabbed above so it's available for loading the SSR bundle.
 const _require: NodeRequire = (globalThis as any).require;
 
 // Landing page routes that get server-side rendered for SEO
+// Note: /hair-salons, /barbershops, /nail-salons are now served by the PHP site
 const SSR_ROUTES = new Set([
   "/industries",
   "/handyman",
@@ -35,7 +37,6 @@ const SSR_ROUTES = new Set([
   "/nails",
   "/tattoo",
   "/haircuts",
-  "/hair-salons",
   "/groomers",
   "/estheticians",
   "/ride-service",
@@ -115,6 +116,15 @@ app.use(
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.use(subdomainMiddleware);
 
+// --- PHP Site Proxy (certxa.com root pages, template catalog, assets) ---
+// Must run before auth setup so PHP pages (/, /hair-salons, etc.) are
+// served directly without needing a session.
+app.use(phpMiddleware);
+
+// --- Friendly redirects for common booking-app paths ---
+app.get("/login", (_req, res) => res.redirect(301, "/auth"));
+app.get("/signup", (_req, res) => res.redirect(301, "/auth"));
+
 // --- Logging Helper ---
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -156,6 +166,9 @@ app.use((req, res, next) => {
 
 // --- Main Async Boot ---
 (async () => {
+  // Start the PHP server for the certxa.com marketing/catalog pages
+  startPhpServer();
+
   setupAuth(app);
 
   app.use(passport.initialize());

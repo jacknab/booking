@@ -1,45 +1,77 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import { db } from '../db';
 import { locations } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import path from 'path';
+import fs from 'fs';
 
-// Define a custom property on the Express Request object
 declare global {
   namespace Express {
     interface Request {
       store?: typeof locations.$inferSelect;
+      launchsiteSlug?: string;
     }
   }
 }
 
+// Reserved subdomains that should never be treated as user sites
+const RESERVED_SUBDOMAINS = new Set([
+  'www', 'app', 'api', 'mail', 'ftp', 'admin', 'certxa',
+  'launchit', 'support', 'help', 'blog', 'shop', 'store',
+  'test', 'demo', 'staging', 'dev', 'secure',
+]);
+
 export async function subdomainMiddleware(req: Request, res: Response, next: NextFunction) {
   const forwardedHost = req.headers["x-forwarded-host"];
   const hostHeader = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
-  const host = (hostHeader || req.headers.host || "").split(":" )[0];
-  // In development, you might use something like 'ginas.localhost:5005'
-  // In production, this will be 'ginas.mysalon.me'
+  const host = (hostHeader || req.headers.host || "").split(":")[0];
   const parts = host.split('.');
 
-  // This logic assumes a structure like `slug.domain.tld` or `slug.localhost`
-  if (parts.length > 1) {
-    const subdomain = parts[0];
+  // Only act on subdomains: slug.certxa.com or slug.localhost
+  if (parts.length < 2) return next();
 
-    // Exclude common subdomains that are not store slugs
-    if (subdomain === 'www' || subdomain === 'app' || subdomain === 'api') {
+  const subdomain = parts[0];
+  if (RESERVED_SUBDOMAINS.has(subdomain)) return next();
+
+  try {
+    // 1. Check if this is a booking-app store subdomain (bookingSlug)
+    const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, subdomain));
+    if (store) {
+      req.store = store;
       return next();
     }
-    
-    try {
-      const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, subdomain));
 
-      if (store) {
-        // Attach store to the request object
-        req.store = store;
+    // 2. Check if this is a launchsite user subdomain
+    const result = await db.execute(sql`
+      SELECT os.template_id, os.business_name, os.hours, os.status
+      FROM subdomains s
+      JOIN onboarding_submissions os ON os.id = s.submission_id
+      WHERE s.slug = ${subdomain}
+      LIMIT 1
+    `) as any;
+
+    const row = result?.rows?.[0];
+    if (row && row.status !== 'pending_payment') {
+      req.launchsiteSlug = subdomain;
+
+      // Serve the built template for this user's site
+      const templateId: string = row.template_id;
+      const templateDir = path.resolve(process.cwd(), 'php', 'templates', templateId);
+      const indexPath = path.join(templateDir, 'index.html');
+
+      if (fs.existsSync(indexPath)) {
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.sendFile(indexPath);
       }
-    } catch (error) {
-      console.error('Error fetching store by subdomain:', error);
-      // Decide how to handle DB errors. Maybe just log and continue.
+
+      // Template build not found — show a friendly holding page
+      return res.send(`<!DOCTYPE html><html><head><title>${row.business_name}</title>
+        <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff;}
+        .box{text-align:center;padding:2rem;} h1{font-size:2rem;margin-bottom:0.5rem;} p{color:rgba(255,255,255,0.6);}</style>
+        </head><body><div class="box"><h1>${row.business_name}</h1><p>Your website is being set up. Check back soon.</p></div></body></html>`);
     }
+  } catch (error) {
+    console.error('[Subdomain] Error:', error);
   }
 
   next();
