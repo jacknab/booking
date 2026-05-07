@@ -50,15 +50,19 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
     }
 
     // 2. Check if this is a launchsite user subdomain
-    const result = await db.execute(sql`
-      SELECT os.template_id, os.business_name, os.hours, os.status
-      FROM subdomains s
-      JOIN onboarding_submissions os ON os.id = s.submission_id
-      WHERE s.slug = ${subdomain}
-      LIMIT 1
-    `) as any;
-
-    const row = result?.rows?.[0];
+    let row: any = null;
+    try {
+      const result = await db.execute(sql`
+        SELECT os.template_id, os.business_name, os.hours, os.status
+        FROM subdomains s
+        JOIN onboarding_submissions os ON os.id = s.submission_id
+        WHERE s.slug = ${subdomain}
+        LIMIT 1
+      `) as any;
+      row = result?.rows?.[0];
+    } catch {
+      // subdomains/onboarding_submissions tables not yet created — skip launchsite lookup
+    }
     if (row && row.status !== 'pending_payment') {
       req.launchsiteSlug = subdomain;
 

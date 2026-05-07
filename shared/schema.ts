@@ -1154,3 +1154,22 @@ export const names = pgTable("names", {
 
 export type Name = typeof names.$inferSelect;
 export type InsertName = typeof names.$inferInsert;
+
+// === LAUNCHSITE TABLES (PHP/marketing site) ===
+
+export const onboardingSubmissions = pgTable("onboarding_submissions", {
+  id: serial("id").primaryKey(),
+  email: text("email"),
+  businessName: text("business_name"),
+  templateId: text("template_id"),
+  status: text("status").default("pending_payment"),
+  hours: jsonb("hours"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const subdomains = pgTable("subdomains", {
+  id: serial("id").primaryKey(),
+  submissionId: integer("submission_id").references(() => onboardingSubmissions.id),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
