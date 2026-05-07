@@ -19,7 +19,12 @@ import {
   getAdminSalonBilling,
   applyCoupon,
   stripeAvailable,
+  getAccountStatus,
+  adminUnlockAccount,
 } from "../services/billing-service";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
+import { stripeCustomers } from "@shared/schema/billing";
 
 const router = Router();
 
@@ -467,6 +472,56 @@ router.get("/invoices/all", requireAdmin, async (_req: Request, res: Response): 
     const { desc } = await import("drizzle-orm");
     const all = await db.select().from(invoiceRecords).orderBy(desc(invoiceRecords.createdAt)).limit(200);
     res.json({ data: all });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Account Status ────────────────────────────────────────────────────────────
+// GET /api/billing/account-status
+// Resolves the salonId from the session, returns the current account status.
+// The AccountStatusGate component polls this to decide whether to block the UI.
+router.get("/account-status", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const userId = req.session.userId;
+
+    // Resolve the salonId for this user via the stripe_customers table
+    // (falls back to session.storeId if available)
+    let salonId: number | null = req.session.storeId ?? null;
+
+    if (!salonId) {
+      const [row] = await db
+        .select({ storeNumber: stripeCustomers.storeNumber })
+        .from(stripeCustomers)
+        .where(eq(stripeCustomers.userId, userId))
+        .limit(1);
+      salonId = row?.storeNumber ?? null;
+    }
+
+    if (!salonId) {
+      // No salon yet (new user, mid-onboarding) — allow through
+      res.json({ accountStatus: "active", salonId: null, suspendedAt: null, lockedAt: null, suspendedReason: null });
+      return;
+    }
+
+    const status = await getAccountStatus(salonId);
+    if (!status) {
+      // No billing profile yet — allow through
+      res.json({ accountStatus: "active", salonId, suspendedAt: null, lockedAt: null, suspendedReason: null });
+      return;
+    }
+
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/billing/admin/unlock/:salonId — admin manually unlocks a locked account
+router.post("/admin/unlock/:salonId", requireAdmin, async (req: any, res: Response): Promise<void> => {
+  try {
+    await adminUnlockAccount(Number(req.params.salonId), req.session.userId);
+    res.json({ unlocked: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

@@ -82,6 +82,7 @@ import ManageDashboard from "@/pages/manage/ManageDashboard";
 import BillingPage from "@/pages/manage/BillingPage";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
+import { AccountStatusGate } from "@/components/AccountStatusGate";
 
 const authenticatedPaths = [
   "/onboarding",
@@ -260,7 +261,13 @@ function AppRoutes() {
   );
 
   if (isAuthenticatedRoute) {
-    return <StoreProvider>{routes}</StoreProvider>;
+    return (
+      <StoreProvider>
+        <AccountStatusGate>
+          {routes}
+        </AccountStatusGate>
+      </StoreProvider>
+    );
   }
 
   return routes;

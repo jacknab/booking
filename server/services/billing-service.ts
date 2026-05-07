@@ -868,6 +868,182 @@ export async function getActivePlans(): Promise<any[]> {
     .orderBy(billingPlans.priceCents);
 }
 
+// ─── Account Status ───────────────────────────────────────────────────────────
+//
+// Three states:
+//   active     → normal access
+//   suspended  → payment failed; Stripe sub kept alive; user sees gate page
+//   locked     → 30 days past due; Stripe sub canceled; must re-subscribe
+
+export async function getAccountStatus(salonId: number): Promise<{
+  accountStatus: string;
+  suspendedAt: Date | null;
+  lockedAt: Date | null;
+  suspendedReason: string | null;
+  salonId: number;
+} | null> {
+  const [profile] = await db
+    .select({
+      accountStatus: customerBillingProfiles.accountStatus,
+      suspendedAt:   customerBillingProfiles.suspendedAt,
+      lockedAt:      customerBillingProfiles.lockedAt,
+      suspendedReason: customerBillingProfiles.suspendedReason,
+    })
+    .from(customerBillingProfiles)
+    .where(eq(customerBillingProfiles.salonId, salonId))
+    .limit(1);
+
+  if (!profile) return null;
+  return { ...profile, salonId };
+}
+
+export async function suspendAccount(
+  salonId: number,
+  reason: string = "Payment failed"
+): Promise<void> {
+  const [existing] = await db
+    .select({ accountStatus: customerBillingProfiles.accountStatus })
+    .from(customerBillingProfiles)
+    .where(eq(customerBillingProfiles.salonId, salonId))
+    .limit(1);
+
+  // Only suspend if currently active — don't re-stamp suspendedAt if already suspended
+  if (!existing || existing.accountStatus === "suspended" || existing.accountStatus === "locked") return;
+
+  await db
+    .update(customerBillingProfiles)
+    .set({
+      accountStatus:   "suspended",
+      suspendedAt:     new Date(),
+      suspendedReason: reason,
+      updatedAt:       new Date(),
+    })
+    .where(eq(customerBillingProfiles.salonId, salonId));
+
+  await logBillingActivity({
+    salonId,
+    eventType: "account.suspended",
+    severity:  "warn",
+    message:   `Account suspended: ${reason}`,
+    metadata:  { reason },
+    source:    "system",
+  });
+}
+
+export async function restoreAccount(salonId: number): Promise<void> {
+  const [existing] = await db
+    .select({ accountStatus: customerBillingProfiles.accountStatus })
+    .from(customerBillingProfiles)
+    .where(eq(customerBillingProfiles.salonId, salonId))
+    .limit(1);
+
+  if (!existing || existing.accountStatus === "active") return;
+  // Don't restore a locked account via a simple payment — admin must manually unlock
+  if (existing.accountStatus === "locked") return;
+
+  await db
+    .update(customerBillingProfiles)
+    .set({
+      accountStatus:   "active",
+      suspendedAt:     null,
+      suspendedReason: null,
+      delinquent:      false,
+      updatedAt:       new Date(),
+    })
+    .where(eq(customerBillingProfiles.salonId, salonId));
+
+  await logBillingActivity({
+    salonId,
+    eventType: "account.restored",
+    severity:  "success",
+    message:   "Account restored — payment succeeded",
+    source:    "system",
+  });
+}
+
+export async function lockAccount(salonId: number, reason: string = "30 days past due"): Promise<void> {
+  const [existing] = await db
+    .select({
+      accountStatus:        customerBillingProfiles.accountStatus,
+      stripeCustomerId:     customerBillingProfiles.stripeCustomerId,
+    })
+    .from(customerBillingProfiles)
+    .where(eq(customerBillingProfiles.salonId, salonId))
+    .limit(1);
+
+  if (!existing || existing.accountStatus === "locked") return;
+
+  // Cancel the Stripe subscription (soft — don't throw if Stripe fails)
+  if (stripeAvailable() && existing.stripeCustomerId) {
+    try {
+      const stripe = new (await import("stripe")).default(
+        process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_SECRET_KEY || "",
+        { apiVersion: "2025-04-30.basil" as any }
+      );
+      const subs = await stripe.subscriptions.list({
+        customer: existing.stripeCustomerId,
+        status:   "past_due",
+        limit:    5,
+      });
+      for (const sub of subs.data) {
+        await stripe.subscriptions.cancel(sub.id);
+      }
+    } catch (err: any) {
+      console.error("[BillingService] Failed to cancel Stripe subscription during lockout:", err.message);
+    }
+  }
+
+  await db
+    .update(customerBillingProfiles)
+    .set({
+      accountStatus:            "locked",
+      lockedAt:                 new Date(),
+      suspendedReason:          reason,
+      currentSubscriptionStatus: "canceled",
+      updatedAt:                new Date(),
+    })
+    .where(eq(customerBillingProfiles.salonId, salonId));
+
+  await db
+    .update(subscriptions)
+    .set({ status: "canceled", updatedAt: new Date() })
+    .where(eq(subscriptions.storeNumber, salonId));
+
+  await logBillingActivity({
+    salonId,
+    eventType: "account.locked",
+    severity:  "error",
+    message:   `Account locked and subscription canceled: ${reason}`,
+    metadata:  { reason },
+    source:    "system",
+  });
+}
+
+// Admin-only: manually restore a locked account (e.g. after manual payment arrangement)
+export async function adminUnlockAccount(salonId: number, adminUserId: string): Promise<void> {
+  await db
+    .update(customerBillingProfiles)
+    .set({
+      accountStatus:   "active",
+      suspendedAt:     null,
+      lockedAt:        null,
+      suspendedReason: null,
+      delinquent:      false,
+      updatedAt:       new Date(),
+    })
+    .where(eq(customerBillingProfiles.salonId, salonId));
+
+  await logBillingActivity({
+    salonId,
+    userId:    adminUserId,
+    eventType: "account.admin_unlocked",
+    severity:  "info",
+    message:   "Account manually unlocked by admin",
+    metadata:  { adminUserId },
+    source:    "admin",
+  });
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function upsertBillingProfileBySalon(

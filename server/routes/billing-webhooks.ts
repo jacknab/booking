@@ -13,7 +13,7 @@ import {
   customerBillingProfiles,
   stripeOrders,
 } from "@shared/schema/billing";
-import { logBillingActivity } from "../services/billing-service";
+import { logBillingActivity, suspendAccount, restoreAccount } from "../services/billing-service";
 import { sql } from "drizzle-orm";
 
 const router = Router();
@@ -423,6 +423,9 @@ async function handleInvoicePaymentSucceeded(inv: Stripe.Invoice): Promise<void>
       metadata: { invoiceId: inv.id, amount: inv.amount_paid },
       source: "webhook",
     });
+
+    // Restore account access if it was suspended due to a prior failed payment
+    await restoreAccount(salonId);
   }
 }
 
@@ -503,6 +506,9 @@ async function handleInvoicePaymentFailed(inv: Stripe.Invoice): Promise<void> {
       },
       source: "webhook",
     });
+
+    // Suspend the account — Stripe subscription stays alive for retries
+    await suspendAccount(salonId, failureMessage);
   }
 }
 

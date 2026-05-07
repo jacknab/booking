@@ -175,6 +175,14 @@ export const customerBillingProfiles = pgTable("customer_billing_profiles", {
   delinquent:               boolean("delinquent").default(false),
   accountHold:              boolean("account_hold").default(false),
   internalBillingNotes:     text("internal_billing_notes"),
+  // ── Account Status ──────────────────────────────────────────────────────────
+  // active     → full access
+  // suspended  → Stripe subscription kept alive; user sees suspension page
+  // locked     → Stripe subscription canceled; user must create new subscription
+  accountStatus:            text("account_status").default("active"),
+  suspendedAt:              timestamp("suspended_at"),
+  lockedAt:                 timestamp("locked_at"),
+  suspendedReason:          text("suspended_reason"),
   createdAt:                timestamp("created_at").defaultNow(),
   updatedAt:                timestamp("updated_at").defaultNow(),
 }, (t) => [

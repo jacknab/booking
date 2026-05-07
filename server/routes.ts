@@ -244,6 +244,7 @@ export async function registerRoutes(
     if (req.path === "/billing/status") return next(); // Stripe config check — public
     if (req.path === "/billing/plans") return next(); // Plan listing — public
     if (req.path === "/billing/webhook") return next(); // Stripe webhooks — uses own signature auth
+    if (req.path === "/billing/account-status") return next(); // Account status gate — auth handled inside route
     if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
     if (req.path.startsWith("/appointments/confirmation/")) return next(); // Public booking confirmation lookup & cancel
     if (req.path.endsWith("/respond")) return next(); // Public intake form submission
@@ -5317,6 +5318,10 @@ If you have any questions, please contact your administrator.
   app.use("/api/billing", billingWebhookRouter);
   app.use("/api/billing", billingPlansAdminRouter);
   app.use("/api/billing", billingRouter);
+
+  // ── Billing dunning scheduler (30-day suspension → auto-lock)
+  const { startBillingDunningScheduler } = await import("./billing-dunning-scheduler.js");
+  startBillingDunningScheduler();
 
   // Phase 8 — graduation sweep + day-7 owner digest.
   const { startGraduationScheduler } = await import("./training/graduation-scheduler.js");
