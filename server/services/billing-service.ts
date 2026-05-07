@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "../db";
+import { cache, TTL } from "../cache";
 import { locations, staff } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import {
@@ -155,6 +156,9 @@ async function upsertBillingProfile(
 // ─── Billing Profile ─────────────────────────────────────────────────────────
 
 export async function getBillingProfile(salonId: number): Promise<any> {
+  const cached = cache.billing.getProfile<any>(salonId);
+  if (cached) return cached;
+
   const [store] = await db.select().from(locations).where(eq(locations.id, salonId)).limit(1);
   if (!store) throw new Error("Store not found");
 
@@ -190,7 +194,7 @@ export async function getBillingProfile(salonId: number): Promise<any> {
     };
   }
 
-  return {
+  const result = {
     profile: profile ?? null,
     subscription: sub ?? null,
     stripeSub: stripeSub ?? null,
@@ -198,6 +202,9 @@ export async function getBillingProfile(salonId: number): Promise<any> {
     paymentMethod,
     store: { id: store.id, name: store.name, email: store.email },
   };
+
+  cache.billing.setProfile(salonId, result);
+  return result;
 }
 
 // ─── Checkout Session ─────────────────────────────────────────────────────────
@@ -321,6 +328,9 @@ export async function createPortalSession(opts: {
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
 export async function getSubscription(salonId: number): Promise<any> {
+  const cached = cache.billing.getSubscription<any>(salonId);
+  if (cached) return cached;
+
   const [sub] = await db
     .select()
     .from(subscriptions)
@@ -335,11 +345,14 @@ export async function getSubscription(salonId: number): Promise<any> {
     .where(eq(billingPlans.code, sub.planCode))
     .limit(1);
 
-  return {
+  const result = {
     active: sub.status === "active" || sub.status === "trialing",
     ...sub,
     plan: plan ?? null,
   };
+
+  cache.billing.setSubscription(salonId, result);
+  return result;
 }
 
 export async function cancelSubscription(opts: {
@@ -370,6 +383,8 @@ export async function cancelSubscription(opts: {
     cancelAtPeriodEnd: updatedSub.cancel_at_period_end,
     canceledAt: updatedSub.canceled_at ? new Date(updatedSub.canceled_at * 1000) : null,
   });
+
+  cache.billing.invalidate(opts.salonId);
 
   await logBillingActivity({
     salonId: opts.salonId,
@@ -412,6 +427,8 @@ export async function resumeSubscription(opts: {
     cancelAtPeriodEnd: false,
     canceledAt: null,
   });
+
+  cache.billing.invalidate(opts.salonId);
 
   await logBillingActivity({
     salonId: opts.salonId,
@@ -553,6 +570,8 @@ export async function changePlan(opts: {
     currentPlanId: newPlan.id,
     currentSubscriptionStatus: updatedSub.status,
   });
+
+  cache.billing.invalidate(opts.salonId);
 
   await logBillingActivity({
     salonId: opts.salonId,
@@ -1077,6 +1096,9 @@ export async function getActiveStaffCount(salonId: number): Promise<number> {
 }
 
 export async function getSeatInfo(salonId: number): Promise<any> {
+  const cached = cache.billing.getSeats<any>(salonId);
+  if (cached) return cached;
+
   const [sub] = await db
     .select()
     .from(subscriptions)
@@ -1120,7 +1142,7 @@ export async function getSeatInfo(salonId: number): Promise<any> {
 
   const activeStaffCount = await getActiveStaffCount(salonId);
 
-  return {
+  const result = {
     purchasedSeats,
     activeStaffCount,
     pricePerSeatCents: PRICE_PER_SEAT_CENTS,
@@ -1131,6 +1153,9 @@ export async function getSeatInfo(salonId: number): Promise<any> {
     profile: profile ?? null,
     stripeSeatData,
   };
+
+  cache.billing.setSeats(salonId, result);
+  return result;
 }
 
 export async function previewSeatChange(salonId: number, newQuantity: number): Promise<any> {
@@ -1207,6 +1232,8 @@ export async function updateSeatQuantity(opts: {
     items: [{ id: currentItem.id, quantity: opts.newQuantity }],
     proration_behavior: "create_prorations",
   });
+
+  cache.billing.invalidate(opts.salonId);
 
   await logBillingActivity({
     salonId: opts.salonId,
