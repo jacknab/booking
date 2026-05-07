@@ -9,19 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 
 const GROUP_CONFIG = {
   booking: {
-    accent: "#F5A623",
     label: "Certxa Booking",
     tagline: "Fill your calendar. Automate the rest.",
     icon: <Calendar className="w-5 h-5" />,
   },
   queue: {
-    accent: "#F5A623",
     label: "Certxa Queue",
     tagline: "No appointments. No chaos.",
     icon: <Users className="w-5 h-5" />,
   },
   pro: {
-    accent: "#F5A623",
     label: "Certxa Pro",
     tagline: "Run the office. Empower the crew.",
     icon: <Wrench className="w-5 h-5" />,
@@ -29,6 +26,9 @@ const GROUP_CONFIG = {
 } as const;
 
 type GroupKey = keyof typeof GROUP_CONFIG;
+
+const PURPLE = "#5B21B6";
+const ORANGE = "#F5A623";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -42,7 +42,6 @@ export default function Auth() {
   const rawGroup = searchParams.get("group") ?? "";
   const group: GroupKey | null = rawGroup in GROUP_CONFIG ? (rawGroup as GroupKey) : null;
   const cfg = group ? GROUP_CONFIG[group] : null;
-  const accent = "#F5A623";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -106,33 +105,25 @@ export default function Auth() {
 
   if (isLoading && hasStoredSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0D0523 0%, #1A0A3B 50%, #0D0523 100%)" }}>
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: accent }} />
-          <p className="text-white/60 text-sm">Welcome back! Restoring your session…</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: PURPLE }} />
+          <p className="text-gray-400 text-sm">Welcome back! Restoring your session…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen text-white flex font-['Plus_Jakarta_Sans',sans-serif]"
-      style={{ background: "linear-gradient(135deg, #0D0523 0%, #1A0A3B 60%, #0D0523 100%)" }}
-    >
-      {/* ── Left panel — brand ── */}
-      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden">
-        {/* Decorative purple orbs */}
-        <div className="absolute top-[-80px] left-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(109,40,217,0.35) 0%, transparent 70%)" }} />
-        <div className="absolute bottom-[-60px] right-[-60px] w-[320px] h-[320px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(245,166,35,0.18) 0%, transparent 70%)" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(109,40,217,0.12) 0%, transparent 70%)" }} />
+    <div className="min-h-screen bg-white flex font-['Plus_Jakarta_Sans',sans-serif]">
 
-        {/* Subtle grid */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
-          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+      {/* ── Left panel ── */}
+      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden" style={{ background: "#F7F5FF" }}>
+        {/* Subtle decorative blobs */}
+        <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(91,33,182,0.10) 0%, transparent 70%)" }} />
+        <div className="absolute bottom-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%)" }} />
 
         <div className="relative z-10 flex flex-col h-full p-14">
           {/* Logo */}
@@ -140,69 +131,68 @@ export default function Auth() {
             <CertxaWordmark />
           </div>
 
-          {/* Main pitch */}
+          {/* Headline */}
           <div className="mb-10">
             {cfg && (
-              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border mb-6"
-                style={{ background: "rgba(245,166,35,0.12)", borderColor: "rgba(245,166,35,0.3)", color: accent }}>
+              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border mb-6 text-sm font-bold"
+                style={{ background: "rgba(91,33,182,0.07)", borderColor: "rgba(91,33,182,0.18)", color: PURPLE }}>
                 {cfg.icon}
-                <span className="font-bold text-sm">{cfg.label}</span>
+                {cfg.label}
               </div>
             )}
-            <h2 className="text-5xl font-black leading-[1.1] tracking-tight mb-5">
+            <h2 className="text-5xl font-black leading-[1.1] tracking-tight mb-5 text-gray-900">
               The platform<br />
-              <span style={{ color: accent }}>built for</span><br />
+              <span style={{ color: ORANGE }}>built for</span><br />
               service pros.
             </h2>
-            <p className="text-white/55 text-lg leading-relaxed max-w-sm">
-              Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one.
+            <p className="text-gray-500 text-lg leading-relaxed max-w-sm">
+              Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one place.
             </p>
           </div>
 
-          {/* Stats row */}
-          <div className="flex items-center gap-8 mb-10">
+          {/* Stats */}
+          <div className="flex items-center gap-10 mb-10">
             {[
               { num: "50K+", label: "businesses" },
               { num: "2M+", label: "bookings/mo" },
               { num: "4.9★", label: "avg rating" },
             ].map(({ num, label }) => (
               <div key={label}>
-                <p className="text-2xl font-black" style={{ color: accent }}>{num}</p>
-                <p className="text-white/40 text-xs uppercase tracking-wider mt-0.5">{label}</p>
+                <p className="text-2xl font-black" style={{ color: PURPLE }}>{num}</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wider mt-0.5">{label}</p>
               </div>
             ))}
           </div>
 
           {/* Testimonial */}
-          <div className="rounded-2xl p-6"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(10px)" }}>
+          <div className="rounded-2xl p-6 bg-white shadow-sm border border-gray-100">
             <div className="flex gap-0.5 mb-3">
               {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-3.5 h-3.5" style={{ fill: accent }} viewBox="0 0 20 20">
+                <svg key={i} className="w-3.5 h-3.5" style={{ fill: ORANGE }} viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               ))}
             </div>
-            <p className="text-white/75 text-sm leading-relaxed mb-4 italic">
+            <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">
               "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
             </p>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-                style={{ background: "linear-gradient(135deg, #6D28D9, #4C1D95)" }}>JR</div>
+                style={{ background: `linear-gradient(135deg, ${PURPLE}, #4C1D95)` }}>JR</div>
               <div>
-                <p className="text-white font-semibold text-sm leading-none">Jasmine R.</p>
-                <p className="text-white/40 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
+                <p className="text-gray-800 font-semibold text-sm leading-none">Jasmine R.</p>
+                <p className="text-gray-400 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right panel separator */}
-      <div className="hidden lg:block w-px" style={{ background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.08) 80%, transparent)" }} />
+      {/* Divider */}
+      <div className="hidden lg:block w-px bg-gray-100" />
 
       {/* ── Right panel — form ── */}
-      <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 relative">
+      <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 bg-white">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center justify-center px-6 pt-8 pb-2">
           <CertxaWordmark />
@@ -213,15 +203,15 @@ export default function Auth() {
           <div className="mb-8">
             {cfg && mode === "register" && (
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border mb-5"
-                style={{ background: "rgba(245,166,35,0.12)", borderColor: "rgba(245,166,35,0.25)", color: accent }}>
+                style={{ background: "rgba(91,33,182,0.07)", borderColor: "rgba(91,33,182,0.18)", color: PURPLE }}>
                 {cfg.icon}
                 Starting with {cfg.label}
               </div>
             )}
-            <h1 className="text-3xl font-black tracking-tight mb-2">
+            <h1 className="text-3xl font-black tracking-tight mb-2 text-gray-900">
               {mode === "login" ? "Welcome back" : "Create your account"}
             </h1>
-            <p className="text-white/45 text-sm">
+            <p className="text-gray-400 text-sm">
               {mode === "login"
                 ? "Sign in to continue to your dashboard."
                 : "Free 60-day trial — no credit card required."}
@@ -231,23 +221,19 @@ export default function Auth() {
           {/* Google */}
           <button
             onClick={() => loginWithGoogle({ keepSignedIn })}
-            className="w-full flex items-center justify-center gap-3 font-semibold text-sm py-3.5 rounded-xl transition-all mb-5"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", color: "white" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.11)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+            className="w-full flex items-center justify-center gap-3 font-semibold text-sm py-3.5 rounded-xl transition-all mb-5 text-gray-700 border border-gray-200 bg-white hover:bg-gray-50"
           >
-            <FaGoogle className="w-4 h-4" />
+            <FaGoogle className="w-4 h-4 text-gray-500" />
             {mode === "login" ? "Sign in with Google" : "Sign up with Google"}
           </button>
 
           {/* Divider */}
           <div className="relative mb-5">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" style={{ borderColor: "rgba(255,255,255,0.1)" }} />
+              <span className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-3 text-white/30 uppercase tracking-widest"
-                style={{ background: "transparent" }}>or</span>
+              <span className="bg-white px-3 text-gray-400 uppercase tracking-widest">or</span>
             </div>
           </div>
 
@@ -256,34 +242,32 @@ export default function Auth() {
             {mode === "register" && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className="text-white/50 text-xs font-semibold uppercase tracking-wider">First name</Label>
+                  <Label htmlFor="firstName" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">First name</Label>
                   <Input
                     id="firstName"
                     data-testid="input-first-name"
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
                     placeholder="Jane"
-                    className="h-12 rounded-xl text-white placeholder:text-white/25"
-                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className="text-white/50 text-xs font-semibold uppercase tracking-wider">Last name</Label>
+                  <Label htmlFor="lastName" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Last name</Label>
                   <Input
                     id="lastName"
                     data-testid="input-last-name"
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
                     placeholder="Doe"
-                    className="h-12 rounded-xl text-white placeholder:text-white/25"
-                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-white/50 text-xs font-semibold uppercase tracking-wider">Email</Label>
+              <Label htmlFor="email" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -292,16 +276,15 @@ export default function Auth() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
                 required
-                className="h-12 rounded-xl text-white placeholder:text-white/25"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-white/50 text-xs font-semibold uppercase tracking-wider">Password</Label>
+                <Label htmlFor="password" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Password</Label>
                 {mode === "login" && (
-                  <Link to="/forgot-password" className="text-xs font-medium transition-colors" style={{ color: accent }}>
+                  <Link to="/forgot-password" className="text-xs font-medium transition-colors" style={{ color: PURPLE }}>
                     Forgot password?
                   </Link>
                 )}
@@ -315,8 +298,7 @@ export default function Auth() {
                 placeholder="At least 6 characters"
                 required
                 minLength={6}
-                className="h-12 rounded-xl text-white placeholder:text-white/25"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
               />
             </div>
 
@@ -328,13 +310,13 @@ export default function Auth() {
                 onChange={e => setKeepSignedIn(e.target.checked)}
                 data-testid="checkbox-keep-signed-in"
                 className="mt-0.5 h-4 w-4 rounded cursor-pointer"
-                style={{ accentColor: accent }}
+                style={{ accentColor: PURPLE }}
               />
               <span className="flex-1">
-                <span className="block text-sm font-semibold text-white/80">
+                <span className="block text-sm font-semibold text-gray-700">
                   Keep me signed in on this device
                 </span>
-                <span className="block text-xs text-white/40 mt-0.5">
+                <span className="block text-xs text-gray-400 mt-0.5">
                   Use for the front-desk computer — staff won't have to log in.
                 </span>
               </span>
@@ -344,8 +326,8 @@ export default function Auth() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all disabled:opacity-50 mt-2"
-              style={{ background: `linear-gradient(135deg, ${accent} 0%, #E8950F 100%)`, color: "#0D0523", boxShadow: `0 0 24px rgba(245,166,35,0.35), 0 4px 12px rgba(0,0,0,0.3)` }}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all disabled:opacity-50 mt-2 text-white"
+              style={{ background: `linear-gradient(135deg, ${ORANGE} 0%, #E8950F 100%)`, boxShadow: "0 4px 16px rgba(245,166,35,0.35)" }}
               data-testid="button-submit-auth"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -355,12 +337,12 @@ export default function Auth() {
           </form>
 
           {/* Switch mode */}
-          <p className="text-center text-white/40 text-sm mt-6">
+          <p className="text-center text-gray-400 text-sm mt-6">
             {mode === "login" ? (
               <>
                 Don't have an account?{" "}
                 <button type="button" onClick={() => setMode("register")}
-                  className="font-semibold transition-colors" style={{ color: accent }}
+                  className="font-semibold transition-colors" style={{ color: PURPLE }}
                   data-testid="link-switch-to-register">
                   Sign up free
                 </button>
@@ -369,7 +351,7 @@ export default function Auth() {
               <>
                 Already have an account?{" "}
                 <button type="button" onClick={() => setMode("login")}
-                  className="font-semibold transition-colors" style={{ color: accent }}
+                  className="font-semibold transition-colors" style={{ color: PURPLE }}
                   data-testid="link-switch-to-login">
                   Log in
                 </button>
@@ -378,10 +360,10 @@ export default function Auth() {
           </p>
 
           {/* Footer */}
-          <div className="flex items-center justify-center gap-5 mt-8 pt-6" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-            <a href="https://certxa.com/privacy" target="_blank" rel="noopener noreferrer" className="text-white/25 hover:text-white/50 text-xs transition-colors">Privacy</a>
-            <a href="https://certxa.com/terms" target="_blank" rel="noopener noreferrer" className="text-white/25 hover:text-white/50 text-xs transition-colors">Terms</a>
-            <Link to="/staff-auth" className="text-white/25 hover:text-white/50 text-xs transition-colors">Staff login</Link>
+          <div className="flex items-center justify-center gap-5 mt-8 pt-6 border-t border-gray-100">
+            <a href="https://certxa.com/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-gray-500 text-xs transition-colors">Privacy</a>
+            <a href="https://certxa.com/terms" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-gray-500 text-xs transition-colors">Terms</a>
+            <Link to="/staff-auth" className="text-gray-300 hover:text-gray-500 text-xs transition-colors">Staff login</Link>
           </div>
         </div>
       </div>
@@ -392,8 +374,8 @@ export default function Auth() {
 function CertxaWordmark() {
   return (
     <span
-      className="font-black text-[22px] text-white"
-      style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="font-black text-[22px]"
+      style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#1a0a3b" }}
     >
       Certxa<span style={{ color: "#F5A623" }}>.</span>
     </span>
