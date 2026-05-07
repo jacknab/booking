@@ -140,7 +140,7 @@ require 'includes/nav.php';
         </p>
 
         <div class="hero-dark-actions">
-          <a href="#" class="btn btn-gold btn-lg">Start Free Trial</a>
+          <a href="/auth?mode=register" class="btn btn-gold btn-lg">Start Free Trial</a>
           <a href="/pricing.php" class="btn btn-outline-white btn-lg">See Pricing</a>
         </div>
 
@@ -751,8 +751,8 @@ require 'includes/nav.php';
     <h2 class="cta-title">Ready to grow your<br><em>salon business?</em></h2>
     <p class="cta-text">Join over 50,000 beauty professionals who trust Certxa to run their business every day.</p>
     <div class="cta-actions">
-      <a href="#" class="btn btn-gold btn-lg">Start Free Trial — It's Free</a>
-      <a href="#" class="btn btn-outline-white btn-lg">See Pricing</a>
+      <a href="/auth?mode=register" class="btn btn-gold btn-lg">Start Free Trial — It's Free</a>
+      <a href="/pricing.php" class="btn btn-outline-white btn-lg">See Pricing</a>
     </div>
     <p class="cta-note">60-day free trial &middot; No credit card required &middot; Cancel any time</p>
   </div>

@@ -72,7 +72,7 @@
 
       <div class="nav-actions">
         <a href="/auth" class="btn-login">Log In</a>
-        <a href="/auth" class="btn-trial">Start Free Trial</a>
+        <a href="/auth?mode=register" class="btn-trial">Start Free Trial</a>
       </div>
 
       <button class="mobile-menu-btn" aria-label="Open menu">

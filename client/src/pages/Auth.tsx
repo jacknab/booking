@@ -3,7 +3,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowRight, Calendar, Users, Wrench } from "lucide-react";
+import {
+  Loader2, ArrowRight, Calendar, Users, Wrench,
+  Check, CalendarDays, CreditCard, Star, Gift,
+  BarChart2, ClipboardList, MessageSquare, ShieldCheck,
+  Smartphone, Globe, Clock, Zap,
+} from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +35,21 @@ type GroupKey = keyof typeof GROUP_CONFIG;
 const PURPLE = "#5B21B6";
 const ORANGE = "#F5A623";
 
+const TRIAL_FEATURES = [
+  { icon: <CalendarDays className="w-4 h-4" />, text: "Appointments & calendar management" },
+  { icon: <Globe className="w-4 h-4" />, text: "Online booking widget for your website" },
+  { icon: <CreditCard className="w-4 h-4" />, text: "Point of Sale (POS) & payments" },
+  { icon: <Users className="w-4 h-4" />, text: "Staff management & scheduling" },
+  { icon: <MessageSquare className="w-4 h-4" />, text: "Automated SMS & email reminders" },
+  { icon: <Star className="w-4 h-4" />, text: "Loyalty program & rewards" },
+  { icon: <Gift className="w-4 h-4" />, text: "Gift cards" },
+  { icon: <Clock className="w-4 h-4" />, text: "Waitlist & virtual queue" },
+  { icon: <Smartphone className="w-4 h-4" />, text: "Google Reviews manager" },
+  { icon: <BarChart2 className="w-4 h-4" />, text: "Analytics & revenue reports" },
+  { icon: <ClipboardList className="w-4 h-4" />, text: "Client intake forms" },
+  { icon: <Zap className="w-4 h-4" />, text: "Unlimited clients & bookings" },
+];
+
 export default function Auth() {
   const navigate = useNavigate();
   const { isAuthenticated, user, login, register, isLoggingIn, isRegistering, isLoading, hasStoredSession, loginWithGoogle } = useAuth();
@@ -43,7 +63,6 @@ export default function Auth() {
   const group: GroupKey | null = rawGroup in GROUP_CONFIG ? (rawGroup as GroupKey) : null;
   const cfg = group ? GROUP_CONFIG[group] : null;
 
-  // After login, honor ?redirect= if present (e.g. from manage.certxa.com → /manage)
   const redirectTo = searchParams.get("redirect") ?? null;
 
   const [email, setEmail] = useState("");
@@ -61,7 +80,6 @@ export default function Auth() {
   }, []);
 
   const postAuthRedirect = (onboardingCompleted: boolean) => {
-    // Explicit redirect param always wins (e.g. ?redirect=/manage from manage subdomain)
     if (redirectTo) return navigate(redirectTo, { replace: true });
     if (!onboardingCompleted) {
       if (group === "pro") return navigate("/pro-setup");
@@ -73,10 +91,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (redirectTo) {
-        navigate(redirectTo, { replace: true });
-        return;
-      }
+      if (redirectTo) { navigate(redirectTo, { replace: true }); return; }
       if (user && !user.onboardingCompleted) {
         if (group === "pro") navigate("/pro-setup");
         else navigate("/onboarding");
@@ -127,84 +142,24 @@ export default function Auth() {
     <div className="min-h-screen bg-white flex font-['Plus_Jakarta_Sans',sans-serif]">
 
       {/* ── Left panel ── */}
-      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden" style={{ background: "#F7F5FF" }}>
-        {/* Subtle decorative blobs */}
-        <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(91,33,182,0.10) 0%, transparent 70%)" }} />
-        <div className="absolute bottom-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%)" }} />
+      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden"
+        style={{ background: mode === "register" ? "#0F0A1E" : "#F7F5FF" }}>
 
-        <div className="relative z-10 flex flex-col h-full p-14">
-          {/* Logo */}
-          <div className="mb-auto">
-            <CertxaWordmark />
-          </div>
-
-          {/* Headline */}
-          <div className="mb-10">
-            {cfg && (
-              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border mb-6 text-sm font-bold"
-                style={{ background: "rgba(91,33,182,0.07)", borderColor: "rgba(91,33,182,0.18)", color: PURPLE }}>
-                {cfg.icon}
-                {cfg.label}
-              </div>
-            )}
-            <h2 className="text-5xl font-black leading-[1.1] tracking-tight mb-5 text-gray-900">
-              The platform<br />
-              <span style={{ color: ORANGE }}>built for</span><br />
-              service pros.
-            </h2>
-            <p className="text-gray-500 text-lg leading-relaxed max-w-sm">
-              Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one place.
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center gap-10 mb-10">
-            {[
-              { num: "50K+", label: "businesses" },
-              { num: "2M+", label: "bookings/mo" },
-              { num: "4.9★", label: "avg rating" },
-            ].map(({ num, label }) => (
-              <div key={label}>
-                <p className="text-2xl font-black" style={{ color: PURPLE }}>{num}</p>
-                <p className="text-gray-400 text-xs uppercase tracking-wider mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Testimonial */}
-          <div className="rounded-2xl p-6 bg-white shadow-sm border border-gray-100">
-            <div className="flex gap-0.5 mb-3">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-3.5 h-3.5" style={{ fill: ORANGE }} viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">
-              "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
-            </p>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-                style={{ background: `linear-gradient(135deg, ${PURPLE}, #4C1D95)` }}>JR</div>
-              <div>
-                <p className="text-gray-800 font-semibold text-sm leading-none">Jasmine R.</p>
-                <p className="text-gray-400 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {mode === "register" ? (
+          <TrialLeftPanel cfg={cfg} />
+        ) : (
+          <LoginLeftPanel cfg={cfg} />
+        )}
       </div>
 
       {/* Divider */}
-      <div className="hidden lg:block w-px bg-gray-100" />
+      <div className="hidden lg:block w-px" style={{ background: mode === "register" ? "rgba(255,255,255,0.07)" : "#f3f4f6" }} />
 
       {/* ── Right panel — form ── */}
       <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 bg-white">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center justify-center px-6 pt-8 pb-2">
-          <CertxaWordmark />
+          <CertxaWordmark dark />
         </div>
 
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-10">
@@ -218,13 +173,20 @@ export default function Auth() {
               </div>
             )}
             <h1 className="text-3xl font-black tracking-tight mb-2 text-gray-900">
-              {mode === "login" ? "Welcome back" : "Create your account"}
+              {mode === "login" ? "Welcome back" : "Start your free trial"}
             </h1>
-            <p className="text-gray-400 text-sm">
-              {mode === "login"
-                ? "Sign in to continue to your dashboard."
-                : "Free 60-day trial — no credit card required."}
-            </p>
+            {mode === "register" ? (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                  style={{ background: "rgba(245,166,35,0.12)", color: "#B45309" }}>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  60 days free
+                </span>
+                <span className="text-gray-400 text-xs">No credit card required</span>
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm mt-1">Sign in to continue to your dashboard.</p>
+            )}
           </div>
 
           {/* Google */}
@@ -322,12 +284,8 @@ export default function Auth() {
                 style={{ accentColor: PURPLE }}
               />
               <span className="flex-1">
-                <span className="block text-sm font-semibold text-gray-700">
-                  Keep me signed in on this device
-                </span>
-                <span className="block text-xs text-gray-400 mt-0.5">
-                  Use for the front-desk computer — staff won't have to log in.
-                </span>
+                <span className="block text-sm font-semibold text-gray-700">Keep me signed in on this device</span>
+                <span className="block text-xs text-gray-400 mt-0.5">Use for the front-desk computer — staff won't have to log in.</span>
               </span>
             </label>
 
@@ -336,13 +294,26 @@ export default function Auth() {
               type="submit"
               disabled={isPending}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all disabled:opacity-50 mt-2 text-white"
-              style={{ background: `linear-gradient(135deg, ${ORANGE} 0%, #E8950F 100%)`, boxShadow: "0 4px 16px rgba(245,166,35,0.35)" }}
+              style={{
+                background: mode === "register"
+                  ? `linear-gradient(135deg, ${PURPLE} 0%, #4C1D95 100%)`
+                  : `linear-gradient(135deg, ${ORANGE} 0%, #E8950F 100%)`,
+                boxShadow: mode === "register"
+                  ? "0 4px 20px rgba(91,33,182,0.35)"
+                  : "0 4px 16px rgba(245,166,35,0.35)",
+              }}
               data-testid="button-submit-auth"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {mode === "login" ? "Sign in" : "Create account"}
+              {mode === "login" ? "Sign in" : "Start my 60-day free trial"}
               {!isPending && <ArrowRight className="w-4 h-4" />}
             </button>
+
+            {mode === "register" && (
+              <p className="text-center text-xs text-gray-400 -mt-1">
+                Full access to everything. Cancel any time.
+              </p>
+            )}
           </form>
 
           {/* Switch mode */}
@@ -353,7 +324,7 @@ export default function Auth() {
                 <button type="button" onClick={() => setMode("register")}
                   className="font-semibold transition-colors" style={{ color: PURPLE }}
                   data-testid="link-switch-to-register">
-                  Sign up free
+                  Start free trial
                 </button>
               </>
             ) : (
@@ -380,11 +351,170 @@ export default function Auth() {
   );
 }
 
-function CertxaWordmark() {
+/* ─── Trial left panel (register mode) ─── */
+function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: React.ReactNode } | null }) {
+  return (
+    <div className="relative z-10 flex flex-col h-full p-14 overflow-y-auto">
+      {/* Decorative glows */}
+      <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(91,33,182,0.25) 0%, transparent 65%)", transform: "translate(-30%, -30%)" }} />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(245,166,35,0.15) 0%, transparent 65%)", transform: "translate(30%, 30%)" }} />
+
+      {/* Logo */}
+      <div className="mb-10 relative">
+        <CertxaWordmark light />
+      </div>
+
+      {/* Trial hero */}
+      <div className="relative mb-8">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6"
+          style={{ background: "rgba(245,166,35,0.15)", color: "#FCD34D", border: "1px solid rgba(245,166,35,0.25)" }}>
+          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#F5A623" }} />
+          Limited offer — 60 days free
+        </div>
+        <h2 className="text-5xl font-black leading-[1.08] tracking-tight mb-5 text-white">
+          Everything<br />
+          <span style={{ color: "#F5A623" }}>Certxa</span> offers.<br />
+          Free for 60 days.
+        </h2>
+        <p className="text-white/50 text-base leading-relaxed max-w-sm">
+          No credit card required. No feature limits. No tricks. Just the full platform from day one.
+        </p>
+      </div>
+
+      {/* Feature list */}
+      <div className="relative mb-8">
+        <p className="text-white/35 text-xs font-bold uppercase tracking-widest mb-4">What's included in your trial</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {TRIAL_FEATURES.map(({ icon, text }) => (
+            <div key={text} className="flex items-start gap-2.5">
+              <div className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5"
+                style={{ background: "rgba(91,33,182,0.35)", color: "#a78bfa" }}>
+                {icon}
+              </div>
+              <span className="text-white/70 text-[13px] leading-snug">{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Trust bar */}
+      <div className="relative flex items-center gap-8 py-5 border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+        {[
+          { num: "50K+", label: "businesses" },
+          { num: "2M+", label: "bookings/mo" },
+          { num: "4.9★", label: "avg rating" },
+        ].map(({ num, label }) => (
+          <div key={label}>
+            <p className="text-xl font-black text-white">{num}</p>
+            <p className="text-white/35 text-xs uppercase tracking-wider mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Testimonial */}
+      <div className="relative rounded-2xl p-5 mt-4" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className="flex gap-0.5 mb-3">
+          {[...Array(5)].map((_, i) => (
+            <svg key={i} className="w-3.5 h-3.5" style={{ fill: "#F5A623" }} viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          ))}
+        </div>
+        <p className="text-white/60 text-sm leading-relaxed mb-4 italic">
+          "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. I wish I'd switched sooner."
+        </p>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+            style={{ background: "linear-gradient(135deg, #5B21B6, #4C1D95)" }}>JR</div>
+          <div>
+            <p className="text-white/80 font-semibold text-sm leading-none">Jasmine R.</p>
+            <p className="text-white/35 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Login left panel ─── */
+function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: React.ReactNode } | null }) {
+  return (
+    <>
+      {/* Subtle decorative blobs */}
+      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(91,33,182,0.10) 0%, transparent 70%)" }} />
+      <div className="absolute bottom-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%)" }} />
+
+      <div className="relative z-10 flex flex-col h-full p-14">
+        <div className="mb-auto">
+          <CertxaWordmark />
+        </div>
+
+        <div className="mb-10">
+          {cfg && (
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border mb-6 text-sm font-bold"
+              style={{ background: "rgba(91,33,182,0.07)", borderColor: "rgba(91,33,182,0.18)", color: PURPLE }}>
+              {cfg.icon}
+              {cfg.label}
+            </div>
+          )}
+          <h2 className="text-5xl font-black leading-[1.1] tracking-tight mb-5 text-gray-900">
+            The platform<br />
+            <span style={{ color: ORANGE }}>built for</span><br />
+            service pros.
+          </h2>
+          <p className="text-gray-500 text-lg leading-relaxed max-w-sm">
+            Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one place.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-10 mb-10">
+          {[
+            { num: "50K+", label: "businesses" },
+            { num: "2M+", label: "bookings/mo" },
+            { num: "4.9★", label: "avg rating" },
+          ].map(({ num, label }) => (
+            <div key={label}>
+              <p className="text-2xl font-black" style={{ color: PURPLE }}>{num}</p>
+              <p className="text-gray-400 text-xs uppercase tracking-wider mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-2xl p-6 bg-white shadow-sm border border-gray-100">
+          <div className="flex gap-0.5 mb-3">
+            {[...Array(5)].map((_, i) => (
+              <svg key={i} className="w-3.5 h-3.5" style={{ fill: ORANGE }} viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            ))}
+          </div>
+          <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">
+            "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
+          </p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+              style={{ background: `linear-gradient(135deg, ${PURPLE}, #4C1D95)` }}>JR</div>
+            <div>
+              <p className="text-gray-800 font-semibold text-sm leading-none">Jasmine R.</p>
+              <p className="text-gray-400 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CertxaWordmark({ dark, light }: { dark?: boolean; light?: boolean }) {
+  const color = light ? "#FFFFFF" : (dark ? "#1a0a3b" : "#1a0a3b");
   return (
     <span
       className="font-black text-[22px]"
-      style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#1a0a3b" }}
+      style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif", color }}
     >
       Certxa<span style={{ color: "#F5A623" }}>.</span>
     </span>
