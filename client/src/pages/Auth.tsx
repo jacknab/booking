@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -129,17 +130,20 @@ export default function Auth() {
 
   if (isLoading && hasStoredSession) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: PURPLE }} />
-          <p className="text-gray-400 text-sm">Welcome back! Restoring your session…</p>
+      <MarketingLayout hideNavActions>
+        <div className="flex-1 bg-white flex items-center justify-center py-24">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: PURPLE }} />
+            <p className="text-gray-400 text-sm">Welcome back! Restoring your session…</p>
+          </div>
         </div>
-      </div>
+      </MarketingLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex font-['Plus_Jakarta_Sans',sans-serif]">
+    <MarketingLayout hideNavActions>
+    <div className="flex-1 bg-white flex font-['Plus_Jakarta_Sans',sans-serif]">
 
       {/* ── Left panel ── */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden"
@@ -157,11 +161,6 @@ export default function Auth() {
 
       {/* ── Right panel — form ── */}
       <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 bg-white">
-        {/* Mobile logo */}
-        <div className="lg:hidden flex items-center justify-center px-6 pt-8 pb-2">
-          <CertxaWordmark dark />
-        </div>
-
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-10">
           {/* Header */}
           <div className="mb-8">
@@ -348,6 +347,7 @@ export default function Auth() {
         </div>
       </div>
     </div>
+    </MarketingLayout>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import MarketingLayout from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <MarketingLayout hideNavActions>
+    <div className="flex-1 flex items-center justify-center bg-background p-4 py-16">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
@@ -96,5 +98,6 @@ export default function ForgotPassword() {
         </CardContent>
       </Card>
     </div>
+    </MarketingLayout>
   );
 }
