@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "../db";
-import { locations } from "@shared/schema";
+import { locations, staff } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import {
   billingPlans,
@@ -1062,4 +1062,167 @@ async function upsertBillingProfileBySalon(
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(customerBillingProfiles.salonId, salonId));
   }
+}
+
+// ─── Seat-Based Billing ───────────────────────────────────────────────────────
+
+export const PRICE_PER_SEAT_CENTS = 800; // $8/month per seat
+
+export async function getActiveStaffCount(salonId: number): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(staff)
+    .where(eq(staff.storeId, salonId));
+  return Number(row?.count ?? 0);
+}
+
+export async function getSeatInfo(salonId: number): Promise<any> {
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, salonId))
+    .limit(1);
+
+  const [profile] = await db
+    .select()
+    .from(customerBillingProfiles)
+    .where(eq(customerBillingProfiles.salonId, salonId))
+    .limit(1);
+
+  let purchasedSeats = 1;
+  let stripeQuantity: number | null = null;
+  let stripeSeatData: any = null;
+
+  if (sub?.stripeSubscriptionId && stripeAvailable()) {
+    try {
+      const stripe = getStripe();
+      const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+      stripeQuantity = stripeSub.items.data[0]?.quantity ?? null;
+      if (stripeQuantity) purchasedSeats = stripeQuantity;
+
+      const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+        customer: sub.stripeCustomerId!,
+        subscription: sub.stripeSubscriptionId,
+      }).catch(() => null);
+
+      stripeSeatData = {
+        status: stripeSub.status,
+        currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+        currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+        cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+        upcomingInvoiceCents: upcomingInvoice?.amount_due ?? null,
+        nextPaymentAttempt: upcomingInvoice?.next_payment_attempt
+          ? new Date(upcomingInvoice.next_payment_attempt * 1000)
+          : null,
+      };
+    } catch {}
+  }
+
+  const activeStaffCount = await getActiveStaffCount(salonId);
+
+  return {
+    purchasedSeats,
+    activeStaffCount,
+    pricePerSeatCents: PRICE_PER_SEAT_CENTS,
+    monthlyTotalCents: purchasedSeats * PRICE_PER_SEAT_CENTS,
+    atSeatLimit: activeStaffCount >= purchasedSeats,
+    hasSubscription: !!sub?.stripeSubscriptionId,
+    subscription: sub ?? null,
+    profile: profile ?? null,
+    stripeSeatData,
+  };
+}
+
+export async function previewSeatChange(salonId: number, newQuantity: number): Promise<any> {
+  if (newQuantity < 1) throw new Error("Seat count must be at least 1");
+
+  const stripe = getStripe();
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, salonId))
+    .limit(1);
+
+  if (!sub?.stripeSubscriptionId) throw new Error("No active subscription found");
+
+  const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+  const currentItem = stripeSub.items.data[0];
+  if (!currentItem) throw new Error("Could not find subscription item");
+
+  const currentQuantity = currentItem.quantity ?? 1;
+
+  const preview = await stripe.invoices.retrieveUpcoming({
+    customer: sub.stripeCustomerId!,
+    subscription: sub.stripeSubscriptionId,
+    subscription_items: [{ id: currentItem.id, quantity: newQuantity }],
+    subscription_proration_behavior: "create_prorations",
+  });
+
+  const proratedLineCents = preview.lines.data
+    .filter((l) => l.proration)
+    .reduce((sum, l) => sum + l.amount, 0);
+
+  return {
+    currentQuantity,
+    newQuantity,
+    currentMonthlyCents: currentQuantity * PRICE_PER_SEAT_CENTS,
+    newMonthlyCents: newQuantity * PRICE_PER_SEAT_CENTS,
+    proratedChargeCents: proratedLineCents,
+    immediateChargeCents: preview.amount_due,
+    nextInvoiceCents: newQuantity * PRICE_PER_SEAT_CENTS,
+    currency: preview.currency,
+  };
+}
+
+export async function updateSeatQuantity(opts: {
+  salonId: number;
+  newQuantity: number;
+  userId?: string;
+}): Promise<any> {
+  if (opts.newQuantity < 1) throw new Error("Seat count must be at least 1");
+
+  const stripe = getStripe();
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, opts.salonId))
+    .limit(1);
+
+  if (!sub?.stripeSubscriptionId) throw new Error("No active subscription found");
+
+  const activeStaffCount = await getActiveStaffCount(opts.salonId);
+  if (opts.newQuantity < activeStaffCount) {
+    throw new Error(
+      `Cannot reduce to ${opts.newQuantity} seats — you have ${activeStaffCount} active staff members. Remove staff first.`
+    );
+  }
+
+  const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+  const currentItem = stripeSub.items.data[0];
+  if (!currentItem) throw new Error("Could not find subscription item");
+
+  const previousQuantity = currentItem.quantity ?? 1;
+
+  const updatedSub = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+    items: [{ id: currentItem.id, quantity: opts.newQuantity }],
+    proration_behavior: "create_prorations",
+  });
+
+  await logBillingActivity({
+    salonId: opts.salonId,
+    userId: opts.userId ?? null,
+    eventType: "subscription.seats.updated",
+    severity: "info",
+    message: `Seat count changed from ${previousQuantity} to ${opts.newQuantity} ($${(opts.newQuantity * PRICE_PER_SEAT_CENTS / 100).toFixed(2)}/mo)`,
+    metadata: { previousQuantity, newQuantity: opts.newQuantity, pricePerSeatCents: PRICE_PER_SEAT_CENTS },
+    source: "api",
+  });
+
+  return {
+    success: true,
+    previousQuantity,
+    newQuantity: opts.newQuantity,
+    newMonthlyCents: opts.newQuantity * PRICE_PER_SEAT_CENTS,
+    status: updatedSub.status,
+  };
 }

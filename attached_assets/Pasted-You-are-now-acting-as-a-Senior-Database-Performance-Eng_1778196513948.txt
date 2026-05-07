@@ -1,0 +1,416 @@
+You are now acting as a Senior Database Performance Engineer for Certxa SalonOS.
+
+Your job is to FULLY optimize the PostgreSQL database architecture for:
+- high concurrency
+- fast dashboards
+- billing systems
+- realtime websocket systems
+- CRM-style searching
+- audit logs
+- subscription management
+- agent dashboards
+- analytics
+- future scaling
+
+This is a production SaaS platform.
+
+DO NOT make cosmetic improvements.
+DO NOT give generic advice.
+Implement REAL production-grade database optimization.
+
+====================================================
+CURRENT STACK
+====================================================
+
+Backend:
+- Node.js
+- Express
+- PostgreSQL
+- Redis
+- WebSockets
+
+Platform Type:
+- Multi-tenant SaaS
+- Salon management platform
+- Heavy realtime usage
+- Heavy billing/event logging
+- Support agent dashboards
+- CRM workflows
+- Stripe billing system
+
+====================================================
+PRIMARY OBJECTIVES
+====================================================
+
+Optimize for:
+- low query latency
+- high read performance
+- efficient writes
+- websocket fanout support
+- fast search
+- dashboard speed
+- reporting speed
+- large audit tables
+- future scaling
+
+====================================================
+DATABASE REVIEW TASK
+====================================================
+
+Audit and optimize:
+- schema design
+- indexes
+- relationships
+- constraints
+- normalization
+- denormalization where beneficial
+- query performance
+- transaction efficiency
+- pagination strategy
+- cache strategy
+- connection pooling
+- partitioning
+- JSON usage
+- timestamp indexing
+- websocket event performance
+
+====================================================
+IMPORTANT PERFORMANCE GOALS
+====================================================
+
+Dashboard pages should load:
+- under 200ms preferred
+- under 500ms maximum
+
+Agent searches:
+- near instant
+
+Billing history:
+- optimized for large datasets
+
+Realtime events:
+- minimal DB load
+
+Websocket broadcasts:
+- avoid expensive repeated queries
+
+====================================================
+INDEXING STRATEGY
+====================================================
+
+Add proper indexes for:
+- foreign keys
+- tenant isolation
+- salon_id
+- user_id
+- created_at
+- updated_at
+- status columns
+- billing status
+- websocket event queues
+- Stripe IDs
+- invoice lookups
+- transaction lookups
+- subscription lookups
+- email lookups
+- phone lookups
+- activity timelines
+- audit logs
+
+Implement:
+- compound indexes
+- partial indexes
+- covering indexes where useful
+- GIN indexes for JSONB/search
+- trigram indexes for fuzzy searching
+
+DO NOT over-index unnecessarily.
+
+====================================================
+MULTI-TENANT OPTIMIZATION
+====================================================
+
+System is multi-tenant.
+
+Optimize all queries for:
+- salon_id isolation
+- tenant-safe indexing
+- tenant query speed
+
+Ensure:
+- no cross-tenant scans
+- minimal full-table scans
+
+====================================================
+AUDIT LOG OPTIMIZATION
+====================================================
+
+Large tables expected:
+- activity logs
+- billing logs
+- webhook events
+- websocket events
+- CRM notes
+- notifications
+
+Implement:
+- partitioning strategy
+- archive strategy
+- retention recommendations
+- efficient timestamp querying
+
+====================================================
+JSONB OPTIMIZATION
+====================================================
+
+Audit all JSON/JSONB usage.
+
+Determine:
+- what should stay JSONB
+- what should become structured columns
+- what needs GIN indexes
+
+Avoid:
+- unindexed JSON queries
+- oversized payload storage
+- duplicated data
+
+====================================================
+QUERY OPTIMIZATION
+====================================================
+
+Refactor inefficient queries:
+- N+1 queries
+- repeated joins
+- duplicate lookups
+- unnecessary SELECT *
+- inefficient COUNT queries
+- websocket-triggered query spam
+
+Implement:
+- lean query patterns
+- projection selection
+- cursor pagination
+- batch loading
+- efficient aggregates
+
+====================================================
+REALTIME / WEBSOCKET OPTIMIZATION
+====================================================
+
+Optimize database interaction for realtime systems.
+
+Prevent:
+- websocket-triggered DB floods
+- duplicate event writes
+- repeated dashboard polling
+
+Implement:
+- Redis caching
+- pub/sub optimization
+- event batching
+- debounce strategies
+- event queue optimization
+
+====================================================
+REDIS STRATEGY
+====================================================
+
+Implement caching architecture for:
+- salon dashboards
+- billing summaries
+- active subscriptions
+- feature flags
+- agent session data
+- realtime counters
+- websocket presence
+- frequently accessed account info
+
+Define:
+- cache TTL strategy
+- invalidation strategy
+- hot data caching
+- cache warming opportunities
+
+====================================================
+BILLING DATABASE OPTIMIZATION
+====================================================
+
+Stripe tables expected to grow heavily.
+
+Optimize:
+- invoices
+- payment transactions
+- subscriptions
+- refunds
+- webhook events
+
+Support:
+- fast invoice history loading
+- fast account lookups
+- instant support-agent visibility
+
+====================================================
+SEARCH OPTIMIZATION
+====================================================
+
+Optimize global search system.
+
+Searches include:
+- salon names
+- users
+- phone numbers
+- invoice IDs
+- Stripe IDs
+- transaction IDs
+- notes
+- CRM records
+
+Implement:
+- trigram indexes
+- full-text search where appropriate
+- optimized LIKE queries
+- search ranking
+
+====================================================
+PAGINATION
+====================================================
+
+Replace OFFSET pagination where needed.
+
+Implement:
+- cursor pagination
+- indexed pagination
+- efficient infinite scroll support
+
+Especially for:
+- audit logs
+- invoices
+- activity feeds
+- CRM notes
+- billing history
+
+====================================================
+DATA RETENTION STRATEGY
+====================================================
+
+Implement recommendations for:
+- webhook event retention
+- websocket logs
+- notification history
+- old analytics events
+- archived invoices
+- old audit logs
+
+Define:
+- what remains hot storage
+- what becomes archive storage
+
+====================================================
+MIGRATION OPTIMIZATION
+====================================================
+
+Review migrations for:
+- locking issues
+- downtime risks
+- bad defaults
+- expensive table rewrites
+
+Implement:
+- safe migration patterns
+- concurrent index creation
+- zero-downtime migration recommendations
+
+====================================================
+POSTGRESQL CONFIGURATION
+====================================================
+
+Recommend optimized PostgreSQL settings for:
+- memory
+- work_mem
+- shared_buffers
+- WAL
+- checkpoint tuning
+- connection limits
+- autovacuum
+- parallel workers
+
+Environment target:
+- VPS initially
+- scalable later
+
+====================================================
+CONNECTION MANAGEMENT
+====================================================
+
+Implement:
+- connection pooling
+- transaction safety
+- query timeout handling
+- deadlock prevention
+- retry strategies
+
+====================================================
+ANALYTICS OPTIMIZATION
+====================================================
+
+Future analytics expected.
+
+Prepare architecture for:
+- reporting
+- MRR analytics
+- churn metrics
+- agent metrics
+- revenue dashboards
+
+Prevent analytics queries from hurting production performance.
+
+====================================================
+DELIVERABLES
+====================================================
+
+Produce:
+- optimized schema improvements
+- index recommendations
+- partitioning strategy
+- optimized SQL queries
+- Redis caching strategy
+- migration improvements
+- search optimization
+- websocket DB optimization
+- retention strategy
+- scaling recommendations
+- performance monitoring setup
+
+====================================================
+MONITORING
+====================================================
+
+Implement monitoring recommendations for:
+- slow queries
+- table growth
+- index usage
+- cache hit rate
+- connection counts
+- lock contention
+- deadlocks
+- websocket throughput
+
+====================================================
+IMPORTANT REQUIREMENTS
+====================================================
+
+- prioritize production performance
+- prioritize scalability
+- prioritize maintainability
+- prioritize tenant isolation
+- avoid premature overengineering
+- optimize for BOTH reads and writes
+- avoid dangerous indexes
+- avoid expensive joins where possible
+
+====================================================
+FINAL GOAL
+====================================================
+
+Transform the database into a production-grade SaaS database architecture capable of scaling cleanly while maintaining fast dashboards, fast billing systems, fast support tools, and realtime responsiveness.
