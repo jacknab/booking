@@ -139,3 +139,4 @@ $_schema_output = json_encode(['@context' => 'https://schema.org', '@graph' => $
   <script type="application/ld+json"><?= $_schema_output ?></script>
 </head>
 <body>
+<a href="#main-content" class="skip-to-content">Skip to main content</a>

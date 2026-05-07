@@ -8,14 +8,23 @@ document.querySelectorAll('.accordion-btn').forEach(btn => {
 
     document.querySelectorAll('.accordion-btn').forEach(b => {
       b.classList.remove('active');
+      b.setAttribute('aria-expanded', 'false');
       if (b.nextElementSibling) b.nextElementSibling.classList.remove('open');
     });
 
     if (!isOpen) {
       btn.classList.add('active');
+      btn.setAttribute('aria-expanded', 'true');
       body.classList.add('open');
     }
   });
+});
+
+// Set initial aria-expanded on accordion buttons
+document.querySelectorAll('.accordion-btn').forEach(btn => {
+  if (!btn.hasAttribute('aria-expanded')) btn.setAttribute('aria-expanded', 'false');
+  const body = btn.nextElementSibling;
+  if (body) btn.setAttribute('aria-controls', body.id || '');
 });
 
 // ── Nav scroll shadow ──────────────────────────────────────
@@ -36,7 +45,6 @@ const revealObserver = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
-// Observe cards that get .reveal added by JS
 document.querySelectorAll('.card, .testimonial, .step, .pricing-card').forEach((el, i) => {
   el.classList.add('reveal');
   const siblings = el.parentElement ? Array.from(el.parentElement.children) : [];
@@ -44,37 +52,45 @@ document.querySelectorAll('.card, .testimonial, .step, .pricing-card').forEach((
   if (idx > 0 && idx <= 3) el.classList.add(`reveal-delay-${idx}`);
   revealObserver.observe(el);
 });
-
-// Also observe elements that already have .reveal in the HTML (e.g. testi-dark-card, bento-card)
 document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
 // ── Desktop dropdown — hover with grace-period timer ───────
-// Switches from pure-CSS :hover (broken by the gap) to JS .open class.
-// A 150 ms delay on close means brief mouse movement never snaps it shut.
 (function () {
   const isMobile = () => window.innerWidth < 900;
+
   document.querySelectorAll('.has-dropdown').forEach(item => {
     let closeTimer = null;
+    const trigger = item.querySelector('a');
+    if (trigger) {
+      trigger.setAttribute('aria-haspopup', 'true');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
 
     const open = () => {
       if (isMobile()) return;
       clearTimeout(closeTimer);
-      // close siblings
       document.querySelectorAll('.has-dropdown').forEach(other => {
-        if (other !== item) other.classList.remove('open');
+        if (other !== item) {
+          other.classList.remove('open');
+          const t = other.querySelector('a');
+          if (t) t.setAttribute('aria-expanded', 'false');
+        }
       });
       item.classList.add('open');
+      if (trigger) trigger.setAttribute('aria-expanded', 'true');
     };
 
     const scheduleClose = () => {
       if (isMobile()) return;
-      closeTimer = setTimeout(() => item.classList.remove('open'), 150);
+      closeTimer = setTimeout(() => {
+        item.classList.remove('open');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      }, 150);
     };
 
     item.addEventListener('mouseenter', open);
     item.addEventListener('mouseleave', scheduleClose);
 
-    // Re-entering the dropdown (or the bridge) cancels the close timer
     const dropdown = item.querySelector('.dropdown');
     if (dropdown) {
       dropdown.addEventListener('mouseenter', () => clearTimeout(closeTimer));
@@ -82,30 +98,85 @@ document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
     }
   });
 
-  // Close all when clicking outside
   document.addEventListener('click', e => {
     if (!e.target.closest('.has-dropdown')) {
-      document.querySelectorAll('.has-dropdown').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.has-dropdown').forEach(d => {
+        d.classList.remove('open');
+        const t = d.querySelector('a');
+        if (t) t.setAttribute('aria-expanded', 'false');
+      });
     }
   });
 })();
 
-// ── Mobile menu ────────────────────────────────────────────
-const menuBtn    = document.querySelector('.mobile-menu-btn');
-const navLinks   = document.querySelector('.nav-links');
-const navActions = document.querySelector('.nav-actions');
-
-if (menuBtn && navLinks) {
-  let menuOpen = false;
-  menuBtn.addEventListener('click', () => {
-    menuOpen = !menuOpen;
-    if (menuOpen) {
-      navLinks.style.cssText = 'display:flex;flex-direction:column;position:absolute;top:70px;left:0;right:0;background:#fff;padding:16px 28px 24px;box-shadow:0 20px 40px rgba(59,7,100,.12);z-index:999;';
-      if (navActions) navActions.style.cssText = 'display:flex;flex-direction:column;position:absolute;top:auto;left:0;right:0;background:#fff;padding:0 28px 24px;z-index:999;';
-    } else {
-      navLinks.removeAttribute('style');
-      if (navActions) navActions.removeAttribute('style');
+// ── Mobile dropdown — tap parent link to toggle ────────────
+document.querySelectorAll('.has-dropdown > a').forEach(link => {
+  link.addEventListener('click', e => {
+    if (window.innerWidth >= 900) return;
+    e.preventDefault();
+    const item = link.closest('.has-dropdown');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.has-dropdown').forEach(d => {
+      d.classList.remove('open');
+      const t = d.querySelector('a');
+      if (t) t.setAttribute('aria-expanded', 'false');
+    });
+    if (!wasOpen) {
+      item.classList.add('open');
+      link.setAttribute('aria-expanded', 'true');
     }
+  });
+});
+
+// ── Mobile menu — class-based (no inline styles) ───────────
+const menuBtn    = document.querySelector('.mobile-menu-btn');
+
+if (menuBtn && nav) {
+  let menuOpen = false;
+
+  const openMenu = () => {
+    menuOpen = true;
+    nav.classList.add('is-open');
+    menuBtn.classList.add('is-open');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    menuBtn.setAttribute('aria-label', 'Close menu');
+    document.body.style.overflow = '';
+  };
+
+  const closeMenu = () => {
+    menuOpen = false;
+    nav.classList.remove('is-open');
+    menuBtn.classList.remove('is-open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    menuBtn.setAttribute('aria-label', 'Open menu');
+    document.body.style.overflow = '';
+    // Close any open mobile dropdowns
+    document.querySelectorAll('.has-dropdown').forEach(d => {
+      d.classList.remove('open');
+      const t = d.querySelector('a');
+      if (t) t.setAttribute('aria-expanded', 'false');
+    });
+  };
+
+  menuBtn.addEventListener('click', () => {
+    if (menuOpen) closeMenu(); else openMenu();
+  });
+
+  // Close on outside click
+  document.addEventListener('click', e => {
+    if (menuOpen && !e.target.closest('#main-nav')) closeMenu();
+  });
+
+  // Close on resize to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768 && menuOpen) closeMenu();
+  }, { passive: true });
+
+  // Close when a non-dropdown nav link is clicked
+  document.querySelectorAll('.nav-links a:not(.has-dropdown > a), .nav-actions a').forEach(link => {
+    link.addEventListener('click', () => {
+      if (menuOpen) closeMenu();
+    });
   });
 }
 
@@ -128,7 +199,10 @@ if (toggleInput) {
 // ── Active nav link ────────────────────────────────────────
 const currentPath = window.location.pathname;
 document.querySelectorAll('.nav-links a, .dropdown a').forEach(link => {
-  if (link.getAttribute('href') === currentPath) link.classList.add('active');
+  if (link.getAttribute('href') === currentPath) {
+    link.classList.add('active');
+    link.setAttribute('aria-current', 'page');
+  }
 });
 
 // ── Subtle card tilt on desktop ────────────────────────────
@@ -178,12 +252,14 @@ if (window.matchMedia('(hover: hover) and (min-width: 768px)').matches) {
 
 // ── Word-by-word headline entrance ─────────────────────────
 (function () {
+  // Skip entirely if user prefers reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
   document.querySelectorAll('.word-split').forEach(el => {
-    // Walk text nodes only; preserve br + em as atomic units
     const result = [];
     let delay = 0.08;
     function processNode(node) {
-      if (node.nodeType === 3) { // text
+      if (node.nodeType === 3) {
         node.textContent.split(/(\s+)/).forEach(chunk => {
           if (!chunk) return;
           if (/^\s+$/.test(chunk)) { result.push(document.createTextNode(chunk)); return; }

@@ -82,7 +82,7 @@ $rows = [
       <p class="section-subtitle">Every feature that matters to a salon owner, compared honestly.</p>
     </div>
 
-    <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--light-grey);box-shadow:var(--shadow-md);">
+    <div class="comparison-table-scroll" style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--light-grey);box-shadow:var(--shadow-md);">
       <!-- header row -->
       <div style="display:grid;grid-template-columns:1fr 160px 160px;background:var(--plum);color:#fff;padding:16px 24px;font-weight:700;font-size:.85rem;">
         <div>Feature</div>

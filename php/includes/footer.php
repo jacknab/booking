@@ -1,4 +1,5 @@
 <?php defined('BRAND_NAME') or define('BRAND_NAME', 'Certxa'); ?>
+</main>
 <footer class="footer">
   <div class="container">
     <div class="footer-grid">

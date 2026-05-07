@@ -79,7 +79,7 @@ $rows = [
       <h2 class="section-title">Certxa vs Vagaro — feature by feature</h2>
       <p class="section-subtitle">Vagaro's pricing looks simple — until you see the add-on charges. Certxa includes everything, upfront.</p>
     </div>
-    <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--light-grey);box-shadow:var(--shadow-md);">
+    <div class="comparison-table-scroll" style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--light-grey);box-shadow:var(--shadow-md);">
       <div style="display:grid;grid-template-columns:1fr 160px 160px;background:var(--plum);color:#fff;padding:16px 24px;font-weight:700;font-size:.85rem;">
         <div>Feature</div>
         <div style="text-align:center;">Certxa</div>

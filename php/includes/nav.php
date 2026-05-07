@@ -4,7 +4,7 @@
     <div class="nav-inner">
       <a href="/overview.php" class="nav-logo"><?= BRAND_NAME ?><span>.</span></a>
 
-      <ul class="nav-links">
+      <ul class="nav-links" id="main-menu" role="list">
 
         <!-- SalonOS — top-level prominent link -->
         <li>
@@ -75,9 +75,10 @@
         <a href="/auth?mode=register" class="btn-trial">Start Free Trial</a>
       </div>
 
-      <button class="mobile-menu-btn" aria-label="Open menu">
+      <button class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="main-menu">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
 </nav>
+<main id="main-content">
