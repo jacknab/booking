@@ -63,7 +63,7 @@ export default function Dashboard() {
 
   const getRevenue = (appts: any[]) => {
     return appts.reduce((sum: number, apt: any) => {
-      const paid = parseFloat(apt.total || "0");
+      const paid = parseFloat(apt.totalPaid || "0");
       return sum + (isNaN(paid) ? 0 : paid);
     }, 0);
   };
@@ -114,9 +114,9 @@ export default function Dashboard() {
         addons: apt.appointmentAddons.map((a: any) => a.addon),
         staffId: apt.staffId,
       }],
-      subtotal: parseFloat(apt.total) - parseFloat(apt.tipAmount || '0'),
+      subtotal: parseFloat(apt.totalPaid || "0") - parseFloat(apt.tipAmount || '0'),
       tipAmount: parseFloat(apt.tipAmount || '0'),
-      grandTotal: parseFloat(apt.total),
+      grandTotal: parseFloat(apt.totalPaid || "0"),
       paymentMethod: apt.paymentMethod || 'Card',
       transactionId: String(apt.id),
       dateStr: formatInTz(apt.date, timezone, 'MM/dd/yyyy'),
@@ -238,7 +238,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="font-bold text-sm">${apt.total}</p>
+                        <p className="font-bold text-sm">${apt.totalPaid}</p>
                         <p className="text-xs text-muted-foreground">{formatInTz(apt.date, timezone, 'h:mm a')}</p>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => handlePrintReceipt(apt)} className="text-muted-foreground">

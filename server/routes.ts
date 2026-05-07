@@ -240,6 +240,10 @@ export async function registerRoutes(
     if (req.path.startsWith("/admin/dashboard")) return next(); // Allow admin dashboard endpoint
     if (req.path.startsWith("/billing/invoices")) return next(); // Allow billing endpoints for development
     if (req.path.startsWith("/seo-regions")) return next(); // SEO regions admin — public
+    if (req.path.startsWith("/appointments/confirmation/")) return next(); // Public booking confirmation lookup & cancel
+    if (req.path.endsWith("/respond")) return next(); // Public intake form submission
+    if (req.path.startsWith("/reviews/form/")) return next(); // Public review form lookup
+    if (req.path === "/reviews/submit") return next(); // Public review submission
     if (req.path.startsWith("/chatbot/")) return next(); // Chatbot API — uses own X-Chatbot-Key auth
     if (req.path.startsWith("/dialer/")) return next();  // Twilio dialer — uses own X-Dialer-Key auth + Twilio webhooks
     
@@ -973,14 +977,15 @@ export async function registerRoutes(
   // === STAFF ===
   app.get(api.staff.list.path, async (req, res) => {
     const storeId = req.query.storeId ? Number(req.query.storeId) : undefined;
-    const staff = await storage.getAllStaff(storeId);
-    res.json(staff);
+    const staffList = await storage.getAllStaff(storeId);
+    res.json(staffList.map(({ password, ...safe }) => safe));
   });
 
   app.get(api.staff.get.path, async (req, res) => {
     const member = await storage.getStaffMember(Number(req.params.id));
     if (!member) return res.status(404).json({ message: "Staff not found" });
-    res.json(member);
+    const { password, ...safe } = member;
+    res.json(safe);
   });
 
   app.post(api.staff.create.path, requireActiveTrial, async (req, res) => {
@@ -2082,6 +2087,23 @@ If you have any questions, please contact your administrator.
 
       console.log("Onboarding: Store created successfully:", store.id);
 
+      // Auto-generate a unique booking slug from the business name
+      const baseSlug = businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 50);
+      let slug = baseSlug;
+      let attempt = 1;
+      while (true) {
+        const existing = await storage.getStoreBySlug(slug);
+        if (!existing) break;
+        attempt++;
+        slug = `${baseSlug}-${attempt}`;
+      }
+      const updatedStore = await storage.updateStore(store.id, { bookingSlug: slug });
+      if (updatedStore) Object.assign(store, updatedStore);
+
       if (hoursData && hoursData.length > 0) {
         await storage.setBusinessHours(store.id, hoursData.map(h => ({
           storeId: store.id,
@@ -2249,7 +2271,7 @@ If you have any questions, please contact your administrator.
       const store = await storage.getStoreBySlug(req.params.slug);
       if (!store) return res.status(404).json({ message: "Store not found" });
       const storeStaff = await storage.getAllStaff(store.id);
-      const safeStaff = storeStaff.map(({ email, phone, ...rest }) => rest);
+      const safeStaff = storeStaff.map(({ email, phone, password, ...rest }) => rest);
       res.json(safeStaff);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -2475,7 +2497,14 @@ If you have any questions, please contact your administrator.
         return res.status(404).json({ message: "Booking not found" });
       }
 
-      res.json(appointments);
+      const safeAppointments = appointments.map((apt: any) => {
+        if (apt.staff) {
+          const { password: _pw, ...staffSafe } = apt.staff;
+          return { ...apt, staff: staffSafe };
+        }
+        return apt;
+      });
+      res.json(safeAppointments);
     } catch (error) {
       console.error("Confirmation lookup error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -2511,7 +2540,12 @@ If you have any questions, please contact your administrator.
       }
 
       const refreshed = await storage.getAppointment(appointment.id);
-      res.json(refreshed || appointment);
+      const result = refreshed || appointment;
+      if (result?.staff) {
+        const { password: _pw, ...staffSafe } = result.staff as any;
+        (result as any).staff = staffSafe;
+      }
+      res.json(result);
     } catch (error) {
       console.error("Confirmation cancel error:", error);
       res.status(400).json({ message: "Failed to cancel booking" });
