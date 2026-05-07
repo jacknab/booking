@@ -10,6 +10,7 @@ import { SettingsManager } from './SettingsManager';
 import { InvoicesManager } from './InvoicesManager';
 import { PlatformSettingsManager } from './PlatformSettingsManager';
 import { BillingDashboard } from './BillingDashboard';
+import { BillingPlansManager } from './BillingPlansManager';
 
 import StoreManager from './StoreManager';
 import { DashboardOverview } from './DashboardOverview';
@@ -115,6 +116,10 @@ export const AdminDashboard: React.FC = () => {
         <Route
           path="/billing"
           element={<BillingDashboard />}
+        />
+        <Route
+          path="/billing/plans"
+          element={<BillingPlansManager />}
         />
       </Routes>
     </AdminLayout>

@@ -9,7 +9,8 @@ import {
   X,
   LayoutDashboard,
   Package,
-  CreditCard
+  CreditCard,
+  Tag
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -25,6 +26,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { path: '/isAdmin/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/isAdmin/stock-items', label: 'ACCOUNTS', icon: ShoppingBag },
     { path: '/isAdmin/billing', label: 'BILLING', icon: CreditCard },
+    { path: '/isAdmin/billing/plans', label: 'PLANS', icon: Tag },
     { path: '/isAdmin/services', label: 'Subscriptions', icon: Wrench },
     { path: '/isAdmin/fulfillment', label: 'FULFILLMENT', icon: Package },
     { path: '/isAdmin/platform-settings', label: 'PLATFORM SETTINGS', icon: Settings },

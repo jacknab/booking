@@ -5312,10 +5312,10 @@ If you have any questions, please contact your administrator.
 
   // ── Billing & Subscriptions ──────────────────────────────────────────────────
   const { default: billingRouter } = await import("./routes/billing.js");
-  // Webhook endpoint needs raw body — mount before JSON parser catches it.
-  // The raw body is already captured by the verify callback in express.json above.
   const { default: billingWebhookRouter } = await import("./routes/billing-webhooks.js");
+  const { default: billingPlansAdminRouter } = await import("./routes/billing-plans-admin.js");
   app.use("/api/billing", billingWebhookRouter);
+  app.use("/api/billing", billingPlansAdminRouter);
   app.use("/api/billing", billingRouter);
 
   // Phase 8 — graduation sweep + day-7 owner digest.
