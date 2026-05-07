@@ -1,0 +1,21 @@
+kind = "web"
+previewPath = "/launchsite/"
+title = "LaunchSite PHP Catalog"
+version = "1.0.0"
+id = "artifacts/launchsite-catalog"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/launchsite/" ]
+localPort = 8008
+
+[services.development]
+run = "php -S 0.0.0.0:8008 -t /home/runner/workspace/launchsite-php"
+
+[services.env]
+PORT = "8008"

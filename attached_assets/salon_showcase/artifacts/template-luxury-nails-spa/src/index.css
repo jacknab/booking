@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes kenburns {
+  0%   { transform: scale(1) translate(0, 0); }
+  50%  { transform: scale(1.08) translate(-1%, 1%); }
+  100% { transform: scale(1.05) translate(1%, -1%); }
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes crossfade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fadein {
+  animation: fadein 1s ease-out both;
+}
+
+.animate-crossfade {
+  animation: crossfade 1.5s ease-in-out forwards;
+}
