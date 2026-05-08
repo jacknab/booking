@@ -188,7 +188,7 @@ export default function Auth() {
             {/* Heading */}
             <h1 style={{
               fontFamily: mode === "register" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif",
-              fontSize: mode === "register" ? "2.6rem" : "2rem",
+              fontSize: mode === "register" ? "3.1rem" : "2rem",
               fontWeight: mode === "register" ? 700 : 800,
               letterSpacing: mode === "register" ? "-0.02em" : "-0.03em",
               color: CHARCOAL, lineHeight: 1.1,
