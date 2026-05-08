@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import MarketingLayout from "@/components/layout/MarketingLayout";
+import MarketingNav from "@/components/layout/MarketingNav";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowRight, Calendar, Users, Wrench,
-  Check, CalendarDays, CreditCard, Star, Gift,
+  CalendarDays, CreditCard, Star, Gift,
   BarChart2, ClipboardList, MessageSquare, ShieldCheck,
-  Smartphone, Globe, Clock, Zap,
+  Smartphone, Globe, Clock, Zap, Check,
 } from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
@@ -33,22 +33,24 @@ const GROUP_CONFIG = {
 
 type GroupKey = keyof typeof GROUP_CONFIG;
 
-const PURPLE = "#5B21B6";
-const ORANGE = "#F5A623";
+const PLUM      = "#3B0764";
+const PLUM_MID  = "#5B21B6";
+const GOLD      = "#F59E0B";
+const CHARCOAL  = "#1C1917";
 
 const TRIAL_FEATURES = [
-  { icon: <CalendarDays className="w-4 h-4" />, text: "Appointments & calendar management" },
-  { icon: <Globe className="w-4 h-4" />, text: "Online booking widget for your website" },
-  { icon: <CreditCard className="w-4 h-4" />, text: "Point of Sale (POS) & payments" },
-  { icon: <Users className="w-4 h-4" />, text: "Staff management & scheduling" },
-  { icon: <MessageSquare className="w-4 h-4" />, text: "Automated SMS & email reminders" },
-  { icon: <Star className="w-4 h-4" />, text: "Loyalty program & rewards" },
-  { icon: <Gift className="w-4 h-4" />, text: "Gift cards" },
-  { icon: <Clock className="w-4 h-4" />, text: "Waitlist & virtual queue" },
-  { icon: <Smartphone className="w-4 h-4" />, text: "Google Reviews manager" },
-  { icon: <BarChart2 className="w-4 h-4" />, text: "Analytics & revenue reports" },
-  { icon: <ClipboardList className="w-4 h-4" />, text: "Client intake forms" },
-  { icon: <Zap className="w-4 h-4" />, text: "Unlimited clients & bookings" },
+  { icon: CalendarDays, text: "Appointments & calendar" },
+  { icon: Globe,        text: "Online booking widget" },
+  { icon: CreditCard,   text: "Point of Sale & payments" },
+  { icon: Users,        text: "Staff management" },
+  { icon: MessageSquare,text: "SMS & email reminders" },
+  { icon: Star,         text: "Loyalty program & rewards" },
+  { icon: Gift,         text: "Gift cards" },
+  { icon: Clock,        text: "Waitlist & virtual queue" },
+  { icon: Smartphone,   text: "Google Reviews manager" },
+  { icon: BarChart2,    text: "Analytics & reports" },
+  { icon: ClipboardList,text: "Client intake forms" },
+  { icon: Zap,          text: "Unlimited clients" },
 ];
 
 export default function Auth() {
@@ -63,21 +65,21 @@ export default function Auth() {
   const rawGroup = searchParams.get("group") ?? "";
   const group: GroupKey | null = rawGroup in GROUP_CONFIG ? (rawGroup as GroupKey) : null;
   const cfg = group ? GROUP_CONFIG[group] : null;
-
   const redirectTo = searchParams.get("redirect") ?? null;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
   const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [lastName, setLastName]   = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(false);
 
+  // Load Cormorant Garamond to match PHP nav exactly
   useEffect(() => {
     const link = document.createElement("link");
-    link.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap";
     link.rel = "stylesheet";
     document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
+    return () => { if (document.head.contains(link)) document.head.removeChild(link); };
   }, []);
 
   const postAuthRedirect = (onboardingCompleted: boolean) => {
@@ -130,308 +132,451 @@ export default function Auth() {
 
   if (isLoading && hasStoredSession) {
     return (
-      <MarketingLayout hideNavActions>
-        <div className="bg-white flex items-center justify-center" style={{ height: "calc(100vh - 70px)" }}>
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: PURPLE }} />
-            <p className="text-gray-400 text-sm">Welcome back! Restoring your session…</p>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <MarketingNav hideActions />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+          <div style={{ textAlign: "center" }}>
+            <Loader2 style={{ width: 32, height: 32, color: PLUM_MID, margin: "0 auto 16px", animation: "spin 1s linear infinite" }} />
+            <p style={{ color: "#9ca3af", fontSize: ".875rem" }}>Welcome back! Restoring your session…</p>
           </div>
         </div>
-      </MarketingLayout>
+      </div>
     );
   }
 
   return (
-    <MarketingLayout hideNavActions>
-    <div className="flex bg-white font-['Plus_Jakarta_Sans',sans-serif]"
-      style={{ height: "calc(100vh - 70px)", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
+      {/* Nav — matches PHP overview.php nav exactly */}
+      <MarketingNav hideActions />
 
-      {/* ── Left panel ── */}
-      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden"
-        style={{ background: mode === "register" ? "#0F0A1E" : "#F7F5FF" }}>
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
+        {/* ── Left panel ── */}
         {mode === "register" ? (
           <TrialLeftPanel cfg={cfg} />
         ) : (
           <LoginLeftPanel cfg={cfg} />
         )}
-      </div>
 
-      {/* Divider */}
-      <div className="hidden lg:block w-px" style={{ background: mode === "register" ? "rgba(255,255,255,0.07)" : "#f3f4f6" }} />
+        {/* ── Right panel — form ── */}
+        <div style={{
+          width: "100%", maxWidth: 520, flexShrink: 0,
+          display: "flex", flexDirection: "column",
+          background: mode === "register" ? "#fff" : "#fff",
+          overflowY: "auto",
+          boxShadow: "-1px 0 0 #f3f4f6",
+        }}>
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            justifyContent: "center", padding: "48px 52px",
+          }}>
 
-      {/* ── Right panel — form ── */}
-      <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 bg-white overflow-y-auto">
-        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-10">
-          {/* Header */}
-          <div className="mb-8">
+            {/* Group badge */}
             {cfg && mode === "register" && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border mb-5"
-                style={{ background: "rgba(91,33,182,0.07)", borderColor: "rgba(91,33,182,0.18)", color: PURPLE }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", borderRadius: 50,
+                background: "rgba(91,33,182,0.07)", border: "1px solid rgba(91,33,182,0.18)",
+                color: PLUM_MID, fontSize: ".75rem", fontWeight: 700,
+                marginBottom: 20, width: "fit-content",
+              }}>
                 {cfg.icon}
                 Starting with {cfg.label}
               </div>
             )}
-            <h1 className="text-3xl font-black tracking-tight mb-2 text-gray-900">
+
+            {/* Heading */}
+            <h1 style={{
+              fontFamily: mode === "register" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif",
+              fontSize: mode === "register" ? "2.6rem" : "2rem",
+              fontWeight: mode === "register" ? 700 : 800,
+              letterSpacing: mode === "register" ? "-0.02em" : "-0.03em",
+              color: CHARCOAL, lineHeight: 1.1,
+              margin: "0 0 10px",
+            }}>
               {mode === "login" ? "Welcome back" : "Start your free trial"}
             </h1>
+
+            {/* Subtext */}
             {mode === "register" ? (
-              <div className="flex items-center gap-2 mt-3">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                  style={{ background: "rgba(245,166,35,0.12)", color: "#B45309" }}>
-                  <ShieldCheck className="w-3.5 h-3.5" />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "4px 12px", borderRadius: 50,
+                  background: "rgba(245,158,11,0.1)", color: "#92400e",
+                  fontSize: ".73rem", fontWeight: 700,
+                }}>
+                  <ShieldCheck style={{ width: 12, height: 12 }} />
                   60 days free
                 </span>
-                <span className="text-gray-400 text-xs">No credit card required</span>
+                <span style={{ color: "#9ca3af", fontSize: ".8rem" }}>No credit card required</span>
               </div>
             ) : (
-              <p className="text-gray-400 text-sm mt-1">Sign in to continue to your dashboard.</p>
-            )}
-          </div>
-
-          {/* Google */}
-          <button
-            onClick={() => loginWithGoogle({ keepSignedIn })}
-            className="w-full flex items-center justify-center gap-3 font-semibold text-sm py-3.5 rounded-xl transition-all mb-5 text-gray-700 border border-gray-200 bg-white hover:bg-gray-50"
-          >
-            <FaGoogle className="w-4 h-4 text-gray-500" />
-            {mode === "login" ? "Sign in with Google" : "Sign up with Google"}
-          </button>
-
-          {/* Divider */}
-          <div className="relative mb-5">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-3 text-gray-400 uppercase tracking-widest">or</span>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "register" && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">First name</Label>
-                  <Input
-                    id="firstName"
-                    data-testid="input-first-name"
-                    value={firstName}
-                    onChange={e => setFirstName(e.target.value)}
-                    placeholder="Jane"
-                    className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Last name</Label>
-                  <Input
-                    id="lastName"
-                    data-testid="input-last-name"
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                data-testid="input-email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@yourbusiness.com"
-                required
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Password</Label>
-                {mode === "login" && (
-                  <Link to="/forgot-password" className="text-xs font-medium transition-colors" style={{ color: PURPLE }}>
-                    Forgot password?
-                  </Link>
-                )}
-              </div>
-              <Input
-                id="password"
-                type="password"
-                data-testid="input-password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                required
-                minLength={6}
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-300 focus:border-purple-400 focus:ring-purple-100"
-              />
-            </div>
-
-            {/* Keep signed in */}
-            <label className="flex items-start gap-3 cursor-pointer select-none pt-1">
-              <input
-                type="checkbox"
-                checked={keepSignedIn}
-                onChange={e => setKeepSignedIn(e.target.checked)}
-                data-testid="checkbox-keep-signed-in"
-                className="mt-0.5 h-4 w-4 rounded cursor-pointer"
-                style={{ accentColor: PURPLE }}
-              />
-              <span className="flex-1">
-                <span className="block text-sm font-semibold text-gray-700">Keep me signed in on this device</span>
-                <span className="block text-xs text-gray-400 mt-0.5">Use for the front-desk computer — staff won't have to log in.</span>
-              </span>
-            </label>
-
-            {/* CTA */}
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all disabled:opacity-50 mt-2 text-white"
-              style={{
-                background: mode === "register"
-                  ? `linear-gradient(135deg, ${PURPLE} 0%, #4C1D95 100%)`
-                  : `linear-gradient(135deg, ${ORANGE} 0%, #E8950F 100%)`,
-                boxShadow: mode === "register"
-                  ? "0 4px 20px rgba(91,33,182,0.35)"
-                  : "0 4px 16px rgba(245,166,35,0.35)",
-              }}
-              data-testid="button-submit-auth"
-            >
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {mode === "login" ? "Sign in" : "Start my 60-day free trial"}
-              {!isPending && <ArrowRight className="w-4 h-4" />}
-            </button>
-
-            {mode === "register" && (
-              <p className="text-center text-xs text-gray-400 -mt-1">
-                Full access to everything. Cancel any time.
+              <p style={{ color: "#6b7280", fontSize: ".9rem", marginBottom: 28 }}>
+                Sign in to continue to your dashboard.
               </p>
             )}
-          </form>
 
-          {/* Switch mode */}
-          <p className="text-center text-gray-400 text-sm mt-6">
-            {mode === "login" ? (
-              <>
-                Don't have an account?{" "}
-                <button type="button" onClick={() => setMode("register")}
-                  className="font-semibold transition-colors" style={{ color: PURPLE }}
-                  data-testid="link-switch-to-register">
-                  Start free trial
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button type="button" onClick={() => setMode("login")}
-                  className="font-semibold transition-colors" style={{ color: PURPLE }}
-                  data-testid="link-switch-to-login">
-                  Log in
-                </button>
-              </>
-            )}
-          </p>
+            {/* Google */}
+            <button
+              onClick={() => loginWithGoogle({ keepSignedIn })}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                gap: 10, padding: "13px 20px", borderRadius: 10,
+                border: "1.5px solid #e5e7eb", background: "#fff",
+                fontSize: ".875rem", fontWeight: 600, color: "#374151",
+                cursor: "pointer", transition: "border-color .15s, background .15s",
+                marginBottom: 20,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#f9fafb"; (e.currentTarget as HTMLElement).style.borderColor = "#d1d5db"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#fff"; (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb"; }}
+            >
+              <FaGoogle style={{ color: "#ea4335", width: 16, height: 16 }} />
+              {mode === "login" ? "Sign in with Google" : "Sign up with Google"}
+            </button>
 
-          {/* Footer */}
-          <div className="flex items-center justify-center gap-5 mt-8 pt-6 border-t border-gray-100">
-            <a href="https://certxa.com/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-gray-500 text-xs transition-colors">Privacy</a>
-            <a href="https://certxa.com/terms" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-gray-500 text-xs transition-colors">Terms</a>
-            <Link to="/staff-auth" className="text-gray-300 hover:text-gray-500 text-xs transition-colors">Staff login</Link>
+            {/* Divider */}
+            <div style={{ position: "relative", marginBottom: 20 }}>
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center" }}>
+                <span style={{ width: "100%", borderTop: "1px solid #f3f4f6" }} />
+              </div>
+              <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+                <span style={{ background: "#fff", padding: "0 12px", fontSize: ".72rem", color: "#9ca3af", letterSpacing: ".1em", textTransform: "uppercase" }}>or</span>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {mode === "register" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <Label htmlFor="firstName" style={{ display: "block", fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>First name</Label>
+                    <Input
+                      id="firstName"
+                      data-testid="input-first-name"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      placeholder="Jane"
+                      style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName" style={{ display: "block", fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Last name</Label>
+                    <Input
+                      id="lastName"
+                      data-testid="input-last-name"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
+                      placeholder="Doe"
+                      style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="email" style={{ display: "block", fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  data-testid="input-email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@yourbusiness.com"
+                  required
+                  style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <Label htmlFor="password" style={{ fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em" }}>Password</Label>
+                  {mode === "login" && (
+                    <Link to="/forgot-password" style={{ fontSize: ".8rem", fontWeight: 600, color: PLUM_MID, textDecoration: "none" }}>
+                      Forgot password?
+                    </Link>
+                  )}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  data-testid="input-password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  required
+                  minLength={6}
+                  style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                />
+              </div>
+
+              {/* Keep signed in */}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={keepSignedIn}
+                  onChange={e => setKeepSignedIn(e.target.checked)}
+                  data-testid="checkbox-keep-signed-in"
+                  style={{ marginTop: 2, width: 15, height: 15, accentColor: PLUM_MID, cursor: "pointer" }}
+                />
+                <span>
+                  <span style={{ display: "block", fontSize: ".8rem", fontWeight: 600, color: "#374151" }}>Keep me signed in on this device</span>
+                  <span style={{ display: "block", fontSize: ".72rem", color: "#9ca3af", marginTop: 2 }}>Use for the front-desk computer — staff won't have to log in.</span>
+                </span>
+              </label>
+
+              {/* CTA */}
+              <button
+                type="submit"
+                disabled={isPending}
+                data-testid="button-submit-auth"
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                  gap: 8, padding: "15px 20px", borderRadius: 10, border: "none",
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: ".9rem", fontWeight: 700, color: "#fff",
+                  cursor: isPending ? "not-allowed" : "pointer",
+                  opacity: isPending ? 0.65 : 1,
+                  background: mode === "register"
+                    ? `linear-gradient(135deg, ${PLUM} 0%, ${PLUM_MID} 100%)`
+                    : `linear-gradient(135deg, ${GOLD} 0%, #E8950F 100%)`,
+                  boxShadow: mode === "register"
+                    ? "0 4px 20px rgba(59,7,100,0.35)"
+                    : "0 4px 16px rgba(245,158,11,0.35)",
+                  transition: "transform .15s, box-shadow .15s, opacity .15s",
+                  marginTop: 4,
+                }}
+                onMouseEnter={e => { if (!isPending) { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = mode === "register" ? "0 8px 28px rgba(59,7,100,0.45)" : "0 8px 24px rgba(245,158,11,0.45)"; } }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "none"; (e.currentTarget as HTMLElement).style.boxShadow = mode === "register" ? "0 4px 20px rgba(59,7,100,0.35)" : "0 4px 16px rgba(245,158,11,0.35)"; }}
+              >
+                {isPending && <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} />}
+                {mode === "login" ? "Sign in" : "Start my 60-day free trial"}
+                {!isPending && <ArrowRight style={{ width: 16, height: 16 }} />}
+              </button>
+
+              {mode === "register" && (
+                <p style={{ textAlign: "center", fontSize: ".72rem", color: "#9ca3af", margin: "-4px 0 0" }}>
+                  Full access to everything. Cancel any time.
+                </p>
+              )}
+            </form>
+
+            {/* Switch mode */}
+            <p style={{ textAlign: "center", color: "#9ca3af", fontSize: ".85rem", marginTop: 24 }}>
+              {mode === "login" ? (
+                <>
+                  Don't have an account?{" "}
+                  <button type="button" onClick={() => setMode("register")}
+                    data-testid="link-switch-to-register"
+                    style={{ color: PLUM_MID, fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: ".85rem" }}>
+                    Start free trial
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <button type="button" onClick={() => setMode("login")}
+                    data-testid="link-switch-to-login"
+                    style={{ color: PLUM_MID, fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: ".85rem" }}>
+                    Log in
+                  </button>
+                </>
+              )}
+            </p>
+
+            {/* Footer links */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 32, paddingTop: 24, borderTop: "1px solid #f3f4f6" }}>
+              <a href="https://certxa.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#d1d5db", fontSize: ".75rem", textDecoration: "none" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#6b7280"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#d1d5db"; }}>
+                Privacy
+              </a>
+              <a href="https://certxa.com/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#d1d5db", fontSize: ".75rem", textDecoration: "none" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#6b7280"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#d1d5db"; }}>
+                Terms
+              </a>
+              <Link to="/staff-auth" style={{ color: "#d1d5db", fontSize: ".75rem", textDecoration: "none" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#6b7280"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#d1d5db"; }}>
+                Staff login
+              </Link>
+            </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes orbFloat1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-20px) scale(1.08); } }
+        @keyframes orbFloat2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-20px,30px) scale(1.05); } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+        @media (max-width: 900px) {
+          .auth-left-panel { display: none !important; }
+          .auth-right-panel { max-width: 100% !important; }
+        }
+      `}</style>
     </div>
-    </MarketingLayout>
   );
 }
 
 /* ─── Trial left panel (register mode) ─── */
 function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: React.ReactNode } | null }) {
+  const PLUM      = "#3B0764";
+  const PLUM_MID  = "#5B21B6";
+  const GOLD      = "#F59E0B";
+
   return (
-    <div className="relative z-10 flex flex-col h-full p-14 overflow-hidden">
-      {/* Decorative glows */}
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(91,33,182,0.25) 0%, transparent 65%)", transform: "translate(-30%, -30%)" }} />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(245,166,35,0.15) 0%, transparent 65%)", transform: "translate(30%, 30%)" }} />
+    <div
+      className="auth-left-panel"
+      style={{
+        flex: 1, position: "relative", overflow: "hidden",
+        background: "linear-gradient(145deg, #1a0040 0%, #2d0060 40%, #1a0a2e 100%)",
+        display: "flex", flexDirection: "column",
+      }}
+    >
+      {/* Animated orbs */}
+      <div style={{
+        position: "absolute", top: "-15%", left: "-10%",
+        width: 600, height: 600, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(91,33,182,0.35) 0%, transparent 65%)",
+        animation: "orbFloat1 12s ease-in-out infinite",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "-20%", right: "-10%",
+        width: 500, height: 500, borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 65%)`,
+        animation: "orbFloat2 14s ease-in-out infinite",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", top: "40%", right: "5%",
+        width: 300, height: 300, borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 65%)`,
+        animation: "orbFloat1 10s ease-in-out infinite reverse",
+        pointerEvents: "none",
+      }} />
 
-      {/* Logo */}
-      <div className="mb-10 relative">
-        <CertxaWordmark light />
-      </div>
+      {/* Content */}
+      <div style={{
+        position: "relative", zIndex: 10,
+        display: "flex", flexDirection: "column",
+        height: "100%", padding: "52px 56px",
+        animation: "fadeUp .5s ease both",
+      }}>
 
-      {/* Trial hero */}
-      <div className="relative mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6"
-          style={{ background: "rgba(245,166,35,0.15)", color: "#FCD34D", border: "1px solid rgba(245,166,35,0.25)" }}>
-          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#F5A623" }} />
-          Limited offer — 60 days free
+        {/* Logo — identical to PHP nav-logo */}
+        <a href="/overview.php" style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: "1.55rem", fontWeight: 700,
+          letterSpacing: "-0.02em",
+          color: "#fff", textDecoration: "none",
+          marginBottom: 48, display: "block",
+        }}>
+          Certxa<span style={{ color: GOLD }}>.</span>
+        </a>
+
+        {/* Offer badge */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "7px 16px", borderRadius: 50,
+          background: "rgba(245,158,11,0.12)",
+          border: "1px solid rgba(245,158,11,0.28)",
+          marginBottom: 24, width: "fit-content",
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: GOLD, animation: "spin 2s linear infinite" }} />
+          <span style={{ fontSize: ".75rem", fontWeight: 700, color: "#FCD34D", letterSpacing: ".06em", textTransform: "uppercase" }}>
+            Limited offer — 60 days free
+          </span>
         </div>
-        <h2 className="text-5xl font-black leading-[1.08] tracking-tight mb-5 text-white">
+
+        {/* Headline — uses Cormorant Garamond like PHP overview hero */}
+        <h2 style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: "clamp(2.8rem, 4vw, 3.8rem)",
+          fontWeight: 700, letterSpacing: "-0.03em",
+          lineHeight: 1.05, color: "#fff",
+          margin: "0 0 20px",
+        }}>
           Everything<br />
-          <span style={{ color: "#F5A623" }}>Certxa</span> offers.<br />
+          <em style={{ color: GOLD, fontStyle: "italic" }}>Certxa</em> offers.<br />
           Free for 60 days.
         </h2>
-        <p className="text-white/50 text-base leading-relaxed max-w-sm">
-          No credit card required. No feature limits. No tricks. Just the full platform from day one.
-        </p>
-      </div>
 
-      {/* Feature list */}
-      <div className="relative mb-8">
-        <p className="text-white/35 text-xs font-bold uppercase tracking-widest mb-4">What's included in your trial</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {TRIAL_FEATURES.map(({ icon, text }) => (
-            <div key={text} className="flex items-start gap-2.5">
-              <div className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5"
-                style={{ background: "rgba(91,33,182,0.35)", color: "#a78bfa" }}>
-                {icon}
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 380, margin: "0 0 36px" }}>
+          No credit card required. No feature limits. No tricks.
+          Just the full platform from day one.
+        </p>
+
+        {/* Feature grid */}
+        <div style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: ".65rem", fontWeight: 700, color: "rgba(255,255,255,0.28)", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 14 }}>
+            What's included in your trial
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px" }}>
+            {TRIAL_FEATURES.map(({ icon: Icon, text }) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: "rgba(139,92,246,0.3)",
+                }}>
+                  <Check style={{ width: 12, height: 12, color: "#c4b5fd" }} />
+                </div>
+                <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.35 }}>{text}</span>
               </div>
-              <span className="text-white/70 text-[13px] leading-snug">{text}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{
+          display: "flex", gap: 32,
+          paddingTop: 24, paddingBottom: 24,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          marginBottom: 24,
+        }}>
+          {[
+            { num: "50K+", label: "Businesses" },
+            { num: "2M+",  label: "Bookings/mo" },
+            { num: "4.9★", label: "Avg rating" },
+          ].map(({ num, label }) => (
+            <div key={label}>
+              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.6rem", fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{num}</p>
+              <p style={{ fontSize: ".7rem", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Trust bar */}
-      <div className="relative flex items-center gap-8 py-5 border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-        {[
-          { num: "50K+", label: "businesses" },
-          { num: "2M+", label: "bookings/mo" },
-          { num: "4.9★", label: "avg rating" },
-        ].map(({ num, label }) => (
-          <div key={label}>
-            <p className="text-xl font-black text-white">{num}</p>
-            <p className="text-white/35 text-xs uppercase tracking-wider mt-0.5">{label}</p>
+        {/* Testimonial */}
+        <div style={{
+          background: "rgba(255,255,255,0.05)", borderRadius: 16,
+          border: "1px solid rgba(255,255,255,0.08)",
+          padding: "20px 22px",
+        }}>
+          <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
+            {[...Array(5)].map((_, i) => (
+              <svg key={i} width="14" height="14" viewBox="0 0 20 20" fill={GOLD}>
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Testimonial */}
-      <div className="relative rounded-2xl p-5 mt-4" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-        <div className="flex gap-0.5 mb-3">
-          {[...Array(5)].map((_, i) => (
-            <svg key={i} className="w-3.5 h-3.5" style={{ fill: "#F5A623" }} viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-          ))}
-        </div>
-        <p className="text-white/60 text-sm leading-relaxed mb-4 italic">
-          "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight. I wish I'd switched sooner."
-        </p>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-            style={{ background: "linear-gradient(135deg, #5B21B6, #4C1D95)" }}>JR</div>
-          <div>
-            <p className="text-white/80 font-semibold text-sm leading-none">Jasmine R.</p>
-            <p className="text-white/35 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
+          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.6, fontStyle: "italic", margin: "0 0 14px" }}>
+            "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: ".7rem", fontWeight: 700, color: "#fff",
+              background: `linear-gradient(135deg, ${PLUM_MID}, ${PLUM})`,
+            }}>JR</div>
+            <div>
+              <p style={{ fontSize: ".82rem", fontWeight: 700, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
+              <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,0.35)", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
+            </div>
           </div>
         </div>
       </div>
@@ -441,83 +586,126 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
 
 /* ─── Login left panel ─── */
 function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: React.ReactNode } | null }) {
+  const PLUM_MID  = "#5B21B6";
+  const GOLD      = "#F59E0B";
+  const PLUM      = "#3B0764";
+
   return (
-    <>
-      {/* Subtle decorative blobs */}
-      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(91,33,182,0.10) 0%, transparent 70%)" }} />
-      <div className="absolute bottom-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%)" }} />
+    <div
+      className="auth-left-panel"
+      style={{
+        flex: 1, position: "relative", overflow: "hidden",
+        background: "linear-gradient(145deg, #FEFAF5 0%, #EDE9FE 55%, #F5F3FF 100%)",
+        display: "flex", flexDirection: "column",
+      }}
+    >
+      {/* Decorative blobs */}
+      <div style={{
+        position: "absolute", top: "-15%", left: "-10%",
+        width: 560, height: 560, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(91,33,182,0.10) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "-15%", right: "-5%",
+        width: 420, height: 420, borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
 
-      <div className="relative z-10 flex flex-col h-full p-14">
-        <div className="mb-auto">
-          <CertxaWordmark />
-        </div>
+      <div style={{
+        position: "relative", zIndex: 10,
+        display: "flex", flexDirection: "column",
+        height: "100%", padding: "52px 56px",
+        animation: "fadeUp .5s ease both",
+      }}>
 
-        <div className="mb-10">
+        {/* Logo — identical to PHP nav-logo */}
+        <a href="/overview.php" style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: "1.55rem", fontWeight: 700,
+          letterSpacing: "-0.02em",
+          color: PLUM, textDecoration: "none",
+          marginBottom: 60, display: "block",
+        }}>
+          Certxa<span style={{ color: GOLD }}>.</span>
+        </a>
+
+        <div style={{ flex: 1 }}>
           {cfg && (
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border mb-6 text-sm font-bold"
-              style={{ background: "rgba(91,33,182,0.07)", borderColor: "rgba(91,33,182,0.18)", color: PURPLE }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "7px 16px", borderRadius: 50,
+              background: "rgba(91,33,182,0.07)", border: "1px solid rgba(91,33,182,0.18)",
+              color: PLUM_MID, fontSize: ".8rem", fontWeight: 700,
+              marginBottom: 24,
+            }}>
               {cfg.icon}
               {cfg.label}
             </div>
           )}
-          <h2 className="text-5xl font-black leading-[1.1] tracking-tight mb-5 text-gray-900">
+
+          <h2 style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: "clamp(2.8rem, 4vw, 3.8rem)",
+            fontWeight: 700, letterSpacing: "-0.03em",
+            lineHeight: 1.06, color: "#1C1917",
+            margin: "0 0 18px",
+          }}>
             The platform<br />
-            <span style={{ color: ORANGE }}>built for</span><br />
+            <em style={{ color: GOLD, fontStyle: "italic" }}>built for</em><br />
             service pros.
           </h2>
-          <p className="text-gray-500 text-lg leading-relaxed max-w-sm">
+
+          <p style={{ color: "#6b7280", fontSize: "1rem", lineHeight: 1.65, maxWidth: 360, margin: "0 0 36px" }}>
             Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one place.
           </p>
-        </div>
 
-        <div className="flex items-center gap-10 mb-10">
-          {[
-            { num: "50K+", label: "businesses" },
-            { num: "2M+", label: "bookings/mo" },
-            { num: "4.9★", label: "avg rating" },
-          ].map(({ num, label }) => (
-            <div key={label}>
-              <p className="text-2xl font-black" style={{ color: PURPLE }}>{num}</p>
-              <p className="text-gray-400 text-xs uppercase tracking-wider mt-0.5">{label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-2xl p-6 bg-white shadow-sm border border-gray-100">
-          <div className="flex gap-0.5 mb-3">
-            {[...Array(5)].map((_, i) => (
-              <svg key={i} className="w-3.5 h-3.5" style={{ fill: ORANGE }} viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
+          {/* Stats */}
+          <div style={{ display: "flex", gap: 36, marginBottom: 36 }}>
+            {[
+              { num: "50K+", label: "Businesses" },
+              { num: "2M+",  label: "Bookings/mo" },
+              { num: "4.9★", label: "Avg rating" },
+            ].map(({ num, label }) => (
+              <div key={label}>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.7rem", fontWeight: 700, color: PLUM_MID, margin: 0, lineHeight: 1 }}>{num}</p>
+                <p style={{ fontSize: ".7rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
+              </div>
             ))}
           </div>
-          <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">
-            "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
-          </p>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-              style={{ background: `linear-gradient(135deg, ${PURPLE}, #4C1D95)` }}>JR</div>
-            <div>
-              <p className="text-gray-800 font-semibold text-sm leading-none">Jasmine R.</p>
-              <p className="text-gray-400 text-xs mt-0.5">Owner, Luxe Hair Studio</p>
+
+          {/* Testimonial */}
+          <div style={{
+            background: "#fff", borderRadius: 16,
+            boxShadow: "0 4px 24px rgba(59,7,100,0.08), 0 0 0 1px rgba(229,231,235,.7)",
+            padding: "22px 24px", maxWidth: 400,
+          }}>
+            <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} width="14" height="14" viewBox="0 0 20 20" fill={GOLD}>
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              ))}
+            </div>
+            <p style={{ fontSize: ".875rem", color: "#4b5563", lineHeight: 1.65, fontStyle: "italic", margin: "0 0 14px" }}>
+              "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: ".7rem", fontWeight: 700, color: "#fff",
+                background: `linear-gradient(135deg, ${PLUM_MID}, ${PLUM})`,
+              }}>JR</div>
+              <div>
+                <p style={{ fontSize: ".82rem", fontWeight: 700, color: "#1f2937", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
+                <p style={{ fontSize: ".72rem", color: "#9ca3af", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </>
-  );
-}
-
-function CertxaWordmark({ dark, light }: { dark?: boolean; light?: boolean }) {
-  const color = light ? "#FFFFFF" : (dark ? "#1a0a3b" : "#1a0a3b");
-  return (
-    <span
-      className="font-black text-[22px]"
-      style={{ letterSpacing: "-0.04em", fontFamily: "'Plus Jakarta Sans', sans-serif", color }}
-    >
-      Certxa<span style={{ color: "#F5A623" }}>.</span>
-    </span>
+    </div>
   );
 }
