@@ -239,6 +239,10 @@ app.use((req, res, next) => {
   const { repairOwnerRoles } = await import("./startup/repairOwnerRoles");
   await repairOwnerRoles();
 
+  // Start the 60-day free trial expiration scheduler (runs every hour)
+  const { startTrialExpirationScheduler } = await import("./services/trial-expiration");
+  startTrialExpirationScheduler();
+
   // SEO static HTML pages — must run BEFORE Vite/SSR so HTML files win over React rendering.
   app.use(seoPageMiddleware);
 

@@ -10,6 +10,7 @@ import { eq, and, gt } from "drizzle-orm";
 import { sendEmail } from "./mail";
 import passport from "./passport";
 import { computePermissions, normalizeRole } from "@shared/permissions";
+import { TrialService } from "./services/trial-service";
 
 export function setupAuth(app: Express) {
   app.set("trust proxy", 1);
@@ -116,6 +117,9 @@ export function setupAuth(app: Express) {
           lastName: lastName || null,
         })
         .returning();
+
+      // Start the 60-day free trial immediately on registration
+      await TrialService.setupTrialForUser(user.id);
 
       (req.session as any).userId = user.id;
       if (keepSignedIn) {

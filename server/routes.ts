@@ -2230,6 +2230,12 @@ If you have any questions, please contact your administrator.
 
       await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, userId));
 
+      // Ensure trial is active — belt-and-suspenders in case register didn't fire it
+      const [freshUser] = await db.select().from(users).where(eq(users.id, userId));
+      if (!freshUser.trialStartedAt) {
+        await TrialService.setupTrialForUser(userId);
+      }
+
       const [updatedUser] = await db.select().from(users).where(eq(users.id, userId));
       const { password: _, ...safeUser } = updatedUser;
 
@@ -5310,6 +5316,10 @@ If you have any questions, please contact your administrator.
   // ── Manage Hub (unified subscriber dashboard) ────────────────────────────────
   const { default: manageRouter } = await import("./routes/manage.js");
   app.use("/api/manage", manageRouter);
+
+  // ── CRM Search (trigram-powered global search) ───────────────────────────────
+  const { default: crmSearchRouter } = await import("./routes/crm-search.js");
+  app.use("/api/manage/crm-search", crmSearchRouter);
 
   // ── Billing & Subscriptions ──────────────────────────────────────────────────
   const { default: billingRouter } = await import("./routes/billing.js");

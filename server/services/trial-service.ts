@@ -17,7 +17,7 @@ export class TrialService {
    */
   static async getFreeTrialDays(): Promise<number> {
     const envDays = parseInt(process.env.TRIAL_PERIOD_DAYS || '', 10);
-    return isNaN(envDays) || envDays <= 0 ? 14 : envDays;
+    return isNaN(envDays) || envDays <= 0 ? 60 : envDays;
   }
 
   /**

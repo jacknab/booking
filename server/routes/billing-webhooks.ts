@@ -14,6 +14,7 @@ import {
   stripeOrders,
 } from "@shared/schema/billing";
 import { logBillingActivity, suspendAccount, restoreAccount } from "../services/billing-service";
+import { reactivateExpiredAccount } from "../services/trial-expiration";
 import { sql } from "drizzle-orm";
 
 const router = Router();
@@ -424,8 +425,9 @@ async function handleInvoicePaymentSucceeded(inv: Stripe.Invoice): Promise<void>
       source: "webhook",
     });
 
-    // Restore account access if it was suspended due to a prior failed payment
+    // Restore billing suspension and reactivate any expired trial accounts
     await restoreAccount(salonId);
+    await reactivateExpiredAccount(salonId);
   }
 }
 

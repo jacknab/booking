@@ -63,6 +63,17 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
     } catch {
       // subdomains/onboarding_submissions tables not yet created — skip launchsite lookup
     }
+    if (row && row.status === 'inactive') {
+      return res.status(402).send(`<!DOCTYPE html><html><head><title>${row.business_name}</title>
+        <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff;}
+        .box{text-align:center;padding:2rem;max-width:480px;} h1{font-size:2rem;margin-bottom:0.5rem;} p{color:rgba(255,255,255,0.6);margin:0.5rem 0;}
+        a{color:#a78bfa;text-decoration:none;} a:hover{text-decoration:underline;}</style>
+        </head><body><div class="box"><h1>${row.business_name}</h1>
+        <p>This website is currently inactive.</p>
+        <p>The account's free trial has ended. <a href="https://certxa.com">Learn more at certxa.com</a></p>
+        </div></body></html>`);
+    }
+
     if (row && row.status !== 'pending_payment') {
       req.launchsiteSlug = subdomain;
 
