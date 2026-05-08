@@ -34,10 +34,10 @@ define('PAGE_SCHEMA', json_encode([
       ],
       [
         '@type'           => 'Offer',
-        'name'            => 'Scale Plan',
-        'price'           => '39',
+        'name'            => 'Professional Plan',
+        'price'           => '22',
         'priceCurrency'   => 'USD',
-        'description'     => 'For growing salons with a team. Unlimited staff, advanced reporting, gift cards, memberships, priority support, and Reserve with Google.',
+        'description'     => 'Everything, unlimited — unlimited calendars, unlimited staff, and every feature included for any salon size.',
         'billingIncrement' => 'P1M',
       ],
       [
@@ -279,18 +279,20 @@ require 'includes/nav.php';
         ],
         [
           'name'        => 'Professional',
-          'tagline'     => 'For growing salons that want to book more and retain better.',
-          'monthly'     => '39',
-          'annual'      => '31',
+          'tagline'     => 'Everything, unlimited — for any salon size.',
+          'monthly'     => '22',
+          'annual'      => '18',
           'old_monthly' => null,
-          'old_annual'  => '39',
+          'old_annual'  => '22',
           'period'      => '/month',
-          'billing'     => 'Billed monthly — or $31/mo billed annually',
+          'billing'     => 'Billed monthly — or $18/mo billed annually',
           'featured'    => true,
           'cta_label'   => 'Start Free Trial',
           'cta_class'   => 'btn-primary',
           'features'    => [
-            [true,  'Everything in Starter, plus:'],
+            [true,  'Everything in Solo, plus:'],
+            [true,  'Unlimited calendars'],
+            [true,  'Unlimited staff members'],
             [true,  'SMS & email reminders (unlimited)'],
             [true,  'Premium website builder + custom domain'],
             [true,  'Reserve With Google'],
@@ -298,8 +300,7 @@ require 'includes/nav.php';
             [true,  'Client re-engagement campaigns'],
             [true,  'Advanced revenue reporting'],
             [true,  'Birthday & anniversary messages'],
-            [false, 'Multi-location support'],
-            [false, 'Dedicated account manager'],
+            [true,  'Priority support'],
           ],
         ],
         [
@@ -334,7 +335,7 @@ require 'includes/nav.php';
       foreach ($plans as $plan):
         $isF = $plan['featured'];
       ?>
-      <div class="plan-card <?= $isF ? 'featured' : '' ?>">
+      <div class="plan-card <?= $isF ? 'featured' : '' ?>" id="<?= strtolower($plan['name']) ?>">
         <?php if ($isF): ?>
         <div class="plan-popular">Most Popular</div>
         <?php endif; ?>
@@ -407,7 +408,7 @@ require 'includes/nav.php';
           <tr>
             <th style="width:34%;"></th>
             <th><div class="plan-header">Solo</div><div class="plan-header-price">From $7/mo</div></th>
-            <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $31/mo ⭐</div></th>
+            <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $18/mo ⭐</div></th>
             <th><div class="plan-header">Elite</div><div class="plan-header-price">From $95/mo</div></th>
           </tr>
         </thead>
@@ -706,7 +707,7 @@ function setBilling(type) {
   // Update billing notes
   const notes = {
     solo:         isAnnual ? 'Billed annually as $84/year — save $24' : 'Billed monthly, cancel any time',
-    professional: isAnnual ? 'Billed annually as $564/year — save $144' : 'Billed monthly, cancel any time',
+    professional: isAnnual ? 'Billed annually as $216/year — save $48' : 'Billed monthly, cancel any time',
     elite:        isAnnual ? 'Billed annually as $1,140/year — save $288' : 'Billed monthly, cancel any time',
   };
   Object.keys(notes).forEach(k => {

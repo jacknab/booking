@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import {
+  ensurePlans,
   getActivePlans,
   getBillingProfile,
   createCheckoutSession,
@@ -32,6 +33,9 @@ import { eq } from "drizzle-orm";
 import { stripeCustomers } from "@shared/schema/billing";
 
 const router = Router();
+
+// Seed billing plans on startup (idempotent upsert)
+ensurePlans().catch(err => console.error("[billing] Failed to seed plans:", err));
 
 // ─── Auth Helpers ─────────────────────────────────────────────────────────────
 

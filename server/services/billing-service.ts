@@ -887,6 +887,47 @@ export async function getActivePlans(): Promise<any[]> {
     .orderBy(billingPlans.priceCents);
 }
 
+export async function ensurePlans(): Promise<void> {
+  const plans = [
+    {
+      code: "solo",
+      name: "Solo",
+      description: "For independent stylists and booth renters. 1 calendar, 1 staff member.",
+      priceCents: "900",
+      interval: "month",
+      currency: "usd",
+      active: true,
+      featuresJson: { calendars: 1, staff: 1, smsCreditsMonthly: 200 },
+    },
+    {
+      code: "professional",
+      name: "Professional",
+      description: "Everything, unlimited — unlimited calendars, unlimited staff, all features for any salon size.",
+      priceCents: "2200",
+      interval: "month",
+      currency: "usd",
+      active: true,
+      featuresJson: { calendars: -1, staff: -1, smsCreditsMonthly: -1 },
+    },
+  ];
+  for (const plan of plans) {
+    await db
+      .insert(billingPlans)
+      .values(plan as any)
+      .onConflictDoUpdate({
+        target: billingPlans.code,
+        set: {
+          name: plan.name,
+          description: plan.description,
+          priceCents: plan.priceCents,
+          active: plan.active,
+          featuresJson: plan.featuresJson,
+          updatedAt: new Date(),
+        },
+      });
+  }
+}
+
 // ─── Account Status ───────────────────────────────────────────────────────────
 //
 // Three states:
