@@ -250,6 +250,7 @@ require 'includes/nav.php';
           'cta_class'   => 'btn-secondary',
           'features'    => [
             [true,  'Online booking page'],
+            [true,  '1 calendar'],
             [true,  '1 staff member (you)'],
             [true,  'Up to 500 client profiles'],
             [true,  'SMS & email reminders (200/mo)'],
@@ -394,6 +395,10 @@ require 'includes/nav.php';
           <tr>
             <td>Online booking page</td>
             <td class="ct-check">✓</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
+          </tr>
+          <tr>
+            <td>Calendars</td>
+            <td>1</td><td class="featured-col ct-text">Unlimited</td><td class="ct-text">Unlimited</td>
           </tr>
           <tr>
             <td>Staff members</td>
