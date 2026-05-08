@@ -155,7 +155,7 @@ const phpProxy = createProxyMiddleware({
   target: PHP_BASE_URL,
   changeOrigin: true,
   on: {
-    error: (err: Error, _req: Request, res: Response) => {
+    error: (err: Error, _req: Request, res: any) => {
       console.error("[PHP Proxy] Error:", err.message);
       if (!(res as any).headersSent) {
         (res as Response).status(502).send(

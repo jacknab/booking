@@ -245,7 +245,7 @@ router.post("/voice", async (req: Request, res: Response) => {
     const greeting = buildGreeting(appt);
     const gather = twiml.gather({
       input: ["speech", "dtmf"] as any,
-      numDigits: "1",
+      numDigits: 1 as any,
       action: `${baseUrl}/api/dialer/gather?appointmentId=${appointmentId}`,
       method: "POST",
       timeout: 5,
@@ -297,7 +297,7 @@ router.post("/gather", async (req: Request, res: Response) => {
   function buildRepeatGather(prompt: string) {
     const g = twiml.gather({
       input: ["speech", "dtmf"] as any,
-      numDigits: "1",
+      numDigits: 1 as any,
       action: `${baseUrl}/api/dialer/gather?appointmentId=${appointmentId}`,
       method: "POST",
       timeout: 5,

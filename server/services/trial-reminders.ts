@@ -20,14 +20,14 @@ function windowFor(daysLeft: number): { start: Date; end: Date } {
 
 async function hasAlreadySentReminder(userId: string, daysLeft: number): Promise<boolean> {
   try {
-    const { billingActivityLog } = await import("@shared/schema/billing");
+    const { billingActivityLogs } = await import("@shared/schema/billing");
     const [existing] = await db
-      .select({ id: billingActivityLog.id })
-      .from(billingActivityLog)
+      .select({ id: billingActivityLogs.id })
+      .from(billingActivityLogs)
       .where(
         and(
-          eq(billingActivityLog.eventType, `trial.reminder.${daysLeft}d`),
-          sql`${billingActivityLog.metadata}->>'userId' = ${userId}`
+          eq(billingActivityLogs.eventType, `trial.reminder.${daysLeft}d`),
+          sql`${billingActivityLogs.metadataJson}->>'userId' = ${userId}`
         )
       )
       .limit(1);
@@ -39,15 +39,15 @@ async function hasAlreadySentReminder(userId: string, daysLeft: number): Promise
 
 async function logReminderSent(userId: string, email: string, daysLeft: number): Promise<void> {
   try {
-    const { billingActivityLog } = await import("@shared/schema/billing");
-    await db.insert(billingActivityLog).values({
+    const { billingActivityLogs } = await import("@shared/schema/billing");
+    await db.insert(billingActivityLogs).values({
       salonId: 0,
       eventType: `trial.reminder.${daysLeft}d`,
       severity: "info",
       message: `Trial reminder (${daysLeft}d) sent to ${email}`,
-      metadata: { userId, daysLeft },
+      metadataJson: { userId, daysLeft },
       source: "system",
-    });
+    } as any);
   } catch {}
 }
 

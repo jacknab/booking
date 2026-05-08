@@ -2,7 +2,15 @@ const PLUM     = "#3B0764";
 const PLUM_MID = "#5B21B6";
 const INDIGO   = "#6366f1";
 
-const COLS = [
+type FooterLink = { label: string; href: string; style?: { color?: string; fontWeight?: number } };
+type FooterExtras = { title: string; links: FooterLink[] };
+
+const COLS: Array<{
+  title: string;
+  titleStyle?: Record<string, string | number>;
+  links: FooterLink[];
+  extras?: FooterExtras;
+}> = [
   {
     title: "LaunchSite",
     titleStyle: { color: INDIGO, fontWeight: 700 },

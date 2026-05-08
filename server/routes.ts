@@ -54,6 +54,7 @@ import {
   seoRegions,
   insertSeoRegionSchema,
   smsLog,
+  businessHours,
 } from "@shared/schema";
 import { buildRegionSlug, ALL_CITIES, BOOKING_BUSINESS_TYPES } from "./seo-cities";
 import {
@@ -1790,7 +1791,7 @@ If you have any questions, please contact your administrator.
           unpaidCount: unpaidTickets.length,
           unpaidTickets: unpaidTickets.map((apt) => ({
             id: apt.id,
-            customerName: apt.customer ? `${apt.customer.firstName ?? ""} ${apt.customer.lastName ?? ""}`.trim() : null,
+            customerName: apt.customer ? ((apt.customer as any).name ?? null) : null,
             staffName: apt.staff?.name ?? null,
             serviceName: apt.service?.name ?? null,
             startedAt: apt.startedAt ?? apt.date,
@@ -2027,7 +2028,7 @@ If you have any questions, please contact your administrator.
 
         // Create staff only if the store has none yet (avoid duplicates on retry).
         if (staffData && staffData.length > 0) {
-          const existingStaff = await storage.getStaff(existingStore.id);
+          const existingStaff = await db.select().from(staff).where(eq(staff.storeId, existingStore.id));
           if (existingStaff.length === 0) {
             console.log("Onboarding recovery: creating", staffData.length, "staff members");
             for (const s of staffData) {
@@ -3383,7 +3384,7 @@ If you have any questions, please contact your administrator.
           .where(
             and(
               eq(appointments.storeId, store.id),
-              gte(appointments.startTime, monthStart),
+              gte(appointments.date, monthStart),
             )
           );
 
@@ -3393,12 +3394,12 @@ If you have any questions, please contact your administrator.
           .where(eq(customers.storeId, store.id));
 
         const revenueRows = await db
-          .select({ total: sql<string>`COALESCE(SUM(${appointments.price}), 0)` })
+          .select({ total: sql<string>`COALESCE(SUM(${appointments.totalPaid}), 0)` })
           .from(appointments)
           .where(
             and(
               eq(appointments.storeId, store.id),
-              gte(appointments.startTime, monthStart),
+              gte(appointments.date, monthStart),
               eq(appointments.status, "completed"),
             )
           );
@@ -3439,7 +3440,7 @@ If you have any questions, please contact your administrator.
           .select()
           .from(appointments)
           .where(eq(appointments.storeId, storeId))
-          .orderBy(desc(appointments.startTime))
+          .orderBy(desc(appointments.date))
           .limit(limit);
         return res.json({ data: list, count: list.length });
       } catch (err) {
@@ -5814,8 +5815,8 @@ If you have any questions, please contact your administrator.
 
       // Pseudo-IDs (staff:N) point to staff records without a login yet.
       // Auto-create a user account so the owner can assign a role directly.
-      if (targetId.startsWith("staff:")) {
-        const staffId = Number(targetId.slice("staff:".length));
+      if ((targetId as string).startsWith("staff:")) {
+        const staffId = Number((targetId as string).slice("staff:".length));
         if (!Number.isInteger(staffId)) {
           return res.status(400).json({ message: "Invalid staff id" });
         }
@@ -5861,7 +5862,8 @@ If you have any questions, please contact your administrator.
       }
 
       // Owners can never be demoted via this endpoint.
-      const [target] = await db.select().from(users).where(eq(users.id, targetId));
+      const resolvedId = Array.isArray(targetId) ? targetId[0] : targetId;
+      const [target] = await db.select().from(users).where(eq(users.id, resolvedId));
       if (!target) return res.status(404).json({ message: "User not found" });
       if (target.id === req.auth?.userId) {
         return res.status(400).json({ message: "You cannot change your own role" });
@@ -5869,7 +5871,7 @@ If you have any questions, please contact your administrator.
       if (target.role === "owner" || target.role === "admin") {
         return res.status(403).json({ message: "Cannot change an owner's role" });
       }
-      const [updated] = await db.update(users).set({ role }).where(eq(users.id, targetId)).returning();
+      const [updated] = await db.update(users).set({ role }).where(eq(users.id, resolvedId)).returning();
       res.json(updated);
     } catch (err) {
       console.error("[team] update role failed:", err);
@@ -6164,8 +6166,8 @@ If you have any questions, please contact your administrator.
       }
 
       // Staff-only pseudo-member targeted as "staff:<id>"
-      if (targetId.startsWith("staff:")) {
-        const staffIdNum = Number(targetId.slice("staff:".length));
+      if ((targetId as string).startsWith("staff:")) {
+        const staffIdNum = Number((targetId as string).slice("staff:".length));
         if (!Number.isFinite(staffIdNum)) {
           return res.status(400).json({ message: "Invalid staff id" });
         }
@@ -6178,7 +6180,7 @@ If you have any questions, please contact your administrator.
         return res.json({ id: targetId, permissions: updated.permissions });
       }
 
-      const [target] = await db.select().from(users).where(eq(users.id, targetId));
+      const [target] = await db.select().from(users).where(eq(users.id, targetId as string));
       if (!target) return res.status(404).json({ message: "User not found" });
       if (target.role === "owner" || target.role === "admin") {
         return res.status(403).json({ message: "Cannot edit an owner's permissions" });
@@ -6186,7 +6188,7 @@ If you have any questions, please contact your administrator.
       const [updated] = await db
         .update(users)
         .set({ permissions: cleaned })
-        .where(eq(users.id, targetId))
+        .where(eq(users.id, targetId as string))
         .returning();
       res.json(updated);
     } catch (err) {

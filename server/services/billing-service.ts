@@ -24,7 +24,7 @@ import {
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_SECRET_KEY;
   if (!key) throw new Error("Stripe is not configured. Please set STRIPE_SECRET_KEY.");
-  return new Stripe(key, { apiVersion: "2025-04-30.basil" });
+  return new Stripe(key, { apiVersion: "2025-02-24.acacia" });
 }
 
 export function stripeAvailable(): boolean {
@@ -954,7 +954,7 @@ export async function getAccountStatus(salonId: number): Promise<{
     .limit(1);
 
   if (!profile) return null;
-  return { ...profile, salonId };
+  return { ...profile, accountStatus: profile.accountStatus ?? "active", salonId };
 }
 
 export async function suspendAccount(

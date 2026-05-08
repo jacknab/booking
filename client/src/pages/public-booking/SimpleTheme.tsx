@@ -81,7 +81,7 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
   const categories = servicesData?.categories || [];
   const addons = servicesData?.addons || [];
   const serviceAddons = servicesData?.serviceAddons || [];
-  const showPrices = storeData?.showPrices ?? true;
+  const showPrices = (storeData as any)?.showPrices ?? true;
 
   const getAddonsForService = (serviceId: number) => {
     const mappings = serviceAddons.filter(sa => sa.serviceId === serviceId);

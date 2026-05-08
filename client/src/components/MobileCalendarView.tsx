@@ -279,9 +279,9 @@ export function MobileCalendarView({
           <motion.div
             key={`hdr-${safeStaffPage}-${COLS_PER_PAGE}`}
             custom={swipeDir}
-            initial={(dir: number) => ({ x: dir * 40, opacity: 0 })}
+            initial={((dir: number) => ({ x: dir * 40, opacity: 0 })) as any}
             animate={{ x: 0, opacity: 1 }}
-            exit={(dir: number) => ({ x: -dir * 40, opacity: 0 })}
+            exit={((dir: number) => ({ x: -dir * 40, opacity: 0 })) as any}
             transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="flex flex-1"
           >
@@ -407,9 +407,9 @@ export function MobileCalendarView({
               <motion.div
                 key={`cols-${safeStaffPage}-${COLS_PER_PAGE}`}
                 custom={swipeDir}
-                initial={(dir: number) => ({ x: dir * 50, opacity: 0 })}
+                initial={((dir: number) => ({ x: dir * 50, opacity: 0 })) as any}
                 animate={{ x: 0, opacity: 1 }}
-                exit={(dir: number) => ({ x: -dir * 50, opacity: 0 })}
+                exit={((dir: number) => ({ x: -dir * 50, opacity: 0 })) as any}
                 transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className="absolute inset-0 flex"
               >

@@ -84,14 +84,14 @@ function PlanForm({
     initial.featuresJson?.features?.join("\n") ?? ""
   );
 
-  function set(key: keyof PlanFormData, value: any) {
+  function set(key: keyof PlanFormData, value: unknown) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   function handleSave() {
     const features = featuresRaw
       .split("\n")
-      .map((f) => f.trim())
+      .map((f: string) => f.trim())
       .filter(Boolean);
 
     const featuresJson = features.length

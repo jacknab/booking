@@ -50,7 +50,7 @@ async function getStoreSettings(storeId: number | null) {
     .from(trainingSettings)
     .where(eq(trainingSettings.storeId, storeId));
   if (!row) return { storeId, ...SETTINGS_DEFAULTS };
-  return { storeId, ...row };
+  return { ...row, storeId };
 }
 
 /**
@@ -205,12 +205,12 @@ export async function day7DigestSweep(
   }
 
   const sent: Array<{ ownerEmail: string; staffCount: number }> = [];
-  for (const [, group] of byOwner) {
+  for (const [, group] of Array.from(byOwner)) {
     const rows = group.entries
       .map(
-        (e) =>
+        (e: Entry) =>
           `<li><strong>${escapeHtml(e.staffName)}</strong> still needs help with: ${e.sticking
-            .map((t) => `<em>${escapeHtml(t)}</em>`)
+            .map((t: string) => `<em>${escapeHtml(t)}</em>`)
             .join(", ")}</li>`,
       )
       .join("");
@@ -226,7 +226,7 @@ export async function day7DigestSweep(
       You can always pin or reset progress in <em>Settings → Training</em>.</p>
       <p>— Toby</p>`;
     const text = group.entries
-      .map((e) => `${e.staffName}: still needs help with ${e.sticking.join(", ")}`)
+      .map((e: Entry) => `${e.staffName}: still needs help with ${e.sticking.join(", ")}`)
       .join("\n");
 
     const storeIdForEmail = await userStoreId(group.entries[0].profileId);
@@ -242,7 +242,7 @@ export async function day7DigestSweep(
 
     if (result.success) {
       // Mark digest sent for every profile in this group.
-      const ids = group.entries.map((e) => e.profileId);
+      const ids = group.entries.map((e: Entry) => e.profileId);
       await db
         .update(trainingUserProfile)
         .set({ day7DigestSentAt: now })

@@ -42,7 +42,7 @@ export function broadcastNotification(event: NotificationEvent) {
   if (!clients || clients.size === 0) return;
 
   const payload = JSON.stringify({ ...event, id: `${Date.now()}-${Math.random()}`, ts: Date.now() });
-  for (const ws of clients) {
+  for (const ws of Array.from(clients)) {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(payload);
     }

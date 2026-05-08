@@ -287,7 +287,7 @@ router.get("/availability", async (req: Request, res: Response) => {
     const dayStart = startOfDay(targetDate);
     const dayEnd = endOfDay(targetDate);
 
-    const calSettings = await storage.getCalendarSettings(storeId);
+    const calSettings = await storage.getCalendarSettings(storeId) as any;
     const openHour = calSettings?.startHour ?? 9;
     const closeHour = calSettings?.endHour ?? 17;
 

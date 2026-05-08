@@ -26,7 +26,7 @@ const MAX_ENTRIES = 2_000;
 
 function evictExpired() {
   const now = Date.now();
-  for (const [k, v] of store) {
+  for (const [k, v] of Array.from(store)) {
     if (v.expiresAt <= now) store.delete(k);
   }
 }
@@ -51,7 +51,7 @@ export function cacheSet<T>(key: string, value: T, ttlMs: number): void {
   if (store.size >= MAX_ENTRIES) {
     const toDelete = Math.ceil(MAX_ENTRIES * 0.1);
     let deleted = 0;
-    for (const k of store.keys()) {
+    for (const k of Array.from(store.keys())) {
       store.delete(k);
       if (++deleted >= toDelete) break;
     }
@@ -64,7 +64,7 @@ export function cacheDel(key: string): void {
 }
 
 export function cacheDelPattern(prefix: string): void {
-  for (const k of store.keys()) {
+  for (const k of Array.from(store.keys())) {
     if (k.startsWith(prefix)) store.delete(k);
   }
 }

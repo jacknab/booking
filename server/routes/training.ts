@@ -324,7 +324,7 @@ async function getSettingsForUser(userId: string) {
   const [s] = await db.select().from(staff).where(eq(staff.id, u.staffId));
   if (!s?.storeId) return { storeId: null, ...SETTINGS_DEFAULTS };
   const settings = await getSettingsForStore(s.storeId);
-  return { storeId: s.storeId, ...settings };
+  return { ...settings, storeId: s.storeId };
 }
 
 async function assertManagesStore(req: any, storeId: number): Promise<boolean> {

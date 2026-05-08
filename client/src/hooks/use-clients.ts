@@ -89,7 +89,7 @@ export interface ClientMarketingPreferences {
   reviewRequests: boolean;
 }
 
-export interface ClientDetail extends ClientListItem {
+export interface ClientDetail extends Omit<ClientListItem, "tags"> {
   dateOfBirth: string | null;
   gender: string | null;
   referralSource: string | null;

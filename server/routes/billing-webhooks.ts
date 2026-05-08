@@ -22,7 +22,7 @@ const router = Router();
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_SECRET_KEY;
   if (!key) throw new Error("Stripe not configured");
-  return new Stripe(key, { apiVersion: "2025-04-30.basil" });
+  return new Stripe(key, { apiVersion: "2025-02-24.acacia" });
 }
 
 const webhookSecret =

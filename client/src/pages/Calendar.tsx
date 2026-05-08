@@ -841,9 +841,9 @@ export default function Calendar() {
             key={currentDate.toISOString().slice(0, 10)}
             ref={scrollContainerRef}
             custom={slideDir}
-            initial={(dir: string) => ({ x: dir === 'next' ? '100%' : '-100%' })}
+            initial={((dir: string) => ({ x: dir === 'next' ? '100%' : '-100%' })) as any}
             animate={{ x: 0 }}
-            exit={(dir: string) => ({ x: dir === 'next' ? '-100%' : '100%' })}
+            exit={((dir: string) => ({ x: dir === 'next' ? '-100%' : '100%' })) as any}
             transition={{ type: 'tween', ease: [0.25, 0.46, 0.45, 0.94], duration: 0.22 }}
             className={isMobile ? "absolute inset-0 overflow-hidden" : "absolute inset-0 overflow-auto"}
             style={isMobile ? { paddingBottom: 128 } : undefined}

@@ -558,7 +558,7 @@ router.post("/detect-duplicates", isAuthenticated, async (req, res) => {
       if (nameMatches.length > 0) dupes.push(...nameMatches.map((r) => ({ type: "name", clientId: r.id })));
     }
 
-    const uniqueClientIds = [...new Set(dupes.map((d) => d.clientId))];
+    const uniqueClientIds = Array.from(new Set(dupes.map((d) => d.clientId)));
     if (uniqueClientIds.length === 0) return res.json({ duplicates: [] });
 
     const dupClients = await db
