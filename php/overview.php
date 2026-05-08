@@ -622,39 +622,54 @@ require 'includes/nav.php';
     </div>
     <div class="testi-dark-grid">
       <div class="testi-dark-card reveal">
-        <div class="tdc-stars">★★★★★</div>
+        <div class="tdc-top">
+          <div class="tdc-stars">★★★★★</div>
+          <div class="tdc-metric-pill">
+            <span class="tdc-metric-stat">+40%</span>
+            <span class="tdc-metric-label">more bookings</span>
+          </div>
+        </div>
         <p class="tdc-quote">"Since switching to Certxa, my bookings are up 40% and no-shows have practically disappeared. The automated reminders alone pay for the entire subscription."</p>
         <div class="tdc-author">
           <div class="tdc-av" style="background:linear-gradient(135deg,#a78bfa,#7c3aed)">JM</div>
-          <div>
+          <div class="tdc-info">
             <div class="tdc-name">Jessica Mitchell</div>
             <div class="tdc-role">Colour Specialist · London</div>
           </div>
-          <div class="tdc-metric"><span>+40%</span>bookings</div>
         </div>
       </div>
       <div class="testi-dark-card reveal">
-        <div class="tdc-stars">★★★★★</div>
+        <div class="tdc-top">
+          <div class="tdc-stars">★★★★★</div>
+          <div class="tdc-metric-pill">
+            <span class="tdc-metric-stat">$320</span>
+            <span class="tdc-metric-label">extra/month</span>
+          </div>
+        </div>
         <p class="tdc-quote">"The website builder is genuinely stunning. My clients constantly ask who built my site — I built it myself in an afternoon with zero tech experience. Absolutely worth it."</p>
         <div class="tdc-author">
           <div class="tdc-av" style="background:linear-gradient(135deg,#f9a8d4,#ec4899)">RP</div>
-          <div>
+          <div class="tdc-info">
             <div class="tdc-name">Rachel Park</div>
             <div class="tdc-role">Nail Artist · Manchester</div>
           </div>
-          <div class="tdc-metric"><span>$320</span>extra/month</div>
         </div>
       </div>
       <div class="testi-dark-card reveal">
-        <div class="tdc-stars">★★★★★</div>
+        <div class="tdc-top">
+          <div class="tdc-stars">★★★★★</div>
+          <div class="tdc-metric-pill">
+            <span class="tdc-metric-stat">6</span>
+            <span class="tdc-metric-label">stylists managed</span>
+          </div>
+        </div>
         <p class="tdc-quote">"I run a team of 6 and Certxa keeps everything smooth. Client profiles are a game-changer — I know exactly what each person wants before they even sit down."</p>
         <div class="tdc-author">
           <div class="tdc-av" style="background:linear-gradient(135deg,#6ee7b7,#059669)">DK</div>
-          <div>
+          <div class="tdc-info">
             <div class="tdc-name">David Kurosawa</div>
             <div class="tdc-role">Salon Owner · Birmingham</div>
           </div>
-          <div class="tdc-metric"><span>6</span>stylists managed</div>
         </div>
       </div>
     </div>

@@ -92,24 +92,47 @@ require 'includes/nav.php';
 </section>
 
 <section class="testi-dark-section">
-  <div class="container" style="max-width:900px;">
-    <div class="section-header" style="text-align:center;margin-bottom:40px;">
+  <div class="container" style="max-width:960px;">
+    <div class="section-header" style="text-align:center;margin-bottom:48px;">
       <h2 class="section-title" style="color:var(--white);">Stylists and salon owners trust Certxa.</h2>
     </div>
     <div class="testi-dark-grid">
       <?php $quotes = [
-        ['"My no-shows went from 6 a week to under 1 in the first month. The deposit feature changed everything for my colour clients."','Jessica M.','Colour Specialist, London','+40% revenue'],
-        ['"The colour formula storage alone is worth it. I can see every single client\'s history before they arrive. My clients are blown away."','Rachel P.','Hair Salon Owner, Manchester','★★★★★'],
-        ['"I was sceptical about switching. The migration took 45 minutes and I had a full day\'s bookings by the next morning."','Sophie K.','Salon Owner, Birmingham','Day 1 results'],
+        [
+          'quote' => 'My no-shows went from 6 a week to under 1 in the first month. The deposit feature changed everything for my colour clients.',
+          'name'  => 'Jessica M.', 'role' => 'Colour Specialist, London',
+          'stat'  => '+40%', 'stat_label' => 'revenue up',
+          'grad'  => 'linear-gradient(135deg,#a78bfa,#7c3aed)',
+        ],
+        [
+          'quote' => "The colour formula storage alone is worth it. I can see every single client's history before they arrive. My clients are blown away.",
+          'name'  => 'Rachel P.', 'role' => 'Hair Salon Owner, Manchester',
+          'stat'  => '5★', 'stat_label' => 'top rated',
+          'grad'  => 'linear-gradient(135deg,#f9a8d4,#ec4899)',
+        ],
+        [
+          'quote' => 'I was sceptical about switching. The migration took 45 minutes and I had a full day\'s bookings by the next morning.',
+          'name'  => 'Sophie K.', 'role' => 'Salon Owner, Birmingham',
+          'stat'  => 'Day 1', 'stat_label' => 'results',
+          'grad'  => 'linear-gradient(135deg,#6ee7b7,#059669)',
+        ],
       ];
       foreach ($quotes as $q): ?>
       <div class="testi-dark-card reveal">
-        <div class="tdc-stars">★★★★★</div>
-        <p class="tdc-quote"><?= $q[0] ?></p>
+        <div class="tdc-top">
+          <div class="tdc-stars">★★★★★</div>
+          <div class="tdc-metric-pill">
+            <span class="tdc-metric-stat"><?= $q['stat'] ?></span>
+            <span class="tdc-metric-label"><?= $q['stat_label'] ?></span>
+          </div>
+        </div>
+        <p class="tdc-quote">"<?= $q['quote'] ?>"</p>
         <div class="tdc-author">
-          <div class="tdc-av" style="background:linear-gradient(135deg,#a78bfa,#7c3aed)"><?= substr($q[1],0,2) ?></div>
-          <div><div class="tdc-name"><?= $q[1] ?></div><div class="tdc-role"><?= $q[2] ?></div></div>
-          <div class="tdc-metric"><span><?= $q[3] ?></span></div>
+          <div class="tdc-av" style="background:<?= $q['grad'] ?>"><?= substr($q['name'],0,2) ?></div>
+          <div class="tdc-info">
+            <div class="tdc-name"><?= $q['name'] ?></div>
+            <div class="tdc-role"><?= $q['role'] ?></div>
+          </div>
         </div>
       </div>
       <?php endforeach; ?>

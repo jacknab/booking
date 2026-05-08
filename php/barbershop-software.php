@@ -96,24 +96,47 @@ require 'includes/nav.php';
 </section>
 
 <section class="testi-dark-section">
-  <div class="container" style="max-width:900px;">
-    <div class="section-header" style="text-align:center;margin-bottom:40px;">
+  <div class="container" style="max-width:960px;">
+    <div class="section-header" style="text-align:center;margin-bottom:48px;">
       <h2 class="section-title" style="color:var(--white);">Barbershops that switched to Certxa.</h2>
     </div>
     <div class="testi-dark-grid">
       <?php $quotes = [
-        ['"I went from 12 Google reviews to 94 in three months. The automatic review requests after every cut did the whole job."','Marcus J.','Barbershop Owner, Chicago','82 new reviews'],
-        ['"My clients book at 11pm for the next morning. Used to be I\'d lose that business. Now my chairs are full before I open."','James T.','Master Barber, Atlanta','+55% bookings'],
-        ['"The card reader is slick and the tips screen is brilliant. My barbers love it and so do the customers."','David K.','The Fade Room, New York','★★★★★'],
+        [
+          'quote' => 'I went from 12 Google reviews to 94 in three months. The automatic review requests after every cut did the whole job.',
+          'name'  => 'Marcus J.', 'role' => 'Barbershop Owner, Chicago',
+          'stat'  => '82', 'stat_label' => 'new reviews',
+          'grad'  => 'linear-gradient(135deg,#6ee7b7,#059669)',
+        ],
+        [
+          'quote' => "My clients book at 11pm for the next morning. Used to be I'd lose that business. Now my chairs are full before I open.",
+          'name'  => 'James T.', 'role' => 'Master Barber, Atlanta',
+          'stat'  => '+55%', 'stat_label' => 'more bookings',
+          'grad'  => 'linear-gradient(135deg,#fcd34d,#f59e0b)',
+        ],
+        [
+          'quote' => 'The card reader is slick and the tips screen is brilliant. My barbers love it and so do the customers.',
+          'name'  => 'David K.', 'role' => 'The Fade Room, New York',
+          'stat'  => '5★', 'stat_label' => 'top rated',
+          'grad'  => 'linear-gradient(135deg,#a78bfa,#7c3aed)',
+        ],
       ];
       foreach ($quotes as $q): ?>
       <div class="testi-dark-card reveal">
-        <div class="tdc-stars">★★★★★</div>
-        <p class="tdc-quote"><?= $q[0] ?></p>
+        <div class="tdc-top">
+          <div class="tdc-stars">★★★★★</div>
+          <div class="tdc-metric-pill">
+            <span class="tdc-metric-stat"><?= $q['stat'] ?></span>
+            <span class="tdc-metric-label"><?= $q['stat_label'] ?></span>
+          </div>
+        </div>
+        <p class="tdc-quote">"<?= $q['quote'] ?>"</p>
         <div class="tdc-author">
-          <div class="tdc-av" style="background:linear-gradient(135deg,#6ee7b7,#059669)"><?= substr($q[1],0,2) ?></div>
-          <div><div class="tdc-name"><?= $q[1] ?></div><div class="tdc-role"><?= $q[2] ?></div></div>
-          <div class="tdc-metric"><span><?= $q[3] ?></span></div>
+          <div class="tdc-av" style="background:<?= $q['grad'] ?>"><?= substr($q['name'],0,2) ?></div>
+          <div class="tdc-info">
+            <div class="tdc-name"><?= $q['name'] ?></div>
+            <div class="tdc-role"><?= $q['role'] ?></div>
+          </div>
         </div>
       </div>
       <?php endforeach; ?>
