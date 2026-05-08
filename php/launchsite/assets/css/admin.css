@@ -817,6 +817,36 @@ body.admin-body {
     .tbl-actions { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
 
+/* ── Source URL column ── */
+.tbl-source {
+    max-width: 200px;
+}
+.tbl-source-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #2dd4bf;
+    font-size: 0.75rem;
+    font-family: monospace;
+    text-decoration: none;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    transition: color 0.15s;
+}
+.tbl-source-link:hover { color: white; }
+.tbl-source-arrow {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+.tbl-source-empty {
+    color: rgba(255,255,255,0.18);
+    font-size: 0.8rem;
+}
+
 /* ── Scraped template type badge ── */
 .tbl-badge--scraped {
     background: rgba(20,184,166,0.12);

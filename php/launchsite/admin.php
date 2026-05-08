@@ -187,6 +187,7 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
                         <th>ID</th>
                         <th>Category</th>
                         <th>Type</th>
+                        <th>Source URL</th>
                         <th>Thumbnail</th>
                         <th>Hours</th>
                         <th>Actions</th>
@@ -213,6 +214,23 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
                             <span class="tbl-badge tbl-badge--<?php echo $type; ?>">
                                 <?php echo strtoupper($type); ?>
                             </span>
+                        </td>
+                        <td class="tbl-source">
+                            <?php if ($type === 'scraped' && !empty($t['source_url'])): ?>
+                            <a href="<?php echo htmlspecialchars($t['source_url']); ?>"
+                               target="_blank" rel="noopener"
+                               class="tbl-source-link"
+                               title="<?php echo htmlspecialchars($t['source_url']); ?>">
+                                <?php
+                                $parsed = parse_url($t['source_url']);
+                                $display = ($parsed['host'] ?? '') . (isset($parsed['path']) && $parsed['path'] !== '/' ? rtrim($parsed['path'], '/') : '');
+                                echo htmlspecialchars($display ?: $t['source_url']);
+                                ?>
+                                <span class="tbl-source-arrow">↗</span>
+                            </a>
+                            <?php else: ?>
+                            <span class="tbl-source-empty">—</span>
+                            <?php endif; ?>
                         </td>
                         <td>
                             <span class="thumb-dot thumb-dot--<?php echo $thumb_ok ? 'ok' : 'missing'; ?>"></span>
