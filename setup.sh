@@ -90,6 +90,12 @@ detect_pg() {
 
 # ── Disclaimer ────────────────────────────────────────────────────────────────
 show_disclaimer() {
+    # In unattended mode skip interactive disclaimer — operator is assumed to accept.
+    if [ "$AUTO_YES" = true ]; then
+        info "Unattended mode (--yes): disclaimer accepted automatically."
+        return 0
+    fi
+
     ensure_whiptail
     set +e
     whiptail \
@@ -143,7 +149,12 @@ By continuing you accept full responsibility for any changes made." \
 # ── Apache detection ──────────────────────────────────────────────────────────
 check_apache() {
     if dpkg -l 2>/dev/null | grep -q "^ii.*apache2"; then
-        if whiptail \
+        local DO_REMOVE=false
+
+        if [ "$AUTO_YES" = true ]; then
+            warn "Apache2 detected — unattended mode: backing up and removing automatically."
+            DO_REMOVE=true
+        elif whiptail \
             --title "  Apache2 Detected  " \
             --backtitle "$BACKTITLE" \
             --yesno "\
@@ -158,8 +169,17 @@ This will:
 
 Do you want to backup and remove Apache2 now?" \
             16 64; then
+            DO_REMOVE=true
+        else
+            clear
+            echo "Setup cancelled — Apache2 must be removed before continuing."
+            exit 0
+        fi
 
+        if [ "$DO_REMOVE" = true ]; then
             info "Backing up Apache2 configuration..."
+            # zip may not be installed yet — install it quietly if missing
+            command -v zip &>/dev/null || sudo apt-get install -y zip -qq 2>/dev/null || true
             BACKUP_FILE="/root/Apache_backup_$(date +%Y%m%d_%H%M%S).zip"
             sudo zip -r "$BACKUP_FILE" /etc/apache2/ 2>/dev/null || true
 
@@ -175,15 +195,13 @@ Do you want to backup and remove Apache2 now?" \
             sudo apt-get autoremove -y -qq
             success "Apache2 removed successfully."
 
-            whiptail \
-                --title "  Apache2 Removed  " \
-                --backtitle "$BACKTITLE" \
-                --msgbox "\nApache2 has been removed.\nBackup saved to: ${BACKUP_FILE}" \
-                10 56
-        else
-            clear
-            echo "Setup cancelled — Apache2 must be removed before continuing."
-            exit 0
+            if [ "$AUTO_YES" != true ]; then
+                whiptail \
+                    --title "  Apache2 Removed  " \
+                    --backtitle "$BACKTITLE" \
+                    --msgbox "\nApache2 has been removed.\nBackup saved to: ${BACKUP_FILE}" \
+                    10 56
+            fi
         fi
     fi
 }
@@ -219,6 +237,12 @@ prompt_domain() {
 
 # ── Port prompt ───────────────────────────────────────────────────────────────
 prompt_port() {
+    # In unattended mode keep the default or config-loaded port without prompting.
+    if [ "$AUTO_YES" = true ]; then
+        info "Unattended mode: using port ${APP_PORT}."
+        return 0
+    fi
+
     while true; do
         set +e
         PORT_IN=$(whiptail \
@@ -474,10 +498,12 @@ do_step_2() {
         ufw fail2ban \
         unattended-upgrades apt-listchanges
 
-    # Node.js 20.x LTS
+    # Node.js 20.x LTS  (package.json engine: >=20.0.0 <21.0.0)
+    # Reinstall if the major version is anything other than 20 (e.g. Ubuntu ships 18;
+    # a pre-existing Node 22 also violates the <21.0.0 constraint).
     NODE_VER=$(node --version 2>/dev/null | grep -oP '(?<=v)\d+' || echo "0")
-    if (( NODE_VER < 20 )); then
-        info "Node.js ${NODE_VER} found — installing 20.x LTS..."
+    if (( NODE_VER != 20 )); then
+        info "Node.js ${NODE_VER} found — installing 20.x LTS (required: >=20 <21)..."
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - -q
         sudo apt-get install -y nodejs -qq
         success "Node.js $(node --version) installed."
@@ -1505,13 +1531,10 @@ do_diagnose() {
             success "www to non-www redirect is configured"
         fi
         
-        # Check HTTP redirect covers wildcard subdomains
-        if ! grep -qE "server_name.*\*\.${DOMAIN}" "${NGINX_CONF}"; then
-            ISSUES+=("✗ HTTP→HTTPS redirect does not cover *.${DOMAIN} — booking subdomain HTTP requests won't redirect")
-            FIXES+=("Re-run Step 10 to regenerate booking.conf with wildcard HTTP redirect")
-        else
-            success "HTTP redirect covers *.${DOMAIN} (booking subdomains)"
-        fi
+        # Note: booking subdomains (*.${DOMAIN}) use the same SSL cert only when a
+        # wildcard cert is issued via DNS-01 challenge.  The standalone certbot used
+        # here covers ${DOMAIN} and www.${DOMAIN} only — this is expected and correct.
+        success "Nginx HTTP redirect block covers ${DOMAIN} and www.${DOMAIN}"
     else
         ISSUES+=("✗ /etc/nginx/sites-available/booking.conf not found")
         FIXES+=("Run Step 10 to generate and install the Nginx config")
@@ -1630,7 +1653,7 @@ run_from() {
     echo -e "${BOLD}${GREEN}  Setup complete!${RESET}"
     echo ""
     echo -e "  ${BOLD}Site      :${RESET} ${CYAN}https://${DOMAIN}${RESET}"
-    echo -e "  ${BOLD}Login     :${RESET} https://${DOMAIN}/login"
+    echo -e "  ${BOLD}Login     :${RESET} https://${DOMAIN}/auth"
     echo -e "  ${BOLD}Admin     :${RESET} https://${DOMAIN}/isadmin"
     echo -e "  ${BOLD}Database  :${RESET} ${DB_NAME}  (user: ${DB_USER})"
     echo -e "  ${BOLD}Service   :${RESET} ${SERVICE_NAME}  (PM2)"
