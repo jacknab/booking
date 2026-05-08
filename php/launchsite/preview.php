@@ -20,7 +20,8 @@ $category_map = [
 ];
 $back_url = BASE_PATH . '/' . ($category_map[$t['category']] ?? '');
 
-$is_react = !empty($t['type']) && $t['type'] === 'react';
+$is_react   = !empty($t['type']) && $t['type'] === 'react';
+$is_scraped = !empty($t['type']) && $t['type'] === 'scraped';
 
 // Badge variant per category
 $badge_class = match($t['category']) {
@@ -70,15 +71,16 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<?php if ($is_react): ?>
-<!-- ── React template: iframe preview ── -->
+<?php if ($is_react || $is_scraped): ?>
+<!-- ── React / Scraped template: iframe preview ── -->
 <div class="preview-wrapper preview-wrapper--react">
     <iframe
         id="previewSite"
-        src="<?php echo htmlspecialchars($t['react_path']); ?>"
+        src="<?php echo htmlspecialchars($is_scraped ? (BASE_PATH . $t['scraped_path']) : $t['react_path']); ?>"
         class="preview-iframe"
         allowfullscreen
         loading="lazy"
+        <?php if ($is_scraped): ?>sandbox="allow-scripts allow-same-origin allow-popups allow-forms"<?php endif; ?>
     ></iframe>
 </div>
 
@@ -104,7 +106,7 @@ function setDevice(mode) {
 }
 </script>
 
-<?php else: ?>
+<?php elseif (!$is_scraped): ?>
 <!-- ── Scrollable preview ── -->
 <div class="preview-wrapper">
 <div class="preview-site" id="previewSite" style="--accent:<?php echo htmlspecialchars($t['accent']); ?>;--dark:<?php echo htmlspecialchars($t['dark']); ?>;--light:<?php echo htmlspecialchars($t['light']); ?>;">
@@ -317,3 +319,4 @@ function setDevice(mode) {
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+

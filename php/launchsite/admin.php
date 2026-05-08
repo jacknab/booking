@@ -120,6 +120,7 @@ $thumbs_dir  = __DIR__ . '/assets/img/thumbs';
             <span class="admin-card__title">All Templates</span>
             <div style="display:flex;gap:8px;align-items:center;">
                 <button class="btn-admin btn-admin--ghost btn-admin--sm" onclick="openMediaLibModal()">🖼️ Image Library</button>
+                <a href="#scraper" class="btn-admin btn-admin--primary btn-admin--sm">🌐 Import from URL</a>
                 <a href="#upload" class="btn-admin btn-admin--orange btn-admin--sm">+ Upload New Template</a>
             </div>
         </div>
@@ -509,6 +510,107 @@ $thumbs_dir  = __DIR__ . '/assets/img/thumbs';
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <!-- ── Website Scraper ── -->
+    <div class="admin-card" id="scraper">
+        <div class="admin-card__header">
+            <span class="admin-card__title">🌐 Import from URL</span>
+            <span style="font-size:0.78rem;color:rgba(255,255,255,0.3);">Scrape any live website and save it as a Launchit template</span>
+        </div>
+        <div class="admin-card__body">
+
+            <!-- Step 1: URL input -->
+            <div id="scraperStep1">
+                <p style="color:rgba(255,255,255,0.45);font-size:0.85rem;margin-bottom:22px;line-height:1.75;">
+                    Enter any salon or service business website URL. The scraper downloads the homepage — HTML, CSS, images, and fonts —
+                    and shows you a live preview. If it looks good, give it a name, pick a category, and add it straight to the catalog.
+                </p>
+                <div class="scraper-url-row">
+                    <input type="url" id="scraperUrl" class="form-input scraper-url-input"
+                           placeholder="https://example.com" autocomplete="off" spellcheck="false">
+                    <button id="scraperFetchBtn" class="btn-admin btn-admin--primary" onclick="startScrape()">
+                        🌐 Fetch &amp; Preview
+                    </button>
+                </div>
+                <div id="scraperStatus" class="scraper-status" style="display:none;"></div>
+            </div>
+
+            <!-- Step 2: Preview + save form (shown after successful scrape) -->
+            <div id="scraperStep2" style="display:none;">
+                <div class="scraper-preview-header">
+                    <div class="scraper-preview-meta">
+                        <span class="scraper-preview-label">Scraped preview —</span>
+                        <span class="scraper-preview-title" id="scraperPreviewTitle"></span>
+                        <a class="scraper-preview-src" id="scraperPreviewSrc" href="#" target="_blank" rel="noopener"></a>
+                    </div>
+                    <button class="btn-admin btn-admin--ghost btn-admin--sm" onclick="resetScraper()">↩ Try Another URL</button>
+                </div>
+                <div class="scraper-preview-wrap">
+                    <iframe id="scraperPreviewIframe" class="scraper-preview-iframe" src="about:blank"
+                            sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+                    <div class="scraper-preview-overlay-badge">Scraped Preview</div>
+                </div>
+                <div class="scraper-accept-bar">
+                    <span class="scraper-accept-bar__icon">✅</span>
+                    <span>Looks good? Fill in the details below and create the catalog card.</span>
+                </div>
+                <form id="scraperSaveForm" method="POST"
+                      action="<?php echo BASE_PATH; ?>/admin-scraper-save.php"
+                      onsubmit="return confirmScraperSave()">
+                    <input type="hidden" name="uuid"       id="scraperUuid">
+                    <input type="hidden" name="source_url" id="scraperSourceUrl">
+                    <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:16px;max-width:820px;margin-top:24px;">
+                        <div class="form-group">
+                            <label class="form-label">Template Name *</label>
+                            <input type="text" name="name" id="scraperName" class="form-input"
+                                   placeholder="e.g. Miami Nails Studio" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category *</label>
+                            <select name="category" id="scraperCategory" class="form-select" required>
+                                <option value="">— Select category —</option>
+                                <option value="Hair Salon">Hair Salon</option>
+                                <option value="Barbershop">Barbershop</option>
+                                <option value="Nail Salon">Nail Salon</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Template ID *
+                                <span style="color:rgba(255,255,255,0.25);font-weight:400;text-transform:none;">(letters, numbers, hyphens)</span>
+                            </label>
+                            <input type="text" name="template_id" id="scraperTemplateId" class="form-input"
+                                   placeholder="e.g. miami-nails-studio" required
+                                   autocomplete="off" spellcheck="false">
+                            <span class="form-hint" id="scraperIdHint"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Badge</label>
+                            <select name="badge" class="form-select">
+                                <option value="">— none —</option>
+                                <option value="new" selected>new</option>
+                                <option value="popular">popular</option>
+                                <option value="premium">premium</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Style tag</label>
+                            <input type="text" name="style" id="scraperStyle" class="form-input"
+                                   placeholder="e.g. Modern, Luxury, Clean">
+                        </div>
+                    </div>
+                    <div class="form-actions" style="margin-top:20px;">
+                        <button type="submit" class="btn-admin btn-admin--orange" id="scraperSaveBtn">
+                            💾 Create Template Card
+                        </button>
+                        <span style="color:rgba(255,255,255,0.3);font-size:0.8rem;align-self:center;">
+                            Saves scraped files and registers in the catalog — upload a thumbnail after to complete the card
+                        </span>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
 
@@ -1095,6 +1197,147 @@ document.querySelectorAll('.tpl-name-input').forEach(input => {
             cancelInlineEdit(input.closest('.tbl-name'));
         }
     });
+});
+
+// ── Website Scraper ───────────────────────────────────────────────────────────
+
+async function startScrape() {
+    let rawUrl = document.getElementById('scraperUrl').value.trim();
+    if (!rawUrl) { document.getElementById('scraperUrl').focus(); return; }
+    if (!/^https?:\/\//i.test(rawUrl)) rawUrl = 'https://' + rawUrl;
+
+    const btn    = document.getElementById('scraperFetchBtn');
+    const status = document.getElementById('scraperStatus');
+    let   host   = rawUrl;
+    try { host = new URL(rawUrl).hostname; } catch(e) {}
+
+    btn.innerHTML = '<span class="spinner"></span> Fetching…';
+    btn.disabled  = true;
+    status.style.display = 'flex';
+    status.className     = 'scraper-status scraper-status--loading';
+    status.innerHTML     = '🌐 Connecting to <strong>' + host + '</strong> and downloading assets…';
+
+    try {
+        const fd = new FormData();
+        fd.append('url', rawUrl);
+        const res  = await fetch('<?php echo BASE_PATH; ?>/admin-scraper.php', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (!data.success) {
+            status.className = 'scraper-status scraper-status--error';
+            status.innerHTML = '❌ ' + (data.error || 'Scrape failed. Try a different URL.');
+            btn.innerHTML    = '🌐 Fetch &amp; Preview';
+            btn.disabled     = false;
+            return;
+        }
+
+        const kb = Math.round((data.total_bytes || 0) / 1024);
+        status.style.display = 'none';
+        document.getElementById('scraperStep1').style.display = 'none';
+
+        document.getElementById('scraperPreviewTitle').textContent = data.title || host;
+        const srcLink = document.getElementById('scraperPreviewSrc');
+        srcLink.textContent = data.source_url;
+        srcLink.href        = data.source_url;
+        document.getElementById('scraperPreviewIframe').src = data.preview_url;
+        document.getElementById('scraperUuid').value        = data.uuid;
+        document.getElementById('scraperSourceUrl').value   = data.source_url;
+
+        // Auto-fill name and ID from page title
+        const raw    = (data.title || host).replace(/ [|\-–—].*/,'').trim();
+        const autoId = raw.toLowerCase()
+                          .replace(/[^\w\s]/g,'')
+                          .trim()
+                          .replace(/\s+/g,'-')
+                          .replace(/[^a-z0-9\-]/g,'')
+                          .replace(/-+/g,'-')
+                          .substring(0, 48);
+        document.getElementById('scraperName').value = raw.substring(0, 80);
+        const idField = document.getElementById('scraperTemplateId');
+        if (!idField.dataset.userEdited) {
+            idField.value = autoId;
+            validateScraperId();
+        }
+
+        document.getElementById('scraperStep2').style.display = 'block';
+        document.getElementById('scraperStep2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+        status.className = 'scraper-status scraper-status--error';
+        status.innerHTML = '❌ Network error — ' + err.message;
+        btn.innerHTML    = '🌐 Fetch &amp; Preview';
+        btn.disabled     = false;
+    }
+}
+
+function resetScraper() {
+    document.getElementById('scraperStep1').style.display  = 'block';
+    document.getElementById('scraperStep2').style.display  = 'none';
+    document.getElementById('scraperUrl').value            = '';
+    document.getElementById('scraperFetchBtn').innerHTML   = '🌐 Fetch &amp; Preview';
+    document.getElementById('scraperFetchBtn').disabled    = false;
+    document.getElementById('scraperStatus').style.display = 'none';
+    document.getElementById('scraperPreviewIframe').src    = 'about:blank';
+    document.getElementById('scraperName').value           = '';
+    document.getElementById('scraperTemplateId').value     = '';
+    document.getElementById('scraperTemplateId').dataset.userEdited = '';
+    document.getElementById('scraperIdHint').textContent   = '';
+}
+
+function validateScraperId() {
+    const input = document.getElementById('scraperTemplateId');
+    const hint  = document.getElementById('scraperIdHint');
+    let val = input.value.toLowerCase().replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
+    input.value = val;
+    if (!val) { hint.textContent = ''; input.style.borderColor = ''; return; }
+    const taken = _existingIds.includes(val);
+    if (taken) {
+        hint.textContent  = '✗ ID already in use — choose another';
+        hint.style.color  = 'rgba(248,113,113,0.85)';
+        input.style.borderColor = 'rgba(248,113,113,0.45)';
+    } else {
+        hint.textContent  = '✓ Available';
+        hint.style.color  = 'rgba(52,211,153,0.85)';
+        input.style.borderColor = 'rgba(52,211,153,0.45)';
+    }
+}
+
+function confirmScraperSave() {
+    const id = document.getElementById('scraperTemplateId').value.trim();
+    if (_existingIds.includes(id)) {
+        alert('That template ID is already in use. Please choose a different one.');
+        return false;
+    }
+    if (!id) {
+        document.getElementById('scraperTemplateId').focus();
+        return false;
+    }
+    const btn = document.getElementById('scraperSaveBtn');
+    btn.innerHTML = '<span class="spinner"></span> Saving…';
+    btn.disabled  = true;
+    return true;
+}
+
+document.getElementById('scraperTemplateId')?.addEventListener('input', function() {
+    this.dataset.userEdited = 'true';
+    validateScraperId();
+});
+
+document.getElementById('scraperName')?.addEventListener('input', function() {
+    const idField = document.getElementById('scraperTemplateId');
+    if (idField.dataset.userEdited) return;
+    const autoId = this.value.toLowerCase()
+        .replace(/[^\w\s]/g,'').trim()
+        .replace(/\s+/g,'-')
+        .replace(/[^a-z0-9\-]/g,'')
+        .replace(/-+/g,'-')
+        .substring(0, 48);
+    idField.value = autoId;
+    validateScraperId();
+});
+
+document.getElementById('scraperUrl')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); startScrape(); }
 });
 </script>
 <?php endif; ?>
