@@ -1,5 +1,6 @@
 
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -276,15 +277,25 @@ function AppRoutes() {
 
 // ── Billing page wrapper: resolves the salonId from the manage overview ───────
 function ManageBillingWrapper() {
-  const { data, isLoading } = useQuery<any>({
+  const navigate = useNavigate();
+
+  const { data, isLoading, error } = useQuery<any>({
     queryKey: ["/api/manage/overview"],
     queryFn: () =>
       fetch("/api/manage/overview", { credentials: "include" }).then((r) => {
-        if (!r.ok) throw new Error("unauthorized");
+        if (r.status === 401) throw new Error("unauthorized");
+        if (!r.ok) throw new Error("failed");
         return r.json();
       }),
     retry: false,
   });
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (error?.message === "unauthorized") {
+      navigate("/auth?redirect=/manage/billing", { replace: true });
+    }
+  }, [error, navigate]);
 
   if (isLoading) {
     return (
@@ -299,8 +310,55 @@ function ManageBillingWrapper() {
 
   if (!salonId) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
-        No salon found. Please complete onboarding first.
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 text-center">
+        {/* Header */}
+        <header className="fixed top-0 inset-x-0 border-b border-white/8 bg-zinc-950/80 backdrop-blur-sm">
+          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center">
+            <a href="/overview.php" className="font-semibold text-lg tracking-tight text-white">
+              Certxa<span className="text-violet-400">.</span>
+            </a>
+          </div>
+        </header>
+
+        <div className="max-w-sm w-full space-y-6">
+          {/* Icon */}
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 16.875h.008v.008H13.5v-.008zm0-4.5h.008v.008H13.5v-.008zm-7.5 9h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0021 4.5H6a2.25 2.25 0 00-2.25 2.25v12.375A2.25 2.25 0 006 21.375z" />
+            </svg>
+          </div>
+
+          {/* Message */}
+          <div>
+            <h1 className="text-white text-xl font-bold mb-2">No salon set up yet</h1>
+            <p className="text-zinc-400 text-sm leading-relaxed">
+              Your billing dashboard will be available once you've finished setting up your salon.
+              Complete onboarding to unlock billing, plans, and invoices.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate("/onboarding")}
+              className="w-full bg-violet-600 hover:bg-violet-500 text-white font-medium text-sm py-3 px-4 rounded-xl transition-colors"
+            >
+              Complete setup
+            </button>
+            <button
+              onClick={() => navigate("/manage")}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-sm py-3 px-4 rounded-xl transition-colors"
+            >
+              Back to account
+            </button>
+            <a
+              href="/overview.php"
+              className="block w-full text-center text-zinc-500 hover:text-zinc-300 text-sm py-2 transition-colors"
+            >
+              Go to Certxa home
+            </a>
+          </div>
+        </div>
       </div>
     );
   }
