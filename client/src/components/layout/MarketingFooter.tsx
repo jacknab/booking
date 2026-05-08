@@ -39,6 +39,7 @@ const COLS = [
       { label: "Card Reader & POS",   href: "/card-reader-pos.php" },
       { label: "Reserve With Google", href: "/reserve-with-google.php" },
       { label: "Client Reviews",      href: "/client-reviews.php" },
+      { label: "Free Data Transfer",  href: "/data-transfer.php", style: { color: "#6366f1", fontWeight: 600 } },
     ],
   },
   {
@@ -106,7 +107,7 @@ export default function MarketingFooter() {
           services, inventory, and client lists for you.
         </p>
         <a
-          href="/auth"
+          href="/data-transfer.php"
           style={{
             display: "inline-block",
             padding: "14px 32px",
