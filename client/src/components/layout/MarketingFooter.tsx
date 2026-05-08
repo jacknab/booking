@@ -75,6 +75,7 @@ const COLS: Array<{
       { label: "Careers",         href: "#" },
       { label: "Help Centre",     href: "#" },
       { label: "Contact Us",      href: "/contact.php" },
+      { label: "Staff Login",     href: "/staff-auth" },
     ],
   },
 ];
