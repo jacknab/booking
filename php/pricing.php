@@ -1,7 +1,7 @@
 <?php
 define('BRAND_NAME',    'Certxa');
-define('PAGE_TITLE',    'Salon Software Pricing | Certxa Plans from $29/month — Free 14-Day Trial');
-define('PAGE_DESC',     'Simple, transparent salon software pricing. Certxa plans start at $29/month with a free 60-day trial. No hidden fees, no contracts. Online booking, payments, and client management included in every plan.');
+define('PAGE_TITLE',    'Salon Software Pricing | Certxa Plans from $19/month — Free 14-Day Trial');
+define('PAGE_DESC',     'Simple, transparent salon software pricing. Certxa plans start at $19/month with a free 60-day trial. No hidden fees, no contracts. Online booking, payments, and client management included in every plan.');
 define('PAGE_KEYWORDS', 'salon software pricing, salon booking software cost, beauty salon software plans, salon management software price, how much does salon software cost, certxa pricing, salon software free trial, affordable salon software');
 define('PAGE_CANONICAL', 'https://certxa.com/pricing.php');
 define('PAGE_BREADCRUMBS', json_encode([
@@ -13,7 +13,7 @@ define('PAGE_SCHEMA', json_encode([
     '@type'       => 'WebPage',
     '@id'         => 'https://certxa.com/pricing.php',
     'name'        => 'Salon Software Pricing — Certxa',
-    'description' => 'Transparent pricing for Certxa salon management software. Plans from $29/month with a free 60-day trial.',
+    'description' => 'Transparent pricing for Certxa salon management software. Plans from $19/month with a free 60-day trial.',
     'url'         => 'https://certxa.com/pricing.php',
     'isPartOf'    => ['@id'=>'https://certxa.com/#website'],
     'about'       => ['@id'=>'https://certxa.com/#software'],
@@ -27,7 +27,7 @@ define('PAGE_SCHEMA', json_encode([
       [
         '@type'           => 'Offer',
         'name'            => 'Starter Plan',
-        'price'           => '29',
+        'price'           => '19',
         'priceCurrency'   => 'USD',
         'description'     => 'Perfect for solo beauty professionals. Includes online booking, client management, integrated payments, automated reminders, and a branded website.',
         'billingIncrement' => 'P1M',
@@ -35,7 +35,7 @@ define('PAGE_SCHEMA', json_encode([
       [
         '@type'           => 'Offer',
         'name'            => 'Scale Plan',
-        'price'           => '69',
+        'price'           => '39',
         'priceCurrency'   => 'USD',
         'description'     => 'For growing salons with a team. Unlimited staff, advanced reporting, gift cards, memberships, priority support, and Reserve with Google.',
         'billingIncrement' => 'P1M',
@@ -239,12 +239,12 @@ require 'includes/nav.php';
         [
           'name'        => 'Starter',
           'tagline'     => 'Everything you need to get your first bookings rolling.',
-          'monthly'     => '29',
-          'annual'      => '23',
+          'monthly'     => '19',
+          'annual'      => '15',
           'old_monthly' => null,
-          'old_annual'  => '29',
+          'old_annual'  => '19',
           'period'      => '/month',
-          'billing'     => 'Billed monthly — or $23/mo billed annually',
+          'billing'     => 'Billed monthly — or $15/mo billed annually',
           'featured'    => false,
           'cta_label'   => 'Start Free Trial',
           'cta_class'   => 'btn-secondary',
@@ -266,12 +266,12 @@ require 'includes/nav.php';
         [
           'name'        => 'Professional',
           'tagline'     => 'For growing salons that want to book more and retain better.',
-          'monthly'     => '59',
-          'annual'      => '47',
+          'monthly'     => '39',
+          'annual'      => '31',
           'old_monthly' => null,
-          'old_annual'  => '59',
+          'old_annual'  => '39',
           'period'      => '/month',
-          'billing'     => 'Billed monthly — or $47/mo billed annually',
+          'billing'     => 'Billed monthly — or $31/mo billed annually',
           'featured'    => true,
           'cta_label'   => 'Start Free Trial',
           'cta_class'   => 'btn-primary',
@@ -385,8 +385,8 @@ require 'includes/nav.php';
         <thead>
           <tr>
             <th style="width:34%;"></th>
-            <th><div class="plan-header">Starter</div><div class="plan-header-price">From $23/mo</div></th>
-            <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $47/mo ⭐</div></th>
+            <th><div class="plan-header">Starter</div><div class="plan-header-price">From $15/mo</div></th>
+            <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $31/mo ⭐</div></th>
             <th><div class="plan-header">Elite</div><div class="plan-header-price">From $95/mo</div></th>
           </tr>
         </thead>
@@ -588,7 +588,7 @@ require 'includes/nav.php';
     <div class="testimonials-grid">
       <div class="testimonial">
         <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"I was spending $180/month across three different apps for booking, reminders, and payments. Certxa replaces all of them for $47. The maths is obvious. The quality is better too."</p>
+        <p class="testimonial-text">"I was spending $180/month across three different apps for booking, reminders, and payments. Certxa replaces all of them for $39. The maths is obvious. The quality is better too."</p>
         <div class="testimonial-author">
           <div class="testimonial-avatar">LB</div>
           <div><div class="testimonial-name">Lauren Bradley</div><div class="testimonial-role">Salon Owner, Professional Plan</div></div>
