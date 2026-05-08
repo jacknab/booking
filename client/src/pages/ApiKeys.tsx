@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Key, Plus, Trash2, Copy, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Key, Plus, Trash2, Copy, Eye, EyeOff, CheckCircle, BookOpen } from "lucide-react";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 type ApiKeyRow = {
   id: number;
@@ -101,8 +102,24 @@ export default function ApiKeys() {
         </Button>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-sm text-amber-800">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-sm text-amber-800">
         <strong>Keep your API keys secret.</strong> Each key grants read access to your store's appointments, clients, and services. Revoke any key you no longer need.
+      </div>
+
+      <div className="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-5 h-5 text-violet-600 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-violet-900">Elite API — Integration Guide</p>
+            <p className="text-xs text-violet-700 mt-0.5">Authentication, rate limits, available endpoints, webhooks, and code examples.</p>
+          </div>
+        </div>
+        <Link
+          to="/elite-api-docs"
+          className="shrink-0 text-xs font-semibold text-violet-700 hover:text-violet-900 underline underline-offset-2 whitespace-nowrap"
+        >
+          View Documentation →
+        </Link>
       </div>
 
       {isLoading ? (

@@ -5,8 +5,9 @@ import {
   CreditCard, FileText, XCircle, CheckCircle, Clock, AlertTriangle,
   Download, ArrowLeft, Loader2, Zap, Shield, LifeBuoy, ChevronRight,
   Calendar, Pause,
-  RefreshCw, ExternalLink, Info, BadgeCheck, Sparkles,
+  RefreshCw, ExternalLink, Info, BadgeCheck, Sparkles, Code2,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +23,7 @@ const PLANS = [
     tagline: "For independent stylists & booth renters",
     highlight: "1 calendar · 1 staff",
     features: ["1 calendar", "1 staff member", "Online booking page", "Payments & card reader", "200 SMS/mo", "iOS & Android app"],
+    apiDocs: false,
   },
   {
     code: "professional",
@@ -30,8 +32,18 @@ const PLANS = [
     tagline: "Everything, unlimited — any salon size",
     highlight: "Unlimited calendars & staff",
     features: ["Unlimited calendars", "Unlimited staff", "Online booking page", "Payments & card reader", "Unlimited SMS", "Reserve With Google", "Advanced reporting", "Priority support"],
+    apiDocs: false,
   },
-] as const;
+  {
+    code: "elite",
+    name: "Elite",
+    price: 99,
+    tagline: "Full API access for custom integrations",
+    highlight: "Unlimited API · 50K SMS · Webhooks",
+    features: ["Everything in Professional", "Unlimited API keys", "50,000 SMS credits/mo", "Chatbot & Dialer API", "Webhooks & real-time events", "1,000 API requests/min", "99.9% uptime SLA", "Priority support (4 h)"],
+    apiDocs: true,
+  },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface BillingData {
@@ -463,6 +475,15 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                     </li>
                   ))}
                 </ul>
+                {plan.apiDocs && (
+                  <Link
+                    to="/elite-api-docs"
+                    className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors mb-3"
+                  >
+                    <Code2 className="w-3.5 h-3.5" />
+                    View API Integration Documentation →
+                  </Link>
+                )}
                 {!isCurrent && isActive && stripeConfigured && (
                   <Button
                     size="sm"
