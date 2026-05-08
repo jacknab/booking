@@ -267,6 +267,10 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
   const host = (hostHeader || req.headers.host || "").split(":")[0];
   const parts = host.split('.');
 
+  // Only act on subdomains of certxa.com or localhost — ignore Replit dev domains and any other hosts
+  const rootDomain = parts.slice(-2).join('.');
+  if (rootDomain !== 'certxa.com' && rootDomain !== 'localhost') return next();
+
   // Only act on subdomains: slug.certxa.com or slug.localhost
   if (parts.length < 2) return next();
 
