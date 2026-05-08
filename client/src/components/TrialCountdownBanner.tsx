@@ -140,16 +140,18 @@ export const TrialCountdownBanner: React.FC<TrialCountdownBannerProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={handleCta}
-            className={`
-              text-xs font-medium px-3 py-1.5 rounded border
-              transition-colors whitespace-nowrap
-              ${styles.btnBg}
-            `}
-          >
-            {getCtaLabel(tier)}
-          </button>
+          {(tier === "expired" || tier === "inactive" || (daysRemaining !== null && daysRemaining <= 10)) && (
+            <button
+              onClick={handleCta}
+              className={`
+                text-xs font-medium px-3 py-1.5 rounded border
+                transition-colors whitespace-nowrap
+                ${styles.btnBg}
+              `}
+            >
+              {getCtaLabel(tier)}
+            </button>
+          )}
 
           {tier !== "expired" && (
             <button
