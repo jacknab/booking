@@ -47,6 +47,10 @@ import ReviewSubmit from "@/pages/ReviewSubmit";
 import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
 import MailSettings from "@/pages/MailSettings";
+import SmsInbox from "@/pages/SmsInbox";
+import Campaigns from "@/pages/Campaigns";
+import ApiKeys from "@/pages/ApiKeys";
+import MultiLocationDashboard from "@/pages/MultiLocationDashboard";
 import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import SeoRegionsAdmin from "@/pages/admin/SeoRegionsAdmin";
 import AccountsAdmin from "@/pages/admin/AccountsAdmin";
@@ -236,8 +240,12 @@ function AppRoutes() {
       <Route path="/online-booking" element={<OnlineBooking />} />
       <Route path="/sms-settings" element={<SmsSettings />} />
       <Route path="/mail-settings" element={<MailSettings />} />
+      <Route path="/sms-inbox" element={<SmsInbox />} />
+      <Route path="/campaigns" element={<Campaigns />} />
+      <Route path="/api-keys" element={<ApiKeys />} />
+      <Route path="/multi-location" element={<MultiLocationDashboard />} />
       <Route path="/cash-drawer" element={<CashDrawer />} />
-      <Route path="/marketing" element={<Navigate to="/reviews" replace />} />
+      <Route path="/marketing" element={<Navigate to="/campaigns" replace />} />
 
       {/* Training */}
       <Route path="/dashboard/training" element={<TrainingAdmin />} />

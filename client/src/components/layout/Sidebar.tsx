@@ -16,6 +16,8 @@ import {
   Mail,
   Moon,
   Sun,
+  Megaphone,
+  Key,
   TrendingUp,
   Clock,
   Gift,
@@ -35,6 +37,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { PERMISSIONS } from "@shared/permissions";
+import { useQuery } from "@tanstack/react-query";
 
 type NavItem = {
   to: string;
@@ -62,6 +65,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
       { to: "/loyalty", label: "Loyalty Program", icon: Star, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/reviews", label: "Reviews", icon: ThumbsUp },
+      { to: "/sms-inbox", label: "SMS Inbox", icon: MessageSquare, permission: PERMISSIONS.CUSTOMERS_VIEW },
+      { to: "/campaigns", label: "Campaigns", icon: Megaphone, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/google-business", label: "Google Reviews", icon: MapPin, permission: PERMISSIONS.INTEGRATIONS_MANAGE },
     ],
   },
@@ -99,6 +104,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
       { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/team-permissions", label: "Roles & Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
+      { to: "/api-keys", label: "API Keys", icon: Key, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
+      { to: "/multi-location", label: "Multi-Location", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
     ],
   },
 ];
@@ -111,6 +118,19 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const { selectedStore } = useSelectedStore();
   const { can, canAny, isStaff } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
+
+  const { data: smsConversations } = useQuery<any[]>({
+    queryKey: ["/api/sms-inbox/conversations", selectedStore?.id],
+    queryFn: async () => {
+      if (!selectedStore?.id) return [];
+      const res = await fetch(`/api/sms-inbox/conversations?storeId=${selectedStore.id}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!selectedStore?.id,
+    refetchInterval: 30000,
+  });
+  const smsUnreadCount = smsConversations?.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0) || 0;
 
   const handleLogout = async () => {
     try {
@@ -163,7 +183,12 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                       )}
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {item.to === "/sms-inbox" && smsUnreadCount > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+                          {smsUnreadCount > 9 ? "9+" : smsUnreadCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

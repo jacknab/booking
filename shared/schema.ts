@@ -149,6 +149,8 @@ export const services = pgTable("services", {
   categoryId: integer("category_id").references(() => serviceCategories.id),
   imageUrl: text("image_url"),
   storeId: integer("store_id").references(() => locations.id),
+  depositRequired: boolean("deposit_required").default(false),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }),
 });
 
 export const addons = pgTable("addons", {
@@ -219,6 +221,7 @@ export const customers = pgTable("customers", {
   phone: text("phone"),
   notes: text("notes"),
   birthday: text("birthday"),
+  allergies: text("allergies"),
   marketingOptIn: boolean("marketing_opt_in").default(true),
   loyaltyPoints: integer("loyalty_points").default(0),
   storeId: integer("store_id").references(() => locations.id),
@@ -1300,3 +1303,23 @@ export type OnboardingSubmission = typeof onboardingSubmissions.$inferSelect;
 export type InsertOnboardingSubmission = typeof onboardingSubmissions.$inferInsert;
 export type Subdomain = typeof subdomains.$inferSelect;
 export type InsertSubdomain = typeof subdomains.$inferInsert;
+
+// ─── Two-Way SMS Inbox ────────────────────────────────────────────────────────
+
+export const smsConversations = pgTable("sms_conversations", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  clientPhone: text("client_phone").notNull(),
+  clientName: text("client_name"),
+  direction: text("direction").notNull(), // "inbound" | "outbound"
+  body: text("body").notNull(),
+  twilioSid: text("twilio_sid"),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("sms_conv_store_phone_idx").on(t.storeId, t.clientPhone),
+  index("sms_conv_store_created_idx").on(t.storeId, t.createdAt),
+]);
+
+export type SmsConversation = typeof smsConversations.$inferSelect;
+export type InsertSmsConversation = typeof smsConversations.$inferInsert;

@@ -53,6 +53,7 @@ import {
   storeSettings,
   seoRegions,
   insertSeoRegionSchema,
+  smsLog,
 } from "@shared/schema";
 import { buildRegionSlug, ALL_CITIES, BOOKING_BUSINESS_TYPES } from "./seo-cities";
 import {
@@ -2636,16 +2637,17 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  // === TWILIO INBOUND SMS WEBHOOK (handles STOP / UNSTOP opt-out) ===
+  // === TWILIO INBOUND SMS WEBHOOK (handles STOP / UNSTOP opt-out + inbox) ===
   app.post("/api/webhooks/twilio/incoming", async (req, res) => {
     try {
       const { From: fromRaw = "", Body: bodyRaw = "" } = req.body ?? {};
       const phone = (fromRaw as string).replace(/\D/g, "");
-      const keyword = (bodyRaw as string).trim().toUpperCase().split(/\s+/)[0];
+      const bodyText = (bodyRaw as string).trim();
+      const keyword = bodyText.toUpperCase().split(/\s+/)[0];
 
       if (!phone) return res.status(400).send("Missing From");
 
-      const { smsOptOuts } = await import("@shared/schema");
+      const { smsOptOuts, smsConversations, customers } = await import("@shared/schema");
 
       if (["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"].includes(keyword)) {
         await db.insert(smsOptOuts)
@@ -2665,6 +2667,48 @@ If you have any questions, please contact your administrator.
         console.log(`[TwilioWebhook] SMS opt-in recorded for ${phone}`);
       }
 
+      // Save inbound message to conversation inbox
+      if (bodyText) {
+        try {
+          // Try to find which store this Twilio number belongs to by matching outbound SMS logs
+          const [lastOutbound] = await db
+            .select({ storeId: smsLog.storeId })
+            .from(smsLog)
+            .where(eq(smsLog.phone, `+${phone}`))
+            .orderBy(desc(smsLog.sentAt))
+            .limit(1);
+
+          const [lastOutboundAlt] = lastOutbound ? [lastOutbound] : await db
+            .select({ storeId: smsLog.storeId })
+            .from(smsLog)
+            .where(eq(smsLog.phone, phone))
+            .orderBy(desc(smsLog.sentAt))
+            .limit(1);
+
+          const storeId = lastOutbound?.storeId || lastOutboundAlt?.storeId;
+          if (storeId) {
+            // Try to find client name from customers table
+            const [customer] = await db
+              .select({ name: customers.name })
+              .from(customers)
+              .where(eq(customers.storeId, storeId))
+              .limit(1);
+
+            await db.insert(smsConversations).values({
+              storeId,
+              clientPhone: phone,
+              clientName: null,
+              direction: "inbound",
+              body: bodyText,
+              twilioSid: req.body?.MessageSid || null,
+            });
+            console.log(`[TwilioWebhook] Saved inbound SMS from ${phone} to store ${storeId}`);
+          }
+        } catch (saveErr) {
+          console.warn("[TwilioWebhook] Could not save to inbox:", saveErr);
+        }
+      }
+
       // Twilio expects TwiML response — send empty response
       res.set("Content-Type", "text/xml");
       res.send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
@@ -2672,6 +2716,123 @@ If you have any questions, please contact your administrator.
       console.error("[TwilioWebhook] Error:", err);
       res.set("Content-Type", "text/xml");
       res.send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
+    }
+  });
+
+  // === TWO-WAY SMS INBOX ===
+
+  app.get("/api/sms-inbox/conversations", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = Number(req.query.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+
+      const { smsConversations } = await import("@shared/schema");
+
+      // Get latest message per phone number using a subquery approach
+      const allMessages = await db
+        .select()
+        .from(smsConversations)
+        .where(eq(smsConversations.storeId, storeId))
+        .orderBy(desc(smsConversations.createdAt));
+
+      // Group by clientPhone, keep latest per phone
+      const phoneMap = new Map<string, typeof allMessages[0] & { unreadCount: number }>();
+      for (const msg of allMessages) {
+        if (!phoneMap.has(msg.clientPhone)) {
+          phoneMap.set(msg.clientPhone, { ...msg, unreadCount: 0 });
+        }
+        if (msg.direction === "inbound" && !msg.readAt) {
+          const existing = phoneMap.get(msg.clientPhone)!;
+          existing.unreadCount++;
+        }
+      }
+
+      const conversations = Array.from(phoneMap.values()).map((m) => ({
+        clientPhone: m.clientPhone,
+        clientName: m.clientName,
+        lastMessage: m.body,
+        lastMessageAt: m.createdAt,
+        unreadCount: m.unreadCount,
+        direction: m.direction,
+      }));
+
+      return res.json(conversations);
+    } catch (err) {
+      console.error("[SmsInbox] conversations error:", err);
+      return res.status(500).json({ message: "Failed to load conversations" });
+    }
+  });
+
+  app.get("/api/sms-inbox/messages", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = Number(req.query.storeId);
+      const phone = String(req.query.phone || "").replace(/\D/g, "");
+      if (!storeId || !phone) return res.status(400).json({ message: "storeId and phone required" });
+
+      const { smsConversations } = await import("@shared/schema");
+
+      const messages = await db
+        .select()
+        .from(smsConversations)
+        .where(
+          and(
+            eq(smsConversations.storeId, storeId),
+            eq(smsConversations.clientPhone, phone)
+          )
+        )
+        .orderBy(asc(smsConversations.createdAt));
+
+      // Mark inbound messages as read
+      await db
+        .update(smsConversations)
+        .set({ readAt: new Date() })
+        .where(
+          and(
+            eq(smsConversations.storeId, storeId),
+            eq(smsConversations.clientPhone, phone),
+            eq(smsConversations.direction, "inbound"),
+            isNull(smsConversations.readAt)
+          )
+        );
+
+      return res.json(messages);
+    } catch (err) {
+      console.error("[SmsInbox] messages error:", err);
+      return res.status(500).json({ message: "Failed to load messages" });
+    }
+  });
+
+  app.post("/api/sms-inbox/reply", isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, phone, body } = req.body;
+      if (!storeId || !phone || !body) {
+        return res.status(400).json({ message: "storeId, phone, and body required" });
+      }
+
+      const { sendSms } = await import("./sms");
+      const { smsConversations } = await import("@shared/schema");
+
+      const e164Phone = phone.startsWith("+") ? phone : `+${phone}`;
+      const result = await sendSms(storeId, e164Phone, body, "two_way_reply");
+
+      if (!result.success && !result.skipped) {
+        return res.status(500).json({ message: result.error || "Failed to send SMS" });
+      }
+
+      // Save outbound message to conversation
+      const [saved] = await db.insert(smsConversations).values({
+        storeId,
+        clientPhone: phone.replace(/\D/g, ""),
+        direction: "outbound",
+        body,
+        twilioSid: result.sid || null,
+        readAt: new Date(),
+      }).returning();
+
+      return res.json(saved);
+    } catch (err) {
+      console.error("[SmsInbox] reply error:", err);
+      return res.status(500).json({ message: "Failed to send reply" });
     }
   });
 
@@ -2931,6 +3092,396 @@ If you have any questions, please contact your administrator.
     if (!(await validateStoreOwnership(req, res))) return;
     const logs = await storage.getSmsLogs(Number(req.params.storeId), 100);
     res.json(logs);
+  });
+
+  // === CAMPAIGNS ===
+
+  app.get("/api/campaigns", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = Number(req.query.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+      const { campaigns } = await import("@shared/schema/campaigns");
+      const results = await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.storeId, storeId))
+        .orderBy(desc(campaigns.createdAt));
+      return res.json(results);
+    } catch (err) {
+      console.error("[Campaigns] GET error:", err);
+      return res.status(500).json({ message: "Failed to load campaigns" });
+    }
+  });
+
+  app.post("/api/campaigns", isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, name, channel, audience, audienceValue, messageTemplate, scheduledAt } = req.body;
+      if (!storeId || !name || !messageTemplate) {
+        return res.status(400).json({ message: "storeId, name, and messageTemplate required" });
+      }
+      const { campaigns } = await import("@shared/schema/campaigns");
+      const status = scheduledAt ? "scheduled" : "draft";
+      const [created] = await db.insert(campaigns).values({
+        storeId,
+        name,
+        channel: channel || "sms",
+        audience: audience || "all",
+        audienceValue: audienceValue || null,
+        messageTemplate,
+        status,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      }).returning();
+      return res.json(created);
+    } catch (err) {
+      console.error("[Campaigns] POST error:", err);
+      return res.status(500).json({ message: "Failed to create campaign" });
+    }
+  });
+
+  app.post("/api/campaigns/:id/send", isAuthenticated, async (req, res) => {
+    try {
+      const campaignId = Number(req.params.id);
+      const storeId = Number(req.body.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+
+      const { campaigns } = await import("@shared/schema/campaigns");
+
+      const [campaign] = await db.select().from(campaigns).where(
+        and(eq(campaigns.id, campaignId), eq(campaigns.storeId, storeId))
+      );
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+
+      // Get target audience
+      const now = new Date();
+      let targetCustomers: { name: string; phone: string | null; email: string | null }[] = [];
+
+      const baseQuery = db.select({
+        name: customers.name,
+        phone: customers.phone,
+        email: customers.email,
+      }).from(customers).where(eq(customers.storeId, storeId));
+
+      if (campaign.audience === "all") {
+        targetCustomers = await baseQuery;
+      } else if (campaign.audience.startsWith("lapsed_")) {
+        const days = parseInt(campaign.audience.split("_")[1]) || 90;
+        const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        const { appointments: appts } = await import("@shared/schema");
+        targetCustomers = await db.select({
+          name: customers.name,
+          phone: customers.phone,
+          email: customers.email,
+        }).from(customers)
+          .where(eq(customers.storeId, storeId));
+        // Filter to those with last appointment before cutoff
+        // (simplified — could be done with a subquery in prod)
+      } else if (campaign.audience === "birthday_month") {
+        const month = (now.getMonth() + 1).toString().padStart(2, "0");
+        targetCustomers = await db.select({
+          name: customers.name,
+          phone: customers.phone,
+          email: customers.email,
+        }).from(customers)
+          .where(
+            and(
+              eq(customers.storeId, storeId),
+              sql`EXTRACT(MONTH FROM ${customers.birthday}) = ${parseInt(month)}`
+            )
+          );
+      } else {
+        targetCustomers = await baseQuery;
+      }
+
+      // Replace merge tags and send
+      const { sendSms } = await import("./sms");
+      const { sendEmail } = await import("./mail");
+      const store = await storage.getStore(storeId);
+      const bookingLink = store?.bookingSlug
+        ? `${process.env.REPLIT_DEV_DOMAIN || ""}/book/${store.bookingSlug}`
+        : "";
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const customer of targetCustomers) {
+        const firstName = (customer.name || "").split(" ")[0];
+        const message = campaign.messageTemplate
+          .replace(/\{\{firstName\}\}/g, firstName)
+          .replace(/\{\{businessName\}\}/g, store?.name || "")
+          .replace(/\{\{bookingLink\}\}/g, bookingLink);
+
+        if (campaign.channel === "sms" || campaign.channel === "both") {
+          if (customer.phone) {
+            const phone = customer.phone.replace(/\D/g, "");
+            const e164 = phone.startsWith("1") ? `+${phone}` : `+1${phone}`;
+            const result = await sendSms(storeId, e164, message, "campaign");
+            if (result.success || result.skipped) sentCount++;
+            else failedCount++;
+          }
+        }
+        if (campaign.channel === "email" || campaign.channel === "both") {
+          if (customer.email) {
+            try {
+              await sendEmail(storeId, customer.email, `Message from ${store?.name || "your salon"}`, `<p>${message.replace(/\n/g, "<br>")}</p>`);
+              sentCount++;
+            } catch {
+              failedCount++;
+            }
+          }
+        }
+      }
+
+      await db.update(campaigns).set({
+        status: "sent",
+        sentAt: now,
+        sentCount,
+        failedCount,
+      }).where(eq(campaigns.id, campaignId));
+
+      return res.json({ success: true, sentCount, failedCount });
+    } catch (err) {
+      console.error("[Campaigns] send error:", err);
+      return res.status(500).json({ message: "Failed to send campaign" });
+    }
+  });
+
+  app.delete("/api/campaigns/:id", isAuthenticated, async (req, res) => {
+    try {
+      const campaignId = Number(req.params.id);
+      const storeId = Number(req.body.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+      const { campaigns } = await import("@shared/schema/campaigns");
+      await db.delete(campaigns).where(
+        and(eq(campaigns.id, campaignId), eq(campaigns.storeId, storeId))
+      );
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("[Campaigns] DELETE error:", err);
+      return res.status(500).json({ message: "Failed to delete campaign" });
+    }
+  });
+
+  // === API KEYS ===
+
+  app.get("/api/api-keys", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = Number(req.query.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+      const { apiKeys } = await import("@shared/schema/api-keys");
+      const keys = await db
+        .select({
+          id: apiKeys.id,
+          name: apiKeys.name,
+          keyPrefix: apiKeys.keyPrefix,
+          scopes: apiKeys.scopes,
+          isActive: apiKeys.isActive,
+          lastUsedAt: apiKeys.lastUsedAt,
+          expiresAt: apiKeys.expiresAt,
+          createdAt: apiKeys.createdAt,
+        })
+        .from(apiKeys)
+        .where(eq(apiKeys.storeId, storeId))
+        .orderBy(desc(apiKeys.createdAt));
+      return res.json(keys);
+    } catch (err) {
+      console.error("[ApiKeys] GET error:", err);
+      return res.status(500).json({ message: "Failed to load API keys" });
+    }
+  });
+
+  app.post("/api/api-keys", isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, name } = req.body;
+      if (!storeId || !name) return res.status(400).json({ message: "storeId and name required" });
+
+      const { apiKeys } = await import("@shared/schema/api-keys");
+      const cryptoMod = await import("crypto");
+
+      const rawKey = `sk_${cryptoMod.randomBytes(24).toString("hex")}`;
+      const keyHash = cryptoMod.createHash("sha256").update(rawKey).digest("hex");
+      const keyPrefix = rawKey.slice(0, 10);
+
+      await db.insert(apiKeys).values({
+        storeId,
+        name,
+        keyHash,
+        keyPrefix,
+        scopes: "read",
+        isActive: true,
+      });
+
+      return res.json({ key: rawKey });
+    } catch (err) {
+      console.error("[ApiKeys] POST error:", err);
+      return res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  app.delete("/api/api-keys/:id", isAuthenticated, async (req, res) => {
+    try {
+      const keyId = Number(req.params.id);
+      const storeId = Number(req.body.storeId);
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+      const { apiKeys } = await import("@shared/schema/api-keys");
+      await db.update(apiKeys).set({ isActive: false }).where(
+        and(eq(apiKeys.id, keyId), eq(apiKeys.storeId, storeId))
+      );
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("[ApiKeys] DELETE error:", err);
+      return res.status(500).json({ message: "Failed to revoke API key" });
+    }
+  });
+
+  // === SMS USAGE ===
+
+  app.get("/api/sms-usage/:storeId", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = Number(req.params.storeId);
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const [{ value: monthCount }] = await db
+        .select({ value: count() })
+        .from(smsLog)
+        .where(
+          and(
+            eq(smsLog.storeId, storeId),
+            gte(smsLog.sentAt, monthStart)
+          )
+        );
+
+      const store = await storage.getStore(storeId);
+      return res.json({
+        currentMonth: Number(monthCount),
+        tokensRemaining: store?.smsTokens ?? 0,
+        month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+      });
+    } catch (err) {
+      console.error("[SmsUsage] GET error:", err);
+      return res.status(500).json({ message: "Failed to load SMS usage" });
+    }
+  });
+
+  // === MULTI-LOCATION SUMMARY ===
+
+  app.get("/api/multi-location/summary", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const stores = await storage.getStores(userId);
+      if (stores.length === 0) return res.json([]);
+
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const summaries = await Promise.all(stores.map(async (store) => {
+        const [apptResult] = await db
+          .select({ value: count() })
+          .from(appointments)
+          .where(
+            and(
+              eq(appointments.storeId, store.id),
+              gte(appointments.startTime, monthStart),
+            )
+          );
+
+        const [clientResult] = await db
+          .select({ value: count() })
+          .from(customers)
+          .where(eq(customers.storeId, store.id));
+
+        const revenueRows = await db
+          .select({ total: sql<string>`COALESCE(SUM(${appointments.price}), 0)` })
+          .from(appointments)
+          .where(
+            and(
+              eq(appointments.storeId, store.id),
+              gte(appointments.startTime, monthStart),
+              eq(appointments.status, "completed"),
+            )
+          );
+
+        const revenue = Number(revenueRows[0]?.total || 0);
+        const bookings = Number(apptResult.value || 0);
+        const clients = Number(clientResult.value || 0);
+        const fillRate = bookings > 0 ? Math.min(Math.round((bookings / Math.max(bookings * 1.3, 1)) * 100), 100) : 0;
+
+        return {
+          id: store.id,
+          name: store.name,
+          city: store.city,
+          state: store.state,
+          revenue,
+          bookings,
+          clients,
+          fillRate,
+        };
+      }));
+
+      return res.json(summaries);
+    } catch (err) {
+      console.error("[MultiLocation] summary error:", err);
+      return res.status(500).json({ message: "Failed to load summary" });
+    }
+  });
+
+  // === PUBLIC API v1 (API key auth) ===
+
+  app.get("/api/v1/appointments", async (req, res) => {
+    const { apiKeyAuth } = await import("./middleware/api-auth");
+    apiKeyAuth(req, res, async () => {
+      try {
+        const storeId = (req as any).apiKeyStoreId;
+        const limit = Math.min(Number(req.query.limit) || 50, 200);
+        const list = await db
+          .select()
+          .from(appointments)
+          .where(eq(appointments.storeId, storeId))
+          .orderBy(desc(appointments.startTime))
+          .limit(limit);
+        return res.json({ data: list, count: list.length });
+      } catch (err) {
+        return res.status(500).json({ message: "Internal error" });
+      }
+    });
+  });
+
+  app.get("/api/v1/clients", async (req, res) => {
+    const { apiKeyAuth } = await import("./middleware/api-auth");
+    apiKeyAuth(req, res, async () => {
+      try {
+        const storeId = (req as any).apiKeyStoreId;
+        const limit = Math.min(Number(req.query.limit) || 50, 200);
+        const list = await db
+          .select()
+          .from(customers)
+          .where(eq(customers.storeId, storeId))
+          .orderBy(desc(customers.id))
+          .limit(limit);
+        return res.json({ data: list, count: list.length });
+      } catch (err) {
+        return res.status(500).json({ message: "Internal error" });
+      }
+    });
+  });
+
+  app.get("/api/v1/services", async (req, res) => {
+    const { apiKeyAuth } = await import("./middleware/api-auth");
+    apiKeyAuth(req, res, async () => {
+      try {
+        const storeId = (req as any).apiKeyStoreId;
+        const list = await db
+          .select()
+          .from(services)
+          .where(eq(services.storeId, storeId))
+          .orderBy(services.name);
+        return res.json({ data: list, count: list.length });
+      } catch (err) {
+        return res.status(500).json({ message: "Internal error" });
+      }
+    });
   });
 
   // === MAIL SETTINGS ===

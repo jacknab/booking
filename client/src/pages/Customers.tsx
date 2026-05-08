@@ -461,6 +461,7 @@ function CreateClientDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     email: string;
     phone: string;
     notes: string;
+    allergies: string;
   }>();
 
   function onSubmit(data: any) {
@@ -502,8 +503,12 @@ function CreateClientDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             <Input {...register("phone")} placeholder="(555) 123-4567" />
           </div>
           <div className="space-y-1.5">
+            <Label>Allergies / Sensitivities</Label>
+            <Input {...register("allergies")} placeholder="e.g. Latex, Ammonia, Perm solution..." />
+          </div>
+          <div className="space-y-1.5">
             <Label>Notes</Label>
-            <Input {...register("notes")} placeholder="Allergies, preferences..." />
+            <Input {...register("notes")} placeholder="Preferences, special requests..." />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

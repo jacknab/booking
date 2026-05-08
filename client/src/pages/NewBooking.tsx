@@ -1937,6 +1937,16 @@ function BookingSummaryPanel({
                   No-show risk · {Math.round(noShowInfo.rate * 100)}% ({noShowInfo.noShows}/{noShowInfo.total})
                 </div>
               )}
+              {selectedCustomer?.allergies && (
+                <div
+                  className="mt-1.5 flex items-start gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-2 py-1 text-[11px] font-semibold text-orange-700"
+                  data-testid="badge-allergy-alert"
+                  title={selectedCustomer.allergies}
+                >
+                  <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  <span>Allergy alert: {selectedCustomer.allergies}</span>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex items-center gap-2">

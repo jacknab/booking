@@ -642,6 +642,12 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
                         <span className="text-gray-500">Time</span>
                         <span className="font-medium">{selectedSlot && formatInTz(selectedSlot.time, timezone, "h:mm a")}</span>
                     </div>
+                    {primaryService?.depositRequired && primaryService?.depositAmount && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                        <span className="text-sm text-amber-700 font-medium">Deposit required</span>
+                        <span className="text-sm font-bold text-amber-700">${Number(primaryService.depositAmount).toFixed(2)}</span>
+                      </div>
+                    )}
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 space-y-4">

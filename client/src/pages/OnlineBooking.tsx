@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Globe, Copy, Check, ExternalLink, Link2, QrCode, Loader2, Smartphone, LayoutList, Layout } from "lucide-react";
+import { Globe, Copy, Check, ExternalLink, Link2, QrCode, Loader2, Smartphone, LayoutList, Layout, Shield } from "lucide-react";
 import { QRCodeImage } from "@/components/ui/qr-code";
 import { BookingInstructionsCard } from "@/components/BookingInstructionsCard";
 import html2canvas from "html2canvas";
@@ -64,6 +64,34 @@ export default function OnlineBooking() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       toast({ title: "Booking link saved", description: `Your booking page is now live at ${displayDomain}` });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const [customDomain, setCustomDomain] = useState((selectedStore as any)?.customDomain || "");
+  useEffect(() => {
+    setCustomDomain((selectedStore as any)?.customDomain || "");
+  }, [selectedStore]);
+
+  const saveCustomDomainMutation = useMutation({
+    mutationFn: async (domain: string) => {
+      const res = await fetch(`/api/stores/${selectedStore!.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customDomain: domain || null }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to save custom domain");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      toast({ title: "Custom domain saved", description: "DNS changes may take up to 24h to propagate." });
     },
     onError: (err: Error) => {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
@@ -355,6 +383,46 @@ export default function OnlineBooking() {
               </Card>
             )}
           </>
+        )}
+
+        {selectedStore && (
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Custom Domain</h3>
+                <p className="text-sm text-muted-foreground">Connect your own domain to your booking page</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mb-3">
+              <Input
+                value={customDomain}
+                onChange={(e) => setCustomDomain(e.target.value)}
+                placeholder="e.g. book.mysalon.com"
+                className="flex-1"
+              />
+              <Button
+                onClick={() => saveCustomDomainMutation.mutate(customDomain)}
+                disabled={saveCustomDomainMutation.isPending}
+              >
+                {saveCustomDomainMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
+            {customDomain && (
+              <div className="bg-muted p-4 rounded-lg text-sm space-y-2">
+                <p className="font-medium text-sm">DNS Setup Required</p>
+                <p className="text-muted-foreground text-xs">Add this CNAME record to your domain's DNS settings:</p>
+                <div className="grid grid-cols-3 gap-2 font-mono text-xs bg-background p-3 rounded border">
+                  <div><span className="text-muted-foreground">Type</span><br />CNAME</div>
+                  <div><span className="text-muted-foreground">Name</span><br />{customDomain.split(".")[0]}</div>
+                  <div><span className="text-muted-foreground">Value</span><br />{(selectedStore as any)?.bookingSlug}.mysalon.me</div>
+                </div>
+                <p className="text-xs text-muted-foreground">DNS changes can take up to 24 hours to propagate.</p>
+              </div>
+            )}
+          </Card>
         )}
 
         {!selectedStore && (

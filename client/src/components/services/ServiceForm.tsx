@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useCreateService, useUpdateService } from "@/hooks/use-services";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
@@ -14,7 +15,7 @@ import { Camera } from "lucide-react";
 type ServiceFormProps = {
   onSuccess: () => void;
   categories: any[];
-  initialData?: any; // If provided, it's an edit
+  initialData?: any;
 };
 
 export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormProps) {
@@ -25,6 +26,8 @@ export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormP
   const formSchema = insertServiceSchema.extend({
     duration: z.coerce.number().min(1, "Duration must be at least 1 minute"),
     price: z.coerce.number().min(0, "Price must be positive"),
+    depositRequired: z.boolean().optional().default(false),
+    depositAmount: z.coerce.number().min(0).optional().nullable(),
   });
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<z.infer<typeof formSchema>>({
@@ -36,10 +39,16 @@ export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormP
       price: initialData.price,
       description: initialData.description || "",
       imageUrl: initialData.imageUrl || null,
-    } : undefined
+      depositRequired: initialData.depositRequired || false,
+      depositAmount: initialData.depositAmount ? Number(initialData.depositAmount) : null,
+    } : {
+      depositRequired: false,
+      depositAmount: null,
+    }
   });
 
   const imageUrl = watch("imageUrl");
+  const depositRequired = watch("depositRequired");
 
   useEffect(() => {
     if (initialData) {
@@ -50,6 +59,8 @@ export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormP
         price: initialData.price,
         description: initialData.description || "",
         imageUrl: initialData.imageUrl || null,
+        depositRequired: initialData.depositRequired || false,
+        depositAmount: initialData.depositAmount ? Number(initialData.depositAmount) : null,
       });
     }
   }, [initialData, reset]);
@@ -75,6 +86,7 @@ export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormP
     const submissionData = {
       ...data,
       price: String(data.price),
+      depositAmount: data.depositRequired && data.depositAmount != null ? String(data.depositAmount) : null,
     };
 
     if (initialData) {
@@ -162,6 +174,34 @@ export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormP
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Input id="description" {...register("description")} placeholder="Brief description..." data-testid="input-service-desc" />
+      </div>
+
+      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm font-medium">Require Deposit</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">Clients must pay a deposit when booking online</p>
+          </div>
+          <Switch
+            checked={depositRequired || false}
+            onCheckedChange={(checked) => setValue("depositRequired", checked)}
+            data-testid="switch-deposit-required"
+          />
+        </div>
+        {depositRequired && (
+          <div className="space-y-2">
+            <Label htmlFor="depositAmount">Deposit Amount ($)</Label>
+            <Input
+              id="depositAmount"
+              type="number"
+              step="0.01"
+              {...register("depositAmount")}
+              placeholder="e.g. 25.00"
+              data-testid="input-deposit-amount"
+            />
+            {errors.depositAmount && <span className="text-xs text-destructive">{errors.depositAmount.message}</span>}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end pt-4">

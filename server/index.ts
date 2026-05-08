@@ -265,6 +265,14 @@ app.use((req, res, next) => {
   const { startTrialExpirationScheduler } = await import("./services/trial-expiration");
   startTrialExpirationScheduler();
 
+  // Start birthday & anniversary message scheduler (checks hourly, sends at 9am)
+  const { startBirthdayScheduler } = await import("./birthday-scheduler");
+  startBirthdayScheduler();
+
+  // Start lapsed client re-engagement scheduler (checks hourly, sends at 10am)
+  const { startLapsedClientScheduler } = await import("./lapsed-client-scheduler");
+  startLapsedClientScheduler();
+
   // SEO static HTML pages — must run BEFORE Vite/SSR so HTML files win over React rendering.
   app.use(seoPageMiddleware);
 

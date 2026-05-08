@@ -843,9 +843,17 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
                   With {selectedSlot?.staffName}
                 </p>
                 {showPrices && (
-                  <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                  <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
+                    <div className="flex justify-between font-semibold">
+                      <span>Total</span>
+                      <span>${totalPrice.toFixed(2)}</span>
+                    </div>
+                    {primaryService?.depositRequired && primaryService?.depositAmount && (
+                      <div className="flex justify-between text-sm text-amber-700 bg-amber-50 -mx-4 px-4 py-2 rounded mt-2">
+                        <span>Deposit required today</span>
+                        <span className="font-semibold">${Number(primaryService.depositAmount).toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

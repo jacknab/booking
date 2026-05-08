@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { formatInTz } from "@/lib/timezone";
-import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy } from "lucide-react";
+import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Customer, AppointmentWithDetails, Review } from "@shared/schema";
 
@@ -365,6 +365,12 @@ export default function ClientProfile() {
             <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
               <Mail className="w-3.5 h-3.5" />
               <span className="truncate max-w-[200px]" data-testid="client-email">{client.email}</span>
+            </div>
+          )}
+          {(client as any).allergies && (
+            <div className="mt-3 w-full flex items-start gap-1.5 rounded-md border border-orange-300 bg-orange-50 dark:bg-orange-950/30 dark:border-orange-800 px-3 py-2 text-xs font-medium text-orange-700 dark:text-orange-400 text-left" data-testid="allergy-alert-banner">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span><span className="font-bold">Allergy alert:</span> {(client as any).allergies}</span>
             </div>
           )}
           <div className="flex items-center gap-2 mt-4">

@@ -31,6 +31,7 @@ export const clients = pgTable(
     fullName: text("full_name").notNull().default(""),
     preferredName: text("preferred_name"),
     dateOfBirth: text("date_of_birth"),
+    allergies: text("allergies"),
     gender: text("gender"),
     preferredStaffId: integer("preferred_staff_id").references(() => _staff.id),
     clientStatus: text("client_status").notNull().default("active"),

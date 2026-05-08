@@ -24,6 +24,8 @@ export interface ServiceData {
   price: string;
   category: string;
   categoryId?: number;
+  depositRequired?: boolean;
+  depositAmount?: string | null;
 }
 
 export interface CategoryData {

@@ -159,6 +159,7 @@ router.post("/", isAuthenticated, async (req, res) => {
       lastName = "",
       preferredName,
       dateOfBirth,
+      allergies,
       gender,
       email,
       phone,
@@ -178,7 +179,7 @@ router.post("/", isAuthenticated, async (req, res) => {
 
     const [client] = await db
       .insert(clients)
-      .values({ storeId, firstName, lastName, fullName, preferredName, dateOfBirth, gender, source })
+      .values({ storeId, firstName, lastName, fullName, preferredName, dateOfBirth, allergies: allergies || null, gender, source })
       .returning();
 
     if (email) {
@@ -280,7 +281,7 @@ router.get("/:id", isAuthenticated, async (req, res) => {
 router.patch("/:id", isAuthenticated, async (req, res) => {
   try {
     const clientId = Number(req.params.id);
-    const { firstName, lastName, preferredName, dateOfBirth, gender, clientStatus, preferredStaffId, source, referralSource, avatarUrl } = req.body;
+    const { firstName, lastName, preferredName, dateOfBirth, allergies, gender, clientStatus, preferredStaffId, source, referralSource, avatarUrl } = req.body;
 
     const newFirst = firstName ?? undefined;
     const newLast = lastName ?? undefined;
@@ -293,6 +294,7 @@ router.patch("/:id", isAuthenticated, async (req, res) => {
     }
     if (preferredName !== undefined) updates.preferredName = preferredName;
     if (dateOfBirth !== undefined) updates.dateOfBirth = dateOfBirth;
+    if (allergies !== undefined) updates.allergies = allergies || null;
     if (gender !== undefined) updates.gender = gender;
     if (clientStatus !== undefined) updates.clientStatus = clientStatus;
     if (preferredStaffId !== undefined) updates.preferredStaffId = preferredStaffId;
