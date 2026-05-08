@@ -36,6 +36,61 @@ $barb_count  = count(array_filter($all_templates, fn($t) => $t['category'] === '
 $nail_count  = count(array_filter($all_templates, fn($t) => $t['category'] === 'Nail Salon'));
 $total_count = count($all_templates);
 $thumbs_dir  = __DIR__ . '/assets/img/thumbs';
+
+// ── Auto-cleanup scraped-tmp/ (runs silently at most once per hour) ────────────
+$_sc_tmp_base    = __DIR__ . '/scraped-tmp';
+$_sc_flag        = $_sc_tmp_base . '/.last-cleanup';
+$_sc_last_run    = file_exists($_sc_flag) ? (int) strtotime(trim(file_get_contents($_sc_flag))) : 0;
+if (is_dir($_sc_tmp_base) && (time() - $_sc_last_run) > 3600) {
+    foreach (scandir($_sc_tmp_base) as $_sc_entry) {
+        if ($_sc_entry === '.' || $_sc_entry === '..' || str_starts_with($_sc_entry, '.')) continue;
+        $_sc_path = $_sc_tmp_base . '/' . $_sc_entry;
+        if (!is_dir($_sc_path)) continue;
+        $_sc_age  = time() - (int) filemtime($_sc_path);
+        $_sc_mf   = $_sc_path . '/meta.json';
+        if (file_exists($_sc_mf)) {
+            $_sc_meta = @json_decode(file_get_contents($_sc_mf), true);
+            if (!empty($_sc_meta['scraped_at'])) {
+                $_sc_ts = strtotime($_sc_meta['scraped_at']);
+                if ($_sc_ts) $_sc_age = time() - $_sc_ts;
+            }
+        }
+        if ($_sc_age >= 86400) {
+            try {
+                $_sc_iter = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($_sc_path, FilesystemIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::CHILD_FIRST
+                );
+                foreach ($_sc_iter as $_sc_f) {
+                    $_sc_f->isDir() ? @rmdir($_sc_f->getPathname()) : @unlink($_sc_f->getPathname());
+                }
+            } catch (Exception $_e) {}
+            @rmdir($_sc_path);
+        }
+    }
+    @file_put_contents($_sc_flag, date('c'));
+}
+unset($_sc_tmp_base, $_sc_flag, $_sc_last_run, $_sc_entry, $_sc_path, $_sc_age, $_sc_mf, $_sc_meta, $_sc_ts, $_sc_iter, $_sc_f, $_e);
+
+// Count remaining active tmp sessions (for UI display)
+$_tmp_dir      = __DIR__ . '/scraped-tmp';
+$_tmp_sessions = 0;
+$_tmp_bytes    = 0;
+if (is_dir($_tmp_dir)) {
+    foreach (scandir($_tmp_dir) as $_te) {
+        if ($_te === '.' || $_te === '..' || str_starts_with($_te, '.')) continue;
+        if (is_dir($_tmp_dir . '/' . $_te)) {
+            $_tmp_sessions++;
+            try {
+                $_tdi = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($_tmp_dir . '/' . $_te, FilesystemIterator::SKIP_DOTS)
+                );
+                foreach ($_tdi as $_tf) if ($_tf->isFile()) $_tmp_bytes += $_tf->getSize();
+            } catch (Exception $_e2) {}
+        }
+    }
+}
+unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -526,7 +581,21 @@ $thumbs_dir  = __DIR__ . '/assets/img/thumbs';
     <div class="admin-card" id="scraper">
         <div class="admin-card__header">
             <span class="admin-card__title">🌐 Import from URL</span>
-            <span style="font-size:0.78rem;color:rgba(255,255,255,0.3);">Scrape any live website and save it as a Launchit template</span>
+            <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+                <?php if ($_tmp_sessions > 0): ?>
+                <span class="scraper-tmp-pill" id="scraperTmpPill">
+                    🗂️ <?php echo $_tmp_sessions; ?> tmp session<?php echo $_tmp_sessions !== 1 ? 's' : ''; ?>
+                    &nbsp;·&nbsp; <?php echo round($_tmp_bytes / 1024); ?> KB
+                </span>
+                <button class="btn-admin btn-admin--ghost btn-admin--sm" id="cleanTmpBtn" onclick="runCleanup()">
+                    🗑️ Clean Now
+                </button>
+                <?php else: ?>
+                <span class="scraper-tmp-pill scraper-tmp-pill--empty" id="scraperTmpPill">
+                    ✓ Tmp clean
+                </span>
+                <?php endif; ?>
+            </div>
         </div>
         <div class="admin-card__body">
 
@@ -1207,6 +1276,51 @@ document.querySelectorAll('.tpl-name-input').forEach(input => {
         }
     });
 });
+
+// ── Scraper cleanup ───────────────────────────────────────────────────────────
+
+async function runCleanup(maxAge = 86400) {
+    const btn      = document.getElementById('cleanTmpBtn');
+    const pill     = document.getElementById('scraperTmpPill');
+    const origText = btn ? btn.textContent.trim() : '';
+
+    if (btn) { btn.innerHTML = '<span class="spinner"></span> Cleaning…'; btn.disabled = true; }
+
+    try {
+        const fd = new FormData();
+        fd.append('max_age', maxAge);
+        const res  = await fetch('<?php echo BASE_PATH; ?>/admin-scraper-cleanup.php', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.success) {
+            const freed = data.freed_kb > 1024
+                ? (data.freed_kb / 1024).toFixed(1) + ' MB'
+                : data.freed_kb + ' KB';
+            const msg = data.deleted > 0
+                ? `Cleanup complete — ${data.deleted} session${data.deleted !== 1 ? 's' : ''} removed, ${freed} freed.`
+                    + (data.kept > 0 ? ` ${data.kept} still active.` : ' Tmp folder is now empty.')
+                : 'Nothing to clean — all sessions are still fresh.';
+            showFlash('success', msg);
+
+            if (pill) {
+                if (data.kept === 0) {
+                    pill.className = 'scraper-tmp-pill scraper-tmp-pill--empty';
+                    pill.textContent = '✓ Tmp clean';
+                    if (btn) btn.remove();
+                } else {
+                    pill.textContent = `🗂️ ${data.kept} tmp session${data.kept !== 1 ? 's' : ''}`;
+                    if (btn) { btn.textContent = '🗑️ Clean Now'; btn.disabled = false; }
+                }
+            }
+        } else {
+            showFlash('error', 'Cleanup failed: ' + (data.error || 'Unknown error'));
+            if (btn) { btn.textContent = origText; btn.disabled = false; }
+        }
+    } catch (err) {
+        showFlash('error', 'Cleanup request failed: ' + err.message);
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+    }
+}
 
 // ── Re-scrape button ─────────────────────────────────────────────────────────
 

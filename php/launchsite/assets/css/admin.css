@@ -948,6 +948,25 @@ body.admin-body {
 }
 .scraper-accept-bar__icon { font-size: 1rem; flex-shrink: 0; }
 
+/* ── Scraper tmp session pill ── */
+.scraper-tmp-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(251,146,60,0.12);
+    border: 1px solid rgba(251,146,60,0.28);
+    color: #fb923c;
+    white-space: nowrap;
+}
+.scraper-tmp-pill--empty {
+    background: rgba(52,211,153,0.08);
+    border-color: rgba(52,211,153,0.2);
+    color: rgba(52,211,153,0.65);
+}
+
 /* ── Re-scrape table button ── */
 .tbl-link--rescrape {
     background: none;
