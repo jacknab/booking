@@ -1,9 +1,15 @@
 <?php
 $page_title = 'Barbershop Templates';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/categories.php';
 
-require_once __DIR__ . '/data/templates.php';
-$templates = array_values(array_filter($all_templates, fn($t) => $t['category'] === 'Barbershop'));
+$my_key    = 'Barbershop';
+$templates = array_values(array_filter($all_templates, fn($t) => $t['category'] === $my_key));
+
+if (empty($templates)) {
+    header('Location: ' . BASE_PATH . '/');
+    exit;
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -19,15 +25,15 @@ require_once __DIR__ . '/includes/header.php';
 <nav class="category-nav">
     <div class="category-nav-inner">
         <a href="<?php echo BASE_PATH; ?>/" class="category-tab">All Templates</a>
-        <a href="<?php echo BASE_PATH; ?>/hair-salons.php" class="category-tab">
-            <span class="tab-icon">💇‍♀️</span> Hair Salons
+        <?php foreach ($active_categories as $cat): ?>
+        <a href="<?php echo BASE_PATH; ?>/<?php echo $cat['page']; ?>" class="category-tab<?php echo $cat['key'] === $my_key ? ' is-active' : ''; ?>">
+            <span class="tab-icon"><?php echo $cat['emoji']; ?></span>
+            <?php echo htmlspecialchars($cat['label']); ?>
+            <?php if ($cat['key'] === $my_key): ?>
+            <span class="tab-count"><?php echo $cat['count']; ?></span>
+            <?php endif; ?>
         </a>
-        <a href="<?php echo BASE_PATH; ?>/barbershops.php" class="category-tab is-active">
-            <span class="tab-icon">✂️</span> Barbershops <span class="tab-count"><?php echo count($templates); ?></span>
-        </a>
-        <a href="<?php echo BASE_PATH; ?>/nail-salons.php" class="category-tab">
-            <span class="tab-icon">💅</span> Nail Salons
-        </a>
+        <?php endforeach; ?>
     </div>
 </nav>
 
@@ -35,7 +41,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="container">
         <div class="catalog-header">
             <h2>Barbershop Templates</h2>
-            <span class="catalog-meta"><?php echo count($templates); ?> designs available</span>
+            <span class="catalog-meta"><?php echo count($templates); ?> design<?php echo count($templates) !== 1 ? 's' : ''; ?> available</span>
         </div>
         <div class="template-grid">
             <?php foreach ($templates as $index => $t): ?>

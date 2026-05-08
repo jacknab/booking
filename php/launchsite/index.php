@@ -1,7 +1,10 @@
 <?php
 $page_title = 'Template Designs';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/categories.php';
 require_once __DIR__ . '/includes/header.php';
+
+$total = array_sum(array_column($active_categories, 'count'));
 ?>
 
 <!-- HERO -->
@@ -19,7 +22,7 @@ require_once __DIR__ . '/includes/header.php';
             <a href="https://certxa.com/launchit" class="btn btn--ghost btn--lg">How It Works</a>
         </div>
         <p class="hero-stat">
-            <span>39+ designs available</span> — new sites added every month
+            <span><?php echo $total; ?>+ designs available</span> — new sites added every month
         </p>
     </div>
 </section>
@@ -49,61 +52,24 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <div class="categories-grid">
-
-            <!-- Hair Salons -->
-            <a href="<?php echo BASE_PATH; ?>/hair-salons.php" class="category-card">
+            <?php foreach ($active_categories as $cat): ?>
+            <a href="<?php echo BASE_PATH; ?>/<?php echo $cat['page']; ?>" class="category-card">
                 <div class="category-card__image">
-                    💇‍♀️
+                    <?php echo $cat['emoji']; ?>
                 </div>
                 <div class="category-card__body">
-                    <div class="category-card__label">Hair Salons</div>
-                    <h2 class="category-card__title">Hair Salons</h2>
-                    <p class="category-card__desc">
-                        Elegant, professional websites for hair salons — showcasing services, stylists, and online booking in a stunning layout.
-                    </p>
+                    <div class="category-card__label"><?php echo htmlspecialchars($cat['label']); ?></div>
+                    <h2 class="category-card__title"><?php echo htmlspecialchars($cat['label']); ?></h2>
+                    <p class="category-card__desc"><?php echo htmlspecialchars($cat['desc']); ?></p>
                     <div class="category-card__footer">
-                        <span class="category-card__count">12 designs available</span>
+                        <span class="category-card__count">
+                            <?php echo $cat['count']; ?> design<?php echo $cat['count'] !== 1 ? 's' : ''; ?> available
+                        </span>
                         <div class="category-card__arrow">→</div>
                     </div>
                 </div>
             </a>
-
-            <!-- Barbershops -->
-            <a href="<?php echo BASE_PATH; ?>/barbershops.php" class="category-card">
-                <div class="category-card__image">
-                    ✂️
-                </div>
-                <div class="category-card__body">
-                    <div class="category-card__label">Barbershops</div>
-                    <h2 class="category-card__title">Barbershops</h2>
-                    <p class="category-card__desc">
-                        Bold, sharp websites for modern barbershops. From classic heritage to street-culture — find a look that fits your shop.
-                    </p>
-                    <div class="category-card__footer">
-                        <span class="category-card__count">10 designs available</span>
-                        <div class="category-card__arrow">→</div>
-                    </div>
-                </div>
-            </a>
-
-            <!-- Nail Salons -->
-            <a href="<?php echo BASE_PATH; ?>/nail-salons.php" class="category-card">
-                <div class="category-card__image">
-                    💅
-                </div>
-                <div class="category-card__body">
-                    <div class="category-card__label">Nail Salons</div>
-                    <h2 class="category-card__title">Nail Salons</h2>
-                    <p class="category-card__desc">
-                        Chic, vibrant websites for nail salons and nail artists — portfolio, services, and online booking beautifully presented.
-                    </p>
-                    <div class="category-card__footer">
-                        <span class="category-card__count">9 designs available</span>
-                        <div class="category-card__arrow">→</div>
-                    </div>
-                </div>
-            </a>
-
+            <?php endforeach; ?>
         </div>
     </div>
 </section>
