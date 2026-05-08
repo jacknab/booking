@@ -8,13 +8,16 @@ $total = array_sum(array_column($active_categories, 'count'));
 
 // Build template JSON for client-side search
 $tpl_json = json_encode(array_values(array_map(fn($t) => [
-    'id'       => $t['id'],
-    'name'     => $t['name'],
-    'category' => $t['category'],
-    'style'    => $t['style'] ?? '',
-    'desc'     => $t['desc'] ?? '',
-    'badge'    => $t['badge'] ?? '',
-    'tagline'  => $t['hero_tagline'] ?? '',
+    'id'           => $t['id'],
+    'name'         => $t['name'],
+    'category'     => $t['category'],
+    'style'        => $t['style'] ?? '',
+    'desc'         => $t['desc'] ?? '',
+    'badge'        => $t['badge'] ?? '',
+    'tagline'      => $t['hero_tagline'] ?? '',
+    'type'         => $t['type'] ?? 'php',
+    'react_path'   => $t['react_path'] ?? '',
+    'scraped_path' => $t['scraped_path'] ?? '',
 ], $all_templates)), JSON_UNESCAPED_UNICODE);
 
 // Collect distinct styles for chips, sorted by frequency
@@ -98,7 +101,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
 </div>
 
 <!-- SEARCH & FILTER -->
-<section class="search-section" id="search">
+<section class="search-section" id="search" hidden>
     <div class="container">
         <div class="search-wrap">
             <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -124,7 +127,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
     </div>
 </section>
 
-<!-- SEARCH RESULTS (shown while filtering) -->
+<!-- SEARCH RESULTS (shown after category is picked or while filtering) -->
 <section class="search-results-section" id="search-results" hidden>
     <div class="container">
         <div class="results-header">
@@ -143,7 +146,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
      POPULAR & NEW SHELVES
      (hidden while search/filter is active)
      ═══════════════════════════════════════════════ -->
-<div id="shelves">
+<div id="shelves" hidden>
 
     <?php if (!empty($popular_templates)): ?>
     <!-- ── Popular this week ── -->
@@ -165,11 +168,16 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                     $preview_url = BASE_PATH . '/preview.php?id=' . urlencode($t['id']);
                     $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
                 ?>
+                <?php
+                    $iframe_src = isset($t['type']) && $t['type'] === 'react'
+                        ? htmlspecialchars($t['react_path'] ?? '')
+                        : BASE_PATH . '/preview-render.php?id=' . urlencode($t['id']);
+                ?>
                 <div class="template-card" style="transition-delay:<?php echo $index * 60; ?>ms">
-                    <a href="<?php echo $preview_url; ?>" class="template-card__thumb-link tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">
+                    <a href="<?php echo $preview_url; ?>" class="template-card__thumb-link tpl-preview-trigger" data-preview-url="<?php echo $iframe_src; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">
                         <div class="template-card__thumb">
                             <span class="template-card__badge badge--popular">Popular</span>
-                            <img src="<?php echo $thumb; ?>" alt="<?php echo htmlspecialchars($t['name']); ?>" class="template-card__img" loading="lazy">
+                            <div class="tpl-thumb-frame-wrap"><iframe class="tpl-thumb-frame" src="<?php echo $iframe_src; ?>" scrolling="no" tabindex="-1" loading="lazy" aria-hidden="true"></iframe></div>
                             <div class="result-cat-tag"><?php echo htmlspecialchars($t['category']); ?></div>
                         </div>
                     </a>
@@ -177,7 +185,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                         <div class="result-meta"><span class="result-style-tag"><?php echo htmlspecialchars($t['style']); ?></span></div>
                         <h3 class="template-card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
                         <div class="template-card__actions">
-                            <button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">Preview</button>
+                            <button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="<?php echo $iframe_src; ?>" data-full-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">Preview</button>
                             <a href="<?php echo $start_url; ?>"   class="tc-btn tc-btn--start">Start</a>
                         </div>
                     </div>
@@ -212,11 +220,16 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                     $preview_url = BASE_PATH . '/preview.php?id=' . urlencode($t['id']);
                     $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
                 ?>
+                <?php
+                    $shelf_iframe_src = isset($t['type']) && $t['type'] === 'react'
+                        ? htmlspecialchars($t['react_path'] ?? '')
+                        : BASE_PATH . '/preview-render.php?id=' . urlencode($t['id']);
+                ?>
                 <div class="shelf-card" style="transition-delay:<?php echo $index * 40; ?>ms">
-                    <a href="<?php echo $preview_url; ?>" class="shelf-card__thumb-link tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">
+                    <a href="<?php echo $preview_url; ?>" class="shelf-card__thumb-link tpl-preview-trigger" data-preview-url="<?php echo $shelf_iframe_src; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">
                         <div class="shelf-card__thumb">
                             <span class="shelf-card__badge">New</span>
-                            <img src="<?php echo $thumb; ?>" alt="<?php echo htmlspecialchars($t['name']); ?>" class="shelf-card__img" loading="lazy">
+                            <div class="tpl-thumb-frame-wrap"><iframe class="tpl-thumb-frame tpl-thumb-frame--sm" src="<?php echo $shelf_iframe_src; ?>" scrolling="no" tabindex="-1" loading="lazy" aria-hidden="true"></iframe></div>
                             <div class="shelf-card__cat"><?php echo htmlspecialchars($t['category']); ?></div>
                         </div>
                     </a>
@@ -224,7 +237,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                         <span class="shelf-card__style"><?php echo htmlspecialchars($t['style']); ?></span>
                         <h3 class="shelf-card__name"><?php echo htmlspecialchars($t['name']); ?></h3>
                         <div class="shelf-card__actions">
-                            <button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">Preview</button>
+                            <button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="<?php echo $shelf_iframe_src; ?>" data-full-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">Preview</button>
                             <a href="<?php echo $start_url; ?>"   class="tc-btn tc-btn--start">Start</a>
                         </div>
                     </div>
@@ -238,7 +251,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
 </div><!-- /#shelves -->
 
 <!-- CATEGORY CARDS (hidden while searching) -->
-<section class="categories-section" id="categories">
+<section class="categories-section" id="categories" hidden>
     <div class="container">
         <div class="section-header">
             <div class="section-label">✦ Browse by Business Type</div>
@@ -341,30 +354,29 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
     var TEMPLATES = <?php echo $tpl_json; ?>;
     var BASE = '<?php echo BASE_PATH; ?>';
 
-    var searchInput   = document.getElementById('tpl-search');
-    var searchClear   = document.getElementById('search-clear');
-    var chipsEl       = document.getElementById('filter-chips');
-    var resultsSection= document.getElementById('search-results');
-    var shelvesEl     = document.getElementById('shelves');
-    var categoriesSec = document.getElementById('categories');
-    var resultsGrid   = document.getElementById('results-grid');
-    var resultsCount  = document.getElementById('results-count');
-    var resultsEmpty  = document.getElementById('results-empty');
-    var resultsClear  = document.getElementById('results-clear');
-    var emptyClear    = document.getElementById('results-empty-clear');
+    var searchInput    = document.getElementById('tpl-search');
+    var searchClear    = document.getElementById('search-clear');
+    var chipsEl        = document.getElementById('filter-chips');
+    var searchSection  = document.getElementById('search');
+    var resultsSection = document.getElementById('search-results');
+    var resultsGrid    = document.getElementById('results-grid');
+    var resultsCount   = document.getElementById('results-count');
+    var resultsEmpty   = document.getElementById('results-empty');
+    var resultsClear   = document.getElementById('results-clear');
+    var emptyClear     = document.getElementById('results-empty-clear');
 
-    var activeStyle = 'all';
-    var searchQuery = '';
+    /* Active state — null means no category chosen yet (landing state) */
+    var activeCategory = null;
+    var activeStyle    = 'all';
+    var searchQuery    = '';
 
+    /* ── Helpers ── */
     function normalize(s) { return (s || '').toLowerCase(); }
 
-    function matchesTemplate(t, q, style) {
-        if (style !== 'all') {
-            if (!normalize(t.style).includes(normalize(style))) return false;
-        }
-        if (!q) return true;
-        var hay = [t.name, t.category, t.style, t.desc, t.tagline].join(' ');
-        return normalize(hay).includes(q);
+    function thumbSrc(t) {
+        if (t.type === 'react' && t.react_path)     return t.react_path;
+        if (t.type === 'scraped' && t.scraped_path) return BASE + t.scraped_path;
+        return BASE + '/preview-render.php?id=' + encodeURIComponent(t.id);
     }
 
     function badgeHtml(badge) {
@@ -374,48 +386,32 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
     }
 
     function cardHtml(t, idx) {
-        var img = BASE + '/assets/img/thumbs/' + encodeURIComponent(t.id) + '.jpg';
-        var previewUrl = BASE + '/preview.php?id=' + encodeURIComponent(t.id);
+        var src        = thumbSrc(t);
+        var fullPageUrl = BASE + '/preview.php?id=' + encodeURIComponent(t.id);
+        var esc        = t.name.replace(/"/g, '&quot;');
         return '<div class="template-card" style="transition-delay:' + (idx * 45) + 'ms">'
-            + '<a href="' + previewUrl + '" class="template-card__thumb-link tpl-preview-trigger" data-preview-url="' + previewUrl + '" data-template-name="' + t.name + '">'
+            + '<a href="' + fullPageUrl + '" class="template-card__thumb-link tpl-preview-trigger"'
+            + ' data-preview-url="' + src + '" data-full-url="' + fullPageUrl + '" data-template-name="' + esc + '">'
             + '<div class="template-card__thumb">'
             + badgeHtml(t.badge)
-            + '<img src="' + img + '" alt="' + t.name + '" class="template-card__img" loading="lazy">'
+            + '<div class="tpl-thumb-frame-wrap"><iframe class="tpl-thumb-frame" src="' + src + '"'
+            + ' scrolling="no" tabindex="-1" loading="lazy" aria-hidden="true"></iframe></div>'
             + '<div class="result-cat-tag">' + t.category + '</div>'
             + '</div></a>'
             + '<div class="template-card__body">'
             + '<div class="result-meta"><span class="result-style-tag">' + t.style + '</span></div>'
             + '<h3 class="template-card__title">' + t.name + '</h3>'
             + '<div class="template-card__actions">'
-            + '<button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="' + previewUrl + '" data-template-name="' + t.name + '">Preview</button>'
+            + '<button class="tc-btn tc-btn--preview tpl-preview-trigger"'
+            + ' data-preview-url="' + src + '" data-full-url="' + fullPageUrl + '" data-template-name="' + esc + '">Preview</button>'
             + '<a href="' + BASE + '/select.php?id=' + encodeURIComponent(t.id) + '" class="tc-btn tc-btn--start">Start</a>'
             + '</div></div></div>';
     }
 
-    function render() {
-        var q = normalize(searchQuery);
-        var isActive = q.length > 0 || activeStyle !== 'all';
-
-        searchClear.hidden = !isActive;
-
-        if (!isActive) {
-            resultsSection.hidden = true;
-            if (shelvesEl)     shelvesEl.removeAttribute('style');
-            categoriesSec.removeAttribute('style');
-            return;
-        }
-
-        if (shelvesEl)     shelvesEl.style.display = 'none';
-        categoriesSec.style.display = 'none';
-
-        var filtered = TEMPLATES.filter(function (t) {
-            return matchesTemplate(t, q, activeStyle);
-        });
-
+    /* ── Render filtered results into the grid ── */
+    function renderGrid(filtered, countHtml) {
         var n = filtered.length;
-        var styleLabel = activeStyle !== 'all' ? ' in <strong>' + activeStyle + '</strong>' : '';
-        resultsCount.innerHTML = '<strong>' + n + '</strong> design' + (n !== 1 ? 's' : '') + ' found' + styleLabel;
-
+        resultsCount.innerHTML = countHtml || ('<strong>' + n + '</strong> design' + (n !== 1 ? 's' : '') + ' found');
         if (n === 0) {
             resultsGrid.innerHTML = '';
             resultsEmpty.hidden = false;
@@ -428,29 +424,75 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                 });
             });
         }
-
+        searchSection.removeAttribute('hidden');
         resultsSection.hidden = false;
     }
 
-    searchInput.addEventListener('input', function () {
-        searchQuery = this.value.trim();
-        render();
+    /* ── Apply current filters (search query + style chip) within active category ── */
+    function applyFilters() {
+        var q = normalize(searchQuery);
+        var base = activeCategory && activeCategory !== 'all'
+            ? TEMPLATES.filter(function (t) { return t.category === activeCategory; })
+            : TEMPLATES;
+
+        var filtered = base.filter(function (t) {
+            if (activeStyle !== 'all' && normalize(t.style) !== normalize(activeStyle)) return false;
+            if (!q) return true;
+            var hay = [t.name, t.category, t.style, t.desc, t.tagline].join(' ');
+            return normalize(hay).includes(q);
+        });
+
+        var styleLabel = activeStyle !== 'all' ? ' in <strong>' + activeStyle + '</strong>' : '';
+        var catLabel   = activeCategory && activeCategory !== 'all'
+            ? ' for <strong>' + activeCategory + 's</strong>' : '';
+        var countHtml  = '<strong>' + filtered.length + '</strong> design'
+            + (filtered.length !== 1 ? 's' : '') + ' found' + catLabel + styleLabel;
+
+        searchClear.hidden = !(q || activeStyle !== 'all');
+        renderGrid(filtered, countHtml);
+    }
+
+    /* ── Business-type picker ── */
+    var pickerCards = document.querySelectorAll('.bizpicker-card');
+    pickerCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+            activeCategory = card.dataset.category;
+            pickerCards.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+            card.setAttribute('aria-pressed', 'true');
+
+            /* Reset search/style when switching category */
+            searchQuery    = '';
+            searchInput.value = '';
+            activeStyle    = 'all';
+            chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
+                c.classList.toggle('is-active', c.dataset.style === 'all');
+            });
+
+            var label = activeCategory !== 'all'
+                ? '<strong>' + TEMPLATES.filter(function(t){return t.category===activeCategory;}).length + '</strong> design'
+                    + (TEMPLATES.filter(function(t){return t.category===activeCategory;}).length !== 1 ? 's' : '')
+                    + ' for <strong>' + activeCategory + 's</strong>'
+                : '<strong>' + TEMPLATES.length + '</strong> designs';
+
+            renderGrid(
+                activeCategory === 'all'
+                    ? TEMPLATES
+                    : TEMPLATES.filter(function (t) { return t.category === activeCategory; }),
+                label
+            );
+
+            searchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
     });
 
-    function clearSearch() {
-        searchInput.value = '';
-        searchQuery = '';
-        activeStyle = 'all';
-        chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
-            c.classList.toggle('is-active', c.dataset.style === 'all');
-        });
-        render();
-        searchInput.focus();
-    }
-    searchClear.addEventListener('click', clearSearch);
-    resultsClear.addEventListener('click', clearSearch);
-    emptyClear.addEventListener('click', clearSearch);
+    /* ── Search input ── */
+    searchInput.addEventListener('input', function () {
+        searchQuery = this.value.trim();
+        if (activeCategory === null) return; /* no category chosen yet — ignore */
+        applyFilters();
+    });
 
+    /* ── Style chips ── */
     chipsEl.addEventListener('click', function (e) {
         var chip = e.target.closest('.filter-chip');
         if (!chip) return;
@@ -458,95 +500,43 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
         chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
             c.classList.toggle('is-active', c === chip);
         });
-        render();
+        if (activeCategory !== null) applyFilters();
     });
 
-    /* ── Animate shelf cards on scroll ── */
-    var shelfObserver = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-                shelfObserver.unobserve(entry.target);
-            }
+    /* ── Clear search (stays within current category) ── */
+    function clearSearch() {
+        searchInput.value = '';
+        searchQuery = '';
+        activeStyle = 'all';
+        chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
+            c.classList.toggle('is-active', c.dataset.style === 'all');
         });
-    }, { threshold: 0.06 });
-    document.querySelectorAll('.shelf-card').forEach(function (c) {
-        shelfObserver.observe(c);
-    });
-
-    /* ── Business-type picker ── */
-    var pickerCards = document.querySelectorAll('.bizpicker-card');
-    pickerCards.forEach(function (card) {
-        card.addEventListener('click', function () {
-            var cat = card.dataset.category;
-            pickerCards.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
-            card.setAttribute('aria-pressed', 'true');
-
-            if (cat === 'all') {
-                activeStyle = 'all';
-                searchQuery = '';
-                searchInput.value = '';
-                chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
-                    c.classList.toggle('is-active', c.dataset.style === 'all');
-                });
-                render();
-                document.getElementById('search').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                /* Map category key → filter chip style using template data */
-                /* We filter by category directly in a custom search query */
-                searchQuery = '';
-                searchInput.value = '';
-                activeStyle = 'all';
-                chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
-                    c.classList.toggle('is-active', c.dataset.style === 'all');
-                });
-
-                /* Override render to filter by category */
-                var q = '';
-                var filtered = TEMPLATES.filter(function (t) {
-                    return t.category === cat;
-                });
-                var n = filtered.length;
-                resultsCount.innerHTML = '<strong>' + n + '</strong> design' + (n !== 1 ? 's' : '') + ' for <strong>' + cat + 's</strong>';
-                if (n === 0) {
-                    resultsGrid.innerHTML = '';
-                    resultsEmpty.hidden = false;
-                } else {
-                    resultsEmpty.hidden = true;
-                    resultsGrid.innerHTML = filtered.map(cardHtml).join('');
-                    requestAnimationFrame(function () {
-                        resultsGrid.querySelectorAll('.template-card').forEach(function (c) {
-                            c.classList.add('in-view');
-                        });
-                    });
-                }
-                if (shelvesEl) shelvesEl.style.display = 'none';
-                categoriesSec.style.display = 'none';
-                searchClear.hidden = false;
-                resultsSection.hidden = false;
-                document.getElementById('search').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
-    });
+        if (activeCategory !== null) applyFilters();
+        searchInput.focus();
+    }
+    searchClear.addEventListener('click', clearSearch);
+    resultsClear.addEventListener('click', clearSearch);
+    emptyClear.addEventListener('click', clearSearch);
 
     /* ── Preview Modal ── */
-    var modal        = document.getElementById('tpl-preview-modal');
-    var modalIframe  = document.getElementById('preview-modal-iframe');
-    var modalName    = document.getElementById('preview-modal-name');
-    var modalOpen    = document.getElementById('preview-modal-open');
-    var modalClose   = document.getElementById('preview-modal-close');
-    var modalLoading = document.getElementById('preview-modal-loading');
-    var modalBackdrop= modal.querySelector('.preview-modal__backdrop');
+    var modal         = document.getElementById('tpl-preview-modal');
+    var modalIframe   = document.getElementById('preview-modal-iframe');
+    var modalName     = document.getElementById('preview-modal-name');
+    var modalOpen     = document.getElementById('preview-modal-open');
+    var modalClose    = document.getElementById('preview-modal-close');
+    var modalLoading  = document.getElementById('preview-modal-loading');
+    var modalBackdrop = modal.querySelector('.preview-modal__backdrop');
 
-    function openPreviewModal(url, name) {
+    function openPreviewModal(renderUrl, fullPageUrl, name) {
         modalName.textContent = name;
-        modalOpen.href = url;
+        /* "Open full page" goes to the full preview.php chrome */
+        modalOpen.href = fullPageUrl || renderUrl;
         modalIframe.src = '';
         modalLoading.hidden = false;
         modal.removeAttribute('hidden');
         document.body.style.overflow = 'hidden';
-        /* Small delay so the modal renders before iframe load starts */
-        setTimeout(function () { modalIframe.src = url; }, 80);
+        /* Load the render URL (no outer chrome) directly in the modal iframe */
+        setTimeout(function () { modalIframe.src = renderUrl; }, 80);
     }
 
     function closePreviewModal() {
@@ -566,9 +556,10 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
         var trigger = e.target.closest('.tpl-preview-trigger');
         if (!trigger) return;
         e.preventDefault();
-        var url  = trigger.dataset.previewUrl;
-        var name = trigger.dataset.templateName;
-        if (url) openPreviewModal(url, name || 'Template Preview');
+        var renderUrl   = trigger.dataset.previewUrl;
+        var fullPageUrl = trigger.dataset.fullUrl || renderUrl;
+        var name        = trigger.dataset.templateName;
+        if (renderUrl) openPreviewModal(renderUrl, fullPageUrl, name || 'Template Preview');
     });
 })();
 </script>

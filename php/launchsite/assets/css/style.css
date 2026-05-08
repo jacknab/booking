@@ -421,7 +421,7 @@ body {
     cursor: pointer;
 }
 
-/* ── Thumbnail image ── */
+/* ── Thumbnail image (static fallback) ── */
 .template-card__img {
     width: 100%;
     height: 100%;
@@ -432,6 +432,33 @@ body {
 }
 .template-card:hover .template-card__img {
     transform: scale(1.03);
+}
+
+/* ── Live iframe thumbnail ── */
+.tpl-thumb-frame-wrap {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+.tpl-thumb-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1300px;
+    height: 1100px;
+    border: none;
+    transform: scale(0.29);
+    transform-origin: top left;
+    pointer-events: none;
+    background: #0a0b15;
+    transition: none;
+}
+/* Smaller version for shelf cards */
+.tpl-thumb-frame--sm {
+    width: 1200px;
+    height: 800px;
+    transform: scale(0.22);
 }
 
 .template-card__badge {
