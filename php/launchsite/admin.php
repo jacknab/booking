@@ -192,6 +192,15 @@ $thumbs_dir  = __DIR__ . '/assets/img/thumbs';
                             </form>
                             <?php endif; ?>
                             <?php endif; ?>
+                            <?php if ($type === 'scraped'): ?>
+                            <button class="tbl-link tbl-link--rescrape btn-rescrape"
+                                    data-id="<?php echo htmlspecialchars($id); ?>"
+                                    data-name="<?php echo htmlspecialchars($t['name']); ?>"
+                                    data-src="<?php echo htmlspecialchars($t['source_url'] ?? ''); ?>"
+                                    title="Re-fetch the original URL and refresh all downloaded assets">
+                                Re-scrape
+                            </button>
+                            <?php endif; ?>
                             <form method="POST" action="<?php echo BASE_PATH; ?>/admin-thumb.php" style="display:inline;">
                                 <input type="hidden" name="template_id" value="<?php echo htmlspecialchars($id); ?>">
                                 <button type="submit" class="tbl-link tbl-link--regen">Regen Thumb</button>
@@ -1198,6 +1207,59 @@ document.querySelectorAll('.tpl-name-input').forEach(input => {
         }
     });
 });
+
+// ── Re-scrape button ─────────────────────────────────────────────────────────
+
+document.querySelectorAll('.btn-rescrape').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id   = this.dataset.id;
+        const name = this.dataset.name;
+        const src  = this.dataset.src;
+        const srcDisplay = src ? '\n\nSource: ' + src : '';
+
+        if (!confirm('Re-scrape "' + name + '"?\n\nThis will re-download the original site and replace all stored files. The template ID and catalog entry will not change.' + srcDisplay)) return;
+
+        const origText   = this.textContent.trim();
+        this.innerHTML   = '<span class="spinner"></span> Scraping…';
+        this.disabled    = true;
+
+        try {
+            const fd = new FormData();
+            fd.append('template_id', id);
+            const res  = await fetch('<?php echo BASE_PATH; ?>/admin-rescrape.php', { method: 'POST', body: fd });
+            const data = await res.json();
+
+            if (data.success) {
+                const kb = Math.round((data.total_bytes || 0) / 1024);
+                showFlash('success', '"' + name + '" re-scraped successfully — ' + kb + ' KB downloaded, ' + (data.asset_count || 0) + ' assets.');
+                this.textContent = 'Re-scrape';
+                this.disabled = false;
+            } else {
+                showFlash('error', 'Re-scrape failed: ' + (data.error || 'Unknown error'));
+                this.textContent = origText;
+                this.disabled = false;
+            }
+        } catch (err) {
+            showFlash('error', 'Network error during re-scrape: ' + err.message);
+            this.textContent = origText;
+            this.disabled = false;
+        }
+    });
+});
+
+function showFlash(type, msg) {
+    const existing = document.querySelector('.flash-msg');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.className = 'flash-msg flash-msg--' + type;
+    div.innerHTML = '<span>' + (type === 'success' ? '✅' : '❌') + '</span><span>' + msg + '</span>'
+        + '<button class="flash-msg__close" onclick="this.closest(\'.flash-msg\').remove()">✕</button>';
+    const layout = document.querySelector('.admin-layout');
+    const firstCard = layout ? layout.querySelector('.admin-card') : null;
+    if (firstCard) layout.insertBefore(div, firstCard);
+    else document.body.prepend(div);
+    setTimeout(() => div.remove(), 7000);
+}
 
 // ── Website Scraper ───────────────────────────────────────────────────────────
 

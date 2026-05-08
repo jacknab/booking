@@ -947,3 +947,24 @@ body.admin-body {
     margin-bottom: 4px;
 }
 .scraper-accept-bar__icon { font-size: 1rem; flex-shrink: 0; }
+
+/* ── Re-scrape table button ── */
+.tbl-link--rescrape {
+    background: none;
+    border: 1px solid rgba(20,184,166,0.3);
+    color: #2dd4bf;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    line-height: 1.5;
+}
+.tbl-link--rescrape:hover  { background: rgba(20,184,166,0.1); border-color: rgba(20,184,166,0.6); color: white; }
+.tbl-link--rescrape:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: none;
+}
