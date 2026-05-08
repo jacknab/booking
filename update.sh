@@ -331,19 +331,19 @@ export function serveStatic(app: Express) {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">
     <url>
-        <loc>https://mysalon.me/</loc>
+        <loc>https://certxa.com/</loc>
         <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://mysalon.me/pricing</loc>
+        <loc>https://certxa.com/pricing</loc>
         <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://mysalon.me/auth</loc>
+        <loc>https://certxa.com/auth</loc>
         <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
