@@ -7,6 +7,46 @@ import { users, sessions } from "./models/auth";
 // Re-export users and sessions for use with db schema
 export { users, sessions };
 
+// Re-export client data architecture tables
+export {
+  clients,
+  clientEmails,
+  clientPhones,
+  clientAddresses,
+  clientTags,
+  clientTagRelationships,
+  clientNotes,
+  clientMarketingPreferences,
+  clientCustomFields,
+  clientCustomFieldValues,
+  clientAuditLogs,
+  clientExportJobs,
+  clientImportJobs,
+  insertClientSchema,
+  insertClientEmailSchema,
+  insertClientPhoneSchema,
+  insertClientAddressSchema,
+  insertClientTagSchema,
+  insertClientNoteSchema,
+} from "./schema/clients";
+export type {
+  Client,
+  InsertClient,
+  ClientEmail,
+  ClientPhone,
+  ClientAddress,
+  ClientTag,
+  ClientTagRelationship,
+  ClientNote,
+  ClientMarketingPreferences,
+  ClientCustomField,
+  ClientCustomFieldValue,
+  ClientAuditLog,
+  ClientExportJob,
+  ClientImportJob,
+  ClientWithDetails,
+} from "./schema/clients";
+
 // Re-export billing schema tables so callers can import from @shared/schema
 export {
   billingPlans,

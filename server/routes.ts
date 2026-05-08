@@ -5313,6 +5313,10 @@ If you have any questions, please contact your administrator.
   const { default: trainingRouter } = await import("./routes/training.js");
   app.use("/api/training", trainingRouter);
 
+  // ── Client Data Architecture (normalized CRM + export/import) ───────────────
+  const { default: clientsRouter } = await import("./routes/clients.js");
+  app.use("/api/clients", clientsRouter);
+
   // ── Manage Hub (unified subscriber dashboard) ────────────────────────────────
   const { default: manageRouter } = await import("./routes/manage.js");
   app.use("/api/manage", manageRouter);

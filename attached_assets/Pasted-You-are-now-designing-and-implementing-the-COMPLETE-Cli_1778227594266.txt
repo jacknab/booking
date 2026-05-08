@@ -1,0 +1,492 @@
+You are now designing and implementing the COMPLETE Client Import & Migration System for Certxa SalonOS.
+
+This is NOT a basic CSV uploader.
+
+This is a production-grade onboarding and migration infrastructure designed to:
+- make switching to SalonOS easy
+- reduce onboarding friction
+- increase conversion rates
+- support messy real-world salon data
+- import from competing platforms
+- normalize customer records safely
+- prevent duplicate chaos
+- handle large imports reliably
+
+This feature is CRITICAL for SaaS growth.
+
+Salon owners should feel:
+"We can move our business into SalonOS easily."
+
+====================================================
+PRIMARY OBJECTIVES
+====================================================
+
+Build a polished import system that:
+- imports existing salon client databases
+- supports multiple file formats
+- handles messy data gracefully
+- detects duplicates intelligently
+- previews imports before finalizing
+- normalizes data automatically
+- imports safely without corruption
+- scales to large client lists
+
+====================================================
+SUPPORTED IMPORT TYPES
+====================================================
+
+Support imports from:
+- CSV
+- XLSX
+- exported CRM spreadsheets
+
+Future-ready architecture for:
+- Square Appointments
+- Vagaro
+- GlossGenius
+- Mindbody
+- Fresha
+- Booksy
+- Google Contacts
+- HubSpot
+- Mailchimp
+
+====================================================
+IMPORTANT UX REQUIREMENTS
+====================================================
+
+Import process must feel:
+- simple
+- guided
+- trustworthy
+- safe
+- modern SaaS quality
+
+Avoid:
+- technical confusion
+- giant intimidating forms
+- unclear errors
+- irreversible actions
+
+====================================================
+IMPORT FLOW OVERVIEW
+====================================================
+
+STEP 1:
+Upload file
+
+STEP 2:
+System analyzes file automatically
+
+STEP 3:
+Show detected columns + field mapping
+
+STEP 4:
+Show duplicate detection preview
+
+STEP 5:
+Show import validation summary
+
+STEP 6:
+User confirms import
+
+STEP 7:
+Background import begins
+
+STEP 8:
+Realtime progress updates
+
+STEP 9:
+Import completion summary
+
+====================================================
+FILE UPLOAD REQUIREMENTS
+====================================================
+
+Support:
+- drag-and-drop upload
+- click upload
+- XLSX parsing
+- CSV parsing
+- UTF-8 support
+- large files
+
+Implement:
+- secure upload handling
+- file validation
+- virus-safe handling
+- temporary storage cleanup
+
+====================================================
+SUPPORTED FILE SIZES
+====================================================
+
+Must support:
+- small salons
+- enterprise salon imports
+
+Target:
+- 100,000+ client rows safely
+
+====================================================
+AUTO COLUMN DETECTION
+====================================================
+
+System should intelligently detect fields such as:
+- First Name
+- Last Name
+- Full Name
+- Email
+- Phone Number
+- Birthday
+- Address
+- Notes
+- Tags
+- Preferred Staff
+- Last Visit Date
+- Marketing Consent
+
+Even if column names vary.
+
+Examples:
+"phone"
+"mobile"
+"cell"
+"customer phone"
+
+Should all map intelligently.
+
+====================================================
+FIELD MAPPING UI
+====================================================
+
+Build modern mapping interface.
+
+User should:
+- see uploaded columns
+- map to SalonOS fields
+- ignore unused columns
+- create custom fields
+- preview sample data
+
+====================================================
+AUTO NORMALIZATION
+====================================================
+
+Normalize imported data automatically.
+
+====================================================
+PHONE NORMALIZATION
+====================================================
+
+Convert phone numbers into E.164 format internally.
+
+Examples:
+(720) 243-6886
+7202436886
+720.243.6886
+
+All normalize to:
++17202436886
+
+Store:
+- normalized version internally
+- display version separately
+
+====================================================
+EMAIL NORMALIZATION
+====================================================
+
+Automatically:
+- lowercase emails
+- trim whitespace
+- validate syntax
+- detect invalid emails
+
+====================================================
+DATE NORMALIZATION
+====================================================
+
+Handle:
+- MM/DD/YYYY
+- DD/MM/YYYY
+- ISO formats
+- Excel date formats
+
+Convert internally to:
+ISO timestamps
+
+====================================================
+DUPLICATE DETECTION ENGINE
+====================================================
+
+CRITICAL FEATURE.
+
+Detect possible duplicates using:
+- phone numbers
+- emails
+- name similarity
+- birthday similarity
+
+====================================================
+DUPLICATE HANDLING OPTIONS
+====================================================
+
+Allow users to:
+- skip duplicates
+- merge duplicates
+- overwrite existing records
+- keep both records
+
+====================================================
+MERGE PREVIEW UI
+====================================================
+
+Show:
+- existing client
+- imported client
+- differences highlighted
+- merge decisions
+
+====================================================
+IMPORT VALIDATION
+====================================================
+
+Before importing:
+Show validation summary.
+
+Examples:
+- valid rows
+- invalid rows
+- duplicate rows
+- missing required fields
+- formatting issues
+
+====================================================
+ERROR HANDLING
+====================================================
+
+Import system must NEVER:
+- partially corrupt data
+- crash midway silently
+- create duplicate explosions
+- lock the database
+
+Implement:
+- transactional safety
+- rollback support
+- row-level error handling
+- retry support
+
+====================================================
+BACKGROUND PROCESSING
+====================================================
+
+Imports MUST run in background jobs.
+
+Do NOT process huge imports synchronously.
+
+Implement:
+- job queues
+- chunked processing
+- progress tracking
+- resumable imports
+
+====================================================
+REALTIME IMPORT STATUS
+====================================================
+
+Use WebSockets for:
+- import progress %
+- rows processed
+- duplicates detected
+- completion updates
+- error notifications
+
+====================================================
+IMPORT HISTORY
+====================================================
+
+TABLE: client_import_jobs
+
+Fields:
+- import_job_id
+- salon_id
+- uploaded_by_user_id
+- source_type
+- file_name
+- total_rows
+- imported_rows
+- skipped_rows
+- duplicate_rows
+- failed_rows
+- import_status
+- started_at
+- completed_at
+- created_at
+
+====================================================
+IMPORT AUDIT LOGGING
+====================================================
+
+Track:
+- who imported
+- what file
+- what records changed
+- merge operations
+- overwrite operations
+- failures
+
+====================================================
+ABUSE / SAFETY PROTECTION
+====================================================
+
+Prevent:
+- duplicate spam imports
+- oversized malicious files
+- import flooding
+- malformed file crashes
+- CSV injection attacks
+- encoding exploits
+
+Sanitize:
+- formulas
+- scripts
+- dangerous payloads
+
+====================================================
+SEARCHABLE IMPORT ERRORS
+====================================================
+
+Generate downloadable error reports.
+
+Include:
+- failed row number
+- reason for failure
+- suggested fix
+
+====================================================
+CUSTOM FIELD IMPORTS
+====================================================
+
+Support importing:
+- custom salon fields
+- consultation fields
+- loyalty identifiers
+- marketing preferences
+
+====================================================
+SMART IMPORT ASSISTANCE
+====================================================
+
+Build intelligent recommendations:
+- likely duplicate suggestions
+- likely phone format fixes
+- likely email fixes
+- likely tag mappings
+
+====================================================
+PERFORMANCE REQUIREMENTS
+====================================================
+
+Large imports must:
+- remain stable
+- avoid memory overload
+- avoid DB lock contention
+- avoid websocket flooding
+
+====================================================
+FRONTEND DESIGN
+====================================================
+
+UI should feel:
+- Stripe-quality onboarding
+- polished
+- modern
+- guided
+- easy for non-technical salon owners
+
+====================================================
+IMPORT COMPLETION SCREEN
+====================================================
+
+After import:
+Show:
+- total imported
+- duplicates merged
+- invalid rows
+- skipped rows
+- downloadable report
+- next recommended actions
+
+====================================================
+FUTURE EXPANSION SUPPORT
+====================================================
+
+Architecture must support future:
+- direct API migrations
+- automated competitor imports
+- one-click CRM migration
+- recurring sync imports
+- AI-assisted cleanup
+- smart deduplication scoring
+
+====================================================
+API REQUIREMENTS
+====================================================
+
+Build APIs for:
+- upload import file
+- analyze import
+- field mapping
+- duplicate preview
+- start import
+- pause import
+- resume import
+- cancel import
+- fetch import status
+- download error reports
+
+====================================================
+DATABASE REQUIREMENTS
+====================================================
+
+Optimize for:
+- bulk inserts
+- chunked writes
+- deduplication queries
+- rollback safety
+- import performance
+
+====================================================
+DELIVERABLES
+====================================================
+
+Build:
+- import engine
+- file upload system
+- CSV/XLSX parsers
+- normalization engine
+- duplicate detection engine
+- merge tools
+- background queue system
+- websocket progress updates
+- import history dashboard
+- error reporting
+- audit logging
+- frontend import wizard
+- validation systems
+- security protections
+
+====================================================
+FINAL GOAL
+====================================================
+
+Develop a professional-grade client import and migration platform that:
+- makes switching to SalonOS painless
+- handles messy real-world data
+- prevents duplicate chaos
+- scales reliably
+- builds customer trust
+- increases onboarding success
+- feels premium and polished
