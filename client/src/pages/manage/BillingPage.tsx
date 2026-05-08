@@ -399,7 +399,7 @@ export default function BillingPage({ salonId }: { salonId: number }) {
               )}
               <div className="sm:text-right">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Annual estimate</p>
-                <p className="text-zinc-300 text-sm mt-0.5">${currentMonthly * 12}/year</p>
+                <p className="text-zinc-300 text-sm mt-0.5">${currentPlan.price * 12}/year</p>
               </div>
             </div>
           </div>

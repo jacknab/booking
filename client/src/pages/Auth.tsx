@@ -89,7 +89,7 @@ export default function Auth() {
       return navigate("/onboarding");
     }
     if (group === "pro") return navigate("/pro-dashboard");
-    return navigate("/calendar");
+    return navigate("/manage");
   };
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function Auth() {
         else navigate("/onboarding");
       } else {
         if (group === "pro") navigate("/pro-dashboard");
-        else navigate("/calendar");
+        else navigate("/manage");
       }
     }
   }, [isAuthenticated, user, navigate, group, redirectTo]);
