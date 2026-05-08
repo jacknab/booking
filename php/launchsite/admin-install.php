@@ -759,27 +759,60 @@ file_put_contents($templates_file, $tpl_content);
 
 step('✅', "Registered — will appear immediately in the <strong>" . htmlspecialchars($category) . "</strong> catalog page");
 
-// ── 8. Thumbnail ──────────────────────────────────────────────────────────────
-step('🖼️', 'Generating catalog thumbnail…');
+// ── 8. Thumbnail — browser screenshot first, GD fallback ─────────────────────
+step('🖼️', 'Capturing thumbnail (browser screenshot of header + hero)…');
 
-$hero_photo = find_hero_image($built_dir);
-if ($hero_photo) {
-    $thumb_ok = generate_thumbnail_from_photo(
-        $hero_photo, $tid, $meta['business_name'], $meta['accent'],
-        $meta['hero_tagline'], $meta['hero_sub'], $thumbs_dir
-    );
-    if (!$thumb_ok) {
-        // Photo load failed (corrupt image etc.) — fall back to synthetic
+$thumb_ok     = false;
+$thumb_method = '';
+$thumb_path   = $thumbs_dir . '/' . $tid . '.jpg';
+
+// ── 8a. Browser screenshot via headless Chromium ─────────────────────────────
+$node = trim(shell_exec('which node 2>/dev/null') ?: '');
+if (!$node || !file_exists($node)) $node = '/home/runner/.nix-profile/bin/node';
+$screenshot_script = realpath(dirname($workspace_root) . '/scripts/screenshot-template.mjs');
+
+if ($node && file_exists($node) && $screenshot_script && file_exists($screenshot_script)) {
+    $scr_cmd = "timeout 60 env"
+        . " HOME=" . escapeshellarg(getenv('HOME') ?: '/home/runner')
+        . " PATH=" . escapeshellarg(getenv('PATH') ?: '/home/runner/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin')
+        . " " . escapeshellarg($node) . " " . escapeshellarg($screenshot_script)
+        . " --id=" . escapeshellarg($tid)
+        . " --out=" . escapeshellarg($thumb_path)
+        . " 2>&1";
+    $scr_out  = [];
+    $scr_code = 0;
+    exec($scr_cmd, $scr_out, $scr_code);
+    $scr_log = implode("\n", $scr_out);
+
+    if ($scr_code === 0 && file_exists($thumb_path) && filesize($thumb_path) > 5000) {
+        $thumb_ok     = true;
+        $thumb_method = 'browser screenshot';
+    } else {
+        step_log('⚠️', 'Browser screenshot failed — falling back to generated thumbnail…', $scr_log);
+    }
+}
+
+// ── 8b. GD fallback ───────────────────────────────────────────────────────────
+if (!$thumb_ok) {
+    $hero_photo = find_hero_image($built_dir);
+    if ($hero_photo) {
+        $thumb_ok = generate_thumbnail_from_photo(
+            $hero_photo, $tid, $meta['business_name'], $meta['accent'],
+            $meta['hero_tagline'], $meta['hero_sub'], $thumbs_dir
+        );
+        if (!$thumb_ok) {
+            $thumb_ok = generate_thumbnail($tid, $meta['name'], $meta['accent'], $meta['dark'], $meta['light'], $meta['hero_tagline'], $thumbs_dir);
+        }
+    } else {
         $thumb_ok = generate_thumbnail($tid, $meta['name'], $meta['accent'], $meta['dark'], $meta['light'], $meta['hero_tagline'], $thumbs_dir);
     }
-} else {
-    $thumb_ok = generate_thumbnail($tid, $meta['name'], $meta['accent'], $meta['dark'], $meta['light'], $meta['hero_tagline'], $thumbs_dir);
+    if ($thumb_ok) $thumb_method = 'generated (GD)';
 }
 
 if ($thumb_ok) {
-    step('✅', 'Thumbnail generated' . ($hero_photo ? ' (from template hero image)' : ''));
+    step('✅', 'Thumbnail ready (' . $thumb_method . ')');
 } else {
-    step('⚠️', "Thumbnail skipped (GD library unavailable) — add a JPEG manually to <code>assets/img/thumbs/$tid.jpg</code>");
+    step('⚠️', "Thumbnail skipped — add a JPEG manually to <code>assets/img/thumbs/$tid.jpg</code>");
 }
 
 // ── 9. Save hero image to media library ───────────────────────────────────────
