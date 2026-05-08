@@ -4,7 +4,7 @@
  * Shows a specific design with all its theme variations
  */
 
-require_once '../includes/TemplateManager.php';
+require_once __DIR__ . '/../includes/TemplateManager.php';
 
 $manager = getTemplateManager();
 
@@ -47,8 +47,8 @@ if (!$selectedTheme && !empty($themes)) {
 $pageTitle = $design['name'] . ' | LaunchSite Templates';
 $pageDescription = $design['longDescription'] ?? $design['description'];
 
-require '../includes/header.php';
-require '../includes/nav.php';
+require __DIR__ . '/../includes/header.php';
+require __DIR__ . '/../includes/nav.php';
 ?>
 
 <!-- ══════════════ DESIGN HERO ══════════════ -->
@@ -307,4 +307,4 @@ require '../includes/nav.php';
   </div>
 </section>
 
-<?php require '../includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/footer.php'; ?>
