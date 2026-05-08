@@ -1,389 +1,739 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { format, addDays, subDays, startOfDay, endOfDay } from "date-fns";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bell, BarChart2, Users, Menu, Plus, X } from "lucide-react";
+import { usePermissions } from "@/hooks/use-permissions";
+import { useSelectedStore } from "@/hooks/use-store";
+import { useAppointments, useUpdateAppointment } from "@/hooks/use-appointments";
+import { useStaffList } from "@/hooks/use-staff";
+import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
+import { useQueryClient } from "@tanstack/react-query";
+import { MobileCalendarView } from "@/components/MobileCalendarView";
+import { PERMISSIONS } from "@shared/permissions";
+import { getNowInTimezone, toStoreLocal, formatInTz } from "@/lib/timezone";
+import { addDays, subDays, isSameDay } from "date-fns";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  Users,
+  Menu as MenuIcon,
+  LogOut,
+  Phone,
+  Mail,
+  Clock,
+  X,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Play,
+} from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-interface StaffMember {
-  id: number;
-  name: string;
-  color: string;
-  storeId: number;
-  avatarUrl?: string;
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const HOUR_HEIGHT = 180; // must match Calendar.tsx / MobileCalendarView expectations
+
+// ─── useCurrentTimeLine ───────────────────────────────────────────────────────
+
+function useCurrentTimeLine(timezone: string, startHour: number, endHour: number) {
+  const [position, setPosition] = useState<number | null>(null);
+  const [timeLabel, setTimeLabel] = useState("");
+
+  const update = useCallback(() => {
+    const now = getNowInTimezone(timezone);
+    const totalMins = now.getHours() * 60 + now.getMinutes();
+    const startMins = startHour * 60;
+    const endMins = endHour * 60;
+    if (totalMins < startMins || totalMins > endMins) {
+      setPosition(null);
+      setTimeLabel("");
+      return;
+    }
+    setPosition((totalMins - startMins) * (HOUR_HEIGHT / 60));
+    const h = now.getHours();
+    const dh = h > 12 ? h - 12 : h === 0 ? 12 : h;
+    setTimeLabel(`${dh}:${String(now.getMinutes()).padStart(2, "0")}`);
+  }, [timezone, startHour, endHour]);
+
+  useEffect(() => {
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, [update]);
+
+  return { position, timeLabel };
 }
 
-interface AppointmentEntry {
-  id: number;
-  date: string;
-  duration: number;
-  status: string;
-  customer?: { name: string };
-  service?: { name: string };
-  staff?: { name: string; color: string };
-}
+// ─── Status badge config ──────────────────────────────────────────────────────
 
-interface AvailabilityEntry {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-}
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  confirmed: { label: "Confirmed",   color: "text-blue-700",  bg: "bg-blue-50"   },
+  started:   { label: "In Progress", color: "text-amber-700", bg: "bg-amber-50"  },
+  completed: { label: "Completed",   color: "text-green-700", bg: "bg-green-50"  },
+  cancelled: { label: "Cancelled",   color: "text-red-700",   bg: "bg-red-50"    },
+  no_show:   { label: "No Show",     color: "text-gray-600",  bg: "bg-gray-100"  },
+};
 
-const HOUR_HEIGHT = 80;
-const START_HOUR = 7;
-const END_HOUR = 21;
-
-function parseTimeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function getInitial(name: string) {
-  return name?.charAt(0)?.toUpperCase() ?? "S";
-}
-
-function formatHour(hour: number) {
-  if (hour === 12) return "12:00pm";
-  if (hour < 12) return `${hour}:00am`;
-  return `${hour - 12}:00pm`;
-}
+// ─── StaffCalendar ────────────────────────────────────────────────────────────
 
 export default function StaffCalendar() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
+  const { can } = usePermissions();
+  const { selectedStore } = useSelectedStore();
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [activeTab, setActiveTab] = useState<"calendar" | "stats" | "clients" | "menu">("calendar");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate("/staff-auth");
-    }
-  }, [isAuthenticated, authLoading, navigate]);
+  const staffId = user?.staffId as number | undefined;
+  const timezone = selectedStore?.timezone ?? "UTC";
+  const lateGracePeriodMinutes = (selectedStore as any)?.lateGracePeriodMinutes ?? 10;
+  const storeNow = getNowInTimezone(timezone);
 
-  const staffId = user?.staffId;
+  // ── Permissions ────────────────────────────────────────────────────────────
+  const canViewAll     = can(PERMISSIONS.APPOINTMENTS_VIEW_ALL);
+  const canEdit        = can(PERMISSIONS.APPOINTMENTS_EDIT);
+  const canCancel      = can(PERMISSIONS.APPOINTMENTS_CANCEL);
+  const canViewClients = can(PERMISSIONS.CUSTOMERS_VIEW);
+  const canViewContact = can(PERMISSIONS.CUSTOMERS_VIEW_CONTACT);
 
-  const { data: staffMember } = useQuery<StaffMember>({
-    queryKey: ["/api/staff", staffId],
-    queryFn: async () => {
-      const res = await fetch(`/api/staff/${staffId}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch staff");
-      return res.json();
-    },
-    enabled: !!staffId,
-  });
-
-  const { data: availability } = useQuery<AvailabilityEntry[]>({
-    queryKey: ["/api/staff", staffId, "availability"],
-    queryFn: async () => {
-      const res = await fetch(`/api/staff/${staffId}/availability`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: !!staffId,
-  });
-
-  const storeId = staffMember?.storeId;
-
-  const { data: appointments = [] } = useQuery<AppointmentEntry[]>({
-    queryKey: ["/api/appointments", storeId, staffId, format(selectedDate, "yyyy-MM-dd")],
-    queryFn: async () => {
-      const from = startOfDay(selectedDate).toISOString();
-      const to = endOfDay(selectedDate).toISOString();
-      const params = new URLSearchParams({
-        storeId: String(storeId),
-        staffId: String(staffId),
-        from,
-        to,
-      });
-      const res = await fetch(`/api/appointments?${params}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch appointments");
-      return res.json();
-    },
-    enabled: !!storeId && !!staffId,
-  });
-
-  const todayAvailability = availability?.find(
-    (a) => a.dayOfWeek === selectedDate.getDay()
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [currentDate, setCurrentDate]           = useState(storeNow);
+  const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null);
+  const [selectedSlot, setSelectedSlot]         = useState<{ staffId: number; hour: number; minute: number } | null>(null);
+  const [showDatePicker, setShowDatePicker]      = useState(false);
+  const [activeTab, setActiveTab]               = useState<"calendar" | "menu">("calendar");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [selectedStaffId, setSelectedStaffId]   = useState<number | "all">(
+    canViewAll ? "all" : (staffId ?? "all"),
   );
 
-  const workStart = todayAvailability ? parseTimeToMinutes(todayAvailability.startTime) : 9 * 60;
-  const workEnd = todayAvailability ? parseTimeToMinutes(todayAvailability.endTime) : 18 * 60;
-
+  // ── Guards ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollTo = ((workStart / 60) - START_HOUR) * HOUR_HEIGHT - 20;
-      scrollRef.current.scrollTop = Math.max(0, scrollTo);
-    }
-  }, [workStart, staffMember]);
+    if (!authLoading && !user) navigate("/staff-auth", { replace: true });
+  }, [authLoading, user, navigate]);
 
+  // Lock non-viewAll users to their own column even if permissions load late
+  useEffect(() => {
+    if (!canViewAll && staffId) setSelectedStaffId(staffId);
+  }, [canViewAll, staffId]);
+
+  // Reset date when store changes
+  useEffect(() => {
+    setCurrentDate(getNowInTimezone(timezone));
+    setSelectedAppointment(null);
+    setSelectedSlot(null);
+  }, [selectedStore?.id, timezone]);
+
+  // ── Data ───────────────────────────────────────────────────────────────────
+  const { data: appointments = [] }  = useAppointments();
+  const { data: staffList = [] }     = useStaffList();
+  const { data: calSettings }        = useCalendarSettings();
+  const updateAppointment            = useUpdateAppointment();
+
+  const ownStaff = useMemo(
+    () => (staffList as any[]).find((s) => s.id === staffId),
+    [staffList, staffId],
+  );
+
+  // ── Calendar settings ──────────────────────────────────────────────────────
+  const timeSlotInterval       = calSettings?.timeSlotInterval       ?? DEFAULT_CALENDAR_SETTINGS.timeSlotInterval;
+  const showPrices             = calSettings?.showPrices             ?? DEFAULT_CALENDAR_SETTINGS.showPrices;
+  const nonWorkingHoursDisplay = (calSettings as any)?.nonWorkingHoursDisplay ?? DEFAULT_CALENDAR_SETTINGS.nonWorkingHoursDisplay;
+  const startOfWeek            = (calSettings as any)?.startOfWeek   ?? DEFAULT_CALENDAR_SETTINGS.startOfWeek;
+  const settings               = { timeSlotInterval };
+
+  // ── Hour range (expands to fit appointments) ───────────────────────────────
+  const { START_HOUR, END_HOUR } = useMemo(() => {
+    let s = Math.max(0, 9 - nonWorkingHoursDisplay);
+    let e = Math.min(24, 18 + nonWorkingHoursDisplay);
+    for (const apt of appointments as any[]) {
+      const local = toStoreLocal(apt.date, timezone);
+      if (!isSameDay(local, currentDate)) continue;
+      if (!canViewAll && apt.staffId !== staffId) continue;
+      const startMin = local.getHours() * 60 + local.getMinutes();
+      const endMin   = Math.min(24 * 60, startMin + Math.max(Number(apt.duration ?? 0), 15));
+      s = Math.min(s, Math.floor(startMin / 60));
+      e = Math.max(e, Math.ceil(endMin / 60));
+    }
+    return { START_HOUR: Math.max(0, s), END_HOUR: Math.min(24, Math.max(e, s + 1)) };
+  }, [appointments, currentDate, timezone, staffId, canViewAll, nonWorkingHoursDisplay]);
+
+  const TOTAL_HOURS = END_HOUR - START_HOUR;
+  const isToday     = isSameDay(currentDate, storeNow);
+
+  const { position: timeLinePosition, timeLabel: timeLineLabel } =
+    useCurrentTimeLine(timezone, START_HOUR, END_HOUR);
+
+  // ── Filtered staff ─────────────────────────────────────────────────────────
+  const filteredStaff = useMemo(() => {
+    const list = staffList as any[];
+    if (!list.length) return [];
+    if (canViewAll && selectedStaffId === "all") return list;
+    const targetId = canViewAll
+      ? (selectedStaffId === "all" ? null : (selectedStaffId as number))
+      : staffId;
+    if (!targetId) return list;
+    return list.filter((s) => s.id === targetId);
+  }, [staffList, selectedStaffId, canViewAll, staffId]);
+
+  // ── Time slots ─────────────────────────────────────────────────────────────
+  const timeSlots = useMemo(() => {
+    const slots: { hour: number; minute: number; label: string; isHour: boolean }[] = [];
+    for (let h = START_HOUR; h <= END_HOUR; h++) {
+      for (let m = 0; m < 60; m += timeSlotInterval) {
+        if (h === END_HOUR && m > 0) break;
+        const isHour = m === 0;
+        let label = "";
+        if (isHour) {
+          label = h === 0 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
+        } else {
+          const dh = h > 12 ? h - 12 : h === 0 ? 12 : h;
+          label = `${dh}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+        }
+        slots.push({ hour: h, minute: m, label, isHour });
+      }
+    }
+    return slots;
+  }, [START_HOUR, END_HOUR, timeSlotInterval]);
+
+  // ── Week day labels ────────────────────────────────────────────────────────
+  const weekDayLabels = useMemo(() => {
+    const dow  = currentDate.getDay();
+    const wsd  = startOfWeek === "sunday" ? 0 : startOfWeek === "saturday" ? 6 : 1;
+    const diff = (dow - wsd + 7) % 7;
+    const start = subDays(currentDate, diff);
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = addDays(start, i);
+      return { date: d, label: formatInTz(d, timezone, "EEE"), isToday: isSameDay(d, storeNow) };
+    });
+  }, [currentDate, timezone, storeNow, startOfWeek]);
+
+  // ── Data helpers ───────────────────────────────────────────────────────────
+  const getAppointmentsForStaff = useCallback(
+    (sid: number) =>
+      (appointments as any[]).filter((apt) => {
+        const local = toStoreLocal(apt.date, timezone);
+        return apt.staffId === sid && isSameDay(local, currentDate);
+      }),
+    [appointments, timezone, currentDate],
+  );
+
+  const getAppointmentStyle = useCallback(
+    (apt: any) => {
+      const local    = toStoreLocal(apt.date, timezone);
+      const startMin = local.getHours() * 60 + local.getMinutes();
+      const endMin   = startMin + Math.max(Number(apt.duration ?? 0), 15);
+      const visStart = START_HOUR * 60;
+      const visEnd   = END_HOUR * 60;
+      const cStart   = Math.max(startMin, visStart);
+      const cEnd     = Math.min(endMin, visEnd);
+      return {
+        top:    `${((cStart - visStart) / 60) * HOUR_HEIGHT}px`,
+        height: `${Math.max(((cEnd - cStart) / 60) * HOUR_HEIGHT, 30)}px`,
+      };
+    },
+    [timezone, START_HOUR, END_HOUR],
+  );
+
+  const getStaffColor = useCallback((member: any) => member?.color ?? "#22c55e", []);
+
+  // ── Slot interaction ───────────────────────────────────────────────────────
+  const handleSlotClick = useCallback(
+    (sid: number, hour: number, minute: number) => {
+      if (!canEdit) return;
+      const slotStart = new Date(
+        currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, minute,
+      );
+      if (slotStart.getTime() <= storeNow.getTime()) return;
+      setSelectedSlot((prev) =>
+        prev?.staffId === sid && prev.hour === hour && prev.minute === minute
+          ? null
+          : { staffId: sid, hour, minute },
+      );
+    },
+    [canEdit, currentDate, storeNow],
+  );
+
+  const handleBookSlot = useCallback(
+    (sid: number, hour: number, minute: number) => {
+      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+      const timeStr = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      navigate(`/booking/new?staffId=${sid}&date=${dateStr}&time=${timeStr}`);
+    },
+    [currentDate, navigate],
+  );
+
+  // ── Appointment quick actions ──────────────────────────────────────────────
+  const handleQuickStart = useCallback(
+    (apt: any) => {
+      updateAppointment.mutate({ id: apt.id, status: "started" } as any, {
+        onSuccess: () => {
+          setSelectedAppointment((prev: any) => prev?.id === apt.id ? { ...prev, status: "started" } : prev);
+          toast({ title: "Service started" });
+        },
+      });
+    },
+    [updateAppointment, toast],
+  );
+
+  const handleQuickComplete = useCallback(
+    (apt: any) => {
+      updateAppointment.mutate({ id: apt.id, status: "completed" } as any, {
+        onSuccess: () => {
+          setSelectedAppointment(null);
+          toast({ title: "Appointment completed" });
+        },
+      });
+    },
+    [updateAppointment, toast],
+  );
+
+  const handleQuickCancel = useCallback(
+    (apt: any) => {
+      setSelectedAppointment(apt);
+      setShowCancelConfirm(true);
+    },
+    [],
+  );
+
+  const confirmCancel = useCallback(() => {
+    if (!selectedAppointment) return;
+    updateAppointment.mutate(
+      { id: selectedAppointment.id, status: "cancelled", cancellationReason: "Cancelled by staff" } as any,
+      {
+        onSuccess: () => {
+          setSelectedAppointment(null);
+          setShowCancelConfirm(false);
+          toast({ title: "Appointment cancelled" });
+        },
+      },
+    );
+  }, [selectedAppointment, updateAppointment, toast]);
+
+  // ── Realtime: invalidate appointments on WebSocket notification ────────────
+  useEffect(() => {
+    if (!selectedStore?.id) return;
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${proto}://${window.location.host}/ws/notifications?storeId=${selectedStore.id}`);
+    ws.onmessage = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    };
+    ws.onerror = () => ws.close();
+    return () => { try { ws.close(); } catch { /* ignore */ } };
+  }, [selectedStore?.id, queryClient]);
+
+  // ── Loading guard ──────────────────────────────────────────────────────────
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="w-8 h-8 border-4 border-[#1a2340] border-t-transparent rounded-full animate-spin" />
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  const staffName = staffMember?.name ?? user?.firstName ?? "Staff";
-  const initials = getInitial(staffName);
-  const staffColor = staffMember?.color ?? "#3b82f6";
+  // ── Derived display values ─────────────────────────────────────────────────
+  const staffName  = ownStaff?.name ?? user?.firstName ?? "Staff";
+  const staffColor = ownStaff?.color ?? "#3b82f6";
+  const initials   = (staffName[0] ?? "S").toUpperCase();
+  const aptStatus  = selectedAppointment
+    ? (STATUS_CFG[selectedAppointment.status] ?? STATUS_CFG.confirmed)
+    : null;
 
-  const workStartLabel = todayAvailability
-    ? format(new Date(`2000-01-01T${todayAvailability.startTime}`), "h:mm a").toLowerCase()
-    : "9:00 am";
-  const workEndLabel = todayAvailability
-    ? format(new Date(`2000-01-01T${todayAvailability.endTime}`), "h:mm a").toLowerCase()
-    : "6:00 pm";
-
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen bg-gray-50 max-w-md mx-auto relative overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b flex items-center justify-between px-4 py-3 shrink-0 z-10">
-        <button className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
-          <CalendarIcon className="w-5 h-5" />
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            className="p-1 text-gray-400 hover:text-gray-700"
-            onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            className="font-semibold text-sm text-gray-800 hover:text-[#1a2340] transition-colors px-1"
-            onClick={() => setShowDatePicker(true)}
-          >
-            {format(selectedDate, "EEE d MMM, yyyy")}
-          </button>
-          <button
-            className="p-1 text-gray-400 hover:text-gray-700"
-            onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-        <button className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
-          <Bell className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="flex flex-col bg-background overflow-hidden" style={{ height: "100dvh" }}>
 
-      {/* Staff header */}
-      <div className="bg-white border-b px-4 py-3 flex flex-col items-center shrink-0">
+      {/* ── Top header ── */}
+      <div className="flex-shrink-0 flex items-center gap-2 px-3 border-b bg-white dark:bg-[#0f172a]"
+           style={{ height: 52 }}>
+
+        {/* Staff avatar */}
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-1"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
           style={{ backgroundColor: `${staffColor}22`, color: staffColor }}
         >
-          {staffMember?.avatarUrl ? (
-            <img src={staffMember.avatarUrl} alt={staffName} className="w-full h-full rounded-full object-cover" />
-          ) : (
-            initials
-          )}
+          {ownStaff?.avatarUrl
+            ? <img src={ownStaff.avatarUrl} alt={staffName} className="w-full h-full object-cover" />
+            : initials}
         </div>
-        <p className="font-semibold text-gray-800 text-sm">{staffName}</p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {workStartLabel} - {workEndLabel}
-        </p>
+
+        {/* Date navigation — center */}
+        <div className="flex-1 flex items-center justify-center gap-0.5">
+          <button
+            className="p-1.5 text-slate-400 active:text-slate-700 transition-colors"
+            onClick={() => setCurrentDate((d) => subDays(d, 1))}
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            className="px-2 py-1 text-[13px] font-bold text-slate-700 dark:text-slate-200 rounded-md active:bg-slate-100 dark:active:bg-slate-800 transition-colors"
+            onClick={() => setShowDatePicker(true)}
+          >
+            {isToday ? "Today" : formatInTz(currentDate, timezone, "EEE, MMM d")}
+          </button>
+          <button
+            className="p-1.5 text-slate-400 active:text-slate-700 transition-colors"
+            onClick={() => setCurrentDate((d) => addDays(d, 1))}
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Bell */}
+        <button className="w-8 h-8 flex items-center justify-center text-slate-400 active:text-slate-700 transition-colors shrink-0">
+          <Bell className="w-[18px] h-[18px]" />
+        </button>
       </div>
 
-      {/* Calendar Grid */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
-        <div className="relative" style={{ height: `${(END_HOUR - START_HOUR) * HOUR_HEIGHT}px` }}>
-          {/* Time column + grid lines */}
-          {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => {
-            const hour = START_HOUR + i;
-            const topPx = i * HOUR_HEIGHT;
-            const hourMinutes = hour * 60;
-            const isBeforeWork = hourMinutes < workStart;
-            const isAfterWork = hourMinutes >= workEnd;
-            const isNonWorking = isBeforeWork || isAfterWork;
+      {/* ── Main content area (fills between header and bottom nav) ── */}
+      <div className="flex-1 relative overflow-hidden">
 
-            return (
-              <div key={hour} className="absolute left-0 right-0 flex" style={{ top: topPx, height: HOUR_HEIGHT }}>
-                {/* Time label */}
-                <div className="w-16 shrink-0 flex items-start justify-end pr-3 pt-1">
-                  <span className="text-xs text-gray-400 font-medium">{formatHour(hour)}</span>
-                </div>
-                {/* Slot */}
-                <div className="flex-1 border-t border-gray-100 relative">
-                  {isNonWorking && (
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: `repeating-linear-gradient(
-                          -45deg,
-                          transparent,
-                          transparent 6px,
-                          rgba(0,0,0,0.04) 6px,
-                          rgba(0,0,0,0.04) 12px
-                        )`,
-                        backgroundColor: "rgba(0,0,0,0.01)",
-                      }}
-                    />
-                  )}
-                  {/* Half-hour line */}
-                  <div className="absolute left-0 right-0 border-t border-gray-50 border-dashed" style={{ top: HOUR_HEIGHT / 2 }} />
-                </div>
-              </div>
-            );
-          })}
+        {/* Calendar tab */}
+        {activeTab === "calendar" && (
+          <div className="absolute inset-0">
+            <MobileCalendarView
+              filteredStaff={filteredStaff}
+              timeSlots={timeSlots}
+              START_HOUR={START_HOUR}
+              END_HOUR={END_HOUR}
+              TOTAL_HOURS={TOTAL_HOURS}
+              HOUR_HEIGHT={HOUR_HEIGHT}
+              getAppointmentsForStaff={getAppointmentsForStaff}
+              getAppointmentStyle={getAppointmentStyle}
+              getStaffColor={getStaffColor}
+              timezone={timezone}
+              selectedAppointment={selectedAppointment}
+              onSelectAppointment={(apt) => {
+                setSelectedAppointment(apt);
+                setShowCancelConfirm(false);
+              }}
+              handleSlotClick={handleSlotClick}
+              selectedSlot={selectedSlot}
+              setSelectedSlot={(s) => setSelectedSlot(s)}
+              handleBookSlot={handleBookSlot}
+              isToday={isToday}
+              timeLinePosition={timeLinePosition}
+              timeLineLabel={timeLineLabel}
+              showPrices={showPrices}
+              lateGracePeriodMinutes={lateGracePeriodMinutes}
+              storeNow={storeNow}
+              settings={settings}
+              weekDayLabels={weekDayLabels}
+              currentDate={currentDate}
+              onSelectDate={(date) => setCurrentDate(date)}
+              onNewBooking={() => canEdit && navigate("/booking/new")}
+              onLookup={() => navigate("/client-lookup")}
+              selectedStaffId={canViewAll ? selectedStaffId : (staffId ?? "all")}
+              onFilterStaff={(id) => { if (canViewAll) setSelectedStaffId(id); }}
+              onQuickStart={handleQuickStart}
+              onQuickComplete={handleQuickComplete}
+              onQuickCancel={handleQuickCancel}
+            />
+          </div>
+        )}
 
-          {/* Appointments */}
-          {appointments.map((apt) => {
-            const aptDate = new Date(apt.date);
-            const aptMinutes = aptDate.getHours() * 60 + aptDate.getMinutes();
-            const topPx = ((aptMinutes / 60) - START_HOUR) * HOUR_HEIGHT;
-            const heightPx = (apt.duration / 60) * HOUR_HEIGHT;
-            const aptColor = apt.staff?.color ?? staffColor;
-
-            return (
+        {/* Menu tab */}
+        {activeTab === "menu" && (
+          <div className="absolute inset-0 overflow-y-auto bg-slate-50 dark:bg-[#0a0f1e] px-4 pt-5 pb-4">
+            {/* Profile card */}
+            <div className="bg-white dark:bg-[#0f172a] rounded-2xl p-5 flex items-center gap-4 mb-3 shadow-sm">
               <div
-                key={apt.id}
-                className="absolute rounded-lg px-2 py-1 shadow-sm overflow-hidden cursor-pointer"
-                style={{
-                  top: topPx,
-                  left: 68,
-                  right: 8,
-                  height: Math.max(heightPx, 32),
-                  backgroundColor: `${aptColor}22`,
-                  borderLeft: `3px solid ${aptColor}`,
+                className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden"
+                style={{ backgroundColor: `${staffColor}22`, color: staffColor }}
+              >
+                {ownStaff?.avatarUrl
+                  ? <img src={ownStaff.avatarUrl} alt={staffName} className="w-full h-full object-cover" />
+                  : initials}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 dark:text-white truncate">{staffName}</p>
+                <p className="text-sm text-gray-500 capitalize">{user?.role ?? "Staff"}</p>
+                <p className="text-xs text-gray-400 truncate">{user?.email ?? ""}</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="bg-white dark:bg-[#0f172a] rounded-2xl overflow-hidden shadow-sm">
+              <button
+                className="w-full px-5 py-4 flex items-center gap-3 text-red-600 active:bg-red-50 dark:active:bg-red-950/40 transition-colors"
+                onClick={async () => {
+                  await logout();
+                  navigate("/staff-auth", { replace: true });
                 }}
               >
-                <p className="text-xs font-semibold truncate" style={{ color: aptColor }}>
-                  {apt.customer?.name ?? "Client"}
-                </p>
-                {apt.service && (
-                  <p className="text-xs text-gray-500 truncate">{apt.service.name}</p>
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Sign out</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom tab bar ── */}
+      <StaffBottomNav
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          if (tab === "clients") { navigate("/customers"); return; }
+          setActiveTab(tab);
+        }}
+        canViewClients={canViewClients}
+      />
+
+      {/* ─── Appointment detail sheet ───────────────────────────────────────── */}
+      <Sheet
+        open={!!selectedAppointment && !showCancelConfirm}
+        onOpenChange={(open) => { if (!open) setSelectedAppointment(null); }}
+      >
+        <SheetContent
+          side="bottom"
+          className="rounded-t-3xl max-h-[80vh] overflow-y-auto px-5 pb-8 pt-4"
+        >
+          {selectedAppointment && (() => {
+            const cfg = STATUS_CFG[selectedAppointment.status] ?? STATUS_CFG.confirmed;
+            const isDone = selectedAppointment.status === "completed" || selectedAppointment.status === "cancelled";
+            return (
+              <div>
+                {/* Drag handle */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+                </div>
+
+                {/* Status + close */}
+                <div className="flex items-center justify-between mb-4">
+                  <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full", cfg.bg, cfg.color)}>
+                    {cfg.label}
+                  </span>
+                  <button
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 active:scale-95 transition-transform"
+                    onClick={() => setSelectedAppointment(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Client info */}
+                {canViewClients ? (
+                  <div className="mb-4">
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {selectedAppointment.customer?.name ?? "Client"}
+                    </p>
+                    {canViewContact && (
+                      <div className="flex flex-col gap-1 mt-1.5">
+                        {selectedAppointment.customer?.phone && (
+                          <a
+                            href={`tel:${selectedAppointment.customer.phone}`}
+                            className="inline-flex items-center gap-2 text-sm text-primary"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {selectedAppointment.customer.phone}
+                          </a>
+                        )}
+                        {selectedAppointment.customer?.email && (
+                          <a
+                            href={`mailto:${selectedAppointment.customer.email}`}
+                            className="inline-flex items-center gap-2 text-sm text-primary"
+                          >
+                            <Mail className="w-4 h-4" />
+                            {selectedAppointment.customer.email}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xl font-bold text-gray-900 dark:text-white mb-4">Appointment</p>
+                )}
+
+                {/* Service details */}
+                <div className="flex items-center gap-3 py-3 border-t border-b border-gray-100 dark:border-gray-800 mb-5">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: `${getStaffColor(
+                        (staffList as any[]).find((s) => s.id === selectedAppointment.staffId),
+                      )}22`,
+                    }}
+                  >
+                    <Clock className="w-5 h-5 text-gray-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">
+                      {selectedAppointment.service?.name ?? "Service"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {selectedAppointment.duration} min
+                      {showPrices && selectedAppointment.price
+                        ? ` · $${Number(selectedAppointment.price).toFixed(2)}`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                {!isDone && canEdit && (
+                  <div className="flex flex-col gap-2.5">
+                    {selectedAppointment.status === "confirmed" && (
+                      <button
+                        className="w-full py-3.5 rounded-2xl bg-amber-500 text-white font-semibold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-sm"
+                        onClick={() => { handleQuickStart(selectedAppointment); }}
+                      >
+                        <Play className="w-4 h-4 fill-white" />
+                        Start Service
+                      </button>
+                    )}
+                    {selectedAppointment.status === "started" && (
+                      <button
+                        className="w-full py-3.5 rounded-2xl bg-green-600 text-white font-semibold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-sm"
+                        onClick={() => handleQuickComplete(selectedAppointment)}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Mark Complete
+                      </button>
+                    )}
+                    {canCancel && (
+                      <button
+                        className="w-full py-3.5 rounded-2xl border-2 border-red-200 text-red-600 font-semibold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                        onClick={() => handleQuickCancel(selectedAppointment)}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Cancel Appointment
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );
-          })}
-        </div>
-      </div>
+          })()}
+        </SheetContent>
+      </Sheet>
 
-      {/* Bottom Tab Bar */}
-      <div className="shrink-0 px-4 pb-4 pt-2 bg-transparent">
-        <div className="bg-white rounded-2xl shadow-lg flex items-center justify-around px-2 py-2 relative">
-          <TabButton
-            icon={<CalendarIcon className="w-5 h-5" />}
-            label="Calendar"
-            active={activeTab === "calendar"}
-            onClick={() => setActiveTab("calendar")}
-          />
-          <TabButton
-            icon={<BarChart2 className="w-5 h-5" />}
-            label="Stats"
-            active={activeTab === "stats"}
-            onClick={() => setActiveTab("stats")}
-          />
-          {/* Center + button */}
-          <div className="flex flex-col items-center">
-            <button
-              className="w-14 h-14 rounded-full bg-[#1a2340] flex items-center justify-center shadow-lg -mt-8 mb-1"
-              onClick={() => {}}
-            >
-              <Plus className="w-6 h-6 text-white" />
-            </button>
-          </div>
-          <TabButton
-            icon={<Users className="w-5 h-5" />}
-            label="Clients"
-            active={activeTab === "clients"}
-            onClick={() => setActiveTab("clients")}
-          />
-          <TabButton
-            icon={<Menu className="w-5 h-5" />}
-            label="Menu"
-            active={activeTab === "menu"}
-            onClick={() => setActiveTab("menu")}
-          />
-        </div>
-      </div>
-
-      {/* Full-screen Date Picker Overlay */}
-      {showDatePicker && (
-        <div className="absolute inset-0 bg-white z-50 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-800">Select Date</h2>
-            <button
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
-              onClick={() => setShowDatePicker(false)}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex-1 flex items-start justify-center pt-4">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                if (date) {
-                  setSelectedDate(date);
-                  setShowDatePicker(false);
-                }
-              }}
-              className="rounded-md border-0"
-              initialFocus
-            />
+      {/* ─── Cancel confirmation ─────────────────────────────────────────────── */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end">
+          <div className="w-full bg-white dark:bg-[#0f172a] rounded-t-3xl px-5 pt-5 pb-8 shadow-2xl">
+            <div className="flex justify-center mb-4">
+              <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+              Cancel appointment?
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Cancel{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {selectedAppointment?.customer?.name ?? "this client"}
+              </span>
+              's appointment. This cannot be undone.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                className="w-full py-3.5 rounded-2xl bg-red-600 text-white font-semibold text-[15px] active:scale-[0.98] transition-transform"
+                onClick={confirmCancel}
+                disabled={updateAppointment.isPending}
+              >
+                {updateAppointment.isPending ? "Cancelling…" : "Yes, cancel"}
+              </button>
+              <button
+                className="w-full py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-[15px] active:scale-[0.98] transition-transform"
+                onClick={() => setShowCancelConfirm(false)}
+              >
+                Keep appointment
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Placeholder overlay for non-calendar tabs */}
-      {activeTab !== "calendar" && (
-        <div className="absolute inset-0 bg-white z-30 flex flex-col items-center justify-center gap-4 px-8">
-          {activeTab === "stats" && (
-            <>
-              <BarChart2 className="w-16 h-16 text-gray-200" />
-              <p className="text-gray-400 text-center font-medium">Stats & Analytics coming soon</p>
-            </>
-          )}
-          {activeTab === "clients" && (
-            <>
-              <Users className="w-16 h-16 text-gray-200" />
-              <p className="text-gray-400 text-center font-medium">Client list coming soon</p>
-            </>
-          )}
-          {activeTab === "menu" && (
-            <>
-              <Menu className="w-16 h-16 text-gray-200" />
-              <p className="text-gray-400 text-center font-medium">Menu coming soon</p>
-            </>
-          )}
-          <button
-            className="mt-4 px-6 py-2 bg-[#1a2340] text-white rounded-full text-sm font-medium"
-            onClick={() => setActiveTab("calendar")}
-          >
-            Back to Calendar
-          </button>
+      {/* ─── Date picker overlay ─────────────────────────────────────────────── */}
+      {showDatePicker && (
+        <div className="fixed inset-0 z-50 bg-white dark:bg-[#0a0f1e] flex flex-col">
+          <div className="flex items-center justify-between px-4 h-14 border-b border-gray-100 dark:border-gray-800">
+            <h2 className="text-base font-semibold text-gray-800 dark:text-white">Select Date</h2>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500"
+              onClick={() => setShowDatePicker(false)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 flex items-start justify-center pt-4 overflow-auto">
+            <Calendar
+              mode="single"
+              selected={currentDate}
+              onSelect={(date) => {
+                if (date) { setCurrentDate(date); setShowDatePicker(false); }
+              }}
+              className="rounded-md"
+              initialFocus
+            />
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function TabButton({
-  icon,
-  label,
-  active,
-  onClick,
+// ─── StaffBottomNav ───────────────────────────────────────────────────────────
+
+function StaffBottomNav({
+  activeTab,
+  onTabChange,
+  canViewClients,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
+  activeTab: string;
+  onTabChange: (tab: "calendar" | "clients" | "menu") => void;
+  canViewClients: boolean;
 }) {
+  const tabs = [
+    { id: "calendar" as const, Icon: CalendarDays, label: "Calendar" },
+    ...(canViewClients ? [{ id: "clients" as const, Icon: Users, label: "Clients" }] : []),
+    { id: "menu" as const, Icon: MenuIcon, label: "More" },
+  ];
+
   return (
-    <button
-      className="flex flex-col items-center gap-0.5 px-3 py-1"
-      onClick={onClick}
+    <div
+      className="flex-shrink-0 flex items-stretch bg-white dark:bg-[#0f172a] border-t border-gray-100 dark:border-white/[0.07]"
+      style={{
+        height: "calc(56px + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
     >
-      <span className={active ? "text-[#00bfae]" : "text-gray-400"}>{icon}</span>
-      <span className={`text-[10px] font-medium ${active ? "text-[#00bfae]" : "text-gray-400"}`}>
-        {label}
-      </span>
-    </button>
+      {tabs.map(({ id, Icon, label }) => {
+        const active = activeTab === id;
+        return (
+          <button
+            key={id}
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] select-none active:opacity-50 transition-opacity relative"
+            onClick={() => onTabChange(id)}
+          >
+            {active && (
+              <span className="absolute top-0 inset-x-0 flex justify-center">
+                <span className="w-5 h-[2px] rounded-full bg-primary dark:bg-white/80" />
+              </span>
+            )}
+            <Icon
+              className={cn(
+                "w-[22px] h-[22px] transition-colors",
+                active ? "text-primary dark:text-white" : "text-muted-foreground dark:text-white/55",
+              )}
+              strokeWidth={active ? 2.2 : 1.7}
+            />
+            <span
+              className={cn(
+                "text-[10px] font-medium leading-none transition-colors",
+                active ? "text-primary dark:text-white" : "text-muted-foreground dark:text-white/55",
+              )}
+            >
+              {label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

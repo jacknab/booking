@@ -127,6 +127,9 @@ const authenticatedPaths = [
   "/pro-dashboard",
   "/pro-setup",
   "/dashboard/queue",
+  // Staff portal — needs StoreProvider for hooks (useAppointments, useStaffList, etc.)
+  "/staff-calendar",
+  "/staff-dashboard",
 ];
 
 function App() {
