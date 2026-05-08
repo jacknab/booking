@@ -5,12 +5,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { TrialCountdownBanner } from "@/components/TrialCountdownBanner";
+import { useTrial } from "@/hooks/use-trial";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const needsOnboarding = isAuthenticated && user && !user.onboardingCompleted;
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { daysRemaining, subscriptionStatus } = useTrial();
 
   useEffect(() => {
     if (needsOnboarding) {
@@ -25,31 +28,39 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-      <main className="flex-1 overflow-y-auto">
-        <header className="md:hidden flex items-center justify-between p-4 border-b">
-          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64">
-              <Sidebar onLinkClick={() => setIsSheetOpen(false)} />
-            </SheetContent>
-          </Sheet>
-        </header>
-        <div className="container mx-auto p-4 md:p-8">
-          {children}
-          {/* Spacer so content clears the fixed mobile bottom nav */}
-          <div className="md:hidden" style={{ height: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }} aria-hidden="true" />
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Full-width trial banner — spans the entire page above the sidebar+content split */}
+      <TrialCountdownBanner
+        daysRemaining={daysRemaining}
+        subscriptionStatus={subscriptionStatus}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        <div className="hidden md:block">
+          <Sidebar />
         </div>
-      </main>
+        <main className="flex-1 overflow-y-auto">
+          <header className="md:hidden flex items-center justify-between p-4 border-b">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64">
+                <Sidebar onLinkClick={() => setIsSheetOpen(false)} />
+              </SheetContent>
+            </Sheet>
+          </header>
+          <div className="container mx-auto p-4 md:p-8">
+            {children}
+            {/* Spacer so content clears the fixed mobile bottom nav */}
+            <div className="md:hidden" style={{ height: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }} aria-hidden="true" />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
