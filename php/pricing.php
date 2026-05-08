@@ -194,6 +194,19 @@ require 'includes/nav.php';
 .addon-name  { font-weight: 700; font-size: .95rem; margin: 4px 0; }
 .addon-desc  { font-size: .82rem; color: var(--mid-grey); line-height: 1.6; }
 
+.solo-upsell-nudge {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--plum-light); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: .8rem; color: var(--plum-mid); font-weight: 500;
+  margin-top: 4px;
+}
+.sun-icon { font-size: .7rem; color: var(--plum); flex-shrink: 0; }
+.sun-link {
+  margin-left: auto; font-weight: 700; color: var(--plum);
+  text-decoration: none; white-space: nowrap;
+}
+.sun-link:hover { text-decoration: underline; }
+
 @media (max-width: 900px) {
   .plan-cards { grid-template-columns: 1fr; }
   .plan-card.featured { transform: scale(1); }
@@ -355,6 +368,15 @@ require 'includes/nav.php';
           </li>
           <?php endforeach; ?>
         </ul>
+
+        <?php if ($plan['name'] === 'Solo'): ?>
+        <div class="solo-upsell-nudge">
+          <span class="sun-icon">✦</span>
+          <span>Need more calendars or staff?</span>
+          <a href="#professional" class="sun-link">See Professional →</a>
+        </div>
+        <?php endif; ?>
+
       </div>
       <?php endforeach; ?>
 
