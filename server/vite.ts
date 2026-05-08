@@ -35,9 +35,14 @@ const SSR_ROUTES = new Set([
 ]);
 
 export async function setupVite(server: Server, app: Express) {
+  const replitDomain = process.env.REPLIT_DEV_DOMAIN;
+  const hmrConfig = replitDomain
+    ? { server, path: "/vite-hmr", clientPort: 443, host: replitDomain, protocol: "wss" as const }
+    : { server, path: "/vite-hmr" };
+
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
+    hmr: hmrConfig,
     allowedHosts: true as const,
   };
 
