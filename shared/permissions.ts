@@ -12,33 +12,57 @@ export const PERMISSIONS = {
   APPOINTMENTS_VIEW_OWN: "appointments.viewOwn",
   APPOINTMENTS_EDIT: "appointments.edit",
   APPOINTMENTS_DELETE: "appointments.delete",
+  APPOINTMENTS_CANCEL: "appointments.cancel",
+  APPOINTMENTS_OVERRIDE_RULES: "appointments.overrideRules",
+  WAITLIST_ACCESS: "waitlist.access",
 
   // Customers
   CUSTOMERS_VIEW: "customers.view",
   CUSTOMERS_VIEW_CONTACT: "customers.viewContact",
   CUSTOMERS_EDIT: "customers.edit",
+  CUSTOMERS_DELETE: "customers.delete",
   CUSTOMERS_EXPORT: "customers.export",
+  CUSTOMERS_IMPORT: "customers.import",
 
   // Catalog
   SERVICES_MANAGE: "services.manage",
   PRODUCTS_MANAGE: "products.manage",
   PRICING_VIEW: "pricing.view",
   PRICING_EDIT: "pricing.edit",
+  INVENTORY_MANAGE: "inventory.manage",
 
   // Team
   STAFF_MANAGE: "staff.manage",
   STAFF_PERMISSIONS_MANAGE: "staff.permissionsManage",
+  STAFF_INVITE: "staff.invite",
+  STAFF_REMOVE: "staff.remove",
 
   // Reports & money
   REPORTS_VIEW: "reports.view",
   REPORTS_FINANCIAL: "reports.financial",
+  REPORTS_EXPORT: "reports.export",
   COMMISSIONS_VIEW_ALL: "commissions.viewAll",
   COMMISSIONS_VIEW_OWN: "commissions.viewOwn",
 
-  // POS
+  // POS & payments
   POS_USE: "pos.use",
+  CHECKOUT_CLIENTS: "checkout.clients",
+  PAYMENTS_VIEW: "payments.view",
+  REFUNDS_ISSUE: "refunds.issue",
+  DISCOUNTS_APPLY: "discounts.apply",
+  VOID_TRANSACTIONS: "void.transactions",
   CASH_DRAWER_VIEW: "cashDrawer.view",
   CASH_DRAWER_CLOSE: "cashDrawer.close",
+
+  // Marketing
+  MARKETING_SMS: "marketing.sms",
+  MARKETING_EMAIL: "marketing.email",
+  REVIEW_REQUESTS: "marketing.reviewRequests",
+
+  // Engagement
+  GIFT_CARDS_MANAGE: "giftCards.manage",
+  LOYALTY_MANAGE: "loyalty.manage",
+  INTAKE_FORMS_MANAGE: "intakeForms.manage",
 
   // Store / business config
   STORE_SETTINGS: "store.settings",
@@ -63,16 +87,22 @@ const MANAGER_PERMS: Permission[] = ALL_PERMS.filter(
   (p) =>
     p !== PERMISSIONS.BILLING_MANAGE &&
     p !== PERMISSIONS.STORE_DELETE &&
-    p !== PERMISSIONS.INTEGRATIONS_MANAGE &&
-    p !== PERMISSIONS.STAFF_PERMISSIONS_MANAGE,
+    p !== PERMISSIONS.STAFF_PERMISSIONS_MANAGE &&
+    p !== PERMISSIONS.VOID_TRANSACTIONS,
 );
 
 const STAFF_PERMS: Permission[] = [
   PERMISSIONS.APPOINTMENTS_VIEW_OWN,
   PERMISSIONS.APPOINTMENTS_EDIT,
+  PERMISSIONS.APPOINTMENTS_CANCEL,
   PERMISSIONS.CUSTOMERS_VIEW,
+  PERMISSIONS.CUSTOMERS_VIEW_CONTACT,
+  PERMISSIONS.PRICING_VIEW,
   PERMISSIONS.POS_USE,
+  PERMISSIONS.CHECKOUT_CLIENTS,
+  PERMISSIONS.DISCOUNTS_APPLY,
   PERMISSIONS.COMMISSIONS_VIEW_OWN,
+  PERMISSIONS.WAITLIST_ACCESS,
 ];
 
 export const ROLE_DEFAULTS: Record<Role, ReadonlySet<Permission>> = {
@@ -89,7 +119,6 @@ export const ROLE_DEFAULTS: Record<Role, ReadonlySet<Permission>> = {
 export function normalizeRole(role: string | null | undefined): Role {
   if (role === "manager") return "manager";
   if (role === "staff") return "staff";
-  // "admin" (legacy) and anything unrecognized → owner
   return "owner";
 }
 

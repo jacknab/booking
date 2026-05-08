@@ -78,6 +78,7 @@ import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
 import TeamPermissions from "@/pages/TeamPermissions";
+import AcceptInvite from "@/pages/AcceptInvite";
 import TrainingAdmin from "@/pages/TrainingAdmin";
 import TrainingSettings from "@/pages/TrainingSettings";
 import ManageDashboard from "@/pages/manage/ManageDashboard";
@@ -176,6 +177,9 @@ function AppRoutes() {
       <Route path="/staff-change-password" element={<StaffPasswordChange />} />
       <Route path="/staff-dashboard" element={<StaffDashboard />} />
       <Route path="/staff-calendar" element={<StaffCalendar />} />
+
+      {/* Team invite acceptance (public — no auth required) */}
+      <Route path="/accept-invite" element={<AcceptInvite />} />
 
       {/* Public booking & review */}
       <Route path="/widget" element={<BookingWidgetPage />} />

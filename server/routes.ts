@@ -5248,6 +5248,280 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // POST /api/team/invite — invite a staff member by email
+  app.post("/api/team/invite", requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+    try {
+      const ownerId = req.auth?.userId;
+      if (!ownerId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { email, name, role, employmentType, storeId } = req.body as {
+        email: string;
+        name: string;
+        role?: string;
+        employmentType?: string;
+        storeId: number;
+      };
+
+      if (!email || !name || !storeId) {
+        return res.status(400).json({ message: "email, name, and storeId are required" });
+      }
+
+      // Verify the owner owns this store
+      const [store] = await db.select().from(locations).where(
+        and(eq(locations.id, storeId), eq(locations.userId, ownerId))
+      );
+      if (!store) return res.status(403).json({ message: "Store not found or not owned by you" });
+
+      // Generate invite token
+      const inviteToken = crypto.randomBytes(32).toString("hex");
+      const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      // Check if staff with this email already exists in this store
+      const existing = await db.select().from(staff)
+        .where(and(eq(staff.storeId, storeId), eq(staff.email, email)));
+
+      let staffRecord: any;
+      if (existing.length > 0) {
+        // Update existing staff with invite token
+        const [updated] = await db.update(staff)
+          .set({
+            status: "invited",
+            inviteToken,
+            inviteExpiresAt,
+            invitedAt: new Date(),
+            invitedByUserId: ownerId,
+            role: role || existing[0].role,
+            employmentType: employmentType || existing[0].employmentType,
+          })
+          .where(eq(staff.id, existing[0].id))
+          .returning();
+        staffRecord = updated;
+      } else {
+        // Create new staff record with invite pending
+        const [created] = await db.insert(staff).values({
+          name,
+          email,
+          storeId,
+          role: role || "staff",
+          employmentType: employmentType || "stylist",
+          status: "invited",
+          inviteToken,
+          inviteExpiresAt,
+          invitedAt: new Date(),
+          invitedByUserId: ownerId,
+        }).returning();
+        staffRecord = created;
+      }
+
+      // Build invite URL
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : "https://certxa.com";
+      const inviteUrl = `${baseUrl}/accept-invite?token=${inviteToken}`;
+
+      // Send invite email (gracefully falls back if Mailgun not configured)
+      const emailResult = await sendEmail(
+        storeId,
+        email,
+        `You've been invited to join ${store.name} on Certxa`,
+        `
+          <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+            <h1 style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:#3B0764;margin:0 0 8px">
+              You're invited to ${store.name}
+            </h1>
+            <p style="color:#4b5563;font-size:.95rem;line-height:1.6;margin:0 0 24px">
+              Hi ${name}, you've been invited to join <strong>${store.name}</strong> as a team member on Certxa. 
+              Click the button below to create your account and get started.
+            </p>
+            <a href="${inviteUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#3B0764,#5B21B6);color:#fff;text-decoration:none;border-radius:50px;font-weight:700;font-size:.9rem;margin-bottom:24px">
+              Accept Invitation →
+            </a>
+            <p style="color:#9ca3af;font-size:.78rem">This invitation expires in 7 days. If you didn't expect this email, you can safely ignore it.</p>
+          </div>
+        `,
+        `You've been invited to join ${store.name} on Certxa. Accept your invitation: ${inviteUrl}`
+      );
+
+      console.log(`[team/invite] Invited ${email} to store ${storeId}. Invite URL: ${inviteUrl}. Email result:`, emailResult);
+
+      res.json({
+        success: true,
+        staffId: staffRecord.id,
+        email,
+        inviteUrl,
+        emailSent: emailResult.success,
+        emailSkipped: emailResult.skipped,
+      });
+    } catch (err: any) {
+      console.error("[team] invite failed:", err);
+      res.status(500).json({ message: "Failed to send invitation" });
+    }
+  });
+
+  // GET /api/team/invite/:token — validate invite token (public, no auth required)
+  app.get("/api/team/invite/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const [staffMember] = await db.select({
+        id: staff.id,
+        name: staff.name,
+        email: staff.email,
+        employmentType: staff.employmentType,
+        role: staff.role,
+        status: staff.status,
+        inviteExpiresAt: staff.inviteExpiresAt,
+        storeId: staff.storeId,
+      }).from(staff).where(eq(staff.inviteToken, token));
+
+      if (!staffMember) {
+        return res.status(404).json({ message: "Invite not found or already used" });
+      }
+      if (staffMember.status !== "invited") {
+        return res.status(400).json({ message: "This invitation has already been used" });
+      }
+      if (staffMember.inviteExpiresAt && new Date() > staffMember.inviteExpiresAt) {
+        return res.status(400).json({ message: "This invitation has expired" });
+      }
+
+      // Fetch store name
+      const [store] = await db.select({ name: locations.name }).from(locations)
+        .where(eq(locations.id, staffMember.storeId!));
+
+      res.json({
+        ...staffMember,
+        storeName: store?.name ?? "the salon",
+      });
+    } catch (err) {
+      console.error("[team] validate invite failed:", err);
+      res.status(500).json({ message: "Failed to validate invite" });
+    }
+  });
+
+  // POST /api/team/invite/:token/accept — accept invite, set password, create/link user account
+  app.post("/api/team/invite/:token/accept", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { firstName, lastName, password } = req.body as {
+        firstName: string;
+        lastName: string;
+        password: string;
+      };
+
+      if (!firstName || !password || password.length < 6) {
+        return res.status(400).json({ message: "First name and password (min 6 chars) required" });
+      }
+
+      const [staffMember] = await db.select().from(staff).where(eq(staff.inviteToken, token));
+      if (!staffMember) return res.status(404).json({ message: "Invite not found" });
+      if (staffMember.status !== "invited") return res.status(400).json({ message: "Invite already used" });
+      if (staffMember.inviteExpiresAt && new Date() > staffMember.inviteExpiresAt) {
+        return res.status(400).json({ message: "Invite expired" });
+      }
+
+      const hashedPw = await bcrypt.hash(password, 10);
+
+      // Create or update user account
+      let userId: string;
+      const [existingUser] = staffMember.email
+        ? await db.select().from(users).where(eq(users.email, staffMember.email))
+        : [undefined];
+
+      if (existingUser) {
+        await db.update(users).set({
+          firstName,
+          lastName: lastName || null,
+          password: hashedPw,
+          staffId: staffMember.id,
+          role: "staff",
+          passwordChanged: true,
+        }).where(eq(users.id, existingUser.id));
+        userId = existingUser.id;
+      } else {
+        const [created] = await db.insert(users).values({
+          email: staffMember.email!,
+          password: hashedPw,
+          firstName,
+          lastName: lastName || null,
+          role: "staff",
+          staffId: staffMember.id,
+          passwordChanged: true,
+          onboardingCompleted: true,
+        }).returning();
+        userId = created.id;
+      }
+
+      // Mark staff as active, clear invite token
+      await db.update(staff).set({
+        status: "active",
+        name: `${firstName}${lastName ? " " + lastName : ""}`,
+        password: hashedPw,
+        inviteToken: null,
+        inviteExpiresAt: null,
+        joinedAt: new Date(),
+      }).where(eq(staff.id, staffMember.id));
+
+      // Log them in
+      (req.session as any).userId = userId;
+      res.json({ success: true, userId });
+    } catch (err: any) {
+      console.error("[team] accept invite failed:", err);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // PATCH /api/team/staff/:id/status — deactivate / reactivate / remove a staff member
+  app.patch("/api/team/staff/:id/status", requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+    try {
+      const staffId = Number(req.params.id);
+      const { status } = req.body as { status: "active" | "deactivated" | "removed" };
+      if (!["active", "deactivated", "removed"].includes(status)) {
+        return res.status(400).json({ message: "status must be active, deactivated, or removed" });
+      }
+
+      const updates: Record<string, any> = { status };
+      if (status === "removed") updates.removedAt = new Date();
+
+      const [updated] = await db.update(staff).set(updates).where(eq(staff.id, staffId)).returning();
+      if (!updated) return res.status(404).json({ message: "Staff member not found" });
+
+      // If deactivated/removed, invalidate any linked user session by revoking the staffId link
+      if (status === "removed" || status === "deactivated") {
+        await db.update(users).set({ role: "staff" }).where(eq(users.staffId, staffId));
+      }
+
+      res.json(updated);
+    } catch (err) {
+      console.error("[team] update staff status failed:", err);
+      res.status(500).json({ message: "Failed to update status" });
+    }
+  });
+
+  // GET /api/team/stats — seat usage counts for the current owner's stores
+  app.get("/api/team/stats", requirePermission(PERMISSIONS.STAFF_MANAGE), async (req, res) => {
+    try {
+      const ownerId = req.auth?.userId;
+      if (!ownerId) return res.status(401).json({ message: "Unauthorized" });
+
+      const ownerStores = await db.select({ id: locations.id }).from(locations)
+        .where(eq(locations.userId, ownerId));
+      const storeIds = ownerStores.map((s) => s.id);
+
+      if (!storeIds.length) return res.json({ active: 0, invited: 0, deactivated: 0, total: 0 });
+
+      const allStaff = await db.select({ status: staff.status }).from(staff)
+        .where(sql`${staff.storeId} IN (${sql.join(storeIds, sql`, `)})`);
+
+      const active = allStaff.filter(s => !s.status || s.status === "active").length;
+      const invited = allStaff.filter(s => s.status === "invited").length;
+      const deactivated = allStaff.filter(s => s.status === "deactivated").length;
+
+      res.json({ active, invited, deactivated, total: allStaff.length });
+    } catch (err) {
+      console.error("[team] stats failed:", err);
+      res.status(500).json({ message: "Failed to load stats" });
+    }
+  });
+
   app.patch("/api/team/:userId/permissions", requirePermission(PERMISSIONS.STAFF_PERMISSIONS_MANAGE), async (req, res) => {
     try {
       const targetId = req.params.userId;

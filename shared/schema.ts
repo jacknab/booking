@@ -186,6 +186,15 @@ export const staff = pgTable("staff", {
   storeId: integer("store_id").references(() => locations.id),
   password: text("password"),
   permissions: jsonb("permissions").$type<Record<string, boolean>>(),
+  // Team management additions
+  status: text("status").default("active"),           // active | invited | deactivated | removed
+  employmentType: text("employment_type").default("stylist"), // stylist | booth_renter | receptionist | assistant | manager | marketer | accountant | owner | custom
+  inviteToken: text("invite_token"),
+  inviteExpiresAt: timestamp("invite_expires_at"),
+  invitedAt: timestamp("invited_at"),
+  joinedAt: timestamp("joined_at"),
+  removedAt: timestamp("removed_at"),
+  invitedByUserId: text("invited_by_user_id"),
 });
 
 export const staffServices = pgTable("staff_services", {

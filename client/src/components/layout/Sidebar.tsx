@@ -69,7 +69,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Business",
     items: [
       { to: "/services", label: "Services", icon: Scissors, permission: PERMISSIONS.SERVICES_MANAGE, hideForStaff: true },
-      { to: "/staff", label: "Staff", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE, hideForStaff: true },
+      { to: "/staff", label: "Team", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE, hideForStaff: true },
       { to: "/dashboard/training", label: "Staff Training", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/dashboard/training/settings", label: "Training Settings", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/products", label: "Products", icon: ShoppingBag, permission: PERMISSIONS.PRODUCTS_MANAGE },
@@ -98,7 +98,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/mail-settings", label: "Email Notifications", icon: Mail, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
       { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
-      { to: "/team-permissions", label: "Team Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
+      { to: "/team-permissions", label: "Roles & Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
     ],
   },
 ];

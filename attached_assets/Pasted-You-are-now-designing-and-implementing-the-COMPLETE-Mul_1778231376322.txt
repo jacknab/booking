@@ -1,0 +1,551 @@
+You are now designing and implementing the COMPLETE Multi-User Team Management + Roles & Permissions System for Certxa SalonOS.
+
+This is NOT a basic “staff accounts” feature.
+
+This is a production-grade salon team infrastructure designed to support:
+- solo stylists
+- growing salons
+- booth renters
+- commission employees
+- assistants
+- receptionists
+- managers
+- marketers
+- accountants
+- enterprise salon groups
+- multi-location businesses
+
+The system must be:
+- scalable
+- secure
+- deeply customizable
+- permission-driven
+- easy to use
+- enterprise-grade
+- realtime-aware
+
+====================================================
+PRIMARY OBJECTIVES
+====================================================
+
+Build a powerful multi-user business management system where salon owners can:
+- invite staff members
+- assign roles
+- customize permissions
+- manage team access
+- control visibility
+- manage schedules
+- isolate financial access
+- remove team members safely
+
+The system must support:
+- role-based permissions
+- granular access control
+- future enterprise expansion
+
+====================================================
+IMPORTANT BUSINESS MODEL
+====================================================
+
+Each ACTIVE staff member consumes 1 paid seat.
+
+Examples:
+- Owner only = 1 seat
+- Owner + 3 stylists = 4 seats
+- Owner + assistant + marketer = 3 seats
+
+When adding staff:
+- verify available purchased seats
+- prompt billing upgrade if needed
+- sync seat quantity with Stripe subscription
+
+====================================================
+TEAM MEMBER TYPES
+====================================================
+
+Support multiple staff relationship models:
+
+- Owner
+- Manager
+- Assistant
+- Receptionist
+- Service Provider (commission)
+- Service Provider (self-employed)
+- Booth Renter
+- Marketer
+- Accountant
+- Inventory Manager
+- Multi-location Admin
+- Machine/Resource
+- Custom Roles
+
+====================================================
+DATABASE ARCHITECTURE
+====================================================
+
+Create normalized relational structure.
+
+====================================================
+TABLE: team_members
+====================================================
+
+Fields:
+- team_member_id
+- salon_id
+- user_id
+- first_name
+- last_name
+- email
+- phone
+- avatar_url
+- role_id
+- employment_type
+- status
+- commission_type
+- commission_rate
+- booth_renter
+- active
+- invited_at
+- joined_at
+- removed_at
+- created_at
+- updated_at
+
+====================================================
+TABLE: roles
+====================================================
+
+Fields:
+- role_id
+- salon_id
+- role_name
+- system_role
+- description
+- editable
+- created_at
+- updated_at
+
+====================================================
+TABLE: permissions
+====================================================
+
+Fields:
+- permission_id
+- permission_key
+- permission_group
+- description
+
+====================================================
+TABLE: role_permissions
+====================================================
+
+Fields:
+- role_permission_id
+- role_id
+- permission_id
+- allowed
+- created_at
+
+====================================================
+TABLE: team_member_permission_overrides
+====================================================
+
+Allows custom permissions per individual.
+
+Fields:
+- override_id
+- team_member_id
+- permission_id
+- allowed
+- created_at
+
+====================================================
+CORE PERMISSION SYSTEM
+====================================================
+
+Implement FULL granular permissions system.
+
+NOT simple admin/user roles.
+
+Permissions must be modular and extensible.
+
+====================================================
+CALENDAR PERMISSIONS
+====================================================
+
+Support:
+- View & Edit Own Calendar
+- View Only Own Calendar
+- No Calendar Access
+- View Team Calendars
+- Edit Team Calendars
+
+====================================================
+CLIENT PERMISSIONS
+====================================================
+
+Support:
+- No Access
+- View Clients
+- Edit Clients
+- Delete Clients
+- Export Clients
+- Import Clients
+
+====================================================
+BOOKING PERMISSIONS
+====================================================
+
+Support:
+- Create Appointments
+- Edit Appointments
+- Cancel Appointments
+- Override Booking Rules
+- Access Waitlists
+
+====================================================
+PAYMENT & CHECKOUT PERMISSIONS
+====================================================
+
+Support:
+- Checkout Clients
+- Process Payments
+- View Transactions
+- Issue Refunds
+- Apply Discounts
+- Void Transactions
+
+CRITICAL:
+Refund permissions must be tightly controlled.
+
+====================================================
+REPORTS & ANALYTICS PERMISSIONS
+====================================================
+
+Support:
+- No Access
+- View Own Reports
+- View Team Reports
+- View Full Salon Reports
+- Export Reports
+
+====================================================
+MARKETING PERMISSIONS
+====================================================
+
+Support:
+- SMS Campaigns
+- Email Campaigns
+- Social Campaign Access
+- Review Requests
+- Client Segmentation
+
+====================================================
+BUSINESS SETTINGS PERMISSIONS
+====================================================
+
+Support:
+- Manage Salon Website
+- Edit Business Details
+- Edit Booking Rules
+- Edit Payment Settings
+- Edit Notifications
+- Edit Subscription Settings
+
+====================================================
+TEAM MANAGEMENT PERMISSIONS
+====================================================
+
+Support:
+- Invite Team Members
+- Remove Team Members
+- Edit Roles
+- Manage Permissions
+- Assign Seats
+- Edit Working Hours
+
+====================================================
+INVENTORY & RETAIL PERMISSIONS
+====================================================
+
+Support:
+- Manage Inventory
+- Manage Retail Products
+- Edit Pricing
+- View Stock Reports
+
+====================================================
+PAYROLL / COMMISSION SUPPORT
+====================================================
+
+Prepare architecture for:
+- commission tracking
+- booth rental tracking
+- payroll exports
+- revenue splits
+- tip reporting
+
+====================================================
+CUSTOM ROLE BUILDER
+====================================================
+
+Salon owners must be able to:
+- create custom roles
+- duplicate roles
+- customize permissions
+- save templates
+
+====================================================
+ROLE PRESETS
+====================================================
+
+Provide default role templates:
+- Owner
+- Manager
+- Assistant
+- Receptionist
+- Marketer
+- Accountant
+- Stylist
+- Booth Renter
+
+====================================================
+TEAM INVITATION FLOW
+====================================================
+
+Flow:
+1. Owner invites team member
+2. Email invitation sent
+3. Team member creates account
+4. Permissions assigned
+5. Seat count validated
+6. User joins salon
+
+====================================================
+SEAT ENFORCEMENT
+====================================================
+
+CRITICAL:
+Salon cannot exceed purchased seats.
+
+If seat limit reached:
+- block invite
+- show upgrade prompt
+- display seat usage clearly
+
+====================================================
+TEAM MEMBER PROFILE PAGE
+====================================================
+
+Each team member should have:
+- profile photo
+- bio
+- services offered
+- schedule
+- permissions
+- commission settings
+- performance metrics
+- contact info
+
+====================================================
+WORKING HOURS MANAGEMENT
+====================================================
+
+Support:
+- recurring schedules
+- time off
+- breaks
+- location assignments
+- service availability
+
+====================================================
+MULTI-LOCATION SUPPORT
+====================================================
+
+Future-proof architecture for:
+- location-specific permissions
+- multi-location staff
+- location managers
+- regional admins
+
+====================================================
+STAFF REMOVAL FLOW
+====================================================
+
+When removing staff:
+- optionally reassign appointments
+- optionally cancel appointments
+- preserve historical records
+- preserve reports
+- revoke access immediately
+
+====================================================
+IMPORTANT SECURITY REQUIREMENTS
+====================================================
+
+Implement:
+- strict permission validation
+- backend authorization checks
+- audit logging
+- permission inheritance
+- permission caching
+- role validation
+- invite expiration
+- session invalidation on removal
+
+====================================================
+AUDIT LOGGING
+====================================================
+
+Track:
+- permission changes
+- role changes
+- team invites
+- removals
+- refund actions
+- access changes
+- failed permission attempts
+
+====================================================
+DATABASE PERFORMANCE
+====================================================
+
+Optimize for:
+- large salons
+- fast permission checks
+- realtime calendar loading
+- fast role queries
+- websocket efficiency
+
+Implement:
+- indexing
+- Redis caching
+- permission caching
+- optimized joins
+
+====================================================
+REALTIME FEATURES
+====================================================
+
+Use WebSockets for:
+- new team invites
+- permission updates
+- schedule changes
+- appointment changes
+- team activity updates
+
+====================================================
+UI / UX REQUIREMENTS
+====================================================
+
+UI should feel:
+- premium SaaS
+- modern
+- polished
+- intuitive
+- enterprise-grade
+
+Avoid:
+- old admin-panel styling
+- cluttered permission tables
+- confusing workflows
+
+====================================================
+TEAM MANAGEMENT DASHBOARD
+====================================================
+
+Salon owner dashboard should show:
+- active seats used
+- available seats
+- pending invites
+- role summaries
+- permission overview
+- staff status
+- staff schedules
+
+====================================================
+FRONTEND REQUIREMENTS
+====================================================
+
+Build:
+- team directory
+- invite modal
+- role editor
+- permissions matrix
+- schedule editor
+- team profile pages
+- seat management displays
+- staff search/filtering
+
+====================================================
+API REQUIREMENTS
+====================================================
+
+Build APIs for:
+- invite team member
+- remove team member
+- update role
+- update permissions
+- fetch permission matrix
+- manage schedules
+- validate seats
+- assign locations
+- revoke access
+
+====================================================
+ABUSE PREVENTION
+====================================================
+
+Prevent:
+- privilege escalation
+- unauthorized refunds
+- unauthorized exports
+- hidden admin creation
+- bypassing seat limits
+- stale session access
+- role tampering
+
+====================================================
+FUTURE EXPANSION SUPPORT
+====================================================
+
+Architecture must support future:
+- payroll integrations
+- commission automation
+- enterprise organizations
+- franchise systems
+- advanced HR features
+- biometric clock-ins
+- AI productivity insights
+
+====================================================
+DELIVERABLES
+====================================================
+
+Build:
+- database schema
+- migrations
+- RBAC engine
+- permission middleware
+- role management UI
+- invitation system
+- seat validation system
+- schedule management
+- audit logging
+- websocket events
+- admin dashboards
+- profile management
+- permission caching
+- testing coverage
+
+====================================================
+FINAL GOAL
+====================================================
+
+Develop a fully-featured salon team management infrastructure that:
+- scales from solo stylist to enterprise salon
+- provides enterprise-grade permissions
+- protects sensitive business operations
+- integrates tightly with billing
+- feels modern and effortless
+- supports future platform expansion cleanly
