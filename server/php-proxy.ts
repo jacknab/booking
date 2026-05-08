@@ -45,7 +45,13 @@ function waitForPhpReady(maxMs = 10_000): Promise<void> {
 }
 
 export function startPhpServer(): void {
-  phpProcess = spawn("php", ["-S", `${PHP_HOST}:${PHP_PORT}`, "router.php"], {
+  phpProcess = spawn("php", [
+    "-d", "upload_max_filesize=55M",
+    "-d", "post_max_size=60M",
+    "-d", "memory_limit=256M",
+    "-S", `${PHP_HOST}:${PHP_PORT}`,
+    "router.php",
+  ], {
     cwd: phpDir,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env },

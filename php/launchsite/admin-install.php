@@ -639,7 +639,7 @@ step('✅', "Source at <code>artifacts/template-$tid/</code>");
 // ── 4. Configure Vite + package.json ─────────────────────────────────────────
 step('⚙️', 'Writing <code>vite.config.ts</code> with correct base path and output directory…');
 
-$vite_out_rel = '../../launchsite-php/templates/' . $tid;
+$vite_out_rel = '../../launchsite/templates/' . $tid;
 file_put_contents($dest_dir . '/vite.config.ts', <<<VITE
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'

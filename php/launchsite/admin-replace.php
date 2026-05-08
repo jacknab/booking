@@ -328,7 +328,7 @@ $built_dir      = __DIR__ . '/templates/' . $template_id;
 $thumbs_dir     = __DIR__ . '/assets/img/thumbs';
 $templates_file = __DIR__ . '/data/templates.php';
 $base_path_url  = '/launchsite/templates/' . $template_id . '/';
-$vite_out_rel   = '../../launchsite-php/templates/' . $template_id;
+$vite_out_rel   = '../../launchsite/templates/' . $template_id;
 
 $pnpm = trim(shell_exec('which pnpm 2>/dev/null') ?: '');
 if (!$pnpm || !file_exists($pnpm)) $pnpm = '/home/runner/.nix-profile/bin/pnpm';
