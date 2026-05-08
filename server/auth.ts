@@ -64,28 +64,45 @@ export function setupAuth(app: Express) {
 
   app.get(
     "/api/auth/google/callback",
-    passport.authenticate("google", { session: false, failureRedirect: "/login" }),
-    (req: Request, res: Response) => {
+    passport.authenticate("google", { session: false, failureRedirect: "/auth" }),
+    async (req: Request, res: Response) => {
       console.log("Google OAuth: Callback received, user:", (req.user as any)?.email);
-      if (req.user) {
-        (req.session as any).userId = (req.user as any).id;
-        if ((req.session as any).pendingKiosk) {
-          req.session.cookie.maxAge = KIOSK_MAX_AGE;
-          delete (req.session as any).pendingKiosk;
-          console.log("Google OAuth: Kiosk mode enabled (10-year session)");
-        }
-        req.session.save((err) => {
-          if (err) {
-            console.error("Session save error:", err);
-            return res.redirect("/login");
-          }
-          console.log("Google OAuth: User logged in successfully, redirecting to /");
-          res.redirect("/");
-        });
-      } else {
+      if (!req.user) {
         console.error("Google OAuth: No user in request");
-        res.redirect("/login");
+        return res.redirect("/auth");
       }
+
+      const user = req.user as any;
+      (req.session as any).userId = user.id;
+
+      if ((req.session as any).pendingKiosk) {
+        req.session.cookie.maxAge = KIOSK_MAX_AGE;
+        delete (req.session as any).pendingKiosk;
+        console.log("Google OAuth: Kiosk mode enabled (10-year session)");
+      }
+
+      // Ensure trial is set up for new Google sign-in users
+      const needsTrial = !user.trialStartedAt && !user.subscriptionStatus;
+      if (needsTrial || user.subscriptionStatus === null) {
+        try {
+          await TrialService.setupTrialForUser(user.id);
+          console.log("Google OAuth: Trial set up for new user", user.email);
+        } catch (err) {
+          console.warn("Google OAuth: Trial setup failed (may already exist):", err);
+        }
+      }
+
+      // Determine redirect target
+      const redirectTarget = user.onboardingCompleted ? "/manage" : "/onboarding";
+      console.log(`Google OAuth: Redirecting new/returning user to ${redirectTarget}`);
+
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.redirect("/auth");
+        }
+        res.redirect(redirectTarget);
+      });
     }
   );
 
@@ -376,16 +393,21 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 };
 
 export const isAdminAuthenticated: RequestHandler = async (req, res, next) => {
-  // For development, allow access with a simple admin key or session
-  const adminKey = req.headers['x-admin-key'];
   const userId = (req.session as any)?.userId;
-  
-  // Allow access if either:
-  // 1. User is authenticated via session
-  // 2. Admin key is provided (for development/testing)
-  if (userId || adminKey === 'dev-admin-key-2024') {
-    return next();
+  if (!userId) {
+    return res.status(401).json({ message: "Admin access required" });
   }
-  
-  return res.status(401).json({ message: "Admin access required" });
+
+  try {
+    const { users } = await import("@shared/models/auth");
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+    const [user] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ message: "Forbidden — platform admin access required" });
+    }
+    return next();
+  } catch {
+    return res.status(500).json({ message: "Auth check failed" });
+  }
 };

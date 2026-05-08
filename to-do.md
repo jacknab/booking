@@ -9,10 +9,10 @@
 - [x] **Fix: Add-on IDs silently dropped on public bookings** — The `/api/public/store/:slug/book` endpoint ignores `addonIds` sent by the client. Add-ons selected by the customer are never saved. Fixed by adding `addonIds` to the booking schema and calling `storage.setAppointmentAddons()` post-create.
 - [x] **Fix: Email reminder scheduler is a stub** — `startEmailReminderScheduler()` in `server/mail.ts` was an empty function. Implemented a real 5-minute interval scheduler that mirrors the SMS reminder scheduler, sending reminder and review-request emails.
 - [x] **Fix: Password reset flow missing** — No "Forgot Password" flow existed. Added `POST /api/auth/forgot-password` and `POST /api/auth/reset-password` routes with secure token generation, a `password_reset_tokens` DB table, and frontend pages at `/forgot-password` and `/reset-password`.
-- [ ] **Fix: SMS opt-out not honored** — "Reply STOP" is in SMS templates but there is no Twilio inbound webhook. Add a `POST /api/webhooks/twilio/incoming` route that updates a `sms_opt_outs` table and skips future messages to opted-out numbers.
-- [ ] **Fix: No cancellation window enforcement** — Clients can cancel right up to appointment time. Add a `cancellation_hours_cutoff` field to `locations` (default 24h) and enforce it on the public cancel endpoint.
-- [ ] **Fix: Admin auth uses a hardcoded dev key** — `isAdminAuthenticated` checks for `x-admin-key: dev-admin-key-2024`. Replace with a proper `role: 'admin'` flag on the `users` table.
-- [ ] **Fix: Google OAuth sign-up flow incomplete** — The callback and token exchange exist but new-user creation via Google is not wired end-to-end. Complete the Google sign-in → account creation → onboarding redirect flow.
+- [x] **Fix: SMS opt-out not honored** — Added `sms_opt_outs` table, opt-out check in `sendSms()`, and `POST /api/webhooks/twilio/incoming` webhook that handles STOP/UNSTOP keywords.
+- [x] **Fix: No cancellation window enforcement** — Added `cancellation_hours_cutoff` to `locations` table (default 24h), enforced on public cancel endpoint, and added Cancellation Policy UI to BusinessSettings.
+- [x] **Fix: Admin auth uses a hardcoded dev key** — Added `is_admin` boolean to `users` table. `isAdminAuthenticated` now checks `user.isAdmin === true`. Hardcoded dev key removed.
+- [x] **Fix: Google OAuth sign-up flow incomplete** — Callback now calls `TrialService.setupTrialForUser()` for new users and redirects to `/onboarding` or `/manage` based on `onboardingCompleted`.
 
 ---
 
@@ -73,7 +73,7 @@
 ## PHASE 5 — Inventory & Retail
 
 - [ ] **POS auto-depletes stock** — Selling a product in the POS decrements `products.stock` automatically.
-- [ ] **Low stock alerts** — In-app and email alert when stock drops below a configurable threshold.
+- [x] **Low stock alerts** — Added `low_stock_threshold` column to `products` table. `Products.tsx` now shows amber/red alert banners and per-card badges when stock ≤ threshold.
 - [ ] **Product barcode scanning** — Scan a barcode with the device camera (JS barcode library) to add a product to a POS ticket.
 - [ ] **Vendor / purchase orders** — Create POs, track received quantities, update stock on receipt.
 
@@ -83,7 +83,7 @@
 
 - [ ] **Service packages** — Sell a bundle (e.g., "10 haircuts for $180") that depletes with each visit.
 - [ ] **Monthly memberships** — Recurring Stripe subscription for unlimited or discounted services.
-- [ ] **Loyalty points** — Clients earn points per dollar spent, redeemable for discounts.
+- [x] **Loyalty points (auto-earn)** — 1 pt per $1 awarded automatically when appointment is marked completed. `loyaltyTransactions` row inserted and `customers.loyaltyPoints` incremented. Redemption at POS still pending.
 
 ---
 
@@ -139,7 +139,7 @@
 
 ## PHASE 11 — Technical Debt & Infrastructure
 
-- [ ] **Rate limiting on public endpoints** — Add `express-rate-limit` to all `/api/public/` routes.
+- [x] **Rate limiting on public endpoints** — Added `express-rate-limit` to `/api/auth` (10/min) and `/api/public` + `/api/book` (60/min) in `server/index.ts`.
 - [ ] **Pagination on all list endpoints** — `/api/appointments`, `/api/customers`, `/api/products` — add `page` and `limit` query params.
 - [ ] **React Error Boundaries** — Wrap the calendar and POS in error boundaries so one uncaught error doesn't crash the whole app.
 - [ ] **WebSockets for real-time calendar** — Use the already-installed `ws` package to push appointment changes to all connected clients.

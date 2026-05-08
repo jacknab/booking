@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("owner"), // "owner" | "manager" | "staff" (legacy: "admin" treated as owner)
+  isAdmin: boolean("is_admin").notNull().default(false), // Platform-level superadmin flag — gates /isadmin/* routes
   staffId: integer("staff_id"), // Link to staff table if role is staff
   permissions: jsonb("permissions").$type<Record<string, boolean>>(), // Per-user permission overrides. Sparse — null/missing keys fall back to role defaults.
   onboardingCompleted: boolean("onboarding_completed").default(false),

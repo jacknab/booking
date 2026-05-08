@@ -49,7 +49,7 @@
 | Email / password registration | ✅ | `server/auth.ts` + bcrypt |
 | Email / password login | ✅ | Session-based, `keepSignedIn` option |
 | Google OAuth login (Sign in with Google) | ✅ | Passport.js · `GOOGLE_CLIENT_ID` required |
-| Google OAuth callback | ✅ | Redirects through `/auth/google/callback` |
+| Google OAuth callback | ✅ | New users → `TrialService.setupTrialForUser()` → `/onboarding`; returning users → `/manage` |
 | Staff login (separate flow) | ✅ | `/staff-auth` page · PIN or password |
 | Staff calendar access (PIN-based) | ✅ | Enable/disable per-staff from admin |
 | Password reset (email link) | ✅ | Token table · `forgot-password` + `reset-password` pages |
@@ -60,6 +60,7 @@
 | `<Can>` permission component | ✅ | Fine-grained UI gating per permission key |
 | Team management UI | ✅ | `/team` page · assign roles & permissions per staff member |
 | AI Chatbot API (key-protected) | ✅ | `server/chatbot.ts` · lookup / confirm / cancel / reschedule via REST |
+| Platform admin auth (`isAdmin` flag) | ✅ | `is_admin` boolean on `users` table · `isAdminAuthenticated` checks DB, no hardcoded keys |
 
 ---
 
@@ -77,7 +78,7 @@
 | Banner dismiss (per-session) | ✅ | Dismissible for non-expired tiers; re-appears when urgency tier increases |
 | Reactivation on Stripe payment | ✅ | `invoice.payment_succeeded` webhook re-activates account |
 | Admin trial controls | ✅ | Extend trial · reset trial · activate subscription per user |
-| Trial email reminders (30/7/1 day) | 🔲 | Not built — email service needs Mailgun key |
+| Trial email reminders (30/7/1 day) | ✅ | `server/services/trial-reminders.ts` · hourly scheduler · 30/7/1-day Mailgun emails |
 
 ---
 
@@ -182,7 +183,7 @@
 | Product catalog (CRUD) | ✅ | `Products.tsx` · name · brand · price · stock |
 | Stock tracking | ✅ | Stock level per product |
 | Products sold via POS | ✅ | Products appear in POS interface |
-| Low-stock alerts | 🔲 | No threshold alert or notification yet |
+| Low-stock alerts | ✅ | `lowStockThreshold` column on products · alert banners in `Products.tsx` · badge per card |
 | Supplier / purchase order management | 🔲 | Not started |
 
 ---
@@ -215,7 +216,7 @@
 | SMS log (view) | ✅ | `GET /api/sms-log/:storeId` |
 | Outbound dialer (voice) | ✅ | `server/dialer.ts` · Twilio voice calls for confirmations · DTMF response |
 | Twilio credentials | 🟡 | Must be set per-store in admin settings (not global env) |
-| Two-way SMS (inbound) | 🔲 | No inbound webhook to handle customer replies |
+| Two-way SMS (inbound STOP/UNSTOP) | ✅ | `POST /api/webhooks/twilio/incoming` · `sms_opt_outs` table · `sendSms()` checks opt-out before sending |
 
 ---
 
@@ -245,7 +246,7 @@
 | Auth URL generation | ✅ | `GET /api/google-business/auth-url` |
 | OAuth callback + token storage | ✅ | `POST /api/google-business/callback` |
 | Location list & connect | ✅ | `POST /api/google-business/locations` + `connect-location` |
-| Sync Google reviews | ✅ | `POST /api/google-business/sync-reviews/:storeId` |
+| Sync Google reviews | ✅ | `POST /api/google-business/sync-reviews/:storeId` · also auto-syncs every 6 hours via scheduler |
 | View reviews | ✅ | `GoogleReviewsManager.tsx` · star filter · sort |
 | Draft review response | ✅ | `ReviewResponseDialog.tsx` · draft saved to DB |
 | Publish response to Google | ✅ | `POST /api/google-business/review-response/:id/publish` |
@@ -284,7 +285,7 @@
 |------|--------|-------|
 | Loyalty transactions (view) | ✅ | `Loyalty.tsx` · per-customer point history |
 | Manual point adjustment | ✅ | `POST /api/loyalty/adjust` |
-| Auto-earn on appointment completion | 🔲 | Points not automatically awarded on checkout |
+| Auto-earn on appointment completion | ✅ | Awards 1 pt per $1 paid when appointment marked completed · `loyaltyTransactions` row inserted |
 | Point redemption at POS | 🔲 | No redemption flow in POS interface |
 | Loyalty program settings | 🔲 | No UI to configure earn rate / redemption rate |
 
@@ -412,10 +413,11 @@
 | Date / time slot picker | ✅ | Real-time availability |
 | Customer info collection | ✅ | Name · phone · email |
 | Booking confirmation page | ✅ | `BookingConfirmation.tsx` · confirmation number |
-| Appointment cancel (customer self-serve) | ✅ | `POST /api/appointments/confirmation/:num/cancel` |
+| Appointment cancel (customer self-serve) | ✅ | `POST /api/appointments/confirmation/:num/cancel` · enforces `cancellationHoursCutoff` window |
+| Cancellation policy settings | ✅ | `CancellationSettings` component in BusinessSettings · per-store cutoff (0–168h) |
 | Appointment reschedule (customer self-serve) | 🔲 | Cancel works · reschedule link not provided to customer |
 | Payment collection at booking | 🔲 | No card-on-file or deposit at booking time |
-| Google Calendar / iCal add | 🔲 | No "Add to calendar" button on confirmation page |
+| Google Calendar / iCal add | ✅ | `BookingConfirmation.tsx` — "Google Calendar" link + "Download .ics" button |
 
 ---
 
@@ -510,7 +512,7 @@
 | Redis / distributed cache | 🔲 | Currently in-process only · multi-instance not supported |
 | Background job queue | 🔲 | No BullMQ / pg-boss — schedulers are in-process |
 | Health check endpoint | 🟡 | `GET /api/version` exists · no dedicated `/health` with DB ping |
-| Rate limiting | 🔲 | No rate limiting on auth or public endpoints |
+| Rate limiting | ✅ | `express-rate-limit` · auth 10/min · public/book 60/min · prod-only |
 
 ---
 
@@ -521,25 +523,18 @@
 |------|-----|
 | Set production secrets (`STRIPE_SECRET_KEY`, `MAILGUN_API_KEY`, `GOOGLE_CLIENT_SECRET`) | Blocks billing, email, and Google integration in production |
 | Generate SEO regional pages | `client/public/regions/` is empty — no SEO pages live yet |
-| Trial expiry email reminders (30 / 7 / 1 day) | Users have no warning outside the in-app banner |
-| Loyalty — auto-earn points on appointment checkout | Core loyalty feature is manual-only right now |
+| Recurring appointments | Frequently requested by salon owners |
 | Loyalty — redemption at POS | Earned points can't be spent |
 | Loyalty — program settings (earn rate, tiers) | No config UI |
-| Recurring appointments | Frequently requested by salon owners |
 
 ### Medium Priority
 | Item | Why |
 |------|-----|
 | Customer self-service portal | Customers can't log in to reschedule/cancel |
 | Payment at booking (deposit / card-on-file) | Reduces no-shows |
-| "Add to calendar" on booking confirmation | Standard customer expectation |
-| Google Reviews auto-sync (scheduled) | Manual sync is inconvenient |
 | Invoice PDF export (Pro) | Core for field service billing |
 | Invoice Stripe payment link (Pro) | Enables online payment collection |
-| Low-stock inventory alerts | Prevents running out of retail products |
 | Staff performance KPIs (utilization, no-show rate) | Management reporting |
-| Two-way SMS (handle STOP / customer replies) | Legal compliance + UX |
-| Rate limiting on auth and public endpoints | Security hardening |
 | Blog (real posts) | SEO and content marketing |
 
 ### Lower Priority

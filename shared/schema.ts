@@ -114,6 +114,7 @@ export const locations = pgTable("locations", {
   yelpAlias: text("yelp_alias"),
   facebookPageId: text("facebook_page_id"),
   lateGracePeriodMinutes: integer("late_grace_period_minutes").notNull().default(10),
+  cancellationHoursCutoff: integer("cancellation_hours_cutoff").notNull().default(24),
   posEnabled: boolean("pos_enabled").notNull().default(true),
   // Phase 9.1 — sandbox stores are practice clones. All side-effects
   // (SMS, email, Stripe, webhooks) short-circuit when storeId points here.
@@ -257,6 +258,7 @@ export const products = pgTable("products", {
   brand: text("brand"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").default(0),
+  lowStockThreshold: integer("low_stock_threshold").default(5),
   category: text("category"),
   storeId: integer("store_id").references(() => locations.id),
 });
@@ -611,6 +613,16 @@ export const loyaltyTransactions = pgTable("loyalty_transactions", {
   points: integer("points").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === SMS OPT-OUTS ===
+
+export const smsOptOuts = pgTable("sms_opt_outs", {
+  id: serial("id").primaryKey(),
+  phone: text("phone").notNull().unique(),
+  optedOutAt: timestamp("opted_out_at").defaultNow(),
+  optedBackInAt: timestamp("opted_back_in_at"),
+  isOptedOut: boolean("is_opted_out").notNull().default(true),
 });
 
 // === PRO HUB TABLES ===

@@ -1559,6 +1559,33 @@ If you have any questions, please contact your administrator.
             customerName,
             amount: parseFloat(String(input.totalPaid)),
           });
+
+          // Auto-award loyalty points (1 pt per $1 spent, rounded)
+          try {
+            const totalPaidNum = parseFloat(String(input.totalPaid));
+            if (totalPaidNum > 0) {
+              const full = await storage.getAppointment(appointment.id);
+              const customerId = full?.customerId ?? (full as any)?.customer?.id;
+              if (customerId) {
+                const pointsEarned = Math.round(totalPaidNum);
+                await db.insert(loyaltyTransactions).values({
+                  storeId: appointment.storeId,
+                  customerId,
+                  appointmentId: appointment.id,
+                  type: "earn",
+                  points: pointsEarned,
+                  description: `Earned for appointment #${appointment.id} ($${totalPaidNum.toFixed(2)})`,
+                });
+                const [cust] = await db.select({ loyaltyPoints: customers.loyaltyPoints })
+                  .from(customers).where(eq(customers.id, customerId)).limit(1);
+                const newTotal = (cust?.loyaltyPoints ?? 0) + pointsEarned;
+                await db.update(customers).set({ loyaltyPoints: newTotal }).where(eq(customers.id, customerId));
+                console.log(`[Loyalty] Awarded ${pointsEarned} pts to customer ${customerId}`);
+              }
+            }
+          } catch (loyaltyErr) {
+            console.error("[Loyalty] Auto-earn error:", loyaltyErr);
+          }
         } else if (input.status === "cancelled") {
           broadcastNotification({
             type: "appointment_cancelled",
@@ -2577,6 +2604,18 @@ If you have any questions, please contact your administrator.
         return res.status(404).json({ message: "Booking not found" });
       }
 
+      // Enforce cancellation window cutoff
+      const cutoffHours = (store as any).cancellationHoursCutoff ?? 24;
+      if (cutoffHours > 0) {
+        const hoursUntilAppointment = (new Date(appointment.date).getTime() - Date.now()) / 3600_000;
+        if (hoursUntilAppointment < cutoffHours) {
+          return res.status(409).json({
+            message: `Cancellations must be made at least ${cutoffHours} hour${cutoffHours === 1 ? "" : "s"} in advance.`,
+            cutoffHours,
+          });
+        }
+      }
+
       if (appointment.status !== "cancelled") {
         await storage.updateAppointment(appointment.id, {
           status: "cancelled",
@@ -2594,6 +2633,45 @@ If you have any questions, please contact your administrator.
     } catch (error) {
       console.error("Confirmation cancel error:", error);
       res.status(400).json({ message: "Failed to cancel booking" });
+    }
+  });
+
+  // === TWILIO INBOUND SMS WEBHOOK (handles STOP / UNSTOP opt-out) ===
+  app.post("/api/webhooks/twilio/incoming", async (req, res) => {
+    try {
+      const { From: fromRaw = "", Body: bodyRaw = "" } = req.body ?? {};
+      const phone = (fromRaw as string).replace(/\D/g, "");
+      const keyword = (bodyRaw as string).trim().toUpperCase().split(/\s+/)[0];
+
+      if (!phone) return res.status(400).send("Missing From");
+
+      const { smsOptOuts } = await import("@shared/schema");
+
+      if (["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"].includes(keyword)) {
+        await db.insert(smsOptOuts)
+          .values({ phone, isOptedOut: true })
+          .onConflictDoUpdate({
+            target: smsOptOuts.phone,
+            set: { isOptedOut: true, optedOutAt: new Date(), optedBackInAt: null },
+          });
+        console.log(`[TwilioWebhook] SMS opt-out recorded for ${phone}`);
+      } else if (["START", "UNSTOP", "YES"].includes(keyword)) {
+        await db.insert(smsOptOuts)
+          .values({ phone, isOptedOut: false, optedBackInAt: new Date() })
+          .onConflictDoUpdate({
+            target: smsOptOuts.phone,
+            set: { isOptedOut: false, optedBackInAt: new Date() },
+          });
+        console.log(`[TwilioWebhook] SMS opt-in recorded for ${phone}`);
+      }
+
+      // Twilio expects TwiML response — send empty response
+      res.set("Content-Type", "text/xml");
+      res.send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
+    } catch (err) {
+      console.error("[TwilioWebhook] Error:", err);
+      res.set("Content-Type", "text/xml");
+      res.send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
     }
   });
 
@@ -5621,6 +5699,37 @@ If you have any questions, please contact your administrator.
 
   // Start the queue smart SMS scheduler
   startQueueSmsScheduler();
+
+  // Start trial reminder emails (30 / 7 / 1 day before expiry)
+  const { startTrialReminderScheduler } = await import("./services/trial-reminders.js");
+  startTrialReminderScheduler();
+
+  // Start Google Reviews auto-sync (every 6 hours for all connected stores)
+  (async function startGoogleReviewsAutoSync() {
+    const syncAll = async () => {
+      try {
+        const { googleBusinessProfiles } = await import("@shared/schema");
+        const connectedProfiles = await db
+          .select({ storeId: googleBusinessProfiles.storeId })
+          .from(googleBusinessProfiles)
+          .where(isNotNull(googleBusinessProfiles.accessToken));
+        let synced = 0;
+        for (const { storeId } of connectedProfiles) {
+          if (!storeId) continue;
+          try {
+            await syncGoogleReviews(storeId);
+            synced++;
+          } catch {}
+        }
+        if (synced > 0) console.log(`[GoogleReviews] Auto-synced ${synced} store(s)`);
+      } catch (err) {
+        console.error("[GoogleReviews] Auto-sync error:", err);
+      }
+    };
+    setTimeout(syncAll, 30_000); // first run 30s after boot
+    setInterval(syncAll, 6 * 60 * 60 * 1000); // every 6 hours
+    console.log("[GoogleReviews] Auto-sync scheduler started (6-hour interval)");
+  })();
 
   return httpServer;
 }

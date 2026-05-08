@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CreditCard, ShoppingCart } from "lucide-react";
+import { Save, ChevronLeft, ChevronRight, Calendar as CalendarIcon, CreditCard, ShoppingCart, Clock } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -433,6 +433,70 @@ function StripePaymentsSettings({ store }: { store: Store }) {
   );
 }
 
+function CancellationSettings({ store }: { store: Store }) {
+  const { toast } = useToast();
+  const [hours, setHours] = useState<string>(
+    String((store as any).cancellationHoursCutoff ?? 24)
+  );
+
+  const updateStore = useMutation({
+    mutationFn: async (cancellationHoursCutoff: number) => {
+      const res = await apiRequest("PATCH", `/api/stores/${store.id}`, { cancellationHoursCutoff });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stores", store.id] });
+      toast({ title: "Cancellation policy saved" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save cancellation policy.", variant: "destructive" });
+    },
+  });
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-semibold">Cancellation Policy</h2>
+      </div>
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="cancellation-cutoff">Minimum notice required to cancel (hours)</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="cancellation-cutoff"
+                type="number"
+                min="0"
+                max="168"
+                className="w-32"
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+              />
+              <span className="text-sm text-muted-foreground">hours before appointment</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Customers cannot cancel online within this window. Set to 0 to allow cancellations at any time.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            disabled={updateStore.isPending}
+            onClick={() => {
+              const val = parseInt(hours, 10);
+              if (!isNaN(val) && val >= 0) updateStore.mutate(val);
+            }}
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save Policy
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function POSSettings({ store }: { store: Store }) {
   const { toast } = useToast();
 
@@ -729,6 +793,7 @@ export default function BusinessSettings() {
       </div>
       <div className="space-y-8">
         <BusinessProfile store={store} />
+        <CancellationSettings store={store} />
         <POSSettings store={store} />
         <StripePaymentsSettings store={store} />
         <BusinessHoursEditor store={store} />

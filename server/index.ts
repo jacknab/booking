@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express, { type Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { subdomainMiddleware } from "./middleware/subdomain";
@@ -120,6 +121,27 @@ app.use(
   }),
 );
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+// --- Rate Limiting ---
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." },
+  skip: (req) => process.env.NODE_ENV !== "production",
+});
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." },
+  skip: (req) => process.env.NODE_ENV !== "production",
+});
+app.use("/api/auth", authLimiter);
+app.use("/api/public", publicLimiter);
+app.use("/api/book", publicLimiter);
+
 app.use(subdomainMiddleware);
 
 // --- PHP Site Proxy (certxa.com root pages, template catalog, assets) ---

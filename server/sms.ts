@@ -44,6 +44,27 @@ export async function sendSms(
   appointmentId?: number,
   customerId?: number
 ): Promise<{ success: boolean; sid?: string; error?: string; skipped?: boolean }> {
+  // Normalize phone number and check SMS opt-out list
+  const normalizedPhone = phone.replace(/\D/g, "");
+  if (normalizedPhone.length >= 10) {
+    try {
+      const { smsOptOuts } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and } = await import("drizzle-orm");
+      const [optOut] = await db
+        .select({ isOptedOut: smsOptOuts.isOptedOut })
+        .from(smsOptOuts)
+        .where(and(eq(smsOptOuts.phone, normalizedPhone), eq(smsOptOuts.isOptedOut, true)))
+        .limit(1);
+      if (optOut?.isOptedOut) {
+        console.log(`[SMS] Skipping opted-out number ${normalizedPhone}`);
+        return { success: true, skipped: true };
+      }
+    } catch (err) {
+      console.warn("[SMS] Opt-out check failed:", err);
+    }
+  }
+
   // Phase 9.2 — practice-mode short-circuit. Sandbox stores must never send
   // real SMS to real phones. We log to the SMS log so trainees can still see
   // their action "happened" in-app.
