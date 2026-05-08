@@ -14,10 +14,12 @@ export function MobileBottomNav() {
   const { pathname } = useLocation();
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-50 md:hidden flex items-stretch"
+      className={cn(
+        "fixed bottom-0 inset-x-0 z-50 md:hidden flex items-stretch",
+        "bg-background border-t border-border",
+        "dark:bg-[#0f172a] dark:border-white/[0.07]"
+      )}
       style={{
-        backgroundColor: "#0f172a",
-        borderTop: "1px solid rgba(255,255,255,0.07)",
         height: "calc(56px + env(safe-area-inset-bottom, 0px))",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
@@ -32,14 +34,26 @@ export function MobileBottomNav() {
           >
             {active && (
               <span className="absolute top-0 inset-x-0 flex justify-center">
-                <span className="w-5 h-[2px] rounded-full bg-white/80" />
+                <span className="w-5 h-[2px] rounded-full bg-primary dark:bg-white/80" />
               </span>
             )}
             <Icon
-              className={cn("w-[22px] h-[22px]", active ? "text-white" : "text-white/55")}
+              className={cn(
+                "w-[22px] h-[22px] transition-colors",
+                active
+                  ? "text-primary dark:text-white"
+                  : "text-muted-foreground dark:text-white/55"
+              )}
               strokeWidth={active ? 2.2 : 1.7}
             />
-            <span className={cn("text-[10px] font-medium leading-none", active ? "text-white" : "text-white/55")}>
+            <span
+              className={cn(
+                "text-[10px] font-medium leading-none transition-colors",
+                active
+                  ? "text-primary dark:text-white"
+                  : "text-muted-foreground dark:text-white/55"
+              )}
+            >
               {label}
             </span>
           </Link>

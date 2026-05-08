@@ -1,58 +1,33 @@
 import { useEffect, useState, useCallback } from "react";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark";
 
 const THEME_STORAGE_KEY = "theme-preference";
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
-  // Initialize theme from localStorage or system preference
   useEffect(() => {
-    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-    
-    if (storedTheme && ["light", "dark", "system"].includes(storedTheme)) {
-      setThemeState(storedTheme);
+    const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
+    if (stored === "dark" || stored === "light") {
+      setThemeState(stored);
     } else {
-      setThemeState("system");
+      // Default to light — write it so subsequent loads are instant
+      localStorage.setItem(THEME_STORAGE_KEY, "light");
+      setThemeState("light");
     }
-    
     setMounted(true);
   }, []);
 
-  // Apply theme to document
   useEffect(() => {
     if (!mounted) return;
-
-    const applyTheme = () => {
-      const html = document.documentElement;
-      let effectiveTheme = theme;
-
-      if (theme === "system") {
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        effectiveTheme = prefersDark ? "dark" : "light";
-      }
-
-      if (effectiveTheme === "dark") {
-        html.classList.add("dark");
-      } else {
-        html.classList.remove("dark");
-      }
-    };
-
-    applyTheme();
-
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      if (theme === "system") {
-        applyTheme();
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    const html = document.documentElement;
+    if (theme === "dark") {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
   }, [theme, mounted]);
 
   const setTheme = useCallback((newTheme: Theme) => {
@@ -61,13 +36,8 @@ export function useTheme() {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : theme === "light" ? "system" : "dark");
+    setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
 
-  return {
-    theme,
-    setTheme,
-    toggleTheme,
-    mounted,
-  };
+  return { theme, setTheme, toggleTheme, mounted };
 }
