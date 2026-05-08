@@ -73,6 +73,54 @@ const allowedCorsOrigins = (rawCorsOrigins ? rawCorsOrigins.split(",") : default
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+// --- CORS Origin Validation ---
+// Runs once at startup to catch misconfigured origins early.
+(function validateCorsOrigins() {
+  if (allowAllCorsOrigins) return; // CORS_ALLOW_ALL bypasses the list entirely
+
+  for (const origin of allowedCorsOrigins) {
+    const tag = `[CORS] Warning: origin "${origin}"`;
+
+    // Must start with https:// (or http:// for localhost/local dev)
+    const hasProtocol = origin.startsWith("https://") || origin.startsWith("http://");
+    if (!hasProtocol) {
+      console.warn(`${tag} is missing a protocol (expected https:// or http://). It will never match a browser Origin header.`);
+      continue; // remaining checks need a valid protocol, skip them
+    }
+
+    // No trailing slash — browsers send origins without one
+    if (origin.endsWith("/")) {
+      console.warn(`${tag} has a trailing slash. Remove it; browsers omit the trailing slash in the Origin header.`);
+    }
+
+    // No path component — origin is scheme + host (+ optional port) only
+    try {
+      const url = new URL(origin);
+      if (url.pathname !== "/") {
+        console.warn(`${tag} contains a path ("${url.pathname}"). Origins must be scheme + host only (no path).`);
+      }
+      if (url.search) {
+        console.warn(`${tag} contains a query string. Origins must be scheme + host only.`);
+      }
+      if (url.hash) {
+        console.warn(`${tag} contains a hash fragment. Origins must be scheme + host only.`);
+      }
+    } catch {
+      console.warn(`${tag} is not a valid URL and will never match.`);
+    }
+
+    // Warn on plain http:// for non-localhost origins in production
+    if (
+      process.env.NODE_ENV === "production" &&
+      origin.startsWith("http://") &&
+      !origin.includes("localhost") &&
+      !origin.includes("127.0.0.1")
+    ) {
+      console.warn(`${tag} uses http:// in production. Use https:// for all non-local origins.`);
+    }
+  }
+})();
+
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);

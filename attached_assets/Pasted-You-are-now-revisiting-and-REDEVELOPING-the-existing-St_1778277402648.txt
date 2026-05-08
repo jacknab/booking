@@ -1,0 +1,312 @@
+You are now revisiting and REDEVELOPING the existing Staff Login / Staff Portal system for Certxa SalonOS.
+
+IMPORTANT:
+A previous staff login system already exists but it is incomplete and poorly structured.
+
+Current issue:
+- staff can log in
+- BUT the actual mobile calendar experience is missing or disconnected
+- the staff portal does not properly use the fully developed mobile booking/calendar system already built into the platform
+
+Your task is to REFACTOR and REBUILD the staff-facing experience correctly using the EXISTING mobile calendar infrastructure.
+
+DO NOT create a second separate calendar system.
+
+Reuse and adapt the existing mobile booking/calendar architecture.
+
+====================================================
+PRIMARY OBJECTIVE
+====================================================
+
+Create a polished staff-facing mobile/tablet scheduling experience where each staff member:
+
+- logs into their own account
+- automatically sees THEIR OWN calendar
+- only sees data allowed by permissions
+- can manage appointments based on permissions
+- receives realtime updates
+- has a mobile-first experience
+
+The system should feel like:
+- GlossGenius Teams
+- Square Appointments Staff
+- Fresha Staff Portal
+
+====================================================
+CRITICAL ARCHITECTURE REQUIREMENT
+====================================================
+
+DO NOT build:
+- duplicate calendars
+- separate booking logic
+- separate appointment systems
+
+Instead:
+- reuse the EXISTING booking engine
+- reuse the EXISTING mobile calendar UI
+- reuse the EXISTING appointment APIs
+- reuse the EXISTING realtime websocket infrastructure
+
+This is a permission-filtered presentation layer built on top of the existing system.
+
+====================================================
+STAFF LOGIN FLOW
+====================================================
+
+Flow:
+1. Staff member logs in
+2. Backend identifies:
+   - salon
+   - staff account
+   - permissions
+3. System loads:
+   - ONLY their assigned appointments
+   - ONLY permitted client information
+   - ONLY permitted actions
+4. Mobile calendar dashboard opens automatically
+
+====================================================
+STAFF DASHBOARD EXPERIENCE
+====================================================
+
+The staff landing page after login MUST be:
+- the mobile calendar view
+- NOT a generic admin dashboard
+- NOT analytics-heavy
+- NOT settings-heavy
+
+Primary focus:
+- today’s schedule
+- upcoming appointments
+- quick appointment management
+
+====================================================
+MOBILE-FIRST REQUIREMENTS
+====================================================
+
+The entire experience must:
+- use the already-built mobile booking/calendar UI
+- be touch optimized
+- work beautifully on phones
+- work on tablets
+- support PWA behavior if available
+
+Most staff users will use:
+- iPhones
+- Android phones
+- salon tablets
+
+====================================================
+CALENDAR FILTERING
+====================================================
+
+CRITICAL:
+Staff users should ONLY see appointments assigned to them unless permissions allow broader access.
+
+Examples:
+- stylist sees only their appointments
+- receptionist sees everyone’s appointments
+- manager may see entire salon
+- assistant may have read-only access
+
+Filtering MUST happen:
+- backend-side
+- websocket-side
+- frontend-side
+
+NEVER rely only on frontend filtering.
+
+====================================================
+PERMISSION ENFORCEMENT
+====================================================
+
+Permissions must control:
+- view appointments
+- edit appointments
+- move appointments
+- cancel appointments
+- create appointments
+- edit blocked time
+- manage availability
+- access client notes
+- access financial details
+
+====================================================
+REALTIME CALENDAR UPDATES
+====================================================
+
+Use existing websocket infrastructure.
+
+Staff calendar should update instantly for:
+- new bookings
+- cancellations
+- reschedules
+- blocked time changes
+- reassigned appointments
+
+====================================================
+STAFF MOBILE CALENDAR FEATURES
+====================================================
+
+Staff should be able to:
+- view day/week schedule
+- tap appointments
+- view appointment details
+- message clients (if permitted)
+- call clients (if permitted)
+- check in clients (if permitted)
+- mark appointments complete
+- add notes
+- block time
+- request time off
+
+====================================================
+CLIENT DATA VISIBILITY
+====================================================
+
+Staff should ONLY see client data allowed by permissions.
+
+Examples:
+- basic client info
+- appointment notes
+- formulas/history
+- spending history
+- phone/email access
+
+Salon owner controls all visibility.
+
+====================================================
+SIMPLIFIED STAFF NAVIGATION
+====================================================
+
+Staff UI should be simplified compared to owner dashboard.
+
+Hide:
+- advanced billing
+- subscription settings
+- analytics
+- Stripe settings
+- admin configuration
+
+Unless permissions allow access.
+
+====================================================
+STAFF SESSION EXPERIENCE
+====================================================
+
+Implement:
+- persistent login
+- mobile session handling
+- secure auth tokens
+- biometric-ready auth preparation
+- fast session restoration
+
+====================================================
+STAFF HOME SCREEN
+====================================================
+
+Home screen should prioritize:
+1. Current appointment
+2. Next appointment
+3. Today’s schedule
+4. Quick actions
+5. Notifications
+
+====================================================
+NOTIFICATIONS
+====================================================
+
+Integrate with existing notification system.
+
+Support:
+- new appointment alerts
+- cancellation alerts
+- reschedule alerts
+- reminder alerts
+
+====================================================
+PERFORMANCE REQUIREMENTS
+====================================================
+
+The staff calendar experience must:
+- load quickly
+- avoid unnecessary queries
+- avoid loading unrelated salon data
+- minimize websocket noise
+- feel instant on mobile
+
+====================================================
+BACKEND REQUIREMENTS
+====================================================
+
+Update APIs to support:
+- scoped appointment queries
+- permission-based filtering
+- lightweight mobile responses
+- optimized mobile payloads
+
+====================================================
+SECURITY REQUIREMENTS
+====================================================
+
+CRITICAL:
+Staff users MUST NEVER be able to:
+- access unauthorized appointments
+- query hidden salon data
+- bypass permission restrictions
+- modify restricted records
+
+All authorization must be enforced server-side.
+
+====================================================
+REFRACTOR REQUIREMENTS
+====================================================
+
+Review existing codebase and:
+- remove duplicated logic
+- consolidate calendar rendering
+- unify mobile/desktop calendar systems where possible
+- eliminate conflicting routes/components
+- reuse existing mobile components
+
+====================================================
+UI / UX REQUIREMENTS
+====================================================
+
+The staff experience should feel:
+- lightweight
+- premium
+- modern
+- fast
+- clean
+- appointment-focused
+
+Avoid:
+- clutter
+- desktop-heavy layouts
+- admin complexity
+
+====================================================
+TESTING REQUIREMENTS
+====================================================
+
+Test:
+- multiple permission combinations
+- multi-staff salons
+- realtime updates
+- mobile responsiveness
+- websocket synchronization
+- appointment isolation
+- permission enforcement
+
+====================================================
+FINAL GOAL
+====================================================
+
+Redevelop the Staff Login and Staff Calendar system into a true mobile-first staff scheduling experience that:
+- fully reuses the existing mobile booking/calendar system
+- properly isolates each staff member’s calendar
+- respects permissions
+- works beautifully on phones/tablets
+- feels like a real professional salon staff app
+- scales cleanly as the platform grows
