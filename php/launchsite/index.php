@@ -25,6 +25,10 @@ foreach ($all_templates as $t) {
 }
 arsort($style_counts);
 $chip_styles = array_keys($style_counts);
+
+// Shelf data
+$popular_templates = array_values(array_filter($all_templates, fn($t) => ($t['badge'] ?? '') === 'popular'));
+$new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['badge'] ?? '') === 'new'));
 ?>
 
 <!-- HERO -->
@@ -103,6 +107,104 @@ $chip_styles = array_keys($style_counts);
         </p>
     </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════
+     POPULAR & NEW SHELVES
+     (hidden while search/filter is active)
+     ═══════════════════════════════════════════════ -->
+<div id="shelves">
+
+    <?php if (!empty($popular_templates)): ?>
+    <!-- ── Popular this week ── -->
+    <section class="shelf-section">
+        <div class="container">
+            <div class="shelf-header">
+                <div class="shelf-heading">
+                    <span class="shelf-icon" aria-hidden="true">🔥</span>
+                    <div>
+                        <h2 class="shelf-title">Popular this week</h2>
+                        <p class="shelf-sub">The designs customers are choosing most right now</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="template-grid">
+                <?php foreach ($popular_templates as $index => $t):
+                    $thumb = BASE_PATH . '/assets/img/thumbs/' . urlencode($t['id']) . '.jpg';
+                    $preview_url = BASE_PATH . '/preview.php?id=' . urlencode($t['id']);
+                    $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
+                ?>
+                <div class="template-card" style="transition-delay:<?php echo $index * 60; ?>ms">
+                    <a href="<?php echo $preview_url; ?>" class="template-card__thumb-link">
+                        <div class="template-card__thumb">
+                            <span class="template-card__badge badge--popular">Popular</span>
+                            <img src="<?php echo $thumb; ?>" alt="<?php echo htmlspecialchars($t['name']); ?>" class="template-card__img" loading="lazy">
+                            <div class="result-cat-tag"><?php echo htmlspecialchars($t['category']); ?></div>
+                        </div>
+                    </a>
+                    <div class="template-card__body">
+                        <div class="result-meta"><span class="result-style-tag"><?php echo htmlspecialchars($t['style']); ?></span></div>
+                        <h3 class="template-card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
+                        <div class="template-card__actions">
+                            <a href="<?php echo $preview_url; ?>" class="tc-btn tc-btn--preview">Preview</a>
+                            <a href="<?php echo $start_url; ?>"   class="tc-btn tc-btn--start">Start</a>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (!empty($new_templates)): ?>
+    <!-- ── Recently added ── -->
+    <section class="shelf-section shelf-section--new">
+        <div class="container">
+            <div class="shelf-header">
+                <div class="shelf-heading">
+                    <span class="shelf-icon" aria-hidden="true">✨</span>
+                    <div>
+                        <h2 class="shelf-title">Recently added</h2>
+                        <p class="shelf-sub">Fresh designs just landed in the catalogue</p>
+                    </div>
+                </div>
+                <span class="shelf-new-count"><?php echo count($new_templates); ?> new designs</span>
+            </div>
+        </div>
+
+        <!-- Full-bleed horizontal scroll -->
+        <div class="shelf-scroll-outer">
+            <div class="shelf-scroll-track">
+                <?php foreach ($new_templates as $index => $t):
+                    $thumb = BASE_PATH . '/assets/img/thumbs/' . urlencode($t['id']) . '.jpg';
+                    $preview_url = BASE_PATH . '/preview.php?id=' . urlencode($t['id']);
+                    $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
+                ?>
+                <div class="shelf-card" style="transition-delay:<?php echo $index * 40; ?>ms">
+                    <a href="<?php echo $preview_url; ?>" class="shelf-card__thumb-link">
+                        <div class="shelf-card__thumb">
+                            <span class="shelf-card__badge">New</span>
+                            <img src="<?php echo $thumb; ?>" alt="<?php echo htmlspecialchars($t['name']); ?>" class="shelf-card__img" loading="lazy">
+                            <div class="shelf-card__cat"><?php echo htmlspecialchars($t['category']); ?></div>
+                        </div>
+                    </a>
+                    <div class="shelf-card__body">
+                        <span class="shelf-card__style"><?php echo htmlspecialchars($t['style']); ?></span>
+                        <h3 class="shelf-card__name"><?php echo htmlspecialchars($t['name']); ?></h3>
+                        <div class="shelf-card__actions">
+                            <a href="<?php echo $preview_url; ?>" class="tc-btn tc-btn--preview">Preview</a>
+                            <a href="<?php echo $start_url; ?>"   class="tc-btn tc-btn--start">Start</a>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+</div><!-- /#shelves -->
 
 <!-- CATEGORY CARDS (hidden while searching) -->
 <section class="categories-section" id="categories">
@@ -186,6 +288,7 @@ $chip_styles = array_keys($style_counts);
     var searchClear   = document.getElementById('search-clear');
     var chipsEl       = document.getElementById('filter-chips');
     var resultsSection= document.getElementById('search-results');
+    var shelvesEl     = document.getElementById('shelves');
     var categoriesSec = document.getElementById('categories');
     var resultsGrid   = document.getElementById('results-grid');
     var resultsCount  = document.getElementById('results-count');
@@ -239,10 +342,12 @@ $chip_styles = array_keys($style_counts);
 
         if (!isActive) {
             resultsSection.hidden = true;
+            if (shelvesEl)     shelvesEl.removeAttribute('style');
             categoriesSec.removeAttribute('style');
             return;
         }
 
+        if (shelvesEl)     shelvesEl.style.display = 'none';
         categoriesSec.style.display = 'none';
 
         var filtered = TEMPLATES.filter(function (t) {
@@ -259,7 +364,6 @@ $chip_styles = array_keys($style_counts);
         } else {
             resultsEmpty.hidden = true;
             resultsGrid.innerHTML = filtered.map(cardHtml).join('');
-            // Trigger entrance animation
             requestAnimationFrame(function () {
                 resultsGrid.querySelectorAll('.template-card').forEach(function (c) {
                     c.classList.add('in-view');
@@ -270,13 +374,11 @@ $chip_styles = array_keys($style_counts);
         resultsSection.hidden = false;
     }
 
-    // Search input
     searchInput.addEventListener('input', function () {
         searchQuery = this.value.trim();
         render();
     });
 
-    // Clear button
     function clearSearch() {
         searchInput.value = '';
         searchQuery = '';
@@ -291,7 +393,6 @@ $chip_styles = array_keys($style_counts);
     resultsClear.addEventListener('click', clearSearch);
     emptyClear.addEventListener('click', clearSearch);
 
-    // Chip filters
     chipsEl.addEventListener('click', function (e) {
         var chip = e.target.closest('.filter-chip');
         if (!chip) return;
@@ -300,6 +401,19 @@ $chip_styles = array_keys($style_counts);
             c.classList.toggle('is-active', c === chip);
         });
         render();
+    });
+
+    /* ── Animate shelf cards on scroll ── */
+    var shelfObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+                shelfObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.06 });
+    document.querySelectorAll('.shelf-card').forEach(function (c) {
+        shelfObserver.observe(c);
     });
 })();
 </script>

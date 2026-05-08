@@ -1900,3 +1900,196 @@ body {
     .filter-chips { gap: 6px; }
     .filter-chip { font-size: 0.75rem; padding: 5px 11px; }
 }
+
+/* ============================================================
+   POPULAR & NEW SHELVES
+   ============================================================ */
+.shelf-section {
+    padding: 52px 0 0;
+    background: var(--color-bg);
+}
+.shelf-section--new {
+    padding-bottom: 56px;
+}
+
+/* ── Shelf header row ── */
+.shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.75rem;
+    gap: 1rem;
+}
+.shelf-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.shelf-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.shelf-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-white);
+    letter-spacing: -0.02em;
+    margin: 0 0 3px;
+}
+.shelf-sub {
+    font-size: 0.82rem;
+    color: var(--color-text-faint);
+    margin: 0;
+}
+.shelf-new-count {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #22c55e;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 100px;
+    padding: 4px 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Horizontal scroll shelf ── */
+.shelf-scroll-outer {
+    /* break out of container for edge-to-edge feel */
+    width: 100%;
+    overflow: hidden;
+    padding-bottom: 6px;
+}
+.shelf-scroll-track {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 4px 24px 16px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139,92,246,0.3) transparent;
+}
+.shelf-scroll-track::-webkit-scrollbar {
+    height: 4px;
+}
+.shelf-scroll-track::-webkit-scrollbar-track { background: transparent; }
+.shelf-scroll-track::-webkit-scrollbar-thumb {
+    background: rgba(139,92,246,0.3);
+    border-radius: 100px;
+}
+
+/* ── Shelf card ── */
+.shelf-card {
+    flex-shrink: 0;
+    width: 272px;
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.09);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    scroll-snap-align: start;
+    transition: all var(--transition);
+    opacity: 0;
+    transform: translateY(12px);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.10);
+}
+.shelf-card.in-view {
+    opacity: 1;
+    transform: translateY(0);
+}
+.shelf-card:hover {
+    border-color: rgba(0,0,0,0.15);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.16);
+    transform: translateY(-4px);
+}
+
+.shelf-card__thumb-link {
+    display: block;
+    text-decoration: none;
+}
+.shelf-card__thumb {
+    position: relative;
+    height: 172px;
+    overflow: hidden;
+    background: linear-gradient(135deg,#1a1f3a,#0f1225);
+}
+.shelf-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    transition: transform 0.5s ease;
+}
+.shelf-card:hover .shelf-card__img {
+    transform: scale(1.04);
+}
+.shelf-card__badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-radius: 100px;
+    padding: 3px 9px;
+    background: linear-gradient(135deg,#059669,#047857);
+    color: white;
+}
+.shelf-card__cat {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.9);
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    border-radius: 100px;
+    padding: 2px 9px;
+}
+
+.shelf-card__body {
+    padding: 14px 16px 16px;
+    background: #ffffff;
+}
+.shelf-card__style {
+    display: inline-block;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-purple-light);
+    background: rgba(139,92,246,0.1);
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: 100px;
+    padding: 2px 8px;
+    margin-bottom: 6px;
+}
+.shelf-card__name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.shelf-card__actions {
+    display: flex;
+    gap: 8px;
+}
+
+@media (max-width: 640px) {
+    .shelf-title  { font-size: 1.1rem; }
+    .shelf-scroll-track { padding: 4px 16px 14px; }
+    .shelf-card   { width: 240px; }
+    .shelf-card__thumb { height: 148px; }
+}
