@@ -5,6 +5,7 @@ import {
   CreditCard, FileText, RefreshCw, XCircle, CheckCircle, Clock,
   AlertTriangle, Download, ExternalLink, ArrowLeft, Loader2, Zap,
   Shield, LifeBuoy, ChevronRight, Calendar, BarChart3, Pause, PlayCircle,
+  TrendingUp, TrendingDown, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,8 @@ export default function BillingPage({ salonId }: { salonId: number }) {
 
   const [cancelStep, setCancelStep] = useState<"idle" | "reason" | "confirm">("idle");
   const [cancelReason, setCancelReason] = useState("");
+  const [showPlanPicker, setShowPlanPicker] = useState(false);
+  const [selectedPlanCode, setSelectedPlanCode] = useState<string | null>(null);
 
   const sessionStatus = searchParams.get("status");
 
@@ -117,6 +120,27 @@ export default function BillingPage({ salonId }: { salonId: number }) {
 
   const stripeConfigured = stripeStatus?.configured ?? false;
 
+  const { data: allPlansData } = useQuery<{ plans: any[] }>({
+    queryKey: ["billing-plans"],
+    queryFn: () => apiFetch("/api/billing/plans"),
+    enabled: showPlanPicker,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: planPreview, isLoading: previewLoading } = useQuery<{
+    immediateChargeCents: number;
+    nextInvoiceCents: number;
+    currency: string;
+    lines: { description: string; amountCents: number }[];
+    newPlan: any;
+  }>({
+    queryKey: ["plan-preview", salonId, selectedPlanCode],
+    queryFn: () =>
+      apiFetch(`/api/billing/plan-preview/${salonId}?newPlanCode=${selectedPlanCode}&interval=month`),
+    enabled: !!selectedPlanCode && selectedPlanCode !== billing?.plan?.code && stripeConfigured,
+    retry: false,
+  });
+
   // ── Mutations ────────────────────────────────────────────────────────────────
 
   const portalMutation = useMutation({
@@ -129,6 +153,30 @@ export default function BillingPage({ salonId }: { salonId: number }) {
     onSuccess: ({ url }) => { window.location.href = url; },
     onError: (err: any) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const changePlanMutation = useMutation({
+    mutationFn: (newPlanCode: string) =>
+      apiFetch(`/api/billing/change-plan/${salonId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPlanCode, interval: "month", immediate: true }),
+      }),
+    onSuccess: (_data, newPlanCode) => {
+      queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
+      queryClient.invalidateQueries({ queryKey: ["billing-invoices", salonId] });
+      queryClient.invalidateQueries({ queryKey: ["plan-preview", salonId] });
+      setShowPlanPicker(false);
+      setSelectedPlanCode(null);
+      const allPlans = allPlansData?.plans ?? [];
+      const newPlan = allPlans.find((p) => p.code === newPlanCode);
+      toast({
+        title: "Plan updated",
+        description: `You've switched to the ${newPlan?.name ?? newPlanCode} plan.`,
+      });
+    },
+    onError: (err: any) =>
+      toast({ title: "Plan change failed", description: err.message, variant: "destructive" }),
   });
 
   const cancelMutation = useMutation({
@@ -208,6 +256,15 @@ export default function BillingPage({ salonId }: { salonId: number }) {
     : null;
 
   const planFeatures: string[] = plan?.featuresJson?.features ?? [];
+
+  const allPlans = allPlansData?.plans ?? [];
+  const selectedPlan = allPlans.find((p) => p.code === selectedPlanCode) ?? null;
+  const isUpgrade = selectedPlan && plan
+    ? Number(selectedPlan.priceCents) > Number(plan.priceCents)
+    : false;
+  const isDowngrade = selectedPlan && plan
+    ? Number(selectedPlan.priceCents) < Number(plan.priceCents)
+    : false;
 
   if (billingLoading) {
     return (
@@ -364,16 +421,24 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                   <Zap className="w-4 h-4 text-violet-400" />
                   Your Plan
                 </CardTitle>
-                {stripeConfigured && (
+                {plan && isActive && stripeConfigured && !showPlanPicker && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800 text-xs"
-                    onClick={() => portalMutation.mutate()}
-                    disabled={portalMutation.isPending}
+                    onClick={() => { setShowPlanPicker(true); setSelectedPlanCode(null); }}
                   >
-                    {portalMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
-                    Upgrade / Change
+                    Change Plan
+                  </Button>
+                )}
+                {showPlanPicker && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-zinc-400 hover:text-white text-xs"
+                    onClick={() => { setShowPlanPicker(false); setSelectedPlanCode(null); }}
+                  >
+                    Cancel
                   </Button>
                 )}
               </div>
@@ -381,9 +446,13 @@ export default function BillingPage({ salonId }: { salonId: number }) {
             <CardContent className="space-y-4">
               {plan ? (
                 <>
-                  <div className="bg-zinc-800/40 rounded-xl p-4 flex items-start justify-between gap-4">
+                  {/* Current plan summary */}
+                  <div className={`rounded-xl p-4 flex items-start justify-between gap-4 transition-colors ${showPlanPicker ? "bg-zinc-800/25 border border-zinc-700/40" : "bg-zinc-800/40"}`}>
                     <div>
-                      <p className="text-white font-bold text-lg capitalize">{plan.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-bold text-lg capitalize">{plan.name}</p>
+                        <span className="text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full">Current</span>
+                      </div>
                       {plan.description && (
                         <p className="text-zinc-500 text-xs mt-0.5">{plan.description}</p>
                       )}
@@ -393,7 +462,9 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                       <p className="text-zinc-500 text-xs">/ month</p>
                     </div>
                   </div>
-                  {planFeatures.length > 0 && (
+
+                  {/* Plan feature list (hidden while picker is open to save space) */}
+                  {!showPlanPicker && planFeatures.length > 0 && (
                     <div>
                       <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">Included features</p>
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -404,6 +475,187 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {/* ── Inline Plan Picker ─────────────────────────────────── */}
+                  {showPlanPicker && (
+                    <div className="space-y-4">
+                      <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">
+                        Select a new plan
+                      </p>
+
+                      {/* Plan cards grid */}
+                      {allPlans.length === 0 ? (
+                        <div className="flex items-center justify-center py-6">
+                          <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {allPlans.map((p) => {
+                            const isCurrent = p.code === plan?.code;
+                            const isSelected = p.code === selectedPlanCode;
+                            const higherTier = Number(p.priceCents) > Number(plan.priceCents);
+                            const lowerTier = Number(p.priceCents) < Number(plan.priceCents);
+
+                            return (
+                              <button
+                                key={p.code}
+                                disabled={isCurrent || changePlanMutation.isPending}
+                                onClick={() => setSelectedPlanCode(isCurrent ? null : p.code)}
+                                className={`text-left rounded-xl border p-3.5 transition-all ${
+                                  isCurrent
+                                    ? "border-violet-500/40 bg-violet-500/5 opacity-60 cursor-default"
+                                    : isSelected
+                                    ? "border-emerald-500/50 bg-emerald-500/8 ring-1 ring-emerald-500/30"
+                                    : "border-zinc-700/50 bg-zinc-800/30 hover:border-zinc-600 hover:bg-zinc-800/60"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`font-semibold text-sm capitalize ${isCurrent ? "text-violet-300" : "text-white"}`}>
+                                        {p.name}
+                                      </span>
+                                      {isCurrent && (
+                                        <span className="text-xs text-violet-400">Current</span>
+                                      )}
+                                      {!isCurrent && higherTier && (
+                                        <span className="text-xs text-emerald-400 flex items-center gap-0.5">
+                                          <TrendingUp className="w-3 h-3" /> Upgrade
+                                        </span>
+                                      )}
+                                      {!isCurrent && lowerTier && (
+                                        <span className="text-xs text-blue-400 flex items-center gap-0.5">
+                                          <TrendingDown className="w-3 h-3" /> Downgrade
+                                        </span>
+                                      )}
+                                    </div>
+                                    {p.description && (
+                                      <p className="text-zinc-500 text-xs mt-0.5 leading-relaxed line-clamp-2">{p.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <p className={`font-bold text-sm ${isCurrent ? "text-violet-400" : isSelected ? "text-emerald-400" : "text-white"}`}>
+                                      {formatCents(p.priceCents)}
+                                    </p>
+                                    <p className="text-zinc-600 text-xs">/mo</p>
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <div className="mt-2 flex items-center gap-1 text-emerald-400 text-xs font-medium">
+                                    <CheckCircle className="w-3 h-3" /> Selected
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Preview panel */}
+                      {selectedPlanCode && selectedPlanCode !== plan?.code && (
+                        <div className="border border-zinc-700/60 rounded-xl overflow-hidden">
+                          {/* Header */}
+                          <div className={`px-4 py-3 flex items-center gap-2 ${isUpgrade ? "bg-emerald-500/8 border-b border-emerald-500/20" : "bg-blue-500/8 border-b border-blue-500/20"}`}>
+                            {isUpgrade
+                              ? <TrendingUp className="w-4 h-4 text-emerald-400" />
+                              : <TrendingDown className="w-4 h-4 text-blue-400" />}
+                            <span className={`text-sm font-semibold ${isUpgrade ? "text-emerald-300" : "text-blue-300"}`}>
+                              {isUpgrade ? "Upgrade" : "Downgrade"} to {selectedPlan?.name}
+                            </span>
+                            <ArrowRight className="w-3.5 h-3.5 text-zinc-500 ml-auto" />
+                            <span className="text-white font-bold text-sm">{formatCents(selectedPlan?.priceCents)}/mo</span>
+                          </div>
+
+                          {/* Preview body */}
+                          <div className="p-4 bg-zinc-800/30 space-y-3">
+                            {previewLoading ? (
+                              <div className="flex items-center gap-2 text-zinc-500 text-sm py-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Calculating proration…
+                              </div>
+                            ) : planPreview ? (
+                              <>
+                                {isUpgrade && (
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-zinc-400">Charge today (prorated)</span>
+                                    <span className={`font-semibold ${planPreview.immediateChargeCents > 0 ? "text-amber-300" : "text-zinc-300"}`}>
+                                      {planPreview.immediateChargeCents > 0
+                                        ? formatCentsExact(planPreview.immediateChargeCents)
+                                        : "No charge"}
+                                    </span>
+                                  </div>
+                                )}
+                                {isDowngrade && (
+                                  <div className="flex items-center gap-2 text-xs text-blue-300 bg-blue-500/8 rounded-lg px-3 py-2">
+                                    <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                                    Downgrade takes effect at the start of your next billing period.{" "}
+                                    {periodEnd && `No change until ${format(periodEnd, "MMM d, yyyy")}.`}
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-zinc-400">New monthly total</span>
+                                  <span className="text-white font-bold">{formatCents(selectedPlan?.priceCents)}/mo</span>
+                                </div>
+                                {planPreview.lines?.length > 0 && (
+                                  <>
+                                    <Separator className="bg-zinc-700/50" />
+                                    <div className="space-y-1.5">
+                                      {planPreview.lines.map((line, i) => (
+                                        <div key={i} className="flex items-start justify-between gap-3 text-xs">
+                                          <span className="text-zinc-500 leading-relaxed">{line.description}</span>
+                                          <span className={`font-medium flex-shrink-0 ${line.amountCents < 0 ? "text-emerald-400" : "text-zinc-300"}`}>
+                                            {line.amountCents < 0 ? "−" : ""}{formatCentsExact(Math.abs(line.amountCents))}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-zinc-500 text-xs">
+                                {isUpgrade
+                                  ? "A prorated charge will be calculated based on your remaining billing period."
+                                  : "Your plan will change at the start of the next billing cycle."}
+                              </p>
+                            )}
+
+                            {/* Confirm button */}
+                            <div className="flex gap-2 pt-1">
+                              <Button
+                                size="sm"
+                                className={`flex-1 text-white ${isUpgrade ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}
+                                onClick={() => changePlanMutation.mutate(selectedPlanCode!)}
+                                disabled={changePlanMutation.isPending || previewLoading}
+                              >
+                                {changePlanMutation.isPending
+                                  ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                                  : isUpgrade
+                                  ? <TrendingUp className="w-4 h-4 mr-1.5" />
+                                  : <TrendingDown className="w-4 h-4 mr-1.5" />}
+                                Confirm {isUpgrade ? "Upgrade" : "Downgrade"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-zinc-400 hover:text-white"
+                                onClick={() => setSelectedPlanCode(null)}
+                                disabled={changePlanMutation.isPending}
+                              >
+                                Back
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {!selectedPlanCode && (
+                        <p className="text-zinc-600 text-xs text-center">
+                          Select a plan above to see pricing details and confirm.
+                        </p>
+                      )}
                     </div>
                   )}
                 </>
