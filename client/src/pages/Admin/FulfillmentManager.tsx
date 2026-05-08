@@ -146,7 +146,6 @@ export const FulfillmentManager: React.FC = () => {
     try {
       let printWin: Window | null = null;
       try { printWin = window.open('', '_blank'); } catch (_) { printWin = null; }
-      try { console.log('Buy & Print: requesting label for store', row.store_number); } catch (_) {}
       const res = await apiRequest('/admin/fulfillment/buy-label', {
         method: 'POST',
         body: JSON.stringify({

@@ -529,6 +529,31 @@ export async function registerRoutes(
     }
   });
 
+  // PATCH single store by ID for admin (update core fields)
+  app.patch("/api/admin/stores/:storeNumber", async (req, res) => {
+    try {
+      const id = parseInt(req.params.storeNumber);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid store ID" });
+
+      const allowedFields = ["name", "email", "phone", "address", "city", "state", "postcode", "category", "timezone"] as const;
+      const updates: Record<string, any> = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+
+      const [updated] = await db.update(locations).set(updates).where(eq(locations.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: "Store not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Admin store update error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // GET single store by ID for admin
   app.get("/api/admin/stores/:storeNumber", async (req, res) => {
     try {
@@ -4457,6 +4482,26 @@ If you have any questions, please contact your administrator.
     } catch (error) {
       console.error("Error cancelling subscription:", error);
       res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
+  // POST set password for a store's owner user (admin action)
+  app.post("/api/admin/stores/:storeNumber/set-password", async (req, res) => {
+    try {
+      const id = parseInt(req.params.storeNumber);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid store ID" });
+      const { password } = req.body;
+      if (!password || typeof password !== "string" || password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      const [store] = await db.select({ userId: locations.userId }).from(locations).where(eq(locations.id, id)).limit(1);
+      if (!store?.userId) return res.status(404).json({ message: "Store or owner not found" });
+      const hashed = await bcrypt.hash(password, 10);
+      await db.update(users).set({ password: hashed }).where(eq(users.id, store.userId));
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Admin set-password error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 

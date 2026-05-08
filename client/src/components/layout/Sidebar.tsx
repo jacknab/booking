@@ -145,7 +145,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
           <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onLinkClick}>
             <img src="/web-app.png" alt="Logo" className="h-6 w-6" />
-            <span>Booking System</span>
+            <span>Certxa</span>
           </Link>
         </div>
         

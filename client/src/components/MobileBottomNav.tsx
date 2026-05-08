@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { icon: CalendarDays, label: "Calendar",  to: "/calendar" },
   { icon: Users,        label: "Clients",   to: "/customers" },
-  { icon: ClipboardList,label: "Queue",     to: "/queue" },
+  { icon: ClipboardList,label: "Queue",     to: "/dashboard/queue" },
   { icon: Megaphone,    label: "Marketing", to: "/marketing" },
   { icon: Receipt,      label: "Checkout",  to: "/pos" },
 ];

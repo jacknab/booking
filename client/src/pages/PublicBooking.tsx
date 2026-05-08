@@ -1,4 +1,4 @@
-import { useSelectedStore } from "@/hooks/use-store";
+import { useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { StoreData } from "./public-booking/types";
@@ -6,23 +6,23 @@ import SimpleTheme from "./public-booking/SimpleTheme";
 import MobileTheme from "./public-booking/MobileTheme";
 import ClassicTheme from "./public-booking/ClassicTheme";
 
-interface PublicBookingProps {
-  params?: { slug?: string };
-}
+export default function PublicBooking() {
+  const { slug } = useParams<{ slug?: string }>();
 
-export default function PublicBooking({ params }: PublicBookingProps) {
-  const { selectedStore: store, isLoading: storeLoading } = useSelectedStore();
-  const slug = params?.slug;
+  // If accessed via slug URL, fetch store from public endpoint (no auth required)
+  const { data: slugStore, isLoading: slugLoading } = useQuery<StoreData>({
+    queryKey: [`/api/public/store/${slug}`],
+    enabled: !!slug,
+  });
 
   // If accessed via subdomain (no slug in URL), fetch store from subdomain endpoint
   const { data: subdomainStore, isLoading: subdomainLoading } = useQuery<StoreData>({
     queryKey: ["/api/store/by-subdomain"],
-    enabled: !slug, // Only fetch if no slug parameter
+    enabled: !slug,
   });
 
-  // Use slug-based store, then fall back to subdomain store, then fall back to selected store
-  const effectiveStore = slug ? store : (subdomainStore || store);
-  const isLoading = slug ? storeLoading : (slug ? false : subdomainLoading);
+  const effectiveStore = slug ? slugStore : subdomainStore;
+  const isLoading = slug ? slugLoading : subdomainLoading;
 
   if (isLoading) {
     return (

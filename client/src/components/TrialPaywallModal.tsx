@@ -25,7 +25,7 @@ export const TrialPaywallModal: React.FC<TrialPaywallModalProps> = ({
       onUpgrade();
     } else {
       // Navigate to billing page or open upgrade flow
-      window.location.href = '/billing';
+      window.location.href = '/manage/billing';
     }
   };
 

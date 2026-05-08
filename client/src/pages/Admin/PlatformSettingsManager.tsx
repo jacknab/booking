@@ -174,7 +174,6 @@ export const PlatformSettingsManager: React.FC = () => {
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Settings saved:', result);
         setIsEditMode(false);
         alert('Settings saved successfully');
       } else {

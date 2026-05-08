@@ -73,8 +73,8 @@ export const AdminDashboard: React.FC = () => {
         <Route path="/" element={<DashboardOverview 
           unpaidInvoicesCount={unpaidInvoicesCount}
           pastDueInvoicesCount={pastDueInvoicesCount}
-          onUnpaidInvoicesClick={() => navigate('/admin/invoices', { state: { filter: 'unpaid' } })}
-          onPastDueInvoicesClick={() => navigate('/admin/invoices', { state: { filter: 'past_due' } })}
+          onUnpaidInvoicesClick={() => navigate('/isadmin/invoices', { state: { filter: 'unpaid' } })}
+          onPastDueInvoicesClick={() => navigate('/isadmin/invoices', { state: { filter: 'past_due' } })}
         />} />
         <Route 
           path="/stock-items" 

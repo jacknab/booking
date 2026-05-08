@@ -44,9 +44,6 @@ export const SettingsManager: React.FC = () => {
         return;
       }
 
-      // For now, just simulate saving. In a real implementation, save to API
-      console.log('Saving settings:', settings);
-      
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
       
       // Clear message after 3 seconds

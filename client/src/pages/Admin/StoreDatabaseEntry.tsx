@@ -27,7 +27,6 @@ import {
   MessageSquare,
   Eye
 } from 'lucide-react';
-import { dbSingle, dbUpdate, dbSelect } from '../../services/db';
 
 interface StoreData {
   id: number;
@@ -294,8 +293,8 @@ export const StoreDatabaseEntry: React.FC = () => {
           const trial = await trialResponse.json();
           setTrialStatus(trial);
         }
-      } catch (err) {
-        console.log('Trial status not available');
+      } catch {
+        // Trial status not available for this store
       }
 
       // Fetch Analytics
@@ -309,8 +308,7 @@ export const StoreDatabaseEntry: React.FC = () => {
           const calculatedAnalytics = await calculateStoreAnalytics(storeData?.id);
           setAnalytics(calculatedAnalytics);
         }
-      } catch (err) {
-        console.log('Analytics not available, using calculated data');
+      } catch {
         const calculatedAnalytics = await calculateStoreAnalytics(storeData?.id);
         setAnalytics(calculatedAnalytics);
       }
@@ -344,8 +342,7 @@ export const StoreDatabaseEntry: React.FC = () => {
             });
           }
         }
-      } catch (err) {
-        console.log('Google Business Profile not available');
+      } catch {
         // Set default disconnected state
         setGoogleProfile({
           isConnected: false,
@@ -372,8 +369,22 @@ export const StoreDatabaseEntry: React.FC = () => {
   const saveChanges = async () => {
     if (!store) return;
     try {
-      // TODO: Implement actual save
-      console.log('Saving store:', store);
+      const response = await fetch(`/api/admin/stores/${store.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: store.name,
+          email: store.email,
+          phone: store.phone,
+          address: store.address,
+          city: store.city,
+          state: store.state,
+          postcode: store.postcode,
+          category: store.category,
+          timezone: store.timezone,
+        }),
+      });
+      if (!response.ok) throw new Error('Save failed');
       setIsEditMode(false);
       alert('Changes saved successfully');
     } catch (err) {

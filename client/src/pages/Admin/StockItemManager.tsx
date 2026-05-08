@@ -76,8 +76,6 @@ export const StockItemManager: React.FC<StockItemManagerProps> = ({
   }, []);
 
   const handleLiveUpdate = async (id: number, field: string, value: any) => {
-    // In a real application, you would send an update to your API
-    console.log(`Updating store ${id} with { ${field}: ${value} }`);
     setItems(items.map(item => 
       item.id === id ? { ...item, [field]: value } : item
     ));
@@ -326,7 +324,7 @@ export const StockItemManager: React.FC<StockItemManagerProps> = ({
         <div className="flex space-x-1 mr-2">
           <button 
             disabled={!selectedStoreId}
-            onClick={() => selectedStoreId && navigate(`/isAdmin/store-entry/${selectedStoreId}`)}
+            onClick={() => selectedStoreId && navigate(`/isadmin/store-entry/${selectedStoreId}`)}
             className={`px-8 py-1.5 border border-[#333333] flex items-center space-x-1.5 transition-all ${selectedStoreId ? 'bg-blue-700 hover:bg-blue-600 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
           >
             <Eye size={12} />

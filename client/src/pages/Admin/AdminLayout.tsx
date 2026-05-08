@@ -23,13 +23,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { path: '/isAdmin/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/isAdmin/stock-items', label: 'ACCOUNTS', icon: ShoppingBag },
-    { path: '/isAdmin/billing', label: 'BILLING', icon: CreditCard },
-    { path: '/isAdmin/billing/plans', label: 'PLANS', icon: Tag },
-    { path: '/isAdmin/services', label: 'Subscriptions', icon: Wrench },
-    { path: '/isAdmin/fulfillment', label: 'FULFILLMENT', icon: Package },
-    { path: '/isAdmin/platform-settings', label: 'PLATFORM SETTINGS', icon: Settings },
+    { path: '/isadmin/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/isadmin/stock-items', label: 'ACCOUNTS', icon: ShoppingBag },
+    { path: '/isadmin/billing', label: 'BILLING', icon: CreditCard },
+    { path: '/isadmin/billing/plans', label: 'PLANS', icon: Tag },
+    { path: '/isadmin/services', label: 'Subscriptions', icon: Wrench },
+    { path: '/isadmin/fulfillment', label: 'FULFILLMENT', icon: Package },
+    { path: '/isadmin/platform-settings', label: 'PLATFORM SETTINGS', icon: Settings },
   ];
 
   return (
@@ -83,7 +83,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Footer Actions */}
         <div className="border-t border-[#34495e] p-4">
           <Link
-            to="/isAdmin/settings"
+            to="/isadmin/settings"
             className="flex items-center gap-3 px-4 py-3 hover:bg-[#34495e] rounded transition-colors"
           >
             <Settings size={20} />

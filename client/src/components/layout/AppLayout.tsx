@@ -59,7 +59,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
             {/* Center: app name */}
             <span className="text-sm font-semibold tracking-tight text-foreground">
-              Booking System
+              Certxa
             </span>
 
             {/* Right: settings trigger */}
