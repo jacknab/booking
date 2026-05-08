@@ -21,9 +21,6 @@ import {
   stripeAvailable,
   getAccountStatus,
   adminUnlockAccount,
-  getSeatInfo,
-  previewSeatChange,
-  updateSeatQuantity,
 } from "../services/billing-service";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
@@ -262,60 +259,6 @@ router.post("/change-plan/:salonId", requireAuth, async (req: any, res: Response
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
-  }
-});
-
-// ─── Seat-Based Billing ───────────────────────────────────────────────────────
-
-// GET /api/billing/seats/:salonId
-router.get("/seats/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
-  try {
-    const data = await getSeatInfo(Number(req.params.salonId));
-    res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/billing/seats/:salonId/preview?quantity=N
-router.get("/seats/:salonId/preview", requireAuth, async (req: any, res: Response): Promise<void> => {
-  try {
-    if (!stripeAvailable()) {
-      res.status(503).json({ error: "Stripe is not configured." });
-      return;
-    }
-    const quantity = Number(req.query.quantity);
-    if (!quantity || quantity < 1) {
-      res.status(400).json({ error: "quantity must be a positive integer" });
-      return;
-    }
-    const data = await previewSeatChange(Number(req.params.salonId), quantity);
-    res.json(data);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// POST /api/billing/seats/:salonId
-router.post("/seats/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
-  try {
-    if (!stripeAvailable()) {
-      res.status(503).json({ error: "Stripe is not configured." });
-      return;
-    }
-    const { quantity } = req.body;
-    if (!quantity || Number(quantity) < 1) {
-      res.status(400).json({ error: "quantity must be a positive integer" });
-      return;
-    }
-    const data = await updateSeatQuantity({
-      salonId: Number(req.params.salonId),
-      newQuantity: Number(quantity),
-      userId: req.session.userId,
-    });
-    res.json(data);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
   }
 });
 

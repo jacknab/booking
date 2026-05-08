@@ -250,9 +250,9 @@ require 'includes/nav.php';
           'cta_class'   => 'btn-secondary',
           'features'    => [
             [true,  'Online booking page'],
-            [true,  'Up to 2 staff members'],
-            [true,  'Client profiles (up to 500)'],
-            [true,  'SMS & email reminders (250/mo)'],
+            [true,  'Unlimited staff members'],
+            [true,  'Unlimited client profiles'],
+            [true,  'SMS & email reminders (200/mo)'],
             [true,  'Basic website builder'],
             [true,  'Payments & card reader'],
             [true,  'iOS & Android app'],
@@ -277,8 +277,6 @@ require 'includes/nav.php';
           'cta_class'   => 'btn-primary',
           'features'    => [
             [true,  'Everything in Starter, plus:'],
-            [true,  'Unlimited staff members'],
-            [true,  'Unlimited client profiles'],
             [true,  'SMS & email reminders (unlimited)'],
             [true,  'Premium website builder + custom domain'],
             [true,  'Reserve With Google'],

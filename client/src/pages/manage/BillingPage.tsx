@@ -1,50 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CreditCard, FileText, RefreshCw, XCircle, CheckCircle, Clock,
   AlertTriangle, Download, ExternalLink, ArrowLeft, Loader2, Zap,
-  Users, Minus, Plus, TrendingUp, TrendingDown, Shield, LifeBuoy,
-  ChevronRight, DollarSign, Calendar, BarChart3, Pause, PlayCircle,
+  Shield, LifeBuoy, ChevronRight, Calendar, BarChart3, Pause, PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface SeatInfo {
-  purchasedSeats: number;
-  activeStaffCount: number;
-  pricePerSeatCents: number;
-  monthlyTotalCents: number;
-  atSeatLimit: boolean;
-  hasSubscription: boolean;
-  subscription: any;
-  profile: any;
-  stripeSeatData: {
-    status: string;
-    currentPeriodStart: string;
-    currentPeriodEnd: string;
-    cancelAtPeriodEnd: boolean;
-    upcomingInvoiceCents: number | null;
-    nextPaymentAttempt: string | null;
-  } | null;
-}
-
-interface SeatPreview {
-  currentQuantity: number;
-  newQuantity: number;
-  currentMonthlyCents: number;
-  newMonthlyCents: number;
-  proratedChargeCents: number;
-  immediateChargeCents: number;
-  nextInvoiceCents: number;
-  currency: string;
-}
 
 interface BillingData {
   profile: any;
@@ -117,42 +85,6 @@ const CANCEL_REASONS = [
   "Other",
 ];
 
-// ─── Seat Stepper ─────────────────────────────────────────────────────────────
-
-function SeatStepper({
-  value,
-  min,
-  max = 999,
-  onChange,
-}: {
-  value: number;
-  min: number;
-  max?: number;
-  onChange: (n: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-0">
-      <button
-        onClick={() => onChange(Math.max(min, value - 1))}
-        disabled={value <= min}
-        className="w-10 h-10 rounded-l-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        <Minus className="w-4 h-4" />
-      </button>
-      <div className="w-16 h-10 bg-zinc-800/80 border-y border-zinc-700 flex items-center justify-center text-white font-bold text-lg">
-        {value}
-      </div>
-      <button
-        onClick={() => onChange(Math.min(max, value + 1))}
-        disabled={value >= max}
-        className="w-10 h-10 rounded-r-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        <Plus className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function BillingPage({ salonId }: { salonId: number }) {
@@ -161,11 +93,8 @@ export default function BillingPage({ salonId }: { salonId: number }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [draftSeats, setDraftSeats] = useState<number | null>(null);
-  const [showSeatEditor, setShowSeatEditor] = useState(false);
   const [cancelStep, setCancelStep] = useState<"idle" | "reason" | "confirm">("idle");
   const [cancelReason, setCancelReason] = useState("");
-  const [showSupportForm, setShowSupportForm] = useState(false);
 
   const sessionStatus = searchParams.get("status");
 
@@ -174,12 +103,6 @@ export default function BillingPage({ salonId }: { salonId: number }) {
   const { data: billing, isLoading: billingLoading } = useQuery<BillingData>({
     queryKey: ["billing-profile", salonId],
     queryFn: () => apiFetch(`/api/billing/profile/${salonId}`),
-  });
-
-  const { data: seatInfo, isLoading: seatsLoading } = useQuery<SeatInfo>({
-    queryKey: ["billing-seats", salonId],
-    queryFn: () => apiFetch(`/api/billing/seats/${salonId}`),
-    refetchInterval: 30_000,
   });
 
   const { data: invoicesData } = useQuery<{ invoices: Invoice[] }>({
@@ -193,44 +116,8 @@ export default function BillingPage({ salonId }: { salonId: number }) {
   });
 
   const stripeConfigured = stripeStatus?.configured ?? false;
-  const activeSeat = draftSeats ?? seatInfo?.purchasedSeats ?? 1;
-  const minSeats = Math.max(1, seatInfo?.activeStaffCount ?? 1);
-
-  const { data: seatPreview, isFetching: previewLoading } = useQuery<SeatPreview>({
-    queryKey: ["seat-preview", salonId, draftSeats],
-    queryFn: () => apiFetch(`/api/billing/seats/${salonId}/preview?quantity=${draftSeats}`),
-    enabled: draftSeats !== null && draftSeats !== seatInfo?.purchasedSeats && stripeConfigured,
-    staleTime: 10_000,
-  });
-
-  useEffect(() => {
-    if (!showSeatEditor) {
-      setDraftSeats(null);
-    }
-  }, [showSeatEditor]);
 
   // ── Mutations ────────────────────────────────────────────────────────────────
-
-  const updateSeatsMutation = useMutation({
-    mutationFn: (quantity: number) =>
-      apiFetch(`/api/billing/seats/${salonId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity }),
-      }),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
-      setShowSeatEditor(false);
-      setDraftSeats(null);
-      toast({
-        title: "Seats updated",
-        description: `Now ${data.newQuantity} seats — ${formatCents(data.newMonthlyCents)}/month`,
-      });
-    },
-    onError: (err: any) =>
-      toast({ title: "Update failed", description: err.message, variant: "destructive" }),
-  });
 
   const portalMutation = useMutation({
     mutationFn: () =>
@@ -257,7 +144,6 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
       setCancelStep("idle");
       toast({
         title: "Cancellation scheduled",
@@ -277,7 +163,6 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
       toast({ title: "Subscription resumed", description: "Your cancellation has been reversed." });
     },
     onError: (err: any) =>
@@ -294,7 +179,6 @@ export default function BillingPage({ salonId }: { salonId: number }) {
     onSuccess: ({ paid }) => {
       queryClient.invalidateQueries({ queryKey: ["billing-invoices", salonId] });
       queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
       if (paid) toast({ title: "Payment successful", description: "Your invoice has been paid." });
       else toast({ title: "Payment failed", description: "The payment could not be processed.", variant: "destructive" });
     },
@@ -307,39 +191,25 @@ export default function BillingPage({ salonId }: { salonId: number }) {
   const sub = billing?.subscription;
   const profile = billing?.profile;
   const pm = billing?.paymentMethod;
-  const subStatus = seatInfo?.stripeSeatData?.status ?? sub?.status ?? profile?.currentSubscriptionStatus;
+  const plan = billing?.plan;
+
+  const subStatus = sub?.status ?? profile?.currentSubscriptionStatus;
   const statusCfg = getStatusConfig(subStatus);
-  const StatusIcon = statusCfg.icon;
 
   const isScheduledToCancel =
-    seatInfo?.stripeSeatData?.cancelAtPeriodEnd ??
-    sub?.cancelAtPeriodEnd === 1 ??
-    sub?.cancelAtPeriodEnd === true;
+    sub?.cancelAtPeriodEnd === 1 || sub?.cancelAtPeriodEnd === true;
 
   const isActive = subStatus === "active" || subStatus === "trialing";
   const isTrialing = subStatus === "trialing";
   const isPastDue = subStatus === "past_due";
 
-  const periodEnd = seatInfo?.stripeSeatData?.currentPeriodEnd
-    ? new Date(seatInfo.stripeSeatData.currentPeriodEnd)
-    : sub?.currentPeriodEnd
+  const periodEnd = sub?.currentPeriodEnd
     ? new Date(Number(sub.currentPeriodEnd) > 1e10 ? sub.currentPeriodEnd : Number(sub.currentPeriodEnd) * 1000)
     : null;
 
-  const periodStart = seatInfo?.stripeSeatData?.currentPeriodStart
-    ? new Date(seatInfo.stripeSeatData.currentPeriodStart)
-    : null;
+  const planFeatures: string[] = plan?.featuresJson?.features ?? [];
 
-  const seats = seatInfo?.purchasedSeats ?? 1;
-  const activeStaff = seatInfo?.activeStaffCount ?? 0;
-  const monthlyTotal = seatInfo?.monthlyTotalCents ?? seats * 800;
-  const pricePerSeat = seatInfo?.pricePerSeatCents ?? 800;
-
-  const seatsDraftChanged = draftSeats !== null && draftSeats !== seats;
-  const seatsIncreasing = draftSeats !== null && draftSeats > seats;
-  const seatsFillPct = Math.min(100, Math.round((activeStaff / seats) * 100));
-
-  if (billingLoading || seatsLoading) {
+  if (billingLoading) {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
         <div className="text-center space-y-3">
@@ -394,7 +264,9 @@ export default function BillingPage({ salonId }: { salonId: number }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-zinc-400 text-sm font-medium">SalonOS Professional</span>
+                <span className="text-zinc-400 text-sm font-medium capitalize">
+                  {plan?.name ?? "No Plan"} Plan
+                </span>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${statusCfg.cls}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                   {statusCfg.label}
@@ -408,12 +280,12 @@ export default function BillingPage({ salonId }: { salonId: number }) {
               </div>
               <div className="flex items-end gap-2 pt-1">
                 <span className="text-4xl font-bold text-white tracking-tight">
-                  {formatCents(monthlyTotal)}
+                  {formatCents(plan?.priceCents ?? 0)}
                 </span>
                 <span className="text-zinc-400 text-sm mb-1.5">/ month</span>
               </div>
               <p className="text-zinc-400 text-sm">
-                {seats} active seat{seats !== 1 ? "s" : ""} × {formatCentsExact(pricePerSeat)} per seat
+                {plan?.description ?? "Flat-rate tier plan"}
               </p>
             </div>
 
@@ -428,11 +300,11 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                   </p>
                 </div>
               )}
-              {seatInfo?.profile?.subscriptionStartedAt && (
+              {profile?.subscriptionStartedAt && (
                 <div className="text-right">
                   <p className="text-zinc-500 text-xs uppercase tracking-wider">Member since</p>
                   <p className="text-zinc-300 text-sm mt-0.5">
-                    {format(new Date(seatInfo.profile.subscriptionStartedAt), "MMMM yyyy")}
+                    {format(new Date(profile.subscriptionStartedAt), "MMMM yyyy")}
                   </p>
                 </div>
               )}
@@ -470,7 +342,7 @@ export default function BillingPage({ salonId }: { salonId: number }) {
           )}
           {isTrialing && (
             <div className="mt-4 bg-violet-500/8 border border-violet-500/20 rounded-lg p-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-violet-400 flex-shrink-0" />
+              <Zap className="w-4 h-4 text-violet-400" />
               <span className="text-violet-300 text-sm">
                 You're on a free trial.
                 {periodEnd && ` Your trial ends on ${format(periodEnd, "MMMM d, yyyy")}.`}
@@ -484,179 +356,78 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
 
-          {/* ── Staff Seat Management ─────────────────────────────────────────── */}
+          {/* ── Current Plan Tier ─────────────────────────────────────────────── */}
           <Card className="bg-zinc-900/70 border-zinc-700/50">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-white text-base flex items-center gap-2">
-                    <Users className="w-4 h-4 text-violet-400" />
-                    Staff Seats
-                  </CardTitle>
-                  <p className="text-zinc-500 text-xs mt-1">
-                    Each active staff member uses one seat · {formatCentsExact(pricePerSeat)}/seat/month
-                  </p>
-                </div>
-                {!showSeatEditor && isActive && stripeConfigured && (
+                <CardTitle className="text-white text-base flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-violet-400" />
+                  Your Plan
+                </CardTitle>
+                {stripeConfigured && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800 text-xs"
-                    onClick={() => { setShowSeatEditor(true); setDraftSeats(seats); }}
+                    onClick={() => portalMutation.mutate()}
+                    disabled={portalMutation.isPending}
                   >
-                    Manage Seats
+                    {portalMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+                    Upgrade / Change
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Seat usage bar */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">
-                    <span className="text-white font-semibold">{activeStaff}</span>
-                    {" "}of{" "}
-                    <span className="text-white font-semibold">{seats}</span>
-                    {" "}seats used
-                  </span>
-                  <span className={`text-xs font-medium ${seatsFillPct >= 90 ? "text-amber-400" : "text-zinc-500"}`}>
-                    {seatsFillPct}% full
-                  </span>
-                </div>
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      seatsFillPct >= 100 ? "bg-red-500" :
-                      seatsFillPct >= 80 ? "bg-amber-400" :
-                      "bg-violet-500"
-                    }`}
-                    style={{ width: `${seatsFillPct}%` }}
-                  />
-                </div>
-                {seatInfo?.atSeatLimit && (
-                  <div className="flex items-center gap-2 bg-amber-500/8 border border-amber-500/20 rounded-lg p-2.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <span className="text-amber-300 text-xs">
-                      You've reached your seat limit. Add more seats before inviting new staff.
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Seat editor */}
-              {showSeatEditor && (
-                <div className="border border-zinc-700/60 rounded-xl p-4 space-y-4 bg-zinc-800/30">
-                  <div className="flex items-center justify-between">
+            <CardContent className="space-y-4">
+              {plan ? (
+                <>
+                  <div className="bg-zinc-800/40 rounded-xl p-4 flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-white text-sm font-semibold">Adjust seat count</p>
-                      <p className="text-zinc-500 text-xs mt-0.5">
-                        Minimum {minSeats} (your active staff count)
-                      </p>
+                      <p className="text-white font-bold text-lg capitalize">{plan.name}</p>
+                      {plan.description && (
+                        <p className="text-zinc-500 text-xs mt-0.5">{plan.description}</p>
+                      )}
                     </div>
-                    <SeatStepper
-                      value={draftSeats ?? seats}
-                      min={minSeats}
-                      onChange={(n) => setDraftSeats(n)}
-                    />
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-violet-400 font-bold text-xl">{formatCents(plan.priceCents)}</p>
+                      <p className="text-zinc-500 text-xs">/ month</p>
+                    </div>
                   </div>
-
-                  {/* Pricing preview */}
-                  {seatsDraftChanged && (
-                    <div className="bg-zinc-800/60 rounded-lg p-3 space-y-2">
-                      {previewLoading ? (
-                        <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Calculating…
-                        </div>
-                      ) : seatPreview ? (
-                        <>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-zinc-400">Current</span>
-                            <span className="text-zinc-300">{formatCents(seatPreview.currentMonthlyCents)}/month</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm font-semibold">
-                            <span className="text-white flex items-center gap-1.5">
-                              {seatsIncreasing
-                                ? <TrendingUp className="w-4 h-4 text-emerald-400" />
-                                : <TrendingDown className="w-4 h-4 text-blue-400" />}
-                              New monthly total
-                            </span>
-                            <span className={seatsIncreasing ? "text-emerald-400" : "text-blue-400"}>
-                              {formatCents(seatPreview.newMonthlyCents)}/month
-                            </span>
-                          </div>
-                          {seatPreview.immediateChargeCents > 0 && (
-                            <>
-                              <Separator className="bg-zinc-700/50" />
-                              <div className="flex items-center justify-between text-xs text-zinc-500">
-                                <span>Prorated charge today</span>
-                                <span className="text-amber-300 font-medium">
-                                  {formatCentsExact(seatPreview.immediateChargeCents)}
-                                </span>
-                              </div>
-                            </>
-                          )}
-                          {seatPreview.immediateChargeCents <= 0 && (
-                            <p className="text-zinc-500 text-xs">
-                              Changes will be reflected on your next invoice.
-                            </p>
-                          )}
-                        </>
-                      ) : null}
+                  {planFeatures.length > 0 && (
+                    <div>
+                      <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">Included features</p>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {planFeatures.map((feat: string) => (
+                          <li key={feat} className="flex items-center gap-2 text-xs text-zinc-300">
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                            {feat}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
-
-                  {/* No change state */}
-                  {!seatsDraftChanged && (
-                    <p className="text-zinc-500 text-sm text-center py-1">
-                      Adjust the seat count above to see pricing
-                    </p>
+                </>
+              ) : (
+                <div className="text-center py-8 space-y-3">
+                  <Zap className="w-8 h-8 text-zinc-700 mx-auto" />
+                  <p className="text-zinc-500 text-sm">No active plan</p>
+                  <p className="text-zinc-600 text-xs">Start a subscription to unlock full access.</p>
+                  {stripeConfigured && (
+                    <Button
+                      size="sm"
+                      className="bg-violet-600 hover:bg-violet-500 text-white"
+                      onClick={() => portalMutation.mutate()}
+                      disabled={portalMutation.isPending}
+                    >
+                      Choose a plan
+                    </Button>
                   )}
-
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      className="bg-violet-600 hover:bg-violet-500 text-white flex-1"
-                      onClick={() => updateSeatsMutation.mutate(draftSeats!)}
-                      disabled={!seatsDraftChanged || updateSeatsMutation.isPending || previewLoading}
-                    >
-                      {updateSeatsMutation.isPending
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : `Confirm ${draftSeats! > seats ? `+${draftSeats! - seats}` : draftSeats! < seats ? `${draftSeats! - seats}` : "0"} seat${Math.abs((draftSeats ?? seats) - seats) !== 1 ? "s" : ""}`
-                      }
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-zinc-400 hover:text-white"
-                      onClick={() => { setShowSeatEditor(false); setDraftSeats(null); }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Static seat breakdown */}
-              {!showSeatEditor && (
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Purchased Seats", value: seats, sub: `${formatCentsExact(pricePerSeat)} each` },
-                    { label: "Active Staff", value: activeStaff, sub: "using seats" },
-                    { label: "Available Seats", value: Math.max(0, seats - activeStaff), sub: "open slots" },
-                  ].map((stat) => (
-                    <div key={stat.label} className="bg-zinc-800/40 rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-white">{stat.value}</p>
-                      <p className="text-zinc-400 text-xs mt-0.5">{stat.label}</p>
-                      <p className="text-zinc-600 text-xs">{stat.sub}</p>
-                    </div>
-                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* ── Billing History ────────────────────────────────────────────────── */}
+          {/* ── Invoice History ────────────────────────────────────────────────── */}
           <Card className="bg-zinc-900/70 border-zinc-700/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
@@ -741,39 +512,22 @@ export default function BillingPage({ salonId }: { salonId: number }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              {periodStart && (
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500 text-xs">Cycle start</span>
-                  <span className="text-zinc-200 text-xs font-medium">{format(periodStart, "MMM d, yyyy")}</span>
-                </div>
-              )}
-              {periodEnd && (
+              {periodEnd ? (
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-500 text-xs">{isScheduledToCancel ? "Access ends" : "Renews on"}</span>
                   <span className="text-zinc-200 text-xs font-medium">{format(periodEnd, "MMM d, yyyy")}</span>
                 </div>
+              ) : (
+                <p className="text-zinc-600 text-xs text-center py-2">No active billing cycle</p>
               )}
-              {seatInfo?.stripeSeatData?.upcomingInvoiceCents != null && !isScheduledToCancel && (
+              {plan?.interval && (
                 <>
                   <Separator className="bg-zinc-800" />
                   <div className="flex justify-between items-center">
-                    <span className="text-zinc-500 text-xs">Upcoming invoice</span>
-                    <span className="text-white text-xs font-bold">
-                      {formatCentsExact(seatInfo.stripeSeatData.upcomingInvoiceCents)}
-                    </span>
+                    <span className="text-zinc-500 text-xs">Billing frequency</span>
+                    <span className="text-zinc-200 text-xs font-medium capitalize">{plan.interval}ly</span>
                   </div>
-                  {seatInfo.stripeSeatData.nextPaymentAttempt && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 text-xs">Auto-charge date</span>
-                      <span className="text-zinc-200 text-xs font-medium">
-                        {format(new Date(seatInfo.stripeSeatData.nextPaymentAttempt), "MMM d")}
-                      </span>
-                    </div>
-                  )}
                 </>
-              )}
-              {!periodStart && !periodEnd && (
-                <p className="text-zinc-600 text-xs text-center py-2">No active billing cycle</p>
               )}
             </CardContent>
           </Card>
@@ -922,7 +676,7 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                 <div>
                   <p className="text-white text-xs font-semibold">Billing support</p>
                   <p className="text-zinc-500 text-xs mt-0.5">
-                    Questions about your bill? We're here to help.
+                    Questions about your plan? We're here to help.
                   </p>
                   <a
                     href="mailto:support@certxa.com"
@@ -969,7 +723,7 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                 </div>
                 <div className="bg-zinc-800/50 border border-zinc-700/40 rounded-lg p-3 space-y-1.5 text-xs text-zinc-500">
                   <p className="text-zinc-400 font-medium text-sm">Before you cancel, consider:</p>
-                  <p>• Reduce seats to {minSeats} to lower your bill to {formatCents(minSeats * 800)}/month</p>
+                  <p>• You can switch to a lower-tier plan to reduce your bill</p>
                   <p>• Your data stays safe for 30 days after cancellation</p>
                   <p>• You can reactivate anytime with no setup fees</p>
                 </div>
@@ -982,22 +736,6 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                   >
                     Keep my subscription
                   </Button>
-                  {minSeats < seats && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                      onClick={() => {
-                        setCancelStep("idle");
-                        setCancelReason("");
-                        setShowSeatEditor(true);
-                        setDraftSeats(minSeats);
-                      }}
-                    >
-                      <TrendingDown className="w-3.5 h-3.5 mr-1.5" />
-                      Reduce to {minSeats} seat{minSeats !== 1 ? "s" : ""} instead
-                    </Button>
-                  )}
                   <Button
                     size="sm"
                     className="bg-red-600/80 hover:bg-red-500 text-white ml-auto"
