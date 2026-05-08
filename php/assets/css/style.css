@@ -1351,28 +1351,54 @@ h1, h2, h3, h4 {
 .testi-dark-card {
   background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.1);
-  border-radius: 20px; padding: 36px;
+  border-radius: 22px; padding: 32px;
+  display: flex; flex-direction: column; gap: 0;
   position: relative;
   transition: var(--transition-slow);
 }
 .testi-dark-card:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.2); transform: translateY(-4px); }
-.tdc-stars { color: #F59E0B; font-size: .95rem; letter-spacing: 3px; margin-bottom: 18px; }
-.tdc-quote { font-size: 1rem; color: rgba(255,255,255,.8); line-height: 1.8; margin-bottom: 24px; font-style: italic; }
-.tdc-author { display: flex; align-items: center; gap: 12px; }
+
+/* Top row: stars left, metric pill right */
+.tdc-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.tdc-stars { color: #F59E0B; font-size: .9rem; letter-spacing: 3px; }
+
+/* Metric pill */
+.tdc-metric-pill {
+  display: flex; flex-direction: column; align-items: flex-end;
+  background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.22);
+  border-radius: 10px; padding: 5px 12px; white-space: nowrap;
+}
+.tdc-metric-stat {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem; font-weight: 700; color: #F59E0B; line-height: 1.2;
+}
+.tdc-metric-label {
+  font-size: .65rem; font-weight: 600; letter-spacing: .04em;
+  color: rgba(255,255,255,.4); text-transform: uppercase; white-space: nowrap;
+}
+
+/* Quote */
+.tdc-quote {
+  font-size: .97rem; color: rgba(255,255,255,.82); line-height: 1.78;
+  font-style: italic; flex: 1; margin-bottom: 28px;
+}
+
+/* Author row */
+.tdc-author {
+  display: flex; align-items: center; gap: 12px;
+  padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
+}
 .tdc-av {
-  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: .8rem; font-weight: 700; color: var(--white);
+  font-size: .78rem; font-weight: 700; color: var(--white);
 }
-.tdc-name { font-weight: 700; font-size: .9rem; color: var(--white); }
-.tdc-role { font-size: .74rem; color: rgba(255,255,255,.45); }
-.tdc-metric {
-  margin-left: auto; text-align: right;
-  background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.25);
-  border-radius: 10px; padding: 6px 14px;
-}
-.tdc-metric span { display: block; font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 600; color: var(--gold-bright); }
-.tdc-metric { font-size: .68rem; color: rgba(255,255,255,.45); }
+.tdc-info { display: flex; flex-direction: column; gap: 2px; }
+.tdc-name { font-weight: 700; font-size: .88rem; color: var(--white); line-height: 1.2; }
+.tdc-role { font-size: .72rem; color: rgba(255,255,255,.42); line-height: 1.3; }
 
 /* ── RESPONSIVE ADDITIONS ─────────────────────────── */
 @media (max-width: 1024px) {

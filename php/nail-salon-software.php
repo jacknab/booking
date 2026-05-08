@@ -117,26 +117,55 @@ require 'includes/nav.php';
 </section>
 
 <section class="testi-dark-section">
-  <div class="container" style="max-width:900px;">
-    <div class="section-header" style="text-align:center;margin-bottom:40px;">
+  <div class="container" style="max-width:960px;">
+    <div class="section-header" style="text-align:center;margin-bottom:48px;">
       <span class="tag tag-dark">Nail Salon Owners Love Certxa</span>
       <h2 class="section-title" style="color:var(--white);">Real nail studios. Real results.</h2>
     </div>
     <div class="testi-dark-grid">
       <?php
       $testimonials = [
-        ['"My clients love being able to book their regular gel appointments online at midnight. I wake up to a full schedule."','Ava L.','Gel Nail Studio, New York','+52% bookings'],
-        ['"The client notes are everything for me. I know exactly which gel brand each client prefers before they sit down."','Zara M.','Nail Artist, Los Angeles','Zero complaints'],
-        ['"Deposits stopped my no-shows overnight. For long nail art sessions, this feature alone pays for my entire subscription."','Grace W.','Nail Studio, Miami','68% fewer no-shows'],
+        [
+          'quote'  => 'My clients love being able to book their regular gel appointments online at midnight. I wake up to a full schedule.',
+          'name'   => 'Ava L.',
+          'role'   => 'Gel Nail Studio, New York',
+          'stat'   => '+52%',
+          'stat_label' => 'more bookings',
+          'grad'   => 'linear-gradient(135deg,#fcd34d,#f59e0b)',
+        ],
+        [
+          'quote'  => 'The client notes are everything for me. I know exactly which gel brand each client prefers before they sit down.',
+          'name'   => 'Zara M.',
+          'role'   => 'Nail Artist, Los Angeles',
+          'stat'   => '5★',
+          'stat_label' => 'zero complaints',
+          'grad'   => 'linear-gradient(135deg,#a78bfa,#7c3aed)',
+        ],
+        [
+          'quote'  => 'Deposits stopped my no-shows overnight. For long nail art sessions, this feature alone pays for my entire subscription.',
+          'name'   => 'Grace W.',
+          'role'   => 'Nail Studio, Miami',
+          'stat'   => '68%',
+          'stat_label' => 'fewer no-shows',
+          'grad'   => 'linear-gradient(135deg,#fcd34d,#f59e0b)',
+        ],
       ];
       foreach ($testimonials as $t): ?>
       <div class="testi-dark-card reveal">
-        <div class="tdc-stars">★★★★★</div>
-        <p class="tdc-quote"><?= $t[0] ?></p>
+        <div class="tdc-top">
+          <div class="tdc-stars">★★★★★</div>
+          <div class="tdc-metric-pill">
+            <span class="tdc-metric-stat"><?= $t['stat'] ?></span>
+            <span class="tdc-metric-label"><?= $t['stat_label'] ?></span>
+          </div>
+        </div>
+        <p class="tdc-quote">"<?= $t['quote'] ?>"</p>
         <div class="tdc-author">
-          <div class="tdc-av" style="background:linear-gradient(135deg,#fcd34d,#f59e0b)"><?= substr($t[1],0,2) ?></div>
-          <div><div class="tdc-name"><?= $t[1] ?></div><div class="tdc-role"><?= $t[2] ?></div></div>
-          <div class="tdc-metric"><span><?= explode(' ',$t[3])[0] ?></span><?= implode(' ',array_slice(explode(' ',$t[3]),1)) ?></div>
+          <div class="tdc-av" style="background:<?= $t['grad'] ?>"><?= substr($t['name'],0,2) ?></div>
+          <div class="tdc-info">
+            <div class="tdc-name"><?= $t['name'] ?></div>
+            <div class="tdc-role"><?= $t['role'] ?></div>
+          </div>
         </div>
       </div>
       <?php endforeach; ?>
