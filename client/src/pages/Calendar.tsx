@@ -31,12 +31,8 @@ type SidebarItem =
   | { kind: "action"; action: "quick-checkout" | "cash-drawer"; label: string; icon: any };
 
 const calendarSidebarItems: SidebarItem[] = [
-  { kind: "link", to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { kind: "link", to: "/analytics", label: "Analytics", icon: TrendingUp },
   { kind: "link", to: "/calendar", label: "Calendar", icon: CalendarDays },
   { kind: "link", to: "/customers", label: "Customers", icon: Users },
-  { kind: "link", to: "/services", label: "Services", icon: Scissors },
-  { kind: "link", to: "/staff", label: "Staff", icon: UserCircle },
   { kind: "link", to: "/reports", label: "Reports", icon: FileText },
   { kind: "action", action: "quick-checkout", label: "Quick Cash Out", icon: Receipt },
   { kind: "action", action: "cash-drawer", label: "Cash Drawer", icon: Banknote },
