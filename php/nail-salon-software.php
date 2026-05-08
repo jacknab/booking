@@ -91,23 +91,23 @@ require 'includes/nav.php';
 </section>
 
 <section class="section">
-  <div class="container" style="max-width:900px;">
+  <div class="container" style="max-width:960px;">
     <div class="section-header">
       <span class="tag tag-plum">Built for Nail Techs</span>
       <h2 class="section-title">Everything your nail salon needs to run and grow</h2>
     </div>
-    <div class="bento">
+    <div class="bento" style="grid-template-columns:repeat(2,1fr);">
       <?php
       $features = [
-        ['24/7 Online Booking','Clients book gel sets, acrylics, pedicures, and nail art sessions any time — from your website, Instagram bio, or Google. No phone calls, no back-and-forth.','bento-card bento-wide'],
-        ['Client Nail History','Every client profile stores gel brands, colour codes, nail shape, enhancements, sensitivity notes, and photos. See everything before they walk through the door.','bento-card'],
-        ['Multi-Tech Scheduling','Let clients book with their favourite nail technician. Each tech has their own calendar, services, and working hours — perfectly organised at a glance.','bento-card'],
-        ['No-Show Deposits','Require a deposit when clients book colour or enhancement services. Block your time from cancellations with one simple setting.','bento-card'],
-        ['Automated Reminders','SMS and email reminders go out automatically — reducing no-shows without you lifting a finger. Clients appreciate the heads-up, you appreciate the filled chair.','bento-card bento-wide'],
-        ['Integrated Card Payments','Accept card in-salon and online. Certxa POS handles tips, splits, gift card redemptions, and membership discounts — all from one screen.','bento-card'],
+        ['24/7 Online Booking','Clients book gel sets, acrylics, pedicures, and nail art sessions any time — from your website, Instagram bio, or Google. No phone calls, no back-and-forth.'],
+        ['Client Nail History','Every client profile stores gel brands, colour codes, nail shape, enhancements, sensitivity notes, and photos. See everything before they walk through the door.'],
+        ['Multi-Tech Scheduling','Let clients book with their favourite nail technician. Each tech has their own calendar, services, and working hours — perfectly organised at a glance.'],
+        ['No-Show Deposits','Require a deposit when clients book colour or enhancement services. Block your time from cancellations with one simple setting.'],
+        ['Automated Reminders','SMS and email reminders go out automatically — reducing no-shows without you lifting a finger. Clients appreciate the heads-up, you appreciate the filled chair.'],
+        ['Integrated Card Payments','Accept card in-salon and online. Certxa POS handles tips, splits, gift card redemptions, and membership discounts — all from one screen.'],
       ];
       foreach ($features as $f): ?>
-      <div class="<?= $f[2] ?>">
+      <div class="bento-card">
         <h3 class="bento-title"><?= $f[0] ?></h3>
         <p class="bento-text"><?= $f[1] ?></p>
       </div>
