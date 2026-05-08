@@ -15,7 +15,7 @@ paths = [ "/launchsite/" ]
 localPort = 8008
 
 [services.development]
-run = "php -S 0.0.0.0:8008 -t /home/runner/workspace/launchsite-php"
+run = "php -S 0.0.0.0:8008 -t /home/runner/workspace/php/launchsite"
 
 [services.env]
 PORT = "8008"
