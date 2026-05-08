@@ -1,7 +1,7 @@
 <?php
 define('BRAND_NAME',    'Certxa');
-define('PAGE_TITLE',    'Salon Software Pricing | Certxa Plans from $19/month — Free 14-Day Trial');
-define('PAGE_DESC',     'Simple, transparent salon software pricing. Certxa plans start at $19/month with a free 60-day trial. No hidden fees, no contracts. Online booking, payments, and client management included in every plan.');
+define('PAGE_TITLE',    'Salon Software Pricing | Certxa Plans from $9/month — Free 60-Day Trial');
+define('PAGE_DESC',     'Simple, transparent salon software pricing. Certxa plans start at $9/month with a free 60-day trial. No hidden fees, no contracts. Online booking, payments, and client management included in every plan.');
 define('PAGE_KEYWORDS', 'salon software pricing, salon booking software cost, beauty salon software plans, salon management software price, how much does salon software cost, certxa pricing, salon software free trial, affordable salon software');
 define('PAGE_CANONICAL', 'https://certxa.com/pricing.php');
 define('PAGE_BREADCRUMBS', json_encode([
@@ -26,10 +26,10 @@ define('PAGE_SCHEMA', json_encode([
     'offers'      => [
       [
         '@type'           => 'Offer',
-        'name'            => 'Starter Plan',
-        'price'           => '19',
+        'name'            => 'Solo Plan',
+        'price'           => '9',
         'priceCurrency'   => 'USD',
-        'description'     => 'Perfect for solo beauty professionals. Includes online booking, client management, integrated payments, automated reminders, and a branded website.',
+        'description'     => 'Perfect for independent stylists and booth renters. Includes online booking, client management, integrated payments, and automated reminders.',
         'billingIncrement' => 'P1M',
       ],
       [
@@ -237,21 +237,21 @@ require 'includes/nav.php';
       <?php
       $plans = [
         [
-          'name'        => 'Starter',
-          'tagline'     => 'Everything you need to get your first bookings rolling.',
-          'monthly'     => '19',
-          'annual'      => '15',
+          'name'        => 'Solo',
+          'tagline'     => 'Built for independent stylists, booth renters, and solo practitioners.',
+          'monthly'     => '9',
+          'annual'      => '7',
           'old_monthly' => null,
-          'old_annual'  => '19',
+          'old_annual'  => '9',
           'period'      => '/month',
-          'billing'     => 'Billed monthly — or $15/mo billed annually',
+          'billing'     => 'Billed monthly — or $7/mo billed annually',
           'featured'    => false,
           'cta_label'   => 'Start Free Trial',
           'cta_class'   => 'btn-secondary',
           'features'    => [
             [true,  'Online booking page'],
-            [true,  'Unlimited staff members'],
-            [true,  'Unlimited client profiles'],
+            [true,  '1 staff member (you)'],
+            [true,  'Up to 500 client profiles'],
             [true,  'SMS & email reminders (200/mo)'],
             [true,  'Basic website builder'],
             [true,  'Payments & card reader'],
@@ -383,7 +383,7 @@ require 'includes/nav.php';
         <thead>
           <tr>
             <th style="width:34%;"></th>
-            <th><div class="plan-header">Starter</div><div class="plan-header-price">From $15/mo</div></th>
+            <th><div class="plan-header">Solo</div><div class="plan-header-price">From $7/mo</div></th>
             <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $31/mo ⭐</div></th>
             <th><div class="plan-header">Elite</div><div class="plan-header-price">From $95/mo</div></th>
           </tr>
@@ -397,7 +397,7 @@ require 'includes/nav.php';
           </tr>
           <tr>
             <td>Staff members</td>
-            <td>Up to 2</td><td class="featured-col ct-text">Unlimited</td><td class="ct-text">Unlimited</td>
+            <td>1 (solo)</td><td class="featured-col ct-text">Unlimited</td><td class="ct-text">Unlimited</td>
           </tr>
           <tr>
             <td>Reserve With Google</td>
@@ -678,7 +678,7 @@ function setBilling(type) {
 
   // Update billing notes
   const notes = {
-    starter:      isAnnual ? 'Billed annually as $276/year — save $72' : 'Billed monthly, cancel any time',
+    solo:         isAnnual ? 'Billed annually as $84/year — save $24' : 'Billed monthly, cancel any time',
     professional: isAnnual ? 'Billed annually as $564/year — save $144' : 'Billed monthly, cancel any time',
     elite:        isAnnual ? 'Billed annually as $1,140/year — save $288' : 'Billed monthly, cancel any time',
   };
