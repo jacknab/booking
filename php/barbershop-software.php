@@ -77,19 +77,19 @@ require 'includes/nav.php';
 </section>
 
 <section class="section">
-  <div class="container" style="max-width:900px;">
+  <div class="container" style="max-width:960px;">
     <div class="section-header"><span class="tag tag-plum">Built for Barbers</span><h2 class="section-title">Everything your barbershop needs to grow</h2></div>
-    <div class="bento">
+    <div class="bento" style="grid-template-columns:repeat(2,1fr);">
       <?php $feats = [
-        ['Online Booking 24/7','Clients book their favourite barber any time from your website, Instagram, or Google. You wake up to a full schedule without picking up the phone.','bento-card'],
-        ['Walk-In Management','Booked and walk-in clients managed side by side. Add walk-ins to any barber\'s schedule in seconds — no paper system, no confusion.','bento-card'],
-        ['Reserve with Google','A "Book Now" button in your Google listing captures new clients the moment they search "barber near me". Certxa connects this automatically.','bento-card bento-wide'],
-        ['Google Reviews on Autopilot','After every cut, Certxa sends an automatic review request. Watch your star rating climb without asking a single client yourself.','bento-card'],
-        ['Fast Card Payments','Accept card, tap, and contactless in-chair with our free card reader. Tips handled automatically — no cash fumbling, no paper receipts.','bento-card'],
-        ['Multi-Barber Scheduling','Manage two chairs or twenty. Each barber has their own calendar, services, and hours. See the whole shop at a glance every morning.','bento-card bento-wide'],
+        ['Online Booking 24/7','Clients book their favourite barber any time from your website, Instagram, or Google. You wake up to a full schedule without picking up the phone.'],
+        ['Walk-In Management','Booked and walk-in clients managed side by side. Add walk-ins to any barber\'s schedule in seconds — no paper system, no confusion.'],
+        ['Reserve with Google','A "Book Now" button in your Google listing captures new clients the moment they search "barber near me". Certxa connects this automatically.'],
+        ['Google Reviews on Autopilot','After every cut, Certxa sends an automatic review request. Watch your star rating climb without asking a single client yourself.'],
+        ['Fast Card Payments','Accept card, tap, and contactless in-chair with our free card reader. Tips handled automatically — no cash fumbling, no paper receipts.'],
+        ['Multi-Barber Scheduling','Manage two chairs or twenty. Each barber has their own calendar, services, and hours. See the whole shop at a glance every morning.'],
       ];
       foreach ($feats as $f): ?>
-      <div class="<?= $f[2] ?>"><h3 class="bento-title"><?= $f[0] ?></h3><p class="bento-text"><?= $f[1] ?></p></div>
+      <div class="bento-card"><h3 class="bento-title"><?= $f[0] ?></h3><p class="bento-text"><?= $f[1] ?></p></div>
       <?php endforeach; ?>
     </div>
   </div>

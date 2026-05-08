@@ -70,22 +70,22 @@ require 'includes/nav.php';
 </section>
 
 <section class="section">
-  <div class="container" style="max-width:900px;">
+  <div class="container" style="max-width:960px;">
     <div class="section-header">
       <span class="tag tag-plum">Made for Hair</span>
       <h2 class="section-title">Every feature a hair salon owner needs</h2>
     </div>
-    <div class="bento">
+    <div class="bento" style="grid-template-columns:repeat(2,1fr);">
       <?php $feats = [
-        ['Colour Formula Storage','Record brand, developer, technique, processing time and results for every client. Any stylist can recreate the exact look — every single time.','bento-card'],
-        ['Multi-Stylist Day View','See your entire team\'s schedule side by side — Emma, Sophie, James and the whole crew — in a beautiful day-view calendar. Spot gaps and fill them instantly.','bento-card'],
-        ['24/7 Online Booking','Clients book cuts, colours, blowouts, and treatments any time. Your booking page works while you sleep.','bento-card bento-wide'],
-        ['Deposit Protection','Require a deposit for balayage and colour services. Protect your longest, highest-value appointments from last-minute cancellations.','bento-card'],
-        ['Automated Reminders','SMS and email reminders go out automatically 72h and 24h before each appointment — slashing your no-show rate without any effort.','bento-card'],
-        ['Reserve with Google','A "Book Now" button appears directly on your Google Search and Maps listing — capturing clients the exact moment they search for a hair salon near them.','bento-card bento-wide'],
+        ['Colour Formula Storage','Record brand, developer, technique, processing time and results for every client. Any stylist can recreate the exact look — every single time.'],
+        ['Multi-Stylist Day View','See your entire team\'s schedule side by side — Emma, Sophie, James and the whole crew — in a beautiful day-view calendar. Spot gaps and fill them instantly.'],
+        ['24/7 Online Booking','Clients book cuts, colours, blowouts, and treatments any time. Your booking page works while you sleep.'],
+        ['Deposit Protection','Require a deposit for balayage and colour services. Protect your longest, highest-value appointments from last-minute cancellations.'],
+        ['Automated Reminders','SMS and email reminders go out automatically 72h and 24h before each appointment — slashing your no-show rate without any effort.'],
+        ['Reserve with Google','A "Book Now" button appears directly on your Google Search and Maps listing — capturing clients the exact moment they search for a hair salon near them.'],
       ];
       foreach ($feats as $f): ?>
-      <div class="<?= $f[2] ?>"><h3 class="bento-title"><?= $f[0] ?></h3><p class="bento-text"><?= $f[1] ?></p></div>
+      <div class="bento-card"><h3 class="bento-title"><?= $f[0] ?></h3><p class="bento-text"><?= $f[1] ?></p></div>
       <?php endforeach; ?>
     </div>
   </div>
