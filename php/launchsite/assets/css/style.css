@@ -515,6 +515,182 @@ body {
 }
 
 /* ============================================================
+   RICH CATALOG CARDS (category pages)
+   ============================================================ */
+
+.template-grid--catalog {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+@media (max-width: 1024px) {
+    .template-grid--catalog { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 580px) {
+    .template-grid--catalog { grid-template-columns: 1fr; }
+}
+
+/* Dark card variant */
+.template-card--rich {
+    background: #12132a;
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.35);
+}
+
+.template-card--rich:hover {
+    border-color: rgba(255,255,255,0.18);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+}
+
+/* ── Overlay badges row (top of image) ── */
+.tcard-badges {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 3;
+}
+
+.tcard-style-pill {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(230, 185, 80, 0.92);
+    color: #1a1200;
+    border-radius: 100px;
+    padding: 3px 9px;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tcard-cat-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 100px;
+    padding: 3px 9px;
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+}
+
+/* Shift the existing badge (popular/new/premium) to not overlap .tcard-badges */
+.template-card--rich .template-card__badge {
+    top: auto;
+    bottom: 60px;
+    left: 12px;
+}
+
+/* ── Bottom image overlay with name ── */
+.tcard-name-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 48px 16px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 60%, transparent);
+    z-index: 2;
+}
+
+.tcard-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    line-height: 1.25;
+}
+
+.tcard-tagline {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.6);
+    font-weight: 400;
+}
+
+/* ── Dark card body ── */
+.template-card__body--dark {
+    background: #12132a;
+    padding: 16px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ── Feature chips ── */
+.tcard-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tcard-chip {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
+
+/* ── Full-width Preview button ── */
+.tc-btn--preview-full {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    padding: 13px 20px;
+    border-radius: var(--radius-sm);
+    background: #e8a020;
+    color: #0a0900;
+    border: none;
+    transition: background 0.18s ease, transform 0.12s ease;
+    cursor: pointer;
+}
+.tc-btn--preview-full:hover {
+    background: #f5b030;
+    transform: translateY(-1px);
+}
+
+/* ── Subtle "Start" link under the button ── */
+.tcard-start-link {
+    display: block;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.38);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.tcard-start-link:hover {
+    color: rgba(255,255,255,0.7);
+}
+
+/* ── Back link in page hero ── */
+.page-hero__back {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.45);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 0.15s;
+}
+.page-hero__back:hover { color: rgba(255,255,255,0.8); }
+
+/* ============================================================
    CATALOG INDEX — CATEGORY CARDS
    ============================================================ */
 .categories-section {

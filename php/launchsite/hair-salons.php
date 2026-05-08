@@ -16,6 +16,7 @@ require_once __DIR__ . '/includes/header.php';
 
 <section class="page-hero">
     <div class="container">
+        <a href="<?php echo BASE_PATH; ?>/" class="page-hero__back">← All Categories</a>
         <div class="section-label">💇‍♀️ Hair Salons</div>
         <h1>Hair Salon <em>Templates</em></h1>
         <p>Elegant, conversion-focused designs built for hair salons of every style — from boutique studios to high-end ateliers.</p>
@@ -43,28 +44,43 @@ require_once __DIR__ . '/includes/header.php';
             <h2>Hair Salon Templates</h2>
             <span class="catalog-meta"><?php echo count($templates); ?> design<?php echo count($templates) !== 1 ? 's' : ''; ?> available</span>
         </div>
-        <div class="template-grid">
-            <?php foreach ($templates as $index => $t): ?>
-            <div class="template-card" data-category="hair-salon" style="transition-delay: <?php echo $index * 60; ?>ms;">
+        <div class="template-grid template-grid--catalog">
+            <?php foreach ($templates as $index => $t):
+                $thumb       = BASE_PATH . '/assets/img/thumbs/' . urlencode($t['id']) . '.jpg';
+                $preview_url = BASE_PATH . '/preview.php?id=' . urlencode($t['id']);
+                $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
+                $style_upper = strtoupper($t['style']);
+            ?>
+            <div class="template-card template-card--rich in-view" style="transition-delay:<?php echo $index * 60; ?>ms;">
                 <div class="template-card__thumb">
+                    <div class="tcard-badges">
+                        <span class="tcard-style-pill"><?php echo htmlspecialchars($style_upper); ?></span>
+                        <span class="tcard-cat-tag">💇‍♀️ <?php echo htmlspecialchars($t['category']); ?></span>
+                    </div>
                     <?php if (!empty($t['badge'])): ?>
                     <span class="template-card__badge badge--<?php echo htmlspecialchars($t['badge']); ?>">
                         <?php echo ucfirst($t['badge']); ?>
                     </span>
                     <?php endif; ?>
                     <img
-                        src="<?php echo BASE_PATH; ?>/assets/img/thumbs/<?php echo urlencode($t['id']); ?>.jpg"
+                        src="<?php echo $thumb; ?>"
                         alt="<?php echo htmlspecialchars($t['name']); ?> template preview"
                         class="template-card__img"
                         loading="lazy"
                     >
-                </div>
-                <div class="template-card__body">
-                    <h3 class="template-card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
-                    <div class="template-card__actions">
-                        <a href="<?php echo BASE_PATH; ?>/preview.php?id=<?php echo urlencode($t['id']); ?>" class="tc-btn tc-btn--preview">Preview</a>
-                        <a href="<?php echo BASE_PATH; ?>/select.php?id=<?php echo urlencode($t['id']); ?>" class="tc-btn tc-btn--start">Start</a>
+                    <div class="tcard-name-overlay">
+                        <h3 class="tcard-name"><?php echo htmlspecialchars($t['name']); ?></h3>
+                        <span class="tcard-tagline"><?php echo htmlspecialchars($t['style']); ?> &nbsp;·&nbsp; <?php echo count($t['features']); ?> features</span>
                     </div>
+                </div>
+                <div class="template-card__body template-card__body--dark">
+                    <div class="tcard-features">
+                        <?php foreach ($t['features'] as $f): ?>
+                        <span class="tcard-chip"><?php echo htmlspecialchars($f); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                    <a href="<?php echo $preview_url; ?>" class="tc-btn tc-btn--preview-full">Preview Template</a>
+                    <a href="<?php echo $start_url; ?>" class="tcard-start-link">Start with this design &rarr;</a>
                 </div>
             </div>
             <?php endforeach; ?>
