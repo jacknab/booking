@@ -73,19 +73,22 @@ const allowedCorsOrigins = (rawCorsOrigins ? rawCorsOrigins.split(",") : default
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowAllCorsOrigins) return callback(null, true);
-      if (allowedCorsOrigins.includes(origin)) return callback(null, true);
-      // Allow any *.certxa.com subdomain (manage., booking slugs, user sites, etc.)
-      if (origin && (origin.endsWith(".certxa.com") || origin === "https://certxa.com")) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  }),
-);
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowAllCorsOrigins) return callback(null, true);
+    if (allowedCorsOrigins.includes(origin)) return callback(null, true);
+    // Allow any *.certxa.com subdomain (manage., booking slugs, user sites, etc.)
+    if (origin.endsWith(".certxa.com") || origin === "https://certxa.com") return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+};
+
+// app.use(cors) with preflightContinue:false (the default) automatically responds
+// to all OPTIONS preflight requests with 204 + correct headers before any other
+// middleware runs — no explicit app.options() needed.
+app.use(cors(corsOptions));
 
 declare module "http" {
   interface IncomingMessage {

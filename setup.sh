@@ -794,6 +794,9 @@ CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN}
 # ─── Trial ───────────────────────────────────────────────────────────────────
 TRIAL_PERIOD_DAYS=60
 
+# ─── Marketing pages (1, 2, or 3 product groups visible) ────────────────────
+ACTIVE_GROUPS=3
+
 # ─── Google OAuth ─────────────────────────────────────────────────────────────
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -1014,10 +1017,11 @@ do_step_10() {
     mkdir -p "${APP_DIR}/logs"
 
     # Read SESSION_SECRET and other values from .env so they're baked into PM2
-    local ENV_SESSION_SECRET ENV_CORS_ORIGINS ENV_TRIAL_DAYS
+    local ENV_SESSION_SECRET ENV_CORS_ORIGINS ENV_TRIAL_DAYS ENV_ACTIVE_GROUPS
     ENV_SESSION_SECRET=$(grep "^SESSION_SECRET=" "${APP_DIR}/.env" 2>/dev/null | cut -d= -f2- || echo "")
     ENV_CORS_ORIGINS=$(grep "^CORS_ORIGINS=" "${APP_DIR}/.env" 2>/dev/null | cut -d= -f2- || echo "https://${DOMAIN},https://www.${DOMAIN}")
     ENV_TRIAL_DAYS=$(grep "^TRIAL_PERIOD_DAYS=" "${APP_DIR}/.env" 2>/dev/null | cut -d= -f2- || echo "60")
+    ENV_ACTIVE_GROUPS=$(grep "^ACTIVE_GROUPS=" "${APP_DIR}/.env" 2>/dev/null | cut -d= -f2- || echo "3")
 
     cat > "${APP_DIR}/ecosystem.config.cjs" <<ECOEOF
 module.exports = {
@@ -1036,6 +1040,7 @@ module.exports = {
         CORS_ALLOW_ALL: 'false',
         CORS_ORIGINS: '${ENV_CORS_ORIGINS}',
         TRIAL_PERIOD_DAYS: '${ENV_TRIAL_DAYS}',
+        ACTIVE_GROUPS: '${ENV_ACTIVE_GROUPS}',
         APP_URL: 'https://${DOMAIN}',
         GOOGLE_REDIRECT_URI: 'https://${DOMAIN}/google-business',
         GOOGLE_AUTH_CALLBACK_URL: 'https://${DOMAIN}/api/auth/google/callback'
