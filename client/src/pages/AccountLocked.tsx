@@ -33,7 +33,7 @@ export default function AccountLocked() {
         credentials: "include",
         body: JSON.stringify({
           salonId,
-          planCode: "starter",
+          planCode: "solo",
           interval: "month",
           successUrl: `${window.location.origin}/dashboard`,
           cancelUrl: window.location.href,
