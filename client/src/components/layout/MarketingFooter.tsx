@@ -76,12 +76,69 @@ export default function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer style={{
-      background: "#0a0014",
-      color: "#cbd5e1",
-      fontFamily: "'Inter', sans-serif",
-      padding: "72px 0 0",
-    }}>
+    <footer style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* ── "Switching to Certxa" CTA banner ── */}
+      <div style={{
+        background: "#eef2f7",
+        padding: "80px 24px",
+        textAlign: "center",
+      }}>
+        <h2 style={{
+          fontSize: "clamp(2rem, 5vw, 3.2rem)",
+          fontWeight: 800,
+          letterSpacing: "-0.03em",
+          color: "#0f172a",
+          lineHeight: 1.15,
+          margin: "0 auto 20px",
+          maxWidth: 600,
+        }}>
+          Switching to Certxa has<br />never been easier
+        </h2>
+        <p style={{
+          fontSize: "clamp(0.95rem, 2vw, 1.05rem)",
+          color: "#475569",
+          lineHeight: 1.65,
+          maxWidth: 520,
+          margin: "0 auto 36px",
+        }}>
+          Sign up for our free data transfer service, and we'll import all of your appointments,
+          services, inventory, and client lists for you.
+        </p>
+        <a
+          href="/auth"
+          style={{
+            display: "inline-block",
+            padding: "14px 32px",
+            borderRadius: 9999,
+            border: "1.5px solid #0f172a",
+            background: "transparent",
+            color: "#0f172a",
+            fontSize: "0.95rem",
+            fontWeight: 500,
+            textDecoration: "none",
+            transition: "background 0.18s, color 0.18s",
+            cursor: "pointer",
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = "#0f172a";
+            (e.currentTarget as HTMLElement).style.color = "#fff";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.color = "#0f172a";
+          }}
+        >
+          Get your free data transfer
+        </a>
+      </div>
+
+      {/* ── Dark footer body ── */}
+      <div style={{
+        background: "#0a0014",
+        color: "#cbd5e1",
+        padding: "72px 0 0",
+      }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 28px" }}>
         <div style={{
           display: "grid",
@@ -209,6 +266,7 @@ export default function MarketingFooter() {
           }
         }
       `}</style>
+      </div>{/* end dark footer body */}
     </footer>
   );
 }
