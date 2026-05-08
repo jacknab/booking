@@ -42,12 +42,43 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
             Browse our professionally designed salon websites. Pick a design, go live with your domain — and optionally update any text to make it your own.
         </p>
         <div class="hero-actions">
-            <a href="#search" class="btn btn--orange btn--lg">Browse Designs</a>
+            <a href="#business-picker" class="btn btn--orange btn--lg">Browse Designs</a>
             <a href="https://certxa.com/launchit" class="btn btn--ghost btn--lg">How It Works</a>
         </div>
         <p class="hero-stat">
             <span><?php echo $total; ?>+ designs available</span> — new sites added every month
         </p>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     BUSINESS TYPE PICKER — step 1
+     ═══════════════════════════════════════════════ -->
+<section class="bizpicker-section" id="business-picker">
+    <div class="container">
+        <div class="bizpicker-header">
+            <div class="bizpicker-step">Step 1</div>
+            <h2 class="bizpicker-title">What type of business are you?</h2>
+            <p class="bizpicker-sub">Choose your category to see designs built for your salon type.</p>
+        </div>
+        <div class="bizpicker-grid">
+            <?php foreach ($active_categories as $cat): ?>
+            <button
+                class="bizpicker-card"
+                data-category="<?php echo htmlspecialchars($cat['key']); ?>"
+                aria-pressed="false"
+            >
+                <div class="bizpicker-card__emoji"><?php echo $cat['emoji']; ?></div>
+                <div class="bizpicker-card__label"><?php echo htmlspecialchars($cat['label']); ?></div>
+                <div class="bizpicker-card__count"><?php echo $cat['count']; ?> design<?php echo $cat['count'] !== 1 ? 's' : ''; ?></div>
+            </button>
+            <?php endforeach; ?>
+            <button class="bizpicker-card bizpicker-card--all" data-category="all" aria-pressed="true">
+                <div class="bizpicker-card__emoji">✨</div>
+                <div class="bizpicker-card__label">Show All</div>
+                <div class="bizpicker-card__count"><?php echo $total; ?> designs</div>
+            </button>
+        </div>
     </div>
 </section>
 
@@ -135,7 +166,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                     $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
                 ?>
                 <div class="template-card" style="transition-delay:<?php echo $index * 60; ?>ms">
-                    <a href="<?php echo $preview_url; ?>" class="template-card__thumb-link">
+                    <a href="<?php echo $preview_url; ?>" class="template-card__thumb-link tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">
                         <div class="template-card__thumb">
                             <span class="template-card__badge badge--popular">Popular</span>
                             <img src="<?php echo $thumb; ?>" alt="<?php echo htmlspecialchars($t['name']); ?>" class="template-card__img" loading="lazy">
@@ -146,7 +177,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                         <div class="result-meta"><span class="result-style-tag"><?php echo htmlspecialchars($t['style']); ?></span></div>
                         <h3 class="template-card__title"><?php echo htmlspecialchars($t['name']); ?></h3>
                         <div class="template-card__actions">
-                            <a href="<?php echo $preview_url; ?>" class="tc-btn tc-btn--preview">Preview</a>
+                            <button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">Preview</button>
                             <a href="<?php echo $start_url; ?>"   class="tc-btn tc-btn--start">Start</a>
                         </div>
                     </div>
@@ -182,7 +213,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                     $start_url   = BASE_PATH . '/select.php?id='  . urlencode($t['id']);
                 ?>
                 <div class="shelf-card" style="transition-delay:<?php echo $index * 40; ?>ms">
-                    <a href="<?php echo $preview_url; ?>" class="shelf-card__thumb-link">
+                    <a href="<?php echo $preview_url; ?>" class="shelf-card__thumb-link tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">
                         <div class="shelf-card__thumb">
                             <span class="shelf-card__badge">New</span>
                             <img src="<?php echo $thumb; ?>" alt="<?php echo htmlspecialchars($t['name']); ?>" class="shelf-card__img" loading="lazy">
@@ -193,7 +224,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                         <span class="shelf-card__style"><?php echo htmlspecialchars($t['style']); ?></span>
                         <h3 class="shelf-card__name"><?php echo htmlspecialchars($t['name']); ?></h3>
                         <div class="shelf-card__actions">
-                            <a href="<?php echo $preview_url; ?>" class="tc-btn tc-btn--preview">Preview</a>
+                            <button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="<?php echo $preview_url; ?>" data-template-name="<?php echo htmlspecialchars($t['name']); ?>">Preview</button>
                             <a href="<?php echo $start_url; ?>"   class="tc-btn tc-btn--start">Start</a>
                         </div>
                     </div>
@@ -277,6 +308,32 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
     </div>
 </section>
 
+<!-- ═══════════════════════════════════════════════
+     PREVIEW MODAL
+     ═══════════════════════════════════════════════ -->
+<div id="tpl-preview-modal" class="preview-modal" role="dialog" aria-modal="true" aria-label="Template preview" hidden>
+    <div class="preview-modal__backdrop"></div>
+    <div class="preview-modal__shell">
+        <div class="preview-modal__bar">
+            <span class="preview-modal__name" id="preview-modal-name"></span>
+            <div class="preview-modal__bar-actions">
+                <a id="preview-modal-open" href="#" class="preview-modal__open-btn" target="_blank" rel="noopener">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Open full page
+                </a>
+                <button class="preview-modal__close" id="preview-modal-close" aria-label="Close preview">✕</button>
+            </div>
+        </div>
+        <div class="preview-modal__iframe-wrap">
+            <iframe id="preview-modal-iframe" class="preview-modal__iframe" src="" title="Template preview" loading="lazy"></iframe>
+            <div class="preview-modal__loading" id="preview-modal-loading">
+                <div class="preview-modal__spinner"></div>
+                <p>Loading preview…</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
 
 <script>
@@ -318,8 +375,9 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
 
     function cardHtml(t, idx) {
         var img = BASE + '/assets/img/thumbs/' + encodeURIComponent(t.id) + '.jpg';
+        var previewUrl = BASE + '/preview.php?id=' + encodeURIComponent(t.id);
         return '<div class="template-card" style="transition-delay:' + (idx * 45) + 'ms">'
-            + '<a href="' + BASE + '/preview.php?id=' + encodeURIComponent(t.id) + '" class="template-card__thumb-link">'
+            + '<a href="' + previewUrl + '" class="template-card__thumb-link tpl-preview-trigger" data-preview-url="' + previewUrl + '" data-template-name="' + t.name + '">'
             + '<div class="template-card__thumb">'
             + badgeHtml(t.badge)
             + '<img src="' + img + '" alt="' + t.name + '" class="template-card__img" loading="lazy">'
@@ -329,7 +387,7 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
             + '<div class="result-meta"><span class="result-style-tag">' + t.style + '</span></div>'
             + '<h3 class="template-card__title">' + t.name + '</h3>'
             + '<div class="template-card__actions">'
-            + '<a href="' + BASE + '/preview.php?id=' + encodeURIComponent(t.id) + '" class="tc-btn tc-btn--preview">Preview</a>'
+            + '<button class="tc-btn tc-btn--preview tpl-preview-trigger" data-preview-url="' + previewUrl + '" data-template-name="' + t.name + '">Preview</button>'
             + '<a href="' + BASE + '/select.php?id=' + encodeURIComponent(t.id) + '" class="tc-btn tc-btn--start">Start</a>'
             + '</div></div></div>';
     }
@@ -414,6 +472,103 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
     }, { threshold: 0.06 });
     document.querySelectorAll('.shelf-card').forEach(function (c) {
         shelfObserver.observe(c);
+    });
+
+    /* ── Business-type picker ── */
+    var pickerCards = document.querySelectorAll('.bizpicker-card');
+    pickerCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+            var cat = card.dataset.category;
+            pickerCards.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+            card.setAttribute('aria-pressed', 'true');
+
+            if (cat === 'all') {
+                activeStyle = 'all';
+                searchQuery = '';
+                searchInput.value = '';
+                chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
+                    c.classList.toggle('is-active', c.dataset.style === 'all');
+                });
+                render();
+                document.getElementById('search').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                /* Map category key → filter chip style using template data */
+                /* We filter by category directly in a custom search query */
+                searchQuery = '';
+                searchInput.value = '';
+                activeStyle = 'all';
+                chipsEl.querySelectorAll('.filter-chip').forEach(function (c) {
+                    c.classList.toggle('is-active', c.dataset.style === 'all');
+                });
+
+                /* Override render to filter by category */
+                var q = '';
+                var filtered = TEMPLATES.filter(function (t) {
+                    return t.category === cat;
+                });
+                var n = filtered.length;
+                resultsCount.innerHTML = '<strong>' + n + '</strong> design' + (n !== 1 ? 's' : '') + ' for <strong>' + cat + 's</strong>';
+                if (n === 0) {
+                    resultsGrid.innerHTML = '';
+                    resultsEmpty.hidden = false;
+                } else {
+                    resultsEmpty.hidden = true;
+                    resultsGrid.innerHTML = filtered.map(cardHtml).join('');
+                    requestAnimationFrame(function () {
+                        resultsGrid.querySelectorAll('.template-card').forEach(function (c) {
+                            c.classList.add('in-view');
+                        });
+                    });
+                }
+                if (shelvesEl) shelvesEl.style.display = 'none';
+                categoriesSec.style.display = 'none';
+                searchClear.hidden = false;
+                resultsSection.hidden = false;
+                document.getElementById('search').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    /* ── Preview Modal ── */
+    var modal        = document.getElementById('tpl-preview-modal');
+    var modalIframe  = document.getElementById('preview-modal-iframe');
+    var modalName    = document.getElementById('preview-modal-name');
+    var modalOpen    = document.getElementById('preview-modal-open');
+    var modalClose   = document.getElementById('preview-modal-close');
+    var modalLoading = document.getElementById('preview-modal-loading');
+    var modalBackdrop= modal.querySelector('.preview-modal__backdrop');
+
+    function openPreviewModal(url, name) {
+        modalName.textContent = name;
+        modalOpen.href = url;
+        modalIframe.src = '';
+        modalLoading.hidden = false;
+        modal.removeAttribute('hidden');
+        document.body.style.overflow = 'hidden';
+        /* Small delay so the modal renders before iframe load starts */
+        setTimeout(function () { modalIframe.src = url; }, 80);
+    }
+
+    function closePreviewModal() {
+        modal.setAttribute('hidden', '');
+        modalIframe.src = '';
+        document.body.style.overflow = '';
+    }
+
+    modalIframe.addEventListener('load', function () { modalLoading.hidden = true; });
+    modalClose.addEventListener('click', closePreviewModal);
+    modalBackdrop.addEventListener('click', closePreviewModal);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hasAttribute('hidden')) closePreviewModal();
+    });
+
+    document.addEventListener('click', function (e) {
+        var trigger = e.target.closest('.tpl-preview-trigger');
+        if (!trigger) return;
+        e.preventDefault();
+        var url  = trigger.dataset.previewUrl;
+        var name = trigger.dataset.templateName;
+        if (url) openPreviewModal(url, name || 'Template Preview');
     });
 })();
 </script>

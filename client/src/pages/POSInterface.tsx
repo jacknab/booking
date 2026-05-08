@@ -12,7 +12,7 @@ import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2, CreditCard, Trash2 } from "lucide-react";
+import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2, CreditCard, Trash2, Star, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Addon, Customer, Staff } from "@shared/schema";
 import { ReceiptContent, useReceiptPrinter, type ReceiptData } from "@/components/Receipt";
@@ -303,6 +303,9 @@ export default function POSInterface() {
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
   const [showTipScreen, setShowTipScreen] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0);
+  const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState(0);
+  const [pointsEarnedThisVisit, setPointsEarnedThisVisit] = useState(0);
   const [checkoutComplete, setCheckoutComplete] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [stripeReaderActive, setStripeReaderActive] = useState(false);
@@ -398,6 +401,10 @@ export default function POSInterface() {
     }));
   };
 
+  const LOYALTY_POINTS_PER_DOLLAR = 1;
+  const LOYALTY_REDEEM_THRESHOLD = 500;
+  const LOYALTY_REDEEM_VALUE = 10;
+
   const ticketTotal = ticketItems.reduce((sum, item) => {
     const svcPrice = Number(item.service.price);
     const addonPrice = item.addons.reduce((s, a) => s + Number(a.price), 0);
@@ -407,15 +414,35 @@ export default function POSInterface() {
     const addonDur = item.addons.reduce((s, a) => s + a.duration, 0);
     return sum + item.service.duration + addonDur;
   }, 0);
-  const grandTotal = ticketTotal + tipAmount;
+  const grandTotal = Math.max(0, ticketTotal + tipAmount - loyaltyDiscount);
+
+  const clientPoints = (client as any)?.loyaltyPoints ?? 0;
+  const redeemableSets = client ? Math.floor(clientPoints / LOYALTY_REDEEM_THRESHOLD) : 0;
+  const canRedeemLoyalty = redeemableSets > 0 && ticketItems.length > 0;
+
+  const handleRedeemLoyalty = () => {
+    if (!canRedeemLoyalty) return;
+    const maxDiscount = redeemableSets * LOYALTY_REDEEM_VALUE;
+    const discount = Math.min(maxDiscount, ticketTotal + tipAmount);
+    const pointsUsed = Math.ceil(discount / LOYALTY_REDEEM_VALUE) * LOYALTY_REDEEM_THRESHOLD;
+    setLoyaltyDiscount(discount);
+    setLoyaltyPointsRedeemed(pointsUsed);
+    toast({ title: "Loyalty points applied", description: `$${discount.toFixed(2)} discount applied (${pointsUsed} pts).` });
+  };
+
+  const handleClearLoyalty = () => {
+    setLoyaltyDiscount(0);
+    setLoyaltyPointsRedeemed(0);
+  };
 
   const handleAddTip = (amount: number) => {
     setTipAmount(amount);
     setShowTipScreen(false);
   };
 
-  const handleCheckout = (paymentMethod = "Card", transactionId?: string) => {
+  const handleCheckout = async (paymentMethod = "Card", transactionId?: string) => {
     const now = new Date();
+    const txnId = transactionId || Math.random().toString(36).substring(2, 10).toUpperCase();
     const data: ReceiptData = {
       store: selectedStore,
       client: client || null,
@@ -425,13 +452,56 @@ export default function POSInterface() {
       tipAmount,
       grandTotal,
       paymentMethod,
-      transactionId: transactionId || Math.random().toString(36).substring(2, 10).toUpperCase(),
+      transactionId: txnId,
       dateStr: now.toLocaleDateString(),
       timeStr: now.toLocaleTimeString(),
     };
     setReceiptData(data);
     setCheckoutComplete(true);
     printReceipt(data);
+
+    // Auto-award loyalty points (1 pt per dollar paid) if a client is attached
+    if (client && selectedStore?.id) {
+      const earned = Math.floor(grandTotal * LOYALTY_POINTS_PER_DOLLAR);
+      if (earned > 0) {
+        setPointsEarnedThisVisit(earned);
+        try {
+          await fetch("/api/loyalty/adjust", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customerId: client.id,
+              storeId: selectedStore.id,
+              type: "earn",
+              points: earned,
+              description: `POS checkout — ${earned} pt${earned !== 1 ? "s" : ""} earned`,
+            }),
+          });
+        } catch (err) {
+          console.error("Loyalty earn failed:", err);
+        }
+      }
+      // Record redemption if points were used
+      if (loyaltyPointsRedeemed > 0) {
+        try {
+          await fetch("/api/loyalty/adjust", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customerId: client.id,
+              storeId: selectedStore.id,
+              type: "redeem",
+              points: -loyaltyPointsRedeemed,
+              description: `POS redemption — $${loyaltyDiscount.toFixed(2)} discount`,
+            }),
+          });
+        } catch (err) {
+          console.error("Loyalty redeem record failed:", err);
+        }
+      }
+    }
   };
 
   const handleStripeSwipeInput = async (value: string) => {
@@ -489,6 +559,9 @@ export default function POSInterface() {
   const handleNewTransaction = () => {
     setTicketItems([]);
     setTipAmount(0);
+    setLoyaltyDiscount(0);
+    setLoyaltyPointsRedeemed(0);
+    setPointsEarnedThisVisit(0);
     setCheckoutComplete(false);
     setReceiptData(null);
     setActiveItemIndex(null);
@@ -506,6 +579,32 @@ export default function POSInterface() {
             <h1 className="text-2xl font-bold" data-testid="text-checkout-success">Payment Complete</h1>
             <p className="text-muted-foreground">Transaction #{receiptData.transactionId}</p>
           </div>
+          {(pointsEarnedThisVisit > 0 || loyaltyPointsRedeemed > 0) && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 font-semibold text-sm text-primary">
+                <Star className="w-4 h-4 fill-primary" />
+                Loyalty Points
+              </div>
+              {pointsEarnedThisVisit > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Points earned this visit</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">+{pointsEarnedThisVisit} pts</span>
+                </div>
+              )}
+              {loyaltyPointsRedeemed > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Points redeemed</span>
+                  <span className="font-bold text-orange-500">−{loyaltyPointsRedeemed} pts</span>
+                </div>
+              )}
+              {client && (
+                <div className="flex items-center justify-between text-sm border-t pt-2 mt-1">
+                  <span className="text-muted-foreground">New balance</span>
+                  <span className="font-bold">{Math.max(0, clientPoints + pointsEarnedThisVisit - loyaltyPointsRedeemed)} pts</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <Card className="p-0 overflow-hidden">
             <div className="flex items-center justify-center bg-muted/30 py-4">
@@ -754,10 +853,42 @@ export default function POSInterface() {
 
             {/* Checkout footer */}
             <div className="border-t p-4 space-y-3">
+              {/* Loyalty points balance + redeem */}
+              {client && clientPoints > 0 && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                      <span className="text-xs font-semibold text-primary">{clientPoints} pts</span>
+                      {loyaltyDiscount === 0 && redeemableSets > 0 && (
+                        <span className="text-xs text-muted-foreground">· can redeem</span>
+                      )}
+                    </div>
+                    {loyaltyDiscount > 0 ? (
+                      <button onClick={handleClearLoyalty} className="text-[10px] font-semibold text-destructive underline">Remove</button>
+                    ) : (
+                      canRedeemLoyalty && (
+                        <button onClick={handleRedeemLoyalty} className="text-[10px] font-semibold text-primary underline flex items-center gap-1">
+                          <Gift className="w-3 h-3" /> Redeem
+                        </button>
+                      )
+                    )}
+                  </div>
+                  {loyaltyDiscount > 0 && (
+                    <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mt-0.5">−${loyaltyDiscount.toFixed(2)} discount applied</p>
+                  )}
+                </div>
+              )}
               {tipAmount > 0 && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Tip</span>
                   <span className="font-medium">${tipAmount.toFixed(2)}</span>
+                </div>
+              )}
+              {loyaltyDiscount > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Loyalty discount</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">−${loyaltyDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
@@ -987,10 +1118,42 @@ export default function POSInterface() {
         </div>
 
         <div className="border-t p-4 space-y-3">
+          {/* Desktop loyalty points balance + redeem */}
+          {client && clientPoints > 0 && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                  <span className="text-xs font-semibold text-primary">{clientPoints} pts</span>
+                  {loyaltyDiscount === 0 && redeemableSets > 0 && (
+                    <span className="text-xs text-muted-foreground">· can redeem</span>
+                  )}
+                </div>
+                {loyaltyDiscount > 0 ? (
+                  <button onClick={handleClearLoyalty} className="text-[10px] font-semibold text-destructive underline">Remove</button>
+                ) : (
+                  canRedeemLoyalty && (
+                    <button onClick={handleRedeemLoyalty} className="text-[10px] font-semibold text-primary underline flex items-center gap-1">
+                      <Gift className="w-3 h-3" /> Redeem
+                    </button>
+                  )
+                )}
+              </div>
+              {loyaltyDiscount > 0 && (
+                <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mt-0.5">−${loyaltyDiscount.toFixed(2)} discount applied</p>
+              )}
+            </div>
+          )}
           {tipAmount > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Tip</span>
               <span className="font-medium" data-testid="pos-tip-amount">${tipAmount.toFixed(2)}</span>
+            </div>
+          )}
+          {loyaltyDiscount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Loyalty discount</span>
+              <span className="font-medium text-green-600 dark:text-green-400">−${loyaltyDiscount.toFixed(2)}</span>
             </div>
           )}
           <div className="flex items-center justify-between">
