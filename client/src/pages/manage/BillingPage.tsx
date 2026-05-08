@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  CreditCard, FileText, RefreshCw, XCircle, CheckCircle, Clock,
-  AlertTriangle, Download, ExternalLink, ArrowLeft, Loader2, Zap,
-  Shield, LifeBuoy, ChevronRight, Calendar, BarChart3, Pause, PlayCircle,
-  TrendingUp, TrendingDown, ArrowRight,
+  CreditCard, FileText, XCircle, CheckCircle, Clock, AlertTriangle,
+  Download, ArrowLeft, Loader2, Zap, Shield, LifeBuoy, ChevronRight,
+  Calendar, Pause, Users, Plus, Minus, TrendingUp, TrendingDown,
+  RefreshCw, ExternalLink, Info, BadgeCheck, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +13,10 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PRICE_PER_SEAT = 8; // $8 per seat per month
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface BillingData {
   profile: any;
   subscription: any;
@@ -22,6 +24,18 @@ interface BillingData {
   plan: any;
   paymentMethod: { brand: string; last4: string; expMonth?: number; expYear?: number } | null;
   store: { id: number; name: string; email: string };
+}
+
+interface SeatInfo {
+  activeStaffCount: number;
+  purchasedSeats: number;
+  pricePerSeatCents: number;
+  monthlyTotalCents: number;
+  stripeSubscriptionId: string | null;
+  status: string | null;
+  currentPeriodStart: number | null;
+  currentPeriodEnd: number | null;
+  cancelAtPeriodEnd: boolean;
 }
 
 interface Invoice {
@@ -38,16 +52,32 @@ interface Invoice {
   createdAt: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+interface UpcomingInvoice {
+  amountDueCents: number;
+  nextPaymentAttempt: number | null;
+  lines: { description: string; amountCents: number; quantity?: number }[];
+  currency: string;
+}
 
-function formatCents(cents: number | string | null | undefined): string {
-  if (cents == null) return "$0.00";
+interface PaymentMethod {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth?: number;
+  expYear?: number;
+  isDefault: boolean;
+  billingEmail?: string;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmt(cents: number | null | undefined): string {
+  if (cents == null) return "$0";
   const n = Number(cents);
-  if (n % 100 === 0) return `$${(n / 100).toFixed(0)}`;
+  if (n % 100 === 0) return `$${n / 100}`;
   return `$${(n / 100).toFixed(2)}`;
 }
 
-function formatCentsExact(cents: number | string | null | undefined): string {
+function fmtExact(cents: number | null | undefined): string {
   if (cents == null) return "$0.00";
   return `$${(Number(cents) / 100).toFixed(2)}`;
 }
@@ -56,23 +86,30 @@ async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(path, { credentials: "include", ...opts });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Request failed: ${res.status}`);
+    throw new Error(err.error || err.message || `Request failed: ${res.status}`);
   }
   return res.json();
 }
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string; icon: any }> = {
-  active: { label: "Active", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400", icon: CheckCircle },
-  trialing: { label: "Trial", cls: "bg-violet-500/15 text-violet-300 border-violet-500/30", dot: "bg-violet-400", icon: Zap },
-  past_due: { label: "Past Due", cls: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400", icon: AlertTriangle },
-  canceled: { label: "Canceled", cls: "bg-zinc-600/20 text-zinc-400 border-zinc-600/30", dot: "bg-zinc-500", icon: XCircle },
-  unpaid: { label: "Unpaid", cls: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400", icon: AlertTriangle },
-  paused: { label: "Paused", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30", dot: "bg-blue-400", icon: Pause },
-  scheduled_for_cancellation: { label: "Canceling", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30", dot: "bg-amber-400", icon: Clock },
-  none: { label: "No Plan", cls: "bg-zinc-600/20 text-zinc-400 border-zinc-600/30", dot: "bg-zinc-600", icon: Clock },
+function cardBrandIcon(brand: string) {
+  const b = brand.toLowerCase();
+  if (b === "visa") return "💳";
+  if (b === "mastercard") return "💳";
+  if (b === "amex") return "💳";
+  return "💳";
+}
+
+const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
+  active: { label: "Active", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
+  trialing: { label: "Trial", cls: "bg-violet-500/15 text-violet-300 border-violet-500/30", dot: "bg-violet-400" },
+  past_due: { label: "Past Due", cls: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400" },
+  canceled: { label: "Canceled", cls: "bg-zinc-600/20 text-zinc-400 border-zinc-600/30", dot: "bg-zinc-500" },
+  unpaid: { label: "Unpaid", cls: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400" },
+  paused: { label: "Paused", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30", dot: "bg-blue-400" },
+  none: { label: "No Plan", cls: "bg-zinc-600/20 text-zinc-400 border-zinc-600/30", dot: "bg-zinc-600" },
 };
 
-function getStatusConfig(status: string | null | undefined) {
+function getStatus(status: string | null | undefined) {
   return STATUS_CONFIG[status ?? "none"] ?? STATUS_CONFIG["none"];
 }
 
@@ -80,37 +117,57 @@ const CANCEL_REASONS = [
   "Too expensive for my business",
   "Switching to a different software",
   "Not using it enough",
-  "Missing features I need",
-  "Technical issues or bugs",
-  "Just taking a break",
+  "Missing a feature I need",
+  "Technical issues",
+  "Taking a break",
   "Other",
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function BillingPage({ salonId }: { salonId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [cancelStep, setCancelStep] = useState<"idle" | "reason" | "confirm">("idle");
+  // Seat management state
+  const [draftSeats, setDraftSeats] = useState<number | null>(null);
+  const [showSeatConfirm, setShowSeatConfirm] = useState(false);
+
+  // Cancellation flow state
+  const [cancelStep, setCancelStep] = useState<"idle" | "reason" | "retention" | "confirm">("idle");
   const [cancelReason, setCancelReason] = useState("");
-  const [showPlanPicker, setShowPlanPicker] = useState(false);
-  const [selectedPlanCode, setSelectedPlanCode] = useState<string | null>(null);
 
   const sessionStatus = searchParams.get("status");
 
-  // ── Data fetching ────────────────────────────────────────────────────────────
+  // ── Queries ─────────────────────────────────────────────────────────────────
 
   const { data: billing, isLoading: billingLoading } = useQuery<BillingData>({
     queryKey: ["billing-profile", salonId],
     queryFn: () => apiFetch(`/api/billing/profile/${salonId}`),
   });
 
+  const { data: seatData, isLoading: seatsLoading } = useQuery<SeatInfo>({
+    queryKey: ["billing-seats", salonId],
+    queryFn: () => apiFetch(`/api/billing/seats/${salonId}`),
+    refetchInterval: 30_000,
+  });
+
   const { data: invoicesData } = useQuery<{ invoices: Invoice[] }>({
     queryKey: ["billing-invoices", salonId],
     queryFn: () => apiFetch(`/api/billing/invoices/${salonId}`),
+  });
+
+  const { data: upcomingData } = useQuery<UpcomingInvoice | null>({
+    queryKey: ["billing-upcoming", salonId],
+    queryFn: () => apiFetch(`/api/billing/upcoming/${salonId}`),
+    retry: false,
+  });
+
+  const { data: paymentMethods } = useQuery<PaymentMethod[]>({
+    queryKey: ["billing-payment-methods", salonId],
+    queryFn: () => apiFetch(`/api/billing/payment-methods/${salonId}`),
+    retry: false,
   });
 
   const { data: stripeStatus } = useQuery<{ configured: boolean }>({
@@ -120,28 +177,40 @@ export default function BillingPage({ salonId }: { salonId: number }) {
 
   const stripeConfigured = stripeStatus?.configured ?? false;
 
-  const { data: allPlansData } = useQuery<{ plans: any[] }>({
-    queryKey: ["billing-plans"],
-    queryFn: () => apiFetch("/api/billing/plans"),
-    enabled: showPlanPicker,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: planPreview, isLoading: previewLoading } = useQuery<{
-    immediateChargeCents: number;
-    nextInvoiceCents: number;
-    currency: string;
-    lines: { description: string; amountCents: number }[];
-    newPlan: any;
-  }>({
-    queryKey: ["plan-preview", salonId, selectedPlanCode],
-    queryFn: () =>
-      apiFetch(`/api/billing/plan-preview/${salonId}?newPlanCode=${selectedPlanCode}&interval=month`),
-    enabled: !!selectedPlanCode && selectedPlanCode !== billing?.plan?.code && stripeConfigured,
+  // Preview when draft seats change
+  const { data: seatPreview, isLoading: previewLoading } = useQuery({
+    queryKey: ["seat-preview", salonId, draftSeats],
+    queryFn: () => apiFetch(`/api/billing/seats/preview/${salonId}?newQuantity=${draftSeats}`),
+    enabled: draftSeats !== null && draftSeats !== (seatData?.purchasedSeats ?? 0),
     retry: false,
   });
 
+  // Sync draft seats when seat data loads
+  useEffect(() => {
+    if (seatData && draftSeats === null) {
+      setDraftSeats(seatData.purchasedSeats);
+    }
+  }, [seatData, draftSeats]);
+
   // ── Mutations ────────────────────────────────────────────────────────────────
+
+  const updateSeatsMutation = useMutation({
+    mutationFn: (newQuantity: number) =>
+      apiFetch(`/api/billing/seats/${salonId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newQuantity }),
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
+      queryClient.invalidateQueries({ queryKey: ["billing-upcoming", salonId] });
+      queryClient.invalidateQueries({ queryKey: ["billing-invoices", salonId] });
+      setShowSeatConfirm(false);
+      toast({ title: "Seats updated", description: `Now billing for ${data.purchasedSeats} seat${data.purchasedSeats !== 1 ? "s" : ""} — ${fmt(data.monthlyTotalCents)}/month.` });
+    },
+    onError: (err: any) =>
+      toast({ title: "Could not update seats", description: err.message, variant: "destructive" }),
+  });
 
   const portalMutation = useMutation({
     mutationFn: () =>
@@ -153,30 +222,6 @@ export default function BillingPage({ salonId }: { salonId: number }) {
     onSuccess: ({ url }) => { window.location.href = url; },
     onError: (err: any) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  const changePlanMutation = useMutation({
-    mutationFn: (newPlanCode: string) =>
-      apiFetch(`/api/billing/change-plan/${salonId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newPlanCode, interval: "month", immediate: true }),
-      }),
-    onSuccess: (_data, newPlanCode) => {
-      queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["billing-invoices", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["plan-preview", salonId] });
-      setShowPlanPicker(false);
-      setSelectedPlanCode(null);
-      const allPlans = allPlansData?.plans ?? [];
-      const newPlan = allPlans.find((p) => p.code === newPlanCode);
-      toast({
-        title: "Plan updated",
-        description: `You've switched to the ${newPlan?.name ?? newPlanCode} plan.`,
-      });
-    },
-    onError: (err: any) =>
-      toast({ title: "Plan change failed", description: err.message, variant: "destructive" }),
   });
 
   const cancelMutation = useMutation({
@@ -192,11 +237,9 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
+      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
       setCancelStep("idle");
-      toast({
-        title: "Cancellation scheduled",
-        description: "Your subscription will end at the current billing period.",
-      });
+      toast({ title: "Cancellation scheduled", description: "Your subscription will end at the current billing period." });
     },
     onError: (err: any) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
@@ -211,24 +254,8 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
+      queryClient.invalidateQueries({ queryKey: ["billing-seats", salonId] });
       toast({ title: "Subscription resumed", description: "Your cancellation has been reversed." });
-    },
-    onError: (err: any) =>
-      toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  const retryMutation = useMutation({
-    mutationFn: (invoiceId: string) =>
-      apiFetch(`/api/billing/invoices/${invoiceId}/retry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ salonId }),
-      }),
-    onSuccess: ({ paid }) => {
-      queryClient.invalidateQueries({ queryKey: ["billing-invoices", salonId] });
-      queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
-      if (paid) toast({ title: "Payment successful", description: "Your invoice has been paid." });
-      else toast({ title: "Payment failed", description: "The payment could not be processed.", variant: "destructive" });
     },
     onError: (err: any) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
@@ -238,39 +265,40 @@ export default function BillingPage({ salonId }: { salonId: number }) {
 
   const sub = billing?.subscription;
   const profile = billing?.profile;
-  const pm = billing?.paymentMethod;
-  const plan = billing?.plan;
+  const pm = billing?.paymentMethod ?? paymentMethods?.[0] ?? null;
 
-  const subStatus = sub?.status ?? profile?.currentSubscriptionStatus;
-  const statusCfg = getStatusConfig(subStatus);
+  const subStatus = seatData?.status ?? sub?.status ?? profile?.currentSubscriptionStatus;
+  const statusCfg = getStatus(subStatus);
 
-  const isScheduledToCancel =
-    sub?.cancelAtPeriodEnd === 1 || sub?.cancelAtPeriodEnd === true;
-
+  const isScheduledToCancel = seatData?.cancelAtPeriodEnd || sub?.cancelAtPeriodEnd === 1 || sub?.cancelAtPeriodEnd === true;
   const isActive = subStatus === "active" || subStatus === "trialing";
   const isTrialing = subStatus === "trialing";
   const isPastDue = subStatus === "past_due";
 
-  const periodEnd = sub?.currentPeriodEnd
-    ? new Date(Number(sub.currentPeriodEnd) > 1e10 ? sub.currentPeriodEnd : Number(sub.currentPeriodEnd) * 1000)
+  const periodEnd = seatData?.currentPeriodEnd
+    ? new Date(Number(seatData.currentPeriodEnd) * 1000)
+    : sub?.currentPeriodEnd
+    ? new Date(Number(sub.currentPeriodEnd) > 1e10 ? Number(sub.currentPeriodEnd) : Number(sub.currentPeriodEnd) * 1000)
     : null;
 
-  const planFeatures: string[] = plan?.featuresJson?.features ?? [];
+  const periodStart = seatData?.currentPeriodStart
+    ? new Date(Number(seatData.currentPeriodStart) * 1000)
+    : null;
 
-  const allPlans = allPlansData?.plans ?? [];
-  const selectedPlan = allPlans.find((p) => p.code === selectedPlanCode) ?? null;
-  const isUpgrade = selectedPlan && plan
-    ? Number(selectedPlan.priceCents) > Number(plan.priceCents)
-    : false;
-  const isDowngrade = selectedPlan && plan
-    ? Number(selectedPlan.priceCents) < Number(plan.priceCents)
-    : false;
+  const currentSeats = seatData?.purchasedSeats ?? 1;
+  const activeStaff = seatData?.activeStaffCount ?? 0;
+  const effectiveDraft = draftSeats ?? currentSeats;
+  const draftMonthly = effectiveDraft * PRICE_PER_SEAT;
+  const currentMonthly = currentSeats * PRICE_PER_SEAT;
+  const seatDiff = effectiveDraft - currentSeats;
+  const isDraftChanged = effectiveDraft !== currentSeats;
+  const seatsAtCapacity = activeStaff >= currentSeats;
 
-  if (billingLoading) {
+  if (billingLoading || seatsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
         <div className="text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-violet-400 mx-auto" />
+          <div className="w-10 h-10 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin mx-auto" />
           <p className="text-zinc-500 text-sm">Loading billing information…</p>
         </div>
       </div>
@@ -278,7 +306,7 @@ export default function BillingPage({ salonId }: { salonId: number }) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6 pb-16">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-20">
 
       {/* ── Header ────────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
@@ -292,6 +320,12 @@ export default function BillingPage({ salonId }: { salonId: number }) {
           <h1 className="text-xl font-bold text-white">Billing & Subscription</h1>
           <p className="text-zinc-500 text-xs mt-0.5">{billing?.store?.name}</p>
         </div>
+        <div className="ml-auto">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusCfg.cls}`}>
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${statusCfg.dot}`} />
+            {statusCfg.label}
+          </span>
+        </div>
       </div>
 
       {/* ── Session banners ───────────────────────────────────────────────────── */}
@@ -301,751 +335,700 @@ export default function BillingPage({ salonId }: { salonId: number }) {
           <span className="text-emerald-300 text-sm font-medium">Subscription activated — welcome aboard!</span>
         </div>
       )}
-      {sessionStatus === "canceled" && (
-        <div className="bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-4 flex items-center gap-3">
-          <XCircle className="w-5 h-5 text-zinc-400 flex-shrink-0" />
-          <span className="text-zinc-400 text-sm">Checkout was canceled. No charge was made.</span>
-        </div>
-      )}
       {!stripeConfigured && (
         <div className="bg-amber-500/8 border border-amber-500/25 rounded-xl p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-          <span className="text-amber-300 text-sm">Payment processing is not yet configured on this server. Contact support to activate billing.</span>
+          <span className="text-amber-300 text-sm">Payment processing is not yet configured. Contact support to activate billing.</span>
+        </div>
+      )}
+      {isPastDue && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+            <span className="text-red-300 text-sm font-medium">Your account has a past-due balance. Update your payment method to restore full access.</span>
+          </div>
+          {stripeConfigured && (
+            <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white text-xs flex-shrink-0"
+              onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending}>
+              {portalMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Update Payment"}
+            </Button>
+          )}
         </div>
       )}
 
-      {/* ── Subscription Overview Card (Hero) ────────────────────────────────── */}
-      <Card className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800/60 border-zinc-700/50 overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-transparent pointer-events-none" />
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-zinc-400 text-sm font-medium capitalize">
-                  {plan?.name ?? "No Plan"} Plan
-                </span>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${statusCfg.cls}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                  {statusCfg.label}
-                </span>
-                {isScheduledToCancel && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-500/10 text-amber-300 border-amber-500/30">
-                    <Clock className="w-3 h-3" />
-                    Canceling
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 1 — SUBSCRIPTION OVERVIEW HERO
+      ───────────────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-700/50 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800/60">
+        {/* Decorative gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/8 via-transparent to-fuchsia-600/5 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+
+            {/* Left — pricing */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2">SalonOS Professional</p>
+                <div className="flex items-end gap-2">
+                  <span className="text-5xl font-bold text-white tracking-tight">
+                    ${currentMonthly}
                   </span>
-                )}
+                  <span className="text-zinc-400 text-base mb-2">/ month</span>
+                </div>
+                <p className="text-zinc-500 text-sm mt-1">
+                  {currentSeats} active seat{currentSeats !== 1 ? "s" : ""} × ${PRICE_PER_SEAT}/seat
+                </p>
               </div>
-              <div className="flex items-end gap-2 pt-1">
-                <span className="text-4xl font-bold text-white tracking-tight">
-                  {formatCents(plan?.priceCents ?? 0)}
-                </span>
-                <span className="text-zinc-400 text-sm mb-1.5">/ month</span>
-              </div>
-              <p className="text-zinc-400 text-sm">
-                {plan?.description ?? "Flat-rate tier plan"}
-              </p>
+
+              {isScheduledToCancel && periodEnd && (
+                <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 text-amber-300 rounded-lg px-3 py-2 text-xs">
+                  <Clock className="w-3.5 h-3.5" />
+                  Access ends {format(periodEnd, "MMMM d, yyyy")}
+                </div>
+              )}
+              {isTrialing && (
+                <div className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/25 text-violet-300 rounded-lg px-3 py-2 text-xs">
+                  <Zap className="w-3.5 h-3.5" />
+                  Free trial active
+                  {periodEnd && ` — ends ${format(periodEnd, "MMM d")}`}
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-col gap-2 sm:items-end">
+            {/* Right — details grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:min-w-[180px]">
               {periodEnd && (
-                <div className="text-right">
-                  <p className="text-zinc-500 text-xs uppercase tracking-wider">
+                <div className="sm:text-right">
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">
                     {isScheduledToCancel ? "Access ends" : "Next billing"}
                   </p>
                   <p className="text-white font-semibold text-sm mt-0.5">
-                    {format(periodEnd, "MMMM d, yyyy")}
+                    {format(periodEnd, "MMM d, yyyy")}
                   </p>
+                </div>
+              )}
+              {periodStart && (
+                <div className="sm:text-right">
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Period start</p>
+                  <p className="text-zinc-300 text-sm mt-0.5">{format(periodStart, "MMM d, yyyy")}</p>
                 </div>
               )}
               {profile?.subscriptionStartedAt && (
-                <div className="text-right">
-                  <p className="text-zinc-500 text-xs uppercase tracking-wider">Member since</p>
+                <div className="sm:text-right">
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Member since</p>
                   <p className="text-zinc-300 text-sm mt-0.5">
-                    {format(new Date(profile.subscriptionStartedAt), "MMMM yyyy")}
+                    {format(new Date(profile.subscriptionStartedAt), "MMM yyyy")}
                   </p>
                 </div>
               )}
+              <div className="sm:text-right">
+                <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Annual estimate</p>
+                <p className="text-zinc-300 text-sm mt-0.5">${currentMonthly * 12}/year</p>
+              </div>
             </div>
           </div>
 
-          {/* Alerts */}
-          {isPastDue && (
-            <div className="mt-4 bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-              <span className="text-red-300 text-sm">
-                Your account has a past-due balance. Please update your payment method to restore full access.
-              </span>
+          {/* Keep subscription button */}
+          {isScheduledToCancel && stripeConfigured && (
+            <div className="mt-5 pt-5 border-t border-zinc-700/50 flex items-center justify-between gap-3">
+              <p className="text-zinc-400 text-sm">Changed your mind? Keep your subscription active.</p>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                onClick={() => resumeMutation.mutate()} disabled={resumeMutation.isPending}>
+                {resumeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <CheckCircle className="w-3.5 h-3.5 mr-1.5" />}
+                Keep subscription
+              </Button>
             </div>
           )}
-          {isScheduledToCancel && periodEnd && (
-            <div className="mt-4 bg-amber-500/8 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span className="text-amber-300 text-sm">
-                  Subscription will end on {format(periodEnd, "MMMM d, yyyy")}. Your data will be retained for 30 days.
-                </span>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 2 — STAFF SEAT MANAGEMENT (Most Important)
+      ───────────────────────────────────────────────────────────────────────── */}
+      <Card className="bg-zinc-900/70 border-zinc-700/50 overflow-hidden">
+        <CardHeader className="pb-0 pt-5 px-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white text-base flex items-center gap-2">
+              <Users className="w-4 h-4 text-violet-400" />
+              Staff Seat Management
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500">${PRICE_PER_SEAT}/seat/month</span>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-6 space-y-5">
+
+          {/* Current usage bar */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">{activeStaff} of {currentSeats} seat{currentSeats !== 1 ? "s" : ""} used</span>
+              <span className={seatsAtCapacity ? "text-amber-400 font-semibold" : "text-zinc-500"}>
+                {seatsAtCapacity ? "At capacity" : `${currentSeats - activeStaff} seat${currentSeats - activeStaff !== 1 ? "s" : ""} available`}
+              </span>
+            </div>
+            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${seatsAtCapacity ? "bg-amber-400" : "bg-violet-500"}`}
+                style={{ width: `${Math.min(100, (activeStaff / Math.max(currentSeats, 1)) * 100)}%` }}
+              />
+            </div>
+            {seatsAtCapacity && (
+              <p className="text-amber-400/80 text-xs flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3" />
+                You've reached your active staff limit. Add more seats to onboard additional team members.
+              </p>
+            )}
+          </div>
+
+          {/* Seat adjuster */}
+          {isActive && stripeConfigured && (
+            <div className="bg-zinc-800/40 border border-zinc-700/40 rounded-xl p-5 space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-white font-semibold text-sm">Adjust seat count</p>
+                  <p className="text-zinc-500 text-xs mt-0.5">Each seat = one staff member, ${PRICE_PER_SEAT}/month</p>
+                </div>
+
+                {/* Stepper */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setDraftSeats(Math.max(1, effectiveDraft - 1))}
+                    disabled={effectiveDraft <= 1 || effectiveDraft <= activeStaff}
+                    className="w-9 h-9 rounded-lg border border-zinc-600/60 bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="text-center min-w-[60px]">
+                    <span className="text-2xl font-bold text-white">{effectiveDraft}</span>
+                    <p className="text-zinc-500 text-[10px] mt-0.5">seats</p>
+                  </div>
+                  <button
+                    onClick={() => setDraftSeats(effectiveDraft + 1)}
+                    className="w-9 h-9 rounded-lg border border-violet-600/50 bg-violet-600/20 text-violet-300 flex items-center justify-center hover:bg-violet-600/30 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              {stripeConfigured && (
-                <Button
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex-shrink-0"
-                  onClick={() => resumeMutation.mutate()}
-                  disabled={resumeMutation.isPending}
-                >
-                  {resumeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Keep subscription"}
-                </Button>
+
+              {/* Live pricing calculator */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-zinc-900/60 rounded-lg p-3 text-center">
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Current</p>
+                  <p className="text-white font-bold text-lg">${currentMonthly}</p>
+                  <p className="text-zinc-600 text-[10px]">{currentSeats} seat{currentSeats !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="bg-zinc-900/60 rounded-lg p-3 text-center relative">
+                  {isDraftChanged && (
+                    <div className="absolute -top-1.5 left-1/2 -translate-x-1/2">
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${seatDiff > 0 ? "bg-violet-500 text-white" : "bg-emerald-600 text-white"}`}>
+                        {seatDiff > 0 ? `+${seatDiff}` : seatDiff}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">New</p>
+                  <p className={`font-bold text-lg ${isDraftChanged ? (seatDiff > 0 ? "text-violet-300" : "text-emerald-400") : "text-zinc-400"}`}>
+                    ${draftMonthly}
+                  </p>
+                  <p className="text-zinc-600 text-[10px]">{effectiveDraft} seat{effectiveDraft !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="bg-zinc-900/60 rounded-lg p-3 text-center">
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Annual</p>
+                  <p className="text-zinc-300 font-bold text-lg">${draftMonthly * 12}</p>
+                  <p className="text-zinc-600 text-[10px]">per year</p>
+                </div>
+              </div>
+
+              {/* Proration preview */}
+              {isDraftChanged && (
+                <div className="bg-zinc-900/40 border border-zinc-700/40 rounded-lg p-4 space-y-3">
+                  <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Billing impact</p>
+                  {previewLoading ? (
+                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Calculating…
+                    </div>
+                  ) : seatPreview ? (
+                    <div className="space-y-2">
+                      {seatPreview.immediateChargeCents > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-400">Prorated charge today</span>
+                          <span className="text-white font-semibold">{fmtExact(seatPreview.immediateChargeCents)}</span>
+                        </div>
+                      )}
+                      {seatPreview.immediateChargeCents <= 0 && seatDiff < 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-400">Credit applied to next invoice</span>
+                          <span className="text-emerald-400 font-semibold">
+                            {fmtExact(Math.abs(seatPreview.immediateChargeCents))}
+                          </span>
+                        </div>
+                      )}
+                      <Separator className="bg-zinc-700/50" />
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">New monthly total</span>
+                        <span className="text-white font-bold">${draftMonthly}/month</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">New monthly total</span>
+                      <span className="text-white font-bold">${draftMonthly}/month</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {isDraftChanged && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
+                    onClick={() => setDraftSeats(currentSeats)}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    size="sm"
+                    className={`flex-1 font-semibold ${seatDiff > 0 ? "bg-violet-600 hover:bg-violet-500 text-white" : "bg-zinc-700 hover:bg-zinc-600 text-white"}`}
+                    onClick={() => setShowSeatConfirm(true)}
+                    disabled={updateSeatsMutation.isPending}
+                  >
+                    {seatDiff > 0 ? (
+                      <><TrendingUp className="w-3.5 h-3.5 mr-1.5" />Add {seatDiff} seat{seatDiff !== 1 ? "s" : ""}</>
+                    ) : (
+                      <><TrendingDown className="w-3.5 h-3.5 mr-1.5" />Remove {Math.abs(seatDiff)} seat{Math.abs(seatDiff) !== 1 ? "s" : ""}</>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           )}
-          {isTrialing && (
-            <div className="mt-4 bg-violet-500/8 border border-violet-500/20 rounded-lg p-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-violet-400" />
-              <span className="text-violet-300 text-sm">
-                You're on a free trial.
-                {periodEnd && ` Your trial ends on ${format(periodEnd, "MMMM d, yyyy")}.`}
-              </span>
+
+          {/* Seat confirmation modal */}
+          {showSeatConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl p-6 max-w-sm w-full space-y-5 shadow-2xl">
+                <div>
+                  <h3 className="text-white font-bold text-lg">Confirm seat change</h3>
+                  <p className="text-zinc-400 text-sm mt-1">
+                    {seatDiff > 0
+                      ? `You're adding ${seatDiff} seat${seatDiff !== 1 ? "s" : ""}.`
+                      : `You're removing ${Math.abs(seatDiff)} seat${Math.abs(seatDiff) !== 1 ? "s" : ""}.`}
+                  </p>
+                </div>
+                <div className="bg-zinc-800/50 rounded-xl p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Seats</span>
+                    <span className="text-white">{currentSeats} → {effectiveDraft}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Monthly total</span>
+                    <span className="text-white font-bold">${draftMonthly}/month</span>
+                  </div>
+                  {seatPreview?.immediateChargeCents != null && seatPreview.immediateChargeCents > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Charged today (prorated)</span>
+                      <span className="text-violet-300 font-semibold">{fmtExact(seatPreview.immediateChargeCents)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800 flex-1"
+                    onClick={() => setShowSeatConfirm(false)}>Cancel</Button>
+                  <Button size="sm"
+                    className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-semibold"
+                    onClick={() => updateSeatsMutation.mutate(effectiveDraft)}
+                    disabled={updateSeatsMutation.isPending}>
+                    {updateSeatsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                    Confirm
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* ── Two-column grid ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      {/* ─────────────────────────────────────────────────────────────────────────
+          GRID — Billing Cycle + Payment Method
+      ───────────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-          {/* ── Current Plan Tier ─────────────────────────────────────────────── */}
-          <Card className="bg-zinc-900/70 border-zinc-700/50">
-            <CardHeader className="pb-4">
+        {/* SECTION 3 — BILLING CYCLE */}
+        <Card className="bg-zinc-900/70 border-zinc-700/50">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-violet-400" />
+              Billing Cycle
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-5 pb-5 space-y-3">
+            {periodStart && (
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-base flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-violet-400" />
-                  Your Plan
-                </CardTitle>
-                {plan && isActive && stripeConfigured && !showPlanPicker && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800 text-xs"
-                    onClick={() => { setShowPlanPicker(true); setSelectedPlanCode(null); }}
-                  >
-                    Change Plan
-                  </Button>
-                )}
-                {showPlanPicker && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-zinc-400 hover:text-white text-xs"
-                    onClick={() => { setShowPlanPicker(false); setSelectedPlanCode(null); }}
-                  >
-                    Cancel
-                  </Button>
-                )}
+                <span className="text-zinc-400 text-sm">Cycle starts</span>
+                <span className="text-white text-sm font-medium">{format(periodStart, "MMMM d, yyyy")}</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {plan ? (
-                <>
-                  {/* Current plan summary */}
-                  <div className={`rounded-xl p-4 flex items-start justify-between gap-4 transition-colors ${showPlanPicker ? "bg-zinc-800/25 border border-zinc-700/40" : "bg-zinc-800/40"}`}>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-white font-bold text-lg capitalize">{plan.name}</p>
-                        <span className="text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full">Current</span>
-                      </div>
-                      {plan.description && (
-                        <p className="text-zinc-500 text-xs mt-0.5">{plan.description}</p>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-violet-400 font-bold text-xl">{formatCents(plan.priceCents)}</p>
-                      <p className="text-zinc-500 text-xs">/ month</p>
-                    </div>
-                  </div>
+            )}
+            {periodEnd && (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400 text-sm">Cycle ends</span>
+                <span className="text-white text-sm font-medium">{format(periodEnd, "MMMM d, yyyy")}</span>
+              </div>
+            )}
+            {periodEnd && !isScheduledToCancel && (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400 text-sm">Next payment</span>
+                <span className="text-violet-300 text-sm font-semibold">{format(periodEnd, "MMMM d, yyyy")}</span>
+              </div>
+            )}
+            <Separator className="bg-zinc-800" />
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-400 text-sm">Billing interval</span>
+              <span className="text-white text-sm font-medium capitalize">{sub?.interval ?? "Monthly"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-400 text-sm">Seats billed</span>
+              <span className="text-white text-sm font-semibold">{currentSeats} × ${PRICE_PER_SEAT} = <span className="text-violet-300">${currentMonthly}</span></span>
+            </div>
+          </CardContent>
+        </Card>
 
-                  {/* Plan feature list (hidden while picker is open to save space) */}
-                  {!showPlanPicker && planFeatures.length > 0 && (
-                    <div>
-                      <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">Included features</p>
-                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        {planFeatures.map((feat: string) => (
-                          <li key={feat} className="flex items-center gap-2 text-xs text-zinc-300">
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                            {feat}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* ── Inline Plan Picker ─────────────────────────────────── */}
-                  {showPlanPicker && (
-                    <div className="space-y-4">
-                      <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">
-                        Select a new plan
-                      </p>
-
-                      {/* Plan cards grid */}
-                      {allPlans.length === 0 ? (
-                        <div className="flex items-center justify-center py-6">
-                          <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {allPlans.map((p) => {
-                            const isCurrent = p.code === plan?.code;
-                            const isSelected = p.code === selectedPlanCode;
-                            const higherTier = Number(p.priceCents) > Number(plan.priceCents);
-                            const lowerTier = Number(p.priceCents) < Number(plan.priceCents);
-
-                            return (
-                              <button
-                                key={p.code}
-                                disabled={isCurrent || changePlanMutation.isPending}
-                                onClick={() => setSelectedPlanCode(isCurrent ? null : p.code)}
-                                className={`text-left rounded-xl border p-3.5 transition-all ${
-                                  isCurrent
-                                    ? "border-violet-500/40 bg-violet-500/5 opacity-60 cursor-default"
-                                    : isSelected
-                                    ? "border-emerald-500/50 bg-emerald-500/8 ring-1 ring-emerald-500/30"
-                                    : "border-zinc-700/50 bg-zinc-800/30 hover:border-zinc-600 hover:bg-zinc-800/60"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className={`font-semibold text-sm capitalize ${isCurrent ? "text-violet-300" : "text-white"}`}>
-                                        {p.name}
-                                      </span>
-                                      {isCurrent && (
-                                        <span className="text-xs text-violet-400">Current</span>
-                                      )}
-                                      {!isCurrent && higherTier && (
-                                        <span className="text-xs text-emerald-400 flex items-center gap-0.5">
-                                          <TrendingUp className="w-3 h-3" /> Upgrade
-                                        </span>
-                                      )}
-                                      {!isCurrent && lowerTier && (
-                                        <span className="text-xs text-blue-400 flex items-center gap-0.5">
-                                          <TrendingDown className="w-3 h-3" /> Downgrade
-                                        </span>
-                                      )}
-                                    </div>
-                                    {p.description && (
-                                      <p className="text-zinc-500 text-xs mt-0.5 leading-relaxed line-clamp-2">{p.description}</p>
-                                    )}
-                                  </div>
-                                  <div className="text-right flex-shrink-0">
-                                    <p className={`font-bold text-sm ${isCurrent ? "text-violet-400" : isSelected ? "text-emerald-400" : "text-white"}`}>
-                                      {formatCents(p.priceCents)}
-                                    </p>
-                                    <p className="text-zinc-600 text-xs">/mo</p>
-                                  </div>
-                                </div>
-                                {isSelected && (
-                                  <div className="mt-2 flex items-center gap-1 text-emerald-400 text-xs font-medium">
-                                    <CheckCircle className="w-3 h-3" /> Selected
-                                  </div>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Preview panel */}
-                      {selectedPlanCode && selectedPlanCode !== plan?.code && (
-                        <div className="border border-zinc-700/60 rounded-xl overflow-hidden">
-                          {/* Header */}
-                          <div className={`px-4 py-3 flex items-center gap-2 ${isUpgrade ? "bg-emerald-500/8 border-b border-emerald-500/20" : "bg-blue-500/8 border-b border-blue-500/20"}`}>
-                            {isUpgrade
-                              ? <TrendingUp className="w-4 h-4 text-emerald-400" />
-                              : <TrendingDown className="w-4 h-4 text-blue-400" />}
-                            <span className={`text-sm font-semibold ${isUpgrade ? "text-emerald-300" : "text-blue-300"}`}>
-                              {isUpgrade ? "Upgrade" : "Downgrade"} to {selectedPlan?.name}
-                            </span>
-                            <ArrowRight className="w-3.5 h-3.5 text-zinc-500 ml-auto" />
-                            <span className="text-white font-bold text-sm">{formatCents(selectedPlan?.priceCents)}/mo</span>
-                          </div>
-
-                          {/* Preview body */}
-                          <div className="p-4 bg-zinc-800/30 space-y-3">
-                            {previewLoading ? (
-                              <div className="flex items-center gap-2 text-zinc-500 text-sm py-2">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Calculating proration…
-                              </div>
-                            ) : planPreview ? (
-                              <>
-                                {isUpgrade && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-zinc-400">Charge today (prorated)</span>
-                                    <span className={`font-semibold ${planPreview.immediateChargeCents > 0 ? "text-amber-300" : "text-zinc-300"}`}>
-                                      {planPreview.immediateChargeCents > 0
-                                        ? formatCentsExact(planPreview.immediateChargeCents)
-                                        : "No charge"}
-                                    </span>
-                                  </div>
-                                )}
-                                {isDowngrade && (
-                                  <div className="flex items-center gap-2 text-xs text-blue-300 bg-blue-500/8 rounded-lg px-3 py-2">
-                                    <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                                    Downgrade takes effect at the start of your next billing period.{" "}
-                                    {periodEnd && `No change until ${format(periodEnd, "MMM d, yyyy")}.`}
-                                  </div>
-                                )}
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-zinc-400">New monthly total</span>
-                                  <span className="text-white font-bold">{formatCents(selectedPlan?.priceCents)}/mo</span>
-                                </div>
-                                {planPreview.lines?.length > 0 && (
-                                  <>
-                                    <Separator className="bg-zinc-700/50" />
-                                    <div className="space-y-1.5">
-                                      {planPreview.lines.map((line, i) => (
-                                        <div key={i} className="flex items-start justify-between gap-3 text-xs">
-                                          <span className="text-zinc-500 leading-relaxed">{line.description}</span>
-                                          <span className={`font-medium flex-shrink-0 ${line.amountCents < 0 ? "text-emerald-400" : "text-zinc-300"}`}>
-                                            {line.amountCents < 0 ? "−" : ""}{formatCentsExact(Math.abs(line.amountCents))}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              <p className="text-zinc-500 text-xs">
-                                {isUpgrade
-                                  ? "A prorated charge will be calculated based on your remaining billing period."
-                                  : "Your plan will change at the start of the next billing cycle."}
-                              </p>
-                            )}
-
-                            {/* Confirm button */}
-                            <div className="flex gap-2 pt-1">
-                              <Button
-                                size="sm"
-                                className={`flex-1 text-white ${isUpgrade ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"}`}
-                                onClick={() => changePlanMutation.mutate(selectedPlanCode!)}
-                                disabled={changePlanMutation.isPending || previewLoading}
-                              >
-                                {changePlanMutation.isPending
-                                  ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                                  : isUpgrade
-                                  ? <TrendingUp className="w-4 h-4 mr-1.5" />
-                                  : <TrendingDown className="w-4 h-4 mr-1.5" />}
-                                Confirm {isUpgrade ? "Upgrade" : "Downgrade"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-zinc-400 hover:text-white"
-                                onClick={() => setSelectedPlanCode(null)}
-                                disabled={changePlanMutation.isPending}
-                              >
-                                Back
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {!selectedPlanCode && (
-                        <p className="text-zinc-600 text-xs text-center">
-                          Select a plan above to see pricing details and confirm.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-8 space-y-3">
-                  <Zap className="w-8 h-8 text-zinc-700 mx-auto" />
-                  <p className="text-zinc-500 text-sm">No active plan</p>
-                  <p className="text-zinc-600 text-xs">Start a subscription to unlock full access.</p>
-                  {stripeConfigured && (
-                    <Button
-                      size="sm"
-                      className="bg-violet-600 hover:bg-violet-500 text-white"
-                      onClick={() => portalMutation.mutate()}
-                      disabled={portalMutation.isPending}
-                    >
-                      Choose a plan
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Invoice History ────────────────────────────────────────────────── */}
-          <Card className="bg-zinc-900/70 border-zinc-700/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-base flex items-center gap-2">
-                <FileText className="w-4 h-4 text-violet-400" />
-                Invoice History
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {!invoicesData?.invoices?.length ? (
-                <div className="px-6 py-10 text-center">
-                  <FileText className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                  <p className="text-zinc-500 text-sm">No invoices yet</p>
-                  <p className="text-zinc-600 text-xs mt-1">Invoices will appear here after your first billing cycle</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-zinc-800/60">
-                  {invoicesData.invoices.map((inv) => (
-                    <div key={inv.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-zinc-800/20 transition-colors group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${inv.paid ? "bg-emerald-400" : "bg-red-400"}`} />
-                        <div className="min-w-0">
-                          <p className="text-white text-sm font-medium truncate">
-                            {inv.invoiceNumber ?? inv.stripeInvoiceId.slice(-8).toUpperCase()}
-                          </p>
-                          <p className="text-zinc-500 text-xs">
-                            {format(new Date(inv.createdAt), "MMM d, yyyy")}
-                            {inv.billingReason ? ` · ${inv.billingReason.replace(/_/g, " ")}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <div className="text-right">
-                          <p className="text-white text-sm font-semibold">{formatCentsExact(inv.totalCents)}</p>
-                          <span className={`text-xs ${inv.paid ? "text-emerald-400" : "text-red-400"}`}>
-                            {inv.paid ? "Paid" : inv.status ?? "Unpaid"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!inv.paid && stripeConfigured && (
-                            <button
-                              onClick={() => retryMutation.mutate(inv.stripeInvoiceId)}
-                              disabled={retryMutation.isPending}
-                              title="Retry payment"
-                              className="w-7 h-7 rounded flex items-center justify-center text-violet-400 hover:bg-violet-500/10 transition-colors"
-                            >
-                              {retryMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
-                          {inv.invoicePdfUrl && (
-                            <a href={inv.invoicePdfUrl} target="_blank" rel="noopener noreferrer">
-                              <button title="Download PDF" className="w-7 h-7 rounded flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-colors">
-                                <Download className="w-3.5 h-3.5" />
-                              </button>
-                            </a>
-                          )}
-                          {inv.hostedInvoiceUrl && (
-                            <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer">
-                              <button title="View invoice" className="w-7 h-7 rounded flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-colors">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </button>
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── Right column ────────────────────────────────────────────────────── */}
-        <div className="space-y-5">
-
-          {/* Billing Cycle */}
-          <Card className="bg-zinc-900/70 border-zinc-700/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-violet-400" />
-                Billing Cycle
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              {periodEnd ? (
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-500 text-xs">{isScheduledToCancel ? "Access ends" : "Renews on"}</span>
-                  <span className="text-zinc-200 text-xs font-medium">{format(periodEnd, "MMM d, yyyy")}</span>
-                </div>
-              ) : (
-                <p className="text-zinc-600 text-xs text-center py-2">No active billing cycle</p>
-              )}
-              {plan?.interval && (
-                <>
-                  <Separator className="bg-zinc-800" />
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-500 text-xs">Billing frequency</span>
-                    <span className="text-zinc-200 text-xs font-medium capitalize">{plan.interval}ly</span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Payment Method */}
-          <Card className="bg-zinc-900/70 border-zinc-700/50">
-            <CardHeader className="pb-3">
+        {/* SECTION 4 — PAYMENT METHOD */}
+        <Card className="bg-zinc-900/70 border-zinc-700/50">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <div className="flex items-center justify-between">
               <CardTitle className="text-white text-sm flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-violet-400" />
                 Payment Method
               </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {pm ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-8 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-md flex items-center justify-center border border-zinc-600/40">
-                      <CreditCard className="w-4 h-4 text-zinc-400" />
-                    </div>
-                    <div>
-                      <p className="text-white text-sm font-medium capitalize">
-                        {pm.brand} ···· {pm.last4}
-                      </p>
-                      {pm.expMonth && pm.expYear && (
-                        <p className="text-zinc-500 text-xs">Expires {pm.expMonth}/{pm.expYear}</p>
-                      )}
-                    </div>
-                  </div>
-                  {billing?.store?.email && (
-                    <div>
-                      <p className="text-zinc-500 text-xs">Billing email</p>
-                      <p className="text-zinc-300 text-xs mt-0.5">{billing.store.email}</p>
-                    </div>
-                  )}
-                  {stripeConfigured && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-zinc-700/50 text-zinc-300 hover:bg-zinc-800 text-xs mt-2"
-                      onClick={() => portalMutation.mutate()}
-                      disabled={portalMutation.isPending}
-                    >
-                      {portalMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                      Update payment method
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-3 space-y-2">
-                  <CreditCard className="w-7 h-7 text-zinc-700 mx-auto" />
-                  <p className="text-zinc-500 text-xs">No card on file</p>
-                  {stripeConfigured && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-zinc-700/50 text-zinc-300 hover:bg-zinc-800 text-xs"
-                      onClick={() => portalMutation.mutate()}
-                      disabled={portalMutation.isPending}
-                    >
-                      Add payment method
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Lifetime Stats */}
-          {profile && (
-            <Card className="bg-zinc-900/70 border-zinc-700/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white text-sm flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-violet-400" />
-                  Account Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0">
-                {[
-                  { label: "Lifetime spend", value: formatCentsExact(profile.lifetimeValueCents) },
-                  { label: "Successful payments", value: profile.totalSuccessfulPayments ?? 0 },
-                  { label: "Failed payments", value: profile.totalFailedPayments ?? 0 },
-                ].map((s) => (
-                  <div key={s.label} className="flex items-center justify-between">
-                    <span className="text-zinc-500 text-xs">{s.label}</span>
-                    <span className={`text-xs font-semibold ${s.label === "Failed payments" && Number(s.value) > 0 ? "text-red-400" : "text-white"}`}>
-                      {s.value}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Subscription Actions */}
-          <Card className="bg-zinc-900/70 border-zinc-700/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
-                <Shield className="w-4 h-4 text-violet-400" />
-                Subscription Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 pt-0">
               {stripeConfigured && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-zinc-700/50 text-zinc-300 hover:bg-zinc-800 justify-start text-xs"
-                  onClick={() => portalMutation.mutate()}
-                  disabled={portalMutation.isPending}
-                >
-                  {portalMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <CreditCard className="w-3.5 h-3.5 mr-2" />}
-                  Manage billing portal
+                <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white text-xs h-7 px-2"
+                  onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending}>
+                  {portalMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                  Manage
                 </Button>
               )}
-              {isActive && isScheduledToCancel && stripeConfigured && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 justify-start text-xs"
-                  onClick={() => resumeMutation.mutate()}
-                  disabled={resumeMutation.isPending}
-                >
-                  {resumeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <PlayCircle className="w-3.5 h-3.5 mr-2" />}
-                  Resume subscription
-                </Button>
-              )}
-              {isActive && !isScheduledToCancel && cancelStep === "idle" && stripeConfigured && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-zinc-500 hover:text-red-400 hover:bg-red-500/5 justify-start text-xs"
-                  onClick={() => setCancelStep("reason")}
-                >
-                  <XCircle className="w-3.5 h-3.5 mr-2" />
-                  Cancel subscription
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Support */}
-          <Card className="bg-zinc-900/70 border-zinc-700/50">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <LifeBuoy className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-white text-xs font-semibold">Billing support</p>
-                  <p className="text-zinc-500 text-xs mt-0.5">
-                    Questions about your plan? We're here to help.
-                  </p>
-                  <a
-                    href="mailto:support@certxa.com"
-                    className="text-violet-400 hover:text-violet-300 text-xs mt-1.5 inline-flex items-center gap-1"
-                  >
-                    Contact support <ChevronRight className="w-3 h-3" />
-                  </a>
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5 space-y-3">
+            {pm ? (
+              <>
+                <div className="flex items-center gap-3 bg-zinc-800/40 rounded-xl p-4">
+                  <div className="w-10 h-7 bg-zinc-700 rounded flex items-center justify-center text-sm">
+                    {cardBrandIcon(pm.brand)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-semibold capitalize">
+                      {pm.brand} •••• {pm.last4}
+                    </p>
+                    {pm.expMonth && pm.expYear && (
+                      <p className="text-zinc-500 text-xs">Expires {pm.expMonth}/{String(pm.expYear).slice(-2)}</p>
+                    )}
+                  </div>
+                  {(pm as any).isDefault && (
+                    <span className="text-[10px] bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-full">Default</span>
+                  )}
                 </div>
+                {(pm as any).billingEmail && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400 text-xs">Billing email</span>
+                    <span className="text-zinc-300 text-xs">{(pm as any).billingEmail}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-4 space-y-2">
+                <CreditCard className="w-8 h-8 text-zinc-600 mx-auto" />
+                <p className="text-zinc-500 text-sm">No payment method on file</p>
+                {stripeConfigured && (
+                  <Button size="sm" variant="outline" className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
+                    onClick={() => portalMutation.mutate()}>
+                    Add payment method
+                  </Button>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── Cancellation Flow ────────────────────────────────────────────────── */}
-      {cancelStep !== "idle" && (
-        <Card className="bg-zinc-900/80 border-red-500/20 shadow-xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-base flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-400" />
-              {cancelStep === "reason" ? "Cancel Subscription" : "Confirm Cancellation"}
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 5 — UPCOMING INVOICE PREVIEW
+      ───────────────────────────────────────────────────────────────────────── */}
+      {upcomingData && (
+        <Card className="bg-zinc-900/70 border-zinc-700/50">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <FileText className="w-4 h-4 text-violet-400" />
+              Upcoming Invoice
+              {upcomingData.nextPaymentAttempt && (
+                <span className="ml-auto text-zinc-500 text-xs font-normal">
+                  Due {format(new Date(upcomingData.nextPaymentAttempt * 1000), "MMM d, yyyy")}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="px-5 pb-5">
+            <div className="space-y-2">
+              {upcomingData.lines.slice(0, 5).map((line, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-400 flex-1 pr-4 truncate">{line.description}</span>
+                  <span className={`font-medium ${line.amountCents < 0 ? "text-emerald-400" : "text-white"}`}>
+                    {line.amountCents < 0 ? "-" : ""}{fmtExact(Math.abs(line.amountCents))}
+                  </span>
+                </div>
+              ))}
+              <Separator className="bg-zinc-800 my-2" />
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold text-sm">Total due</span>
+                <span className="text-white font-bold text-base">{fmtExact(upcomingData.amountDueCents)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 6 — BILLING HISTORY
+      ───────────────────────────────────────────────────────────────────────── */}
+      <Card className="bg-zinc-900/70 border-zinc-700/50">
+        <CardHeader className="pb-3 pt-5 px-5">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <FileText className="w-4 h-4 text-violet-400" />
+              Invoice History
+            </CardTitle>
+            <span className="text-zinc-500 text-xs">{invoicesData?.invoices?.length ?? 0} invoices</span>
+          </div>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          {!invoicesData?.invoices?.length ? (
+            <div className="text-center py-10 px-5">
+              <FileText className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+              <p className="text-zinc-500 text-sm">No invoices yet</p>
+              <p className="text-zinc-600 text-xs mt-1">Invoices will appear here after your first billing cycle</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left text-zinc-500 text-xs font-semibold px-5 py-2.5 uppercase tracking-wider">Invoice</th>
+                    <th className="text-left text-zinc-500 text-xs font-semibold px-3 py-2.5 uppercase tracking-wider">Date</th>
+                    <th className="text-right text-zinc-500 text-xs font-semibold px-3 py-2.5 uppercase tracking-wider">Amount</th>
+                    <th className="text-center text-zinc-500 text-xs font-semibold px-3 py-2.5 uppercase tracking-wider">Status</th>
+                    <th className="text-right text-zinc-500 text-xs font-semibold px-5 py-2.5 uppercase tracking-wider">Receipt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoicesData.invoices.map((inv) => {
+                    const isPaid = inv.paid || inv.status === "paid";
+                    return (
+                      <tr key={inv.stripeInvoiceId} className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <span className="text-zinc-300 font-mono text-xs">
+                            {inv.invoiceNumber ?? inv.stripeInvoiceId.slice(-8).toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3.5 text-zinc-400">
+                          {format(new Date(inv.createdAt), "MMM d, yyyy")}
+                        </td>
+                        <td className="px-3 py-3.5 text-right text-white font-semibold">
+                          {fmtExact(inv.totalCents)}
+                        </td>
+                        <td className="px-3 py-3.5 text-center">
+                          {isPaid ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 text-xs bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                              <BadgeCheck className="w-3 h-3" /> Paid
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-red-400 text-xs bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                              <AlertTriangle className="w-3 h-3" /> {inv.status ?? "Unpaid"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {inv.hostedInvoiceUrl && (
+                              <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-zinc-400 hover:text-white transition-colors">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {inv.invoicePdfUrl && (
+                              <a href={inv.invoicePdfUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-zinc-400 hover:text-violet-400 transition-colors">
+                                <Download className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 7 — SUBSCRIPTION ACTIONS
+      ───────────────────────────────────────────────────────────────────────── */}
+      {stripeConfigured && isActive && !isScheduledToCancel && (
+        <Card className="bg-zinc-900/70 border-zinc-700/50">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Shield className="w-4 h-4 text-violet-400" />
+              Subscription Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-5 pb-5 space-y-2">
+            <button
+              onClick={() => portalMutation.mutate()}
+              disabled={portalMutation.isPending}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-zinc-700/40 hover:bg-zinc-800/40 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-4 h-4 text-zinc-400" />
+                <div className="text-left">
+                  <p className="text-white text-sm font-medium">Update payment method</p>
+                  <p className="text-zinc-500 text-xs">Change your card or billing details</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+            </button>
+
+            <button
+              onClick={() => setCancelStep("reason")}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-zinc-700/40 hover:bg-zinc-800/40 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <XCircle className="w-4 h-4 text-zinc-400" />
+                <div className="text-left">
+                  <p className="text-white text-sm font-medium">Cancel subscription</p>
+                  <p className="text-zinc-500 text-xs">Access continues until end of billing period</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 8 — CANCELLATION FLOW
+      ───────────────────────────────────────────────────────────────────────── */}
+      {cancelStep !== "idle" && (
+        <Card className="bg-zinc-900/70 border-zinc-700/50">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-sm">
+                {cancelStep === "reason" && "Why are you leaving?"}
+                {cancelStep === "retention" && "Before you go…"}
+                {cancelStep === "confirm" && "Confirm cancellation"}
+              </CardTitle>
+              <button onClick={() => setCancelStep("idle")} className="text-zinc-500 hover:text-white transition-colors">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          </CardHeader>
+
+          <CardContent className="px-5 pb-5 space-y-4">
+            {/* Step 1 — Reason */}
             {cancelStep === "reason" && (
               <>
-                <p className="text-zinc-400 text-sm">
-                  Before you go — what's the main reason you're canceling? This helps us improve.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {CANCEL_REASONS.map((reason) => (
-                    <button
-                      key={reason}
-                      onClick={() => setCancelReason(reason)}
-                      className={`text-left px-3 py-2.5 rounded-lg text-sm border transition-colors ${
-                        cancelReason === reason
-                          ? "border-violet-500/50 bg-violet-500/10 text-violet-300"
-                          : "border-zinc-700/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-                      }`}
-                    >
-                      {reason}
-                    </button>
+                <p className="text-zinc-400 text-sm">This helps us improve. Your feedback matters.</p>
+                <div className="space-y-2">
+                  {CANCEL_REASONS.map((r) => (
+                    <label key={r} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${cancelReason === r ? "border-violet-500/50 bg-violet-500/8" : "border-zinc-700/40 hover:bg-zinc-800/30"}`}>
+                      <input type="radio" name="cancel-reason" value={r} checked={cancelReason === r}
+                        onChange={() => setCancelReason(r)} className="accent-violet-500" />
+                      <span className="text-zinc-300 text-sm">{r}</span>
+                    </label>
                   ))}
                 </div>
-                <div className="bg-zinc-800/50 border border-zinc-700/40 rounded-lg p-3 space-y-1.5 text-xs text-zinc-500">
-                  <p className="text-zinc-400 font-medium text-sm">Before you cancel, consider:</p>
-                  <p>• You can switch to a lower-tier plan to reduce your bill</p>
-                  <p>• Your data stays safe for 30 days after cancellation</p>
-                  <p>• You can reactivate anytime with no setup fees</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
-                    onClick={() => { setCancelStep("idle"); setCancelReason(""); }}
-                  >
-                    Keep my subscription
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-red-600/80 hover:bg-red-500 text-white ml-auto"
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
+                    onClick={() => setCancelStep("idle")}>Back</Button>
+                  <Button size="sm" className="ml-auto bg-zinc-700 hover:bg-zinc-600 text-white"
                     disabled={!cancelReason}
-                    onClick={() => setCancelStep("confirm")}
-                  >
-                    Continue to cancel
-                    <ChevronRight className="w-4 h-4 ml-1" />
+                    onClick={() => setCancelStep("retention")}>
+                    Continue <ChevronRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 </div>
               </>
             )}
 
+            {/* Step 2 — Retention */}
+            {cancelStep === "retention" && (
+              <>
+                <div className="space-y-3">
+                  <div className="bg-zinc-800/40 border border-zinc-700/40 rounded-xl p-4 space-y-2">
+                    <p className="text-white font-semibold text-sm">Consider reducing your seats instead</p>
+                    <p className="text-zinc-400 text-sm">
+                      You currently pay for {currentSeats} seat{currentSeats !== 1 ? "s" : ""}. You could reduce to just {Math.max(1, activeStaff)} seat{Math.max(1, activeStaff) !== 1 ? "s" : ""} and pay ${Math.max(1, activeStaff) * PRICE_PER_SEAT}/month.
+                    </p>
+                    <Button size="sm" variant="outline" className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800 mt-1"
+                      onClick={() => { setDraftSeats(Math.max(1, activeStaff)); setCancelStep("idle"); }}>
+                      Reduce to {Math.max(1, activeStaff)} seat{Math.max(1, activeStaff) !== 1 ? "s" : ""}
+                    </Button>
+                  </div>
+                  <div className="bg-zinc-800/40 border border-zinc-700/40 rounded-xl p-4">
+                    <p className="text-white font-semibold text-sm mb-1">Need help with something?</p>
+                    <p className="text-zinc-400 text-sm">Our team can usually resolve most concerns quickly.</p>
+                    <a href="mailto:support@certxa.com" className="text-violet-400 text-sm underline mt-1 inline-block">
+                      Contact support →
+                    </a>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
+                    onClick={() => setCancelStep("reason")}>Back</Button>
+                  <Button size="sm" className="ml-auto bg-zinc-700 hover:bg-zinc-600 text-white"
+                    onClick={() => setCancelStep("confirm")}>
+                    Still cancel <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 3 — Confirm */}
             {cancelStep === "confirm" && (
               <>
-                <div className="bg-red-500/8 border border-red-500/20 rounded-lg p-4 space-y-2">
+                <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-2.5">
                   <p className="text-red-300 text-sm font-semibold">What happens when you cancel:</p>
-                  <ul className="text-zinc-400 text-sm space-y-1.5">
-                    {periodEnd && (
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-400 mt-0.5">•</span>
-                        Your subscription ends on <strong className="text-zinc-300">{format(periodEnd, "MMMM d, yyyy")}</strong>
+                  <ul className="space-y-2">
+                    {[
+                      periodEnd && `Your subscription ends on ${format(periodEnd, "MMMM d, yyyy")}`,
+                      "Staff accounts will lose platform access",
+                      "Your data is retained for 30 days — reactivate anytime",
+                      "No further charges will be made",
+                    ].filter(Boolean).map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-zinc-400 text-sm">
+                        <span className="text-red-400 mt-0.5 flex-shrink-0">•</span>
+                        {item}
                       </li>
-                    )}
-                    <li className="flex items-start gap-2">
-                      <span className="text-red-400 mt-0.5">•</span>
-                      Staff accounts will lose access to the platform
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-red-400 mt-0.5">•</span>
-                      Your data is retained for 30 days — reactivate anytime
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-red-400 mt-0.5">•</span>
-                      No further charges will be made
-                    </li>
+                    ))}
                   </ul>
                 </div>
-                <p className="text-zinc-500 text-xs">Reason: <span className="text-zinc-300">{cancelReason}</span></p>
+                <p className="text-zinc-500 text-xs">
+                  Reason: <span className="text-zinc-300">{cancelReason}</span>
+                </p>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
-                    onClick={() => setCancelStep("reason")}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="ml-auto"
-                    onClick={() => cancelMutation.mutate()}
-                    disabled={cancelMutation.isPending}
-                  >
-                    {cancelMutation.isPending
-                      ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                      : <XCircle className="w-4 h-4 mr-1.5" />}
+                  <Button variant="outline" size="sm" className="border-zinc-600/50 text-zinc-300 hover:bg-zinc-800"
+                    onClick={() => setCancelStep("retention")}>Back</Button>
+                  <Button size="sm" variant="destructive" className="ml-auto"
+                    onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>
+                    {cancelMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <XCircle className="w-3.5 h-3.5 mr-1.5" />}
                     Yes, cancel my subscription
                   </Button>
                 </div>
@@ -1054,6 +1037,29 @@ export default function BillingPage({ salonId }: { salonId: number }) {
           </CardContent>
         </Card>
       )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 9 — SUPPORT
+      ───────────────────────────────────────────────────────────────────────── */}
+      <Card className="bg-zinc-900/40 border-zinc-800/50">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
+              <LifeBuoy className="w-5 h-5 text-violet-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-white text-sm font-semibold">Billing support</p>
+              <p className="text-zinc-500 text-xs mt-0.5">Questions about your invoice or subscription? We're here to help.</p>
+            </div>
+            <a
+              href="mailto:support@certxa.com"
+              className="text-violet-400 hover:text-violet-300 text-sm font-medium flex items-center gap-1 transition-colors"
+            >
+              Contact <ChevronRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

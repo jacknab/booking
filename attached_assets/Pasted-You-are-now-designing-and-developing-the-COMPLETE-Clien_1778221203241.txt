@@ -1,0 +1,452 @@
+You are now designing and developing the COMPLETE Client Billing Dashboard for Certxa SalonOS.
+
+This is a production SaaS billing interface.
+
+The billing page must feel:
+- premium
+- modern
+- trustworthy
+- extremely clear
+- professional
+- polished
+- enterprise-grade
+- easy for salon owners to understand
+
+This is NOT a basic settings page.
+
+This is the primary subscription management center for salon clients.
+
+====================================================
+BUSINESS MODEL
+====================================================
+
+Certxa SalonOS uses STAFF/SEAT-BASED BILLING.
+
+Pricing:
+- $8 per active staff seat
+
+Examples:
+- 1 staff = $8/month
+- 5 staff = $40/month
+- 12 staff = $96/month
+
+IMPORTANT:
+There are NO traditional plan upgrades/downgrades.
+
+Instead:
+- Increasing staff count = subscription increase
+- Reducing staff count = subscription decrease
+
+The billing system must treat staff quantity as the subscription quantity.
+
+Stripe subscriptions should use:
+- quantity-based billing
+- Stripe subscription item quantity updates
+
+====================================================
+CORE PAGE OBJECTIVE
+====================================================
+
+The billing page must allow clients to:
+- clearly understand what they are paying
+- manage seat counts
+- understand billing cycles
+- manage payment methods
+- view invoices
+- download receipts
+- see upcoming charges
+- cancel subscription
+- pause subscription if enabled
+- understand seat-based pricing
+- view billing history
+
+====================================================
+IMPORTANT UX REQUIREMENTS
+====================================================
+
+The page should instantly communicate:
+- active staff count
+- monthly subscription cost
+- next billing date
+- current payment method
+- subscription status
+
+WITHOUT confusion.
+
+Avoid:
+- clutter
+- confusing billing terminology
+- hidden fees
+- complex enterprise wording
+
+====================================================
+PRIMARY PAGE LAYOUT
+====================================================
+
+Build the page with the following sections:
+
+1. Subscription Overview Card
+2. Staff Seat Management
+3. Billing Cycle Details
+4. Payment Method Section
+5. Upcoming Invoice Preview
+6. Billing History / Invoices
+7. Subscription Actions
+8. Retention / Cancellation Flow
+9. Billing Support Section
+
+====================================================
+SUBSCRIPTION OVERVIEW CARD
+====================================================
+
+Large premium card showing:
+
+- Current monthly total
+- Active seat count
+- Price per seat
+- Current subscription status
+- Next billing date
+- Current billing cycle
+- Subscription started date
+- Trial status if applicable
+
+Example:
+
+--------------------------------
+SalonOS Professional
+8 Active Staff Seats
+$64/month
+Next Billing: June 7, 2026
+Status: Active
+--------------------------------
+
+Display visually:
+- clean SaaS typography
+- modern card styling
+- clear hierarchy
+- no overwhelming tables
+
+====================================================
+STAFF SEAT MANAGEMENT
+====================================================
+
+This is the MOST IMPORTANT SECTION.
+
+Clients must be able to:
+- add staff seats
+- remove staff seats
+- instantly see pricing impact
+
+====================================================
+SEAT BILLING LOGIC
+====================================================
+
+Rules:
+- every active staff member consumes 1 billable seat
+- seat count controls subscription quantity
+- changing seat count updates Stripe subscription quantity
+
+====================================================
+ADD STAFF FLOW
+====================================================
+
+When adding staff:
+- increase subscription quantity
+- show prorated charge preview
+- show updated monthly total
+- confirm changes before applying
+
+Example:
+Current:
+5 seats = $40/month
+
+Adding:
++1 seat
+
+New:
+6 seats = $48/month
+
+Show:
+- prorated amount today
+- next invoice estimate
+
+====================================================
+REMOVE STAFF FLOW
+====================================================
+
+When removing staff:
+- decrease subscription quantity
+- show impact on next invoice
+- optionally schedule reduction end-of-cycle
+- prevent reducing below currently active assigned staff
+
+CRITICAL:
+Do NOT allow:
+- reducing below actual active employees
+- negative quantities
+- abuse attempts
+
+====================================================
+STAFF LIMIT ENFORCEMENT
+====================================================
+
+The system must enforce:
+- salon cannot exceed purchased seats
+- adding employee beyond limit requires seat increase
+
+If limit reached:
+Show:
+"You've reached your active staff limit."
+
+Provide:
+- Increase Seats button
+
+====================================================
+REALTIME BILLING CALCULATOR
+====================================================
+
+As user changes seat quantity:
+Update instantly:
+- monthly total
+- annual estimate
+- prorated adjustments
+- next invoice estimate
+
+WITHOUT page reloads.
+
+====================================================
+BILLING CYCLE DETAILS
+====================================================
+
+Display:
+- current billing cycle start
+- current billing cycle end
+- renewal date
+- next automatic payment date
+- upcoming invoice amount
+
+====================================================
+PAYMENT METHOD SECTION
+====================================================
+
+Display:
+- card brand
+- last 4 digits
+- expiration
+- billing email
+- billing address
+
+Allow:
+- update payment method
+- add new card
+- manage payment methods
+
+Use Stripe secure payment methods ONLY.
+
+NEVER store raw card data locally.
+
+====================================================
+UPCOMING INVOICE PREVIEW
+====================================================
+
+Display:
+- next invoice amount
+- seat quantity
+- prorated changes
+- taxes if applicable
+- discounts if applicable
+
+Must update dynamically.
+
+====================================================
+BILLING HISTORY SECTION
+====================================================
+
+Display invoice history table:
+
+Columns:
+- invoice number
+- date
+- amount
+- status
+- payment method
+- downloadable PDF receipt
+
+Support:
+- pagination
+- search
+- invoice filtering
+
+====================================================
+SUBSCRIPTION ACTIONS
+====================================================
+
+Allow:
+- cancel subscription
+- pause subscription
+- resume subscription
+- update billing info
+
+====================================================
+CANCELLATION FLOW
+====================================================
+
+IMPORTANT:
+Cancellation must remain:
+- transparent
+- ethical
+- simple
+
+But should include retention flow:
+- cancellation reason
+- pause options
+- downgrade seat count suggestions
+- temporary offers if enabled
+
+User must ALWAYS be able to fully cancel.
+
+====================================================
+CANCELLATION CONSEQUENCES
+====================================================
+
+Clearly explain:
+- when cancellation takes effect
+- what happens to staff accounts
+- whether data remains
+- whether account can be reactivated
+
+====================================================
+SUBSCRIPTION STATUS STATES
+====================================================
+
+Support statuses:
+- active
+- trialing
+- past_due
+- paused
+- canceled
+- scheduled_for_cancellation
+- delinquent
+
+Display visually with proper status badges.
+
+====================================================
+ADMIN / SUPPORT VISIBILITY
+====================================================
+
+Support agents must be able to see:
+- seat history
+- quantity changes
+- prorated charges
+- failed payments
+- cancellation attempts
+- billing notes
+- customer lifetime value
+
+====================================================
+DATABASE REQUIREMENTS
+====================================================
+
+Track:
+- seat quantity history
+- billing quantity changes
+- proration events
+- seat overage attempts
+- invoice history
+- cancellation requests
+- pause requests
+
+====================================================
+REALTIME FEATURES
+====================================================
+
+Use WebSockets for:
+- payment success
+- payment failure
+- invoice paid
+- seat count updates
+- billing warnings
+- delinquent notices
+
+====================================================
+IMPORTANT BILLING LOGIC
+====================================================
+
+Seat quantity changes MUST:
+- sync immediately with Stripe
+- update local DB
+- update invoice previews
+- create activity logs
+- trigger websocket updates
+
+====================================================
+ABUSE PREVENTION
+====================================================
+
+Prevent:
+- quantity manipulation
+- rapid seat abuse
+- race conditions
+- duplicate billing updates
+- reducing seats below assigned staff
+- subscription desync
+
+====================================================
+MOBILE RESPONSIVENESS
+====================================================
+
+Billing page must work perfectly on:
+- desktop
+- tablet
+- mobile
+
+====================================================
+DESIGN STYLE
+====================================================
+
+Visual direction:
+- Stripe-quality UI
+- clean SaaS dashboard
+- modern cards
+- soft shadows
+- clear billing typography
+- subtle animations
+- premium feeling
+
+Avoid:
+- clutter
+- old admin-panel style
+- confusing enterprise layouts
+
+====================================================
+DELIVERABLES
+====================================================
+
+Build:
+- frontend billing dashboard
+- seat management UI
+- realtime pricing calculator
+- Stripe quantity sync logic
+- invoice history
+- billing cycle displays
+- cancellation flow
+- payment method management
+- subscription actions
+- websocket integration
+- activity logging
+- backend APIs
+- validation rules
+- responsive layouts
+
+====================================================
+FINAL GOAL
+====================================================
+
+Develop a fully-featured SaaS-grade billing center where salon owners can:
+- clearly understand their billing
+- easily manage staff seats
+- trust the platform
+- control subscriptions transparently
+- manage payments confidently
+
+The experience should feel polished enough to compete with top-tier SaaS platforms.

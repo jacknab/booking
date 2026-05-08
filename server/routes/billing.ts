@@ -21,6 +21,11 @@ import {
   stripeAvailable,
   getAccountStatus,
   adminUnlockAccount,
+  getSeatInfo,
+  previewSeatChange,
+  updateSeatQuantity,
+  getUpcomingInvoice,
+  getPaymentMethods,
 } from "../services/billing-service";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
@@ -381,6 +386,75 @@ router.post("/coupon", requireAuth, async (req: any, res: Response): Promise<voi
 
     const result = await applyCoupon({ salonId: Number(salonId), couponId, userId: req.session.userId });
     res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Seat-Based Billing ───────────────────────────────────────────────────────
+
+// GET /api/billing/seats/:salonId
+router.get("/seats/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const data = await getSeatInfo(Number(req.params.salonId));
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/billing/seats/:salonId
+router.post("/seats/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const { newQuantity } = req.body;
+    if (!newQuantity || isNaN(Number(newQuantity))) {
+      res.status(400).json({ error: "newQuantity is required" });
+      return;
+    }
+    const result = await updateSeatQuantity({
+      salonId: Number(req.params.salonId),
+      newQuantity: Number(newQuantity),
+      userId: req.session?.userId,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/billing/seats/preview/:salonId?newQuantity=N
+router.get("/seats/preview/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const newQuantity = Number(req.query.newQuantity);
+    if (!newQuantity || isNaN(newQuantity)) {
+      res.status(400).json({ error: "newQuantity query param is required" });
+      return;
+    }
+    const preview = await previewSeatChange({
+      salonId: Number(req.params.salonId),
+      newQuantity,
+    });
+    res.json(preview);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/billing/upcoming/:salonId
+router.get("/upcoming/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const data = await getUpcomingInvoice(Number(req.params.salonId));
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/billing/payment-methods/:salonId
+router.get("/payment-methods/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const data = await getPaymentMethods(Number(req.params.salonId));
+    res.json(data);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

@@ -83,11 +83,13 @@ export const subscriptions = pgTable("subscriptions", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   status:               text("status"),
   currentPeriodEnd:     text("current_period_end"),
+  currentPeriodStart:   text("current_period_start"),
   interval:             text("interval").default("month"),
   priceId:              text("price_id"),
   cancelAtPeriodEnd:    integer("cancel_at_period_end").default(0),
   paymentMethodBrand:   text("payment_method_brand"),
   paymentMethodLast4:   text("payment_method_last4"),
+  seatQuantity:         integer("seat_quantity").default(1),
   createdAt:            timestamp("created_at").defaultNow(),
   updatedAt:            timestamp("updated_at").defaultNow(),
 }, (t) => [

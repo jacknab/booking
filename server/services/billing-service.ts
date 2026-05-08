@@ -1083,4 +1083,302 @@ async function upsertBillingProfileBySalon(
   }
 }
 
-// Seat-based billing was removed. Plans are now feature-tier based with flat monthly prices.
+// ─── Seat-Based Billing ───────────────────────────────────────────────────────
+
+export const PRICE_PER_SEAT_CENTS = 800; // $8.00 per seat per month
+
+export async function getSeatInfo(salonId: number): Promise<{
+  activeStaffCount: number;
+  purchasedSeats: number;
+  pricePerSeatCents: number;
+  monthlyTotalCents: number;
+  stripeSubscriptionId: string | null;
+  stripeItemId: string | null;
+  status: string | null;
+  currentPeriodStart: number | null;
+  currentPeriodEnd: number | null;
+  cancelAtPeriodEnd: boolean;
+}> {
+  // Count active staff for this store
+  const [staffRow] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(staff)
+    .where(eq(staff.storeId, salonId));
+
+  const activeStaffCount = Number(staffRow?.count ?? 0);
+
+  // Get subscription info
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, salonId))
+    .limit(1);
+
+  let purchasedSeats = sub?.seatQuantity ?? activeStaffCount;
+  let stripeItemId: string | null = null;
+  let currentPeriodStart: number | null = null;
+  let currentPeriodEnd: number | null = null;
+  let cancelAtPeriodEnd = false;
+
+  // Fetch live Stripe data if available
+  if (stripeAvailable() && sub?.stripeSubscriptionId) {
+    try {
+      const stripe = getStripe();
+      const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+      const item = stripeSub.items.data[0];
+      if (item) {
+        purchasedSeats = item.quantity ?? purchasedSeats;
+        stripeItemId = item.id;
+      }
+      currentPeriodStart = stripeSub.current_period_start;
+      currentPeriodEnd = stripeSub.current_period_end;
+      cancelAtPeriodEnd = stripeSub.cancel_at_period_end;
+
+      // Sync back to local DB
+      await db
+        .update(subscriptions)
+        .set({
+          seatQuantity: purchasedSeats,
+          currentPeriodStart: String(currentPeriodStart),
+          currentPeriodEnd: String(currentPeriodEnd),
+          cancelAtPeriodEnd: cancelAtPeriodEnd ? 1 : 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.storeNumber, salonId));
+    } catch {
+      // Fall back to local data
+      currentPeriodEnd = sub?.currentPeriodEnd ? Number(sub.currentPeriodEnd) : null;
+    }
+  } else {
+    currentPeriodEnd = sub?.currentPeriodEnd ? Number(sub.currentPeriodEnd) : null;
+    cancelAtPeriodEnd = Boolean(sub?.cancelAtPeriodEnd);
+  }
+
+  const monthlyTotalCents = purchasedSeats * PRICE_PER_SEAT_CENTS;
+
+  return {
+    activeStaffCount,
+    purchasedSeats,
+    pricePerSeatCents: PRICE_PER_SEAT_CENTS,
+    monthlyTotalCents,
+    stripeSubscriptionId: sub?.stripeSubscriptionId ?? null,
+    stripeItemId,
+    status: sub?.status ?? null,
+    currentPeriodStart,
+    currentPeriodEnd,
+    cancelAtPeriodEnd,
+  };
+}
+
+export async function previewSeatChange(opts: {
+  salonId: number;
+  newQuantity: number;
+}): Promise<{
+  currentQuantity: number;
+  newQuantity: number;
+  currentMonthlyCents: number;
+  newMonthlyCents: number;
+  diffCents: number;
+  immediateChargeCents: number;
+  nextInvoiceCents: number;
+  lines: { description: string; amountCents: number }[];
+  currency: string;
+}> {
+  const seatInfo = await getSeatInfo(opts.salonId);
+
+  const currentMonthlyCents = seatInfo.purchasedSeats * PRICE_PER_SEAT_CENTS;
+  const newMonthlyCents = opts.newQuantity * PRICE_PER_SEAT_CENTS;
+  const diffCents = newMonthlyCents - currentMonthlyCents;
+
+  if (!stripeAvailable() || !seatInfo.stripeSubscriptionId || !seatInfo.stripeItemId) {
+    return {
+      currentQuantity: seatInfo.purchasedSeats,
+      newQuantity: opts.newQuantity,
+      currentMonthlyCents,
+      newMonthlyCents,
+      diffCents,
+      immediateChargeCents: diffCents > 0 ? Math.ceil(diffCents * 0.5) : 0,
+      nextInvoiceCents: newMonthlyCents,
+      lines: [],
+      currency: "usd",
+    };
+  }
+
+  const stripe = getStripe();
+  const [sub] = await db
+    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, opts.salonId))
+    .limit(1);
+
+  try {
+    const preview = await stripe.invoices.retrieveUpcoming({
+      customer: sub!.stripeCustomerId!,
+      subscription: seatInfo.stripeSubscriptionId,
+      subscription_items: [{ id: seatInfo.stripeItemId, quantity: opts.newQuantity }],
+      subscription_proration_behavior: "create_prorations",
+    });
+
+    return {
+      currentQuantity: seatInfo.purchasedSeats,
+      newQuantity: opts.newQuantity,
+      currentMonthlyCents,
+      newMonthlyCents,
+      diffCents,
+      immediateChargeCents: preview.amount_due,
+      nextInvoiceCents: newMonthlyCents,
+      lines: preview.lines.data.map((l) => ({
+        description: l.description ?? "",
+        amountCents: l.amount,
+      })),
+      currency: preview.currency,
+    };
+  } catch {
+    return {
+      currentQuantity: seatInfo.purchasedSeats,
+      newQuantity: opts.newQuantity,
+      currentMonthlyCents,
+      newMonthlyCents,
+      diffCents,
+      immediateChargeCents: diffCents > 0 ? diffCents : 0,
+      nextInvoiceCents: newMonthlyCents,
+      lines: [],
+      currency: "usd",
+    };
+  }
+}
+
+export async function updateSeatQuantity(opts: {
+  salonId: number;
+  newQuantity: number;
+  userId?: string;
+}): Promise<{ success: boolean; purchasedSeats: number; monthlyTotalCents: number }> {
+  if (opts.newQuantity < 1) throw new Error("Seat quantity must be at least 1");
+  if (opts.newQuantity > 500) throw new Error("Seat quantity cannot exceed 500");
+
+  // Validate against active staff count
+  const [staffRow] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(staff)
+    .where(eq(staff.storeId, opts.salonId));
+  const activeStaff = Number(staffRow?.count ?? 0);
+  if (opts.newQuantity < activeStaff) {
+    throw new Error(
+      `Cannot reduce below ${activeStaff} active staff member${activeStaff !== 1 ? "s" : ""}. Remove staff first or contact support.`
+    );
+  }
+
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, opts.salonId))
+    .limit(1);
+
+  if (stripeAvailable() && sub?.stripeSubscriptionId) {
+    const stripe = getStripe();
+    const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+    const item = stripeSub.items.data[0];
+    if (item) {
+      await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+        items: [{
+          id: item.id,
+          quantity: opts.newQuantity,
+        }],
+        proration_behavior: "create_prorations",
+      });
+    }
+  }
+
+  await db
+    .update(subscriptions)
+    .set({ seatQuantity: opts.newQuantity, updatedAt: new Date() })
+    .where(eq(subscriptions.storeNumber, opts.salonId));
+
+  cache.billing.invalidate(opts.salonId);
+
+  await logBillingActivity({
+    salonId: opts.salonId,
+    userId: opts.userId ?? null,
+    eventType: "seats.updated",
+    severity: "info",
+    message: `Seat quantity updated to ${opts.newQuantity}`,
+    metadata: { newQuantity: opts.newQuantity, activeStaff },
+    source: "api",
+  });
+
+  return {
+    success: true,
+    purchasedSeats: opts.newQuantity,
+    monthlyTotalCents: opts.newQuantity * PRICE_PER_SEAT_CENTS,
+  };
+}
+
+export async function getUpcomingInvoice(salonId: number): Promise<{
+  amountDueCents: number;
+  nextPaymentAttempt: number | null;
+  lines: { description: string; amountCents: number; quantity?: number }[];
+  currency: string;
+} | null> {
+  if (!stripeAvailable()) return null;
+
+  const [sub] = await db
+    .select({ stripeCustomerId: subscriptions.stripeCustomerId, stripeSubscriptionId: subscriptions.stripeSubscriptionId })
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, salonId))
+    .limit(1);
+
+  if (!sub?.stripeCustomerId || !sub?.stripeSubscriptionId) return null;
+
+  try {
+    const stripe = getStripe();
+    const upcoming = await stripe.invoices.retrieveUpcoming({
+      customer: sub.stripeCustomerId,
+      subscription: sub.stripeSubscriptionId,
+    });
+    return {
+      amountDueCents: upcoming.amount_due,
+      nextPaymentAttempt: upcoming.next_payment_attempt,
+      lines: upcoming.lines.data.map((l) => ({
+        description: l.description ?? "",
+        amountCents: l.amount,
+        quantity: l.quantity ?? undefined,
+      })),
+      currency: upcoming.currency,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getPaymentMethods(salonId: number): Promise<any[]> {
+  if (!stripeAvailable()) return [];
+
+  const [sub] = await db
+    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
+    .from(subscriptions)
+    .where(eq(subscriptions.storeNumber, salonId))
+    .limit(1);
+
+  if (!sub?.stripeCustomerId) return [];
+
+  try {
+    const stripe = getStripe();
+    const methods = await stripe.paymentMethods.list({
+      customer: sub.stripeCustomerId,
+      type: "card",
+    });
+    const customer = await stripe.customers.retrieve(sub.stripeCustomerId) as any;
+    const defaultPmId = customer?.invoice_settings?.default_payment_method;
+    return methods.data.map((pm: any) => ({
+      id: pm.id,
+      brand: pm.card?.brand ?? "card",
+      last4: pm.card?.last4 ?? "****",
+      expMonth: pm.card?.exp_month,
+      expYear: pm.card?.exp_year,
+      isDefault: pm.id === defaultPmId,
+      billingEmail: customer?.email,
+    }));
+  } catch {
+    return [];
+  }
+}
