@@ -167,3 +167,9 @@ id = "Ije_Ziss8mYR53Ntz-yry"
 uri = "file://docs/STAFF_TRAINING_DEVELOPMENT_PLAN.md"
 type = "text"
 title = "Staff Training Tool — Development Plan (Phased)"
+
+[[outputs]]
+id = "EvXMdnBBBioyIbR331yc7"
+uri = "file://AUDIT.md"
+type = "text"
+title = "Certxa SalonOS — Full Platform Audit & Development Checklist"
