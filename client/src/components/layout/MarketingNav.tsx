@@ -4,7 +4,9 @@ import { Menu, X, ChevronDown } from "lucide-react";
 
 const PLUM      = "#3B0764";
 const PLUM_MID  = "#5B21B6";
-const INDIGO    = "#6366f1";
+const CHARCOAL  = "#1C1917";
+const GOLD      = "#F59E0B";
+const GRAD_PLUM = "linear-gradient(135deg, #3B0764 0%, #6D28D9 100%)";
 
 interface DropdownItem {
   label: string;
@@ -113,6 +115,14 @@ export default function MarketingNav({ hideActions = false }: { hideActions?: bo
   const location = useLocation();
 
   useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&display=swap";
+    document.head.appendChild(link);
+    return () => { if (document.head.contains(link)) document.head.removeChild(link); };
+  }, []);
+
+  useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
@@ -133,23 +143,26 @@ export default function MarketingNav({ hideActions = false }: { hideActions?: bo
   return (
     <nav
       style={{
-        position: "sticky", top: 0, zIndex: 1000,
-        background: "#fff",
-        borderBottom: "1px solid #f3f4f6",
-        boxShadow: scrolled ? "0 2px 20px rgba(59,7,100,0.07)" : "none",
-        transition: "box-shadow .25s ease",
+        position: "sticky", top: 0, zIndex: 200,
+        background: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(229,231,235,0.7)",
+        boxShadow: scrolled ? "0 4px 24px rgba(59,7,100,0.10)" : "none",
+        transition: "box-shadow .3s ease",
         fontFamily: "'Inter', sans-serif",
       }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 28px" }}>
-        <div style={{ display: "flex", alignItems: "center", height: 68, gap: 0 }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", height: 70, gap: 0 }}>
 
-          {/* Logo */}
+          {/* Logo — matches PHP nav: Cormorant Garamond serif */}
           <a href="/overview.php" style={{
-            fontWeight: 900, fontSize: 20, letterSpacing: "-0.04em",
+            fontFamily: "'Cormorant Garamond', serif",
+            fontWeight: 700, fontSize: "1.55rem", letterSpacing: "-0.02em",
             color: PLUM, textDecoration: "none", flexShrink: 0, marginRight: 36,
           }}>
-            Certxa<span style={{ color: "#F59E0B" }}>.</span>
+            Certxa<span style={{ color: GOLD }}>.</span>
           </a>
 
           {/* Desktop nav links */}
@@ -254,27 +267,33 @@ export default function MarketingNav({ hideActions = false }: { hideActions?: bo
 
           {/* Desktop actions */}
           {!hideActions && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: "auto" }}
               className="marketing-nav-actions">
               <a href="/auth" style={{
-                padding: "8px 16px", borderRadius: 8, fontSize: ".875rem",
-                fontWeight: 600, color: "#374151", textDecoration: "none",
+                padding: "8px 14px", borderRadius: 8, fontSize: ".84rem",
+                fontWeight: 600, color: CHARCOAL, textDecoration: "none",
                 transition: "color .15s",
               }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = PLUM_MID; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#374151"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = CHARCOAL; }}
               >
                 Log In
               </a>
               <a href="/auth?mode=register" style={{
-                padding: "9px 20px", borderRadius: 50, fontSize: ".875rem",
-                fontWeight: 700, color: "#fff", textDecoration: "none",
-                background: `linear-gradient(135deg, ${PLUM_MID} 0%, ${PLUM} 100%)`,
-                boxShadow: "0 2px 12px rgba(91,33,182,.28)",
-                transition: "opacity .15s, transform .15s",
+                padding: "10px 22px", borderRadius: 50, fontSize: ".84rem",
+                fontWeight: 600, color: "#fff", textDecoration: "none",
+                background: GRAD_PLUM,
+                boxShadow: "0 3px 16px rgba(59,7,100,.32)",
+                transition: "transform .15s, box-shadow .15s",
               }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = ".9"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 24px rgba(59,7,100,.44)";
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.transform = "none";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 3px 16px rgba(59,7,100,.32)";
+                }}
               >
                 Start Free Trial
               </a>

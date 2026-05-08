@@ -131,7 +131,7 @@ export default function Auth() {
   if (isLoading && hasStoredSession) {
     return (
       <MarketingLayout hideNavActions>
-        <div className="flex-1 bg-white flex items-center justify-center py-24">
+        <div className="bg-white flex items-center justify-center" style={{ height: "calc(100vh - 70px)" }}>
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: PURPLE }} />
             <p className="text-gray-400 text-sm">Welcome back! Restoring your session…</p>
@@ -143,7 +143,8 @@ export default function Auth() {
 
   return (
     <MarketingLayout hideNavActions>
-    <div className="flex-1 bg-white flex font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="flex bg-white font-['Plus_Jakarta_Sans',sans-serif]"
+      style={{ height: "calc(100vh - 70px)", overflow: "hidden" }}>
 
       {/* ── Left panel ── */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden"
@@ -160,7 +161,7 @@ export default function Auth() {
       <div className="hidden lg:block w-px" style={{ background: mode === "register" ? "rgba(255,255,255,0.07)" : "#f3f4f6" }} />
 
       {/* ── Right panel — form ── */}
-      <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 bg-white">
+      <div className="flex flex-col w-full lg:w-[500px] lg:flex-shrink-0 bg-white overflow-y-auto">
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 py-10">
           {/* Header */}
           <div className="mb-8">
@@ -354,7 +355,7 @@ export default function Auth() {
 /* ─── Trial left panel (register mode) ─── */
 function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: React.ReactNode } | null }) {
   return (
-    <div className="relative z-10 flex flex-col h-full p-14 overflow-y-auto">
+    <div className="relative z-10 flex flex-col h-full p-14 overflow-hidden">
       {/* Decorative glows */}
       <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(91,33,182,0.25) 0%, transparent 65%)", transform: "translate(-30%, -30%)" }} />
