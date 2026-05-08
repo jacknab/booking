@@ -71,13 +71,11 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
                 data-category="<?php echo htmlspecialchars($cat['key']); ?>"
                 aria-pressed="false"
             >
-                <div class="bizpicker-card__emoji"><?php echo $cat['emoji']; ?></div>
                 <div class="bizpicker-card__label"><?php echo htmlspecialchars($cat['label']); ?></div>
                 <div class="bizpicker-card__count"><?php echo $cat['count']; ?> design<?php echo $cat['count'] !== 1 ? 's' : ''; ?></div>
             </button>
             <?php endforeach; ?>
             <button class="bizpicker-card bizpicker-card--all" data-category="all" aria-pressed="true">
-                <div class="bizpicker-card__emoji">✨</div>
                 <div class="bizpicker-card__label">Show All</div>
                 <div class="bizpicker-card__count"><?php echo $total; ?> designs</div>
             </button>
@@ -262,9 +260,6 @@ $new_templates     = array_values(array_filter($all_templates, fn($t) => ($t['ba
         <div class="categories-grid">
             <?php foreach ($active_categories as $cat): ?>
             <a href="<?php echo BASE_PATH; ?>/<?php echo $cat['page']; ?>" class="category-card">
-                <div class="category-card__image">
-                    <?php echo $cat['emoji']; ?>
-                </div>
                 <div class="category-card__body">
                     <div class="category-card__label"><?php echo htmlspecialchars($cat['label']); ?></div>
                     <h2 class="category-card__title"><?php echo htmlspecialchars($cat['label']); ?></h2>
