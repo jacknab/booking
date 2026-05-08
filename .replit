@@ -83,6 +83,7 @@ CORS_ORIGINS = "https://dashboard.certxa.com,https://mysalon.me"
 GOOGLE_CLIENT_ID = "384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com"
 TWILIO_PHONE_NUMBER = "+18888147623"
 ACTIVE_GROUPS = "3"
+APP_URL = "https://certxa.com"
 
 [userenv.development]
 GOOGLE_REDIRECT_URI = "https://04d80595-4e34-4568-a0f2-3042046716cb-00-25h5iy32a265s.janeway.replit.dev/google-business"

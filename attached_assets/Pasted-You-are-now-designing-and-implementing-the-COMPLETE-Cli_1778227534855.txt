@@ -1,0 +1,530 @@
+You are now designing and implementing the COMPLETE Client Data Architecture + Universal Export/Import System for Certxa SalonOS.
+
+This is NOT a simple CSV export feature.
+
+This is a production-grade customer data infrastructure designed for:
+- long-term scalability
+- CRM compatibility
+- data portability
+- migration support
+- reporting
+- marketing integrations
+- analytics
+- future API integrations
+- enterprise trust
+
+The system must be architected correctly from day one.
+
+====================================================
+PRIMARY OBJECTIVES
+====================================================
+
+Build a client/customer data system that:
+- stores customer data cleanly
+- normalizes data properly
+- scales efficiently
+- supports universal exports
+- supports future imports/migrations
+- supports CRM interoperability
+- supports marketing systems
+- supports analytics
+
+Salon owners MUST feel:
+- they own their data
+- they can export anytime
+- they are not trapped in the platform
+
+====================================================
+DATABASE ARCHITECTURE
+====================================================
+
+Use a normalized relational database structure.
+
+DO NOT store all customer data in a single giant table.
+
+Create proper entity separation.
+
+====================================================
+CORE TABLES
+====================================================
+
+Create:
+
+1. clients
+2. client_phones
+3. client_addresses
+4. client_emails
+5. client_tags
+6. client_tag_relationships
+7. client_notes
+8. client_preferences
+9. client_visit_history
+10. client_marketing_preferences
+11. client_custom_fields
+12. client_audit_logs
+
+====================================================
+CLIENTS TABLE
+====================================================
+
+TABLE: clients
+
+Fields:
+- client_id
+- salon_id
+- first_name
+- last_name
+- full_name
+- preferred_name
+- date_of_birth
+- gender_optional
+- preferred_staff_id
+- client_status
+- source
+- referral_source
+- avatar_url
+- total_visits
+- total_spent_cents
+- last_visit_at
+- next_appointment_at
+- created_at
+- updated_at
+- archived_at
+
+====================================================
+EMAIL STORAGE
+====================================================
+
+TABLE: client_emails
+
+Fields:
+- email_id
+- client_id
+- email_address
+- is_primary
+- verified
+- marketing_opt_in
+- created_at
+- updated_at
+
+IMPORTANT:
+- emails must always be lowercased
+- emails must always be trimmed
+- validate format before saving
+
+====================================================
+PHONE STORAGE
+====================================================
+
+TABLE: client_phones
+
+Fields:
+- phone_id
+- client_id
+- phone_number_e164
+- display_phone
+- phone_type
+- sms_opt_in
+- verified
+- is_primary
+- created_at
+- updated_at
+
+CRITICAL:
+Store phone numbers internally in E.164 format ONLY.
+
+Example:
++17202436886
+
+NEVER store inconsistent formats internally.
+
+Display formatting happens ONLY in frontend/UI.
+
+====================================================
+ADDRESS STORAGE
+====================================================
+
+TABLE: client_addresses
+
+Fields:
+- address_id
+- client_id
+- address_line1
+- address_line2
+- city
+- state
+- postal_code
+- country
+- address_type
+- created_at
+- updated_at
+
+====================================================
+TAG SYSTEM
+====================================================
+
+Implement normalized tagging system.
+
+TABLE: client_tags
+- tag_id
+- salon_id
+- tag_name
+- tag_color
+- created_at
+
+TABLE: client_tag_relationships
+- relationship_id
+- client_id
+- tag_id
+- created_at
+
+DO NOT store comma-separated tags.
+
+====================================================
+CLIENT NOTES
+====================================================
+
+TABLE: client_notes
+
+Fields:
+- note_id
+- client_id
+- salon_id
+- created_by_user_id
+- note_type
+- visibility
+- note_content
+- pinned
+- created_at
+- updated_at
+
+Support:
+- internal notes
+- appointment notes
+- consultation notes
+- allergy notes
+- customer preferences
+- automated notes
+
+====================================================
+MARKETING PREFERENCES
+====================================================
+
+TABLE: client_marketing_preferences
+
+Fields:
+- preference_id
+- client_id
+- sms_marketing_opt_in
+- email_marketing_opt_in
+- promotional_notifications
+- appointment_reminders
+- birthday_messages
+- review_requests
+- updated_at
+
+====================================================
+CUSTOM FIELDS
+====================================================
+
+Implement extensible custom field system.
+
+TABLE: client_custom_fields
+- custom_field_id
+- salon_id
+- field_name
+- field_type
+- field_options_json
+- active
+- created_at
+
+TABLE: client_custom_field_values
+- value_id
+- client_id
+- custom_field_id
+- field_value
+- updated_at
+
+====================================================
+AUDIT LOGGING
+====================================================
+
+TABLE: client_audit_logs
+
+Track:
+- created
+- updated
+- exported
+- imported
+- merged
+- deleted
+- archived
+
+Fields:
+- audit_id
+- client_id
+- salon_id
+- action_type
+- actor_user_id
+- metadata_json
+- ip_address
+- created_at
+
+====================================================
+UNIVERSAL EXPORT SYSTEM
+====================================================
+
+Build complete export infrastructure.
+
+Supported formats:
+- CSV
+- XLSX
+- JSON
+
+Future-ready:
+- vCard
+- API exports
+- CRM integrations
+
+====================================================
+EXPORT REQUIREMENTS
+====================================================
+
+Exports must:
+- be standardized
+- work with major CRMs
+- support Excel cleanly
+- support marketing tools
+- support migration tools
+
+====================================================
+UNIVERSAL EXPORT FIELDS
+====================================================
+
+Standard export fields:
+
+- First Name
+- Last Name
+- Full Name
+- Email
+- Mobile Phone
+- Alternate Phone
+- Birthday
+- Tags
+- Notes
+- Last Visit Date
+- Total Visits
+- Lifetime Spend
+- Preferred Staff
+- Marketing Opt-In SMS
+- Marketing Opt-In Email
+- Address
+- City
+- State
+- Postal Code
+- Country
+- Created Date
+- Last Updated
+
+====================================================
+EXPORT UI
+====================================================
+
+Clients must be able to:
+- export all clients
+- export filtered clients
+- export by tags
+- export by date range
+- export by marketing consent
+- export by staff assignment
+
+====================================================
+EXPORT SECURITY
+====================================================
+
+Implement:
+- permission validation
+- export audit logging
+- rate limiting
+- secure file generation
+- signed download URLs
+- expiration handling
+
+====================================================
+EXPORT PERFORMANCE
+====================================================
+
+Exports must support:
+- very large client lists
+- background processing
+- progress tracking
+- queued exports
+- async generation
+
+Avoid:
+- blocking requests
+- memory overload
+- timeout crashes
+
+====================================================
+IMPORT SYSTEM
+====================================================
+
+Implement production-grade import infrastructure.
+
+Supported imports:
+- CSV
+- XLSX
+
+====================================================
+IMPORT REQUIREMENTS
+====================================================
+
+Import system must support:
+- field mapping
+- duplicate detection
+- duplicate merging
+- phone normalization
+- email normalization
+- validation previews
+- import rollback handling
+- error reporting
+
+====================================================
+DUPLICATE DETECTION
+====================================================
+
+Detect duplicates using:
+- email
+- normalized phone number
+- name similarity
+- birthday matching
+
+Allow:
+- merge records
+- skip duplicates
+- replace records
+
+====================================================
+SEARCH OPTIMIZATION
+====================================================
+
+Optimize client searching.
+
+Support:
+- phone search
+- email search
+- partial name search
+- tag filtering
+- visit filtering
+- spending filters
+
+Implement:
+- trigram indexes
+- indexed searching
+- fast autocomplete
+- optimized pagination
+
+====================================================
+DATA NORMALIZATION RULES
+====================================================
+
+Implement strict normalization:
+
+Emails:
+- lowercase
+- trimmed
+- validated
+
+Phones:
+- E.164 internally
+- formatted in UI only
+
+Dates:
+- ISO timestamps internally
+
+Currency:
+- cents/integer storage
+
+====================================================
+API REQUIREMENTS
+====================================================
+
+Build APIs for:
+- export generation
+- export download
+- import upload
+- import preview
+- duplicate review
+- client merging
+- tag management
+- note management
+
+====================================================
+FUTURE INTEGRATION SUPPORT
+====================================================
+
+Architecture must support future:
+- Mailchimp sync
+- Google Contacts sync
+- Meta custom audiences
+- HubSpot integration
+- CRM migrations
+- AI analytics
+- marketing automation
+- external APIs
+
+====================================================
+REALTIME FEATURES
+====================================================
+
+Use WebSockets for:
+- import progress
+- export progress
+- merge completion
+- duplicate alerts
+
+====================================================
+DESIGN REQUIREMENTS
+====================================================
+
+UI should feel:
+- modern SaaS
+- polished
+- enterprise-grade
+- easy to use
+- clean and fast
+
+====================================================
+DELIVERABLES
+====================================================
+
+Build:
+- normalized database schema
+- migrations
+- import system
+- export engine
+- CSV/XLSX generation
+- duplicate detection engine
+- merge tools
+- client search optimization
+- audit logging
+- API endpoints
+- background jobs
+- queue processing
+- frontend export/import UI
+- progress tracking
+- validation systems
+
+====================================================
+FINAL GOAL
+====================================================
+
+Develop a professional-grade customer data platform that:
+- scales cleanly
+- protects data integrity
+- supports universal exports/imports
+- builds customer trust
+- enables future integrations
+- performs efficiently
+- feels like a top-tier SaaS CRM system
