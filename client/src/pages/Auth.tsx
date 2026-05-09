@@ -149,7 +149,7 @@ export default function Auth() {
       {/* Nav — matches PHP overview.php nav exactly */}
       <MarketingNav hideActions />
 
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "stretch", overflow: "hidden" }}>
 
         {/* ── Left panel ── */}
         {mode === "register" ? (
@@ -160,7 +160,7 @@ export default function Auth() {
 
         {/* ── Right panel — form ── */}
         <div style={{
-          flex: "0 0 500px",
+          flex: "0 0 480px",
           display: "flex", flexDirection: "column",
           background: "#fff",
           overflowY: "auto",
@@ -444,31 +444,29 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
       className="auth-left-panel"
       style={{
         flex: 1, position: "relative", overflow: "hidden",
-        background: "linear-gradient(145deg, #1a0040 0%, #2d0060 40%, #1a0a2e 100%)",
         display: "flex", flexDirection: "column",
+        background: "#0d0020",
       }}
     >
-      {/* Animated orbs */}
+      {/* Background video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{
+          position: "absolute", top: 0, left: 0,
+          width: "100%", height: "100%",
+          objectFit: "cover", zIndex: 1,
+        }}
+      >
+        <source src="/videos/salon_booking.mp4" type="video/mp4" />
+      </video>
+
+      {/* Dark purple gradient overlay for readability */}
       <div style={{
-        position: "absolute", top: "-15%", left: "-10%",
-        width: 600, height: 600, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(91,33,182,0.35) 0%, transparent 65%)",
-        animation: "orbFloat1 12s ease-in-out infinite",
-        pointerEvents: "none",
-      }} />
-      <div style={{
-        position: "absolute", bottom: "-20%", right: "-10%",
-        width: 500, height: 500, borderRadius: "50%",
-        background: `radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 65%)`,
-        animation: "orbFloat2 14s ease-in-out infinite",
-        pointerEvents: "none",
-      }} />
-      <div style={{
-        position: "absolute", top: "40%", right: "5%",
-        width: 300, height: 300, borderRadius: "50%",
-        background: `radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 65%)`,
-        animation: "orbFloat1 10s ease-in-out infinite reverse",
-        pointerEvents: "none",
+        position: "absolute", inset: 0, zIndex: 2,
+        background: "linear-gradient(145deg, rgba(26,0,64,0.88) 0%, rgba(45,0,96,0.82) 50%, rgba(26,10,46,0.90) 100%)",
       }} />
 
       {/* Content */}
@@ -618,22 +616,29 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
       className="auth-left-panel"
       style={{
         flex: 1, position: "relative", overflow: "hidden",
-        background: "linear-gradient(145deg, #FEFAF5 0%, #EDE9FE 55%, #F5F3FF 100%)",
         display: "flex", flexDirection: "column",
+        background: "#0d0020",
       }}
     >
-      {/* Decorative blobs */}
+      {/* Background video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{
+          position: "absolute", top: 0, left: 0,
+          width: "100%", height: "100%",
+          objectFit: "cover", zIndex: 1,
+        }}
+      >
+        <source src="/videos/hair_salon.mp4" type="video/mp4" />
+      </video>
+
+      {/* Deep plum gradient overlay */}
       <div style={{
-        position: "absolute", top: "-15%", left: "-10%",
-        width: 560, height: 560, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(91,33,182,0.10) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-      <div style={{
-        position: "absolute", bottom: "-15%", right: "-5%",
-        width: 420, height: 420, borderRadius: "50%",
-        background: `radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)`,
-        pointerEvents: "none",
+        position: "absolute", inset: 0, zIndex: 2,
+        background: "linear-gradient(145deg, rgba(26,0,64,0.86) 0%, rgba(45,0,96,0.80) 50%, rgba(26,10,46,0.88) 100%)",
       }} />
 
       <div style={{
@@ -643,12 +648,12 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
         animation: "fadeUp .5s ease both",
       }}>
 
-        {/* Logo — identical to PHP nav-logo */}
+        {/* Logo */}
         <a href="/overview.php" style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: "1.55rem", fontWeight: 700,
           letterSpacing: "-0.02em",
-          color: PLUM, textDecoration: "none",
+          color: "#fff", textDecoration: "none",
           marginBottom: 60, display: "block",
         }}>
           Certxa<span style={{ color: GOLD }}>.</span>
@@ -659,8 +664,8 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "7px 16px", borderRadius: 50,
-              background: "rgba(91,33,182,0.07)", border: "1px solid rgba(91,33,182,0.18)",
-              color: PLUM_MID, fontSize: ".8rem", fontWeight: 700,
+              background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.35)",
+              color: "#c4b5fd", fontSize: ".8rem", fontWeight: 700,
               marginBottom: 24,
             }}>
               {cfg.icon}
@@ -672,7 +677,7 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: "clamp(2.6rem, 3.5vw, 3.6rem)",
             fontWeight: 700, letterSpacing: "-0.03em",
-            lineHeight: 1.06, color: "#1C1917",
+            lineHeight: 1.06, color: "#fff",
             margin: "0 0 16px",
           }}>
             The platform<br />
@@ -680,28 +685,29 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
             service pros.
           </h2>
 
-          <p style={{ color: "#6b7280", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 340, margin: "0 0 32px" }}>
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 340, margin: "0 0 32px" }}>
             Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one place.
           </p>
 
           {/* Stats */}
-          <div style={{ display: "flex", gap: 32, marginBottom: 32, paddingBottom: 28, borderBottom: "1px solid #f0f0f2" }}>
+          <div style={{ display: "flex", gap: 32, marginBottom: 32, paddingBottom: 28, borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
             {[
               { num: "50K+", label: "Businesses" },
               { num: "2M+",  label: "Bookings/mo" },
               { num: "4.9★", label: "Avg rating" },
             ].map(({ num, label }) => (
               <div key={label}>
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.6rem", fontWeight: 700, color: PLUM_MID, margin: 0, lineHeight: 1 }}>{num}</p>
-                <p style={{ fontSize: ".68rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.6rem", fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{num}</p>
+                <p style={{ fontSize: ".68rem", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
               </div>
             ))}
           </div>
 
           {/* Testimonial */}
           <div style={{
-            background: "#fff", borderRadius: 14,
-            boxShadow: "0 2px 16px rgba(59,7,100,0.07), 0 0 0 1px rgba(229,231,235,.8)",
+            background: "rgba(255,255,255,0.06)", borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.10)",
+            backdropFilter: "blur(8px)",
             padding: "20px 22px", maxWidth: 400,
           }}>
             <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
@@ -711,7 +717,7 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
                 </svg>
               ))}
             </div>
-            <p style={{ fontSize: ".84rem", color: "#4b5563", lineHeight: 1.6, fontStyle: "italic", margin: "0 0 12px" }}>
+            <p style={{ fontSize: ".84rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.6, fontStyle: "italic", margin: "0 0 12px" }}>
               "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -722,8 +728,8 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
                 background: `linear-gradient(135deg, ${PLUM_MID}, ${PLUM})`,
               }}>JR</div>
               <div>
-                <p style={{ fontSize: ".8rem", fontWeight: 700, color: "#1f2937", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
-                <p style={{ fontSize: ".7rem", color: "#9ca3af", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
+                <p style={{ fontSize: ".8rem", fontWeight: 700, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
+                <p style={{ fontSize: ".7rem", color: "rgba(255,255,255,0.35)", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
               </div>
             </div>
           </div>
