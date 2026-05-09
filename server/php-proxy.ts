@@ -2,8 +2,13 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import { spawn, type ChildProcess } from "child_process";
 import net from "net";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import type { Request, Response, NextFunction } from "express";
+
+// Directory where Vite serves its static public assets (client/public/).
+// Files here take priority over the PHP site for the same URL path.
+const CLIENT_PUBLIC_DIR = path.resolve(process.cwd(), "client", "public");
 
 const PHP_PORT = parseInt(process.env.PHP_PORT || "8104", 10);
 const PHP_HOST = process.env.PHP_HOST || "127.0.0.1";
@@ -176,6 +181,14 @@ export async function phpMiddleware(req: Request, res: Response, next: NextFunct
   // manage.certxa.com is served entirely by Express/React — never send to PHP
   if ((req as any).isManageSubdomain) return next();
   if (!isPhpRoute(req.path)) return next();
+
+  // For paths that could be served by either PHP or Vite (e.g. /videos/),
+  // prefer the local client/public copy if it exists so the React app's
+  // assets (onboarding videos, etc.) are never accidentally swallowed by PHP.
+  if (req.path.startsWith("/videos/") || req.path.startsWith("/assets/")) {
+    const localFile = path.join(CLIENT_PUBLIC_DIR, req.path);
+    if (fs.existsSync(localFile)) return next();
+  }
 
   if (!phpReady && phpReadyPromise) {
     try {
