@@ -5065,6 +5065,93 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  /**
+   * AI-powered review sentiment / theme analysis.
+   * Reads all review texts for a store and returns theme-level sentiment breakdown.
+   */
+  app.post("/api/google-business/reviews-sentiment/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+
+    try {
+      const allReviews = await db
+        .select({ reviewText: googleReviews.reviewText, rating: googleReviews.rating })
+        .from(googleReviews)
+        .where(
+          and(
+            eq(googleReviews.storeId, storeId),
+            isNotNull(googleReviews.reviewText)
+          )
+        );
+
+      if (allReviews.length === 0) {
+        return res.json({ themes: [], reviewCount: 0 });
+      }
+
+      // Build a compact representation for the AI prompt
+      const reviewLines = allReviews
+        .slice(0, 120) // cap at 120 to keep prompt size manageable
+        .map((r, i) => `[${i + 1}] (${r.rating}★) ${r.reviewText}`)
+        .join("\n");
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5-mini",
+        messages: [{
+          role: "user",
+          content: [
+            "Analyse the following customer reviews for a service business.",
+            "Identify the most frequently mentioned themes (e.g. Staff friendliness, Wait time, Service quality, Cleanliness, Pricing & value, Booking experience, Results, Atmosphere).",
+            "For each theme, determine the overall sentiment based on how customers discuss it.",
+            "",
+            "Rules:",
+            "- Return 4–8 themes that have the most mentions.",
+            "- Each theme must have at least 2 mentions to be included.",
+            "- For each theme include 1–2 short verbatim quote snippets (under 80 chars each) from the reviews as examples.",
+            "- Sentiment must be exactly one of: 'positive', 'neutral', 'negative'.",
+            "- Count = number of reviews that mention this theme.",
+            "",
+            `Reviews (${allReviews.length} total, showing up to 120):`,
+            reviewLines,
+            "",
+            `Return JSON only:
+{
+  "themes": [
+    {
+      "name": "Theme name",
+      "sentiment": "positive" | "neutral" | "negative",
+      "count": <number>,
+      "examples": ["short quote 1", "short quote 2"]
+    }
+  ]
+}`,
+          ].join("\n"),
+        }],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 1024,
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      let parsed: { themes?: any[] } = {};
+      try { parsed = JSON.parse(raw); } catch { /* fall through */ }
+
+      res.json({
+        themes: Array.isArray(parsed.themes) ? parsed.themes : [],
+        reviewCount: allReviews.length,
+      });
+    } catch (error) {
+      console.error("Sentiment analysis error:", error);
+      res.status(500).json({ message: "Failed to analyse sentiment" });
+    }
+  });
+
   // === YELP ALIAS ===
 
   app.put("/api/stores/:storeId/facebook-page", async (req, res) => {

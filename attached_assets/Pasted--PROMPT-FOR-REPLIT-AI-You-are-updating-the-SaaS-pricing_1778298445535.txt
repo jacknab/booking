@@ -1,0 +1,95 @@
+✅ PROMPT FOR REPLIT AI
+
+You are updating the SaaS pricing system UI.
+
+TASK 1 — Update Elite Pricing Card (Pricing Page)
+
+Update the “Elite” pricing card on the pricing page with the following changes:
+
+Changes:
+Keep the Elite price visible as it currently is
+Replace any button text like “See Pricing” with:
+→ “See Details”
+Ensure the card feels premium and slightly more prominent than other plans
+Do NOT add extra clutter or additional buttons
+Make sure all other plans remain unchanged
+Important UI intent:
+“See Details” should imply a deeper breakdown page, not pricing comparison
+The Elite card should visually feel like the top-tier / most powerful plan
+TASK 2 — Create New Page: Elite Plan Details
+
+Create a new route/page:
+
+/elite-details (or match existing routing structure)
+
+This page should be a structured breakdown of everything included in Elite.
+
+Page Layout Requirements:
+1. Header Section
+Title: Elite Plan
+Subtitle:
+“A fully managed, done-for-you setup and premium system configuration.”
+2. Sticky Summary Panel (top or right sidebar depending on layout)
+Elite price (same as pricing card)
+Button: Upgrade / Select Elite
+Optional: billing toggle if system supports it
+3. Section: Done-for-you Setup (IMPORTANT SECTION)
+
+Replace any idea of “onboarding call” with this concept:
+
+Title:
+Done-for-you onboarding & setup
+
+Description:
+“We fully configure your system for you using your business details, branding, services, and locations. Your account is delivered ready to use.”
+
+Include bullets:
+
+Company branding setup (logo, colors, assets)
+Multi-location configuration
+Services & pricing setup (from PDF, images, or website)
+Staff account creation per location
+System configuration and QA
+Delivery of fully working system with logins
+4. Features Breakdown Sections
+
+Group features clearly:
+
+Core Platform
+
+Booking system
+Calendar management
+Client database
+
+Multi-Location Tools
+
+Location-based dashboards
+Staff assignment per location
+Performance tracking per location
+
+Growth & Automation
+
+Messaging tools
+Analytics dashboard
+Reporting tools
+
+Elite Only
+
+Done-for-you setup service
+Priority support
+Advanced reporting access
+5. Final CTA Section
+
+At bottom:
+
+Button: Get Started with Elite
+Small text: “We’ll begin setting up your system immediately after signup.”
+DESIGN RULES
+Keep it clean and SaaS-style (not salesy)
+No duplicated pricing information everywhere
+Focus on clarity over decoration
+Make Elite feel premium, not cluttered
+Avoid adding unnecessary new features
+IMPORTANT
+
+Do not modify any other pricing tiers or unrelated pages.

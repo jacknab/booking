@@ -21,6 +21,7 @@ import axios from "axios";
 import { GoogleReview } from "@shared/schema";
 import { ReviewResponseDialog } from "@/components/ReviewResponseDialog";
 import { BulkDraftModal } from "@/components/BulkDraftModal";
+import { ReviewSentimentDashboard } from "@/components/ReviewSentimentDashboard";
 
 interface ReviewStats {
   totalReviews: number;
@@ -371,6 +372,11 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Sentiment Dashboard */}
+      {stats && stats.totalReviews > 0 && storeId && (
+        <ReviewSentimentDashboard storeId={storeId} />
       )}
 
       {/* Controls */}
