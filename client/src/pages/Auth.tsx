@@ -160,15 +160,15 @@ export default function Auth() {
 
         {/* ── Right panel — form ── */}
         <div style={{
-          width: "100%", maxWidth: 520, flexShrink: 0,
+          flex: "0 0 500px",
           display: "flex", flexDirection: "column",
-          background: mode === "register" ? "#fff" : "#fff",
+          background: "#fff",
           overflowY: "auto",
-          boxShadow: "-1px 0 0 #f3f4f6",
+          borderLeft: "1px solid #f0f0f2",
         }}>
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
-            justifyContent: "center", padding: "48px 52px",
+            justifyContent: "center", padding: "48px 56px",
           }}>
 
             {/* Group badge */}
@@ -654,7 +654,7 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
           Certxa<span style={{ color: GOLD }}>.</span>
         </a>
 
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           {cfg && (
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 8,
@@ -670,60 +670,60 @@ function LoginLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
 
           <h2 style={{
             fontFamily: "'Cormorant Garamond', serif",
-            fontSize: "clamp(2.8rem, 4vw, 3.8rem)",
+            fontSize: "clamp(2.6rem, 3.5vw, 3.6rem)",
             fontWeight: 700, letterSpacing: "-0.03em",
             lineHeight: 1.06, color: "#1C1917",
-            margin: "0 0 18px",
+            margin: "0 0 16px",
           }}>
             The platform<br />
             <em style={{ color: GOLD, fontStyle: "italic" }}>built for</em><br />
             service pros.
           </h2>
 
-          <p style={{ color: "#6b7280", fontSize: "1rem", lineHeight: 1.65, maxWidth: 360, margin: "0 0 36px" }}>
+          <p style={{ color: "#6b7280", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 340, margin: "0 0 32px" }}>
             Bookings, front desk, POS, loyalty rewards, check-in, waitlist — all in one place.
           </p>
 
           {/* Stats */}
-          <div style={{ display: "flex", gap: 36, marginBottom: 36 }}>
+          <div style={{ display: "flex", gap: 32, marginBottom: 32, paddingBottom: 28, borderBottom: "1px solid #f0f0f2" }}>
             {[
               { num: "50K+", label: "Businesses" },
               { num: "2M+",  label: "Bookings/mo" },
               { num: "4.9★", label: "Avg rating" },
             ].map(({ num, label }) => (
               <div key={label}>
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.7rem", fontWeight: 700, color: PLUM_MID, margin: 0, lineHeight: 1 }}>{num}</p>
-                <p style={{ fontSize: ".7rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.6rem", fontWeight: 700, color: PLUM_MID, margin: 0, lineHeight: 1 }}>{num}</p>
+                <p style={{ fontSize: ".68rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
               </div>
             ))}
           </div>
 
           {/* Testimonial */}
           <div style={{
-            background: "#fff", borderRadius: 16,
-            boxShadow: "0 4px 24px rgba(59,7,100,0.08), 0 0 0 1px rgba(229,231,235,.7)",
-            padding: "22px 24px", maxWidth: 400,
+            background: "#fff", borderRadius: 14,
+            boxShadow: "0 2px 16px rgba(59,7,100,0.07), 0 0 0 1px rgba(229,231,235,.8)",
+            padding: "20px 22px", maxWidth: 400,
           }}>
             <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
               {[...Array(5)].map((_, i) => (
-                <svg key={i} width="14" height="14" viewBox="0 0 20 20" fill={GOLD}>
+                <svg key={i} width="13" height="13" viewBox="0 0 20 20" fill={GOLD}>
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                 </svg>
               ))}
             </div>
-            <p style={{ fontSize: ".875rem", color: "#4b5563", lineHeight: 1.65, fontStyle: "italic", margin: "0 0 14px" }}>
+            <p style={{ fontSize: ".84rem", color: "#4b5563", lineHeight: 1.6, fontStyle: "italic", margin: "0 0 12px" }}>
               "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{
-                width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: ".7rem", fontWeight: 700, color: "#fff",
+                fontSize: ".68rem", fontWeight: 700, color: "#fff",
                 background: `linear-gradient(135deg, ${PLUM_MID}, ${PLUM})`,
               }}>JR</div>
               <div>
-                <p style={{ fontSize: ".82rem", fontWeight: 700, color: "#1f2937", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
-                <p style={{ fontSize: ".72rem", color: "#9ca3af", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
+                <p style={{ fontSize: ".8rem", fontWeight: 700, color: "#1f2937", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
+                <p style={{ fontSize: ".7rem", color: "#9ca3af", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
               </div>
             </div>
           </div>
