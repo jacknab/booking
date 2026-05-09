@@ -529,7 +529,7 @@ require 'includes/nav.php';
           <tr class="section-row"><td colspan="4">Reporting & Support</td></tr>
           <tr>
             <td>Revenue reporting</td>
-            <td>Basic</td><td class="featured-col ct-text">Advanced</td><td class="ct-text">Advanced + export</td>
+            <td class="ct-cross">–</td><td class="featured-col ct-text">Advanced</td><td class="ct-text">Advanced + export</td>
           </tr>
           <tr>
             <td>Multi-location dashboard</td>
