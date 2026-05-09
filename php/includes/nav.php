@@ -22,6 +22,7 @@
             <div class="dropdown-section" style="margin-top:10px;">Payments &amp; Revenue</div>
             <a href="/payments.php"><span class="nav-dot"></span>Payment Solutions</a>
             <a href="/card-reader-pos.php"><span class="nav-dot"></span>Card Reader &amp; POS</a>
+            <a href="/payment-processing.php"><span class="nav-dot"></span>HMS &amp; Djavoo Processing</a>
             <div class="dropdown-section" style="margin-top:10px;">Build Your Brand</div>
             <a href="/reserve-with-google.php"><span class="nav-dot"></span>Reserve With Google</a>
             <a href="/client-reviews.php"><span class="nav-dot"></span>Client Reviews</a>
@@ -36,6 +37,9 @@
             <a href="/hair-salon-software.php"><span class="nav-dot"></span>Hair Salons</a>
             <a href="/nail-salon-software.php"><span class="nav-dot"></span>Nail Studios</a>
             <a href="/barbershop-software.php"><span class="nav-dot"></span>Barbershops</a>
+            <div class="dropdown-section" style="margin-top:10px;">By Professional</div>
+            <a href="/booth-renters.php"><span class="nav-dot"></span>Booth Renters</a>
+            <a href="/solo-professionals.php"><span class="nav-dot"></span>Solo Professionals</a>
             <div class="dropdown-section" style="margin-top:10px;">Website Builder</div>
             <a href="/launchsite.php" style="font-weight:600;color:#6366f1;"><span class="nav-dot"></span>LaunchSite</a>
             <div class="dropdown-section" style="margin-top:10px;">Compare</div>

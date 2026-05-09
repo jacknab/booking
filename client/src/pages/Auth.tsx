@@ -441,6 +441,12 @@ const AD_SLIDES = [
     headline: ["Your whole salon,", "one screen."],
     accentWord: "salon,",
     sub: "Booking, POS, loyalty, intake forms — finally unified.",
+    testimonial: {
+      quote: "I replaced three separate apps with Certxa. Everything finally talks to each other — and my front desk actually loves coming to work now.",
+      name: "Marcus T.",
+      title: "Owner, Crown Barbershop",
+      initials: "MT",
+    },
   },
   {
     tag: "Smart Scheduling",
@@ -451,6 +457,12 @@ const AD_SLIDES = [
     headline: ["Fill your calendar", "while you sleep."],
     accentWord: "calendar",
     sub: "Online booking works for you 24/7 — even after hours.",
+    testimonial: {
+      quote: "I wake up every morning to new appointments. My book fills itself. I haven't had a slow Tuesday in months.",
+      name: "Aaliyah K.",
+      title: "Independent Stylist",
+      initials: "AK",
+    },
   },
   {
     tag: "Client Retention",
@@ -461,6 +473,12 @@ const AD_SLIDES = [
     headline: ["Turn one-timers", "into regulars."],
     accentWord: "regulars.",
     sub: "Loyalty rewards, gift cards & automated follow-ups.",
+    testimonial: {
+      quote: "The loyalty program brought back 40% of clients I thought were gone forever. The automated follow-ups do all the work for me.",
+      name: "Priya S.",
+      title: "Owner, Glow Nail Studio",
+      initials: "PS",
+    },
   },
   {
     tag: "Certxa Queue",
@@ -471,6 +489,12 @@ const AD_SLIDES = [
     headline: ["Walk-ins without", "the wait-around."],
     accentWord: "wait-around.",
     sub: "Virtual check-in, live board display & smart SMS alerts.",
+    testimonial: {
+      quote: "Walk-in chaos is completely gone. Clients check in from the parking lot and we text them when we're ready. Genius.",
+      name: "DeShawn M.",
+      title: "Owner, Elite Cuts",
+      initials: "DM",
+    },
   },
 ];
 
@@ -597,7 +621,7 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
         </div>
 
         {/* Slide dots */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
           {AD_SLIDES.map((_, i) => (
             <button
               key={i}
@@ -612,6 +636,44 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
               aria-label={`Go to slide ${i + 1}`}
             />
           ))}
+        </div>
+
+        {/* Testimonial — synced with active slide */}
+        <div style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(6px)",
+          transition: "opacity 0.38s ease 0.05s, transform 0.38s ease 0.05s",
+          background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.09)",
+          backdropFilter: "blur(8px)",
+          borderRadius: 12, padding: "14px 16px",
+          marginBottom: 18,
+        }}>
+          <div style={{ display: "flex", gap: 2, marginBottom: 8 }}>
+            {[...Array(5)].map((_, i) => (
+              <svg key={i} width="11" height="11" viewBox="0 0 20 20" fill={GOLD}>
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+            ))}
+          </div>
+          <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.55, fontStyle: "italic", margin: "0 0 10px" }}>
+            "{slide.testimonial.quote}"
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: ".6rem", fontWeight: 800, color: "#fff",
+              background: `linear-gradient(135deg, ${slide.tagColor}55, ${slide.tagColor}22)`,
+              border: `1px solid ${slide.tagColor}44`,
+            }}>
+              {slide.testimonial.initials}
+            </div>
+            <div>
+              <p style={{ fontSize: ".76rem", fontWeight: 700, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1 }}>{slide.testimonial.name}</p>
+              <p style={{ fontSize: ".66rem", color: "rgba(255,255,255,0.32)", margin: "3px 0 0" }}>{slide.testimonial.title}</p>
+            </div>
+          </div>
         </div>
 
         {/* 60-day free pill */}
