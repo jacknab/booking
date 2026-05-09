@@ -519,7 +519,7 @@ require 'includes/nav.php';
           </tr>
           <tr>
             <td>Instagram gallery sync</td>
-            <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
+            <td class="ct-text" style="color:var(--mid-grey);font-style:italic;">Coming Soon</td><td class="ct-text featured-col" style="color:var(--mid-grey);font-style:italic;">Coming Soon</td><td class="ct-text" style="color:var(--mid-grey);font-style:italic;">Coming Soon</td>
           </tr>
 
 
