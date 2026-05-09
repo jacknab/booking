@@ -143,11 +143,6 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <TrialCountdownBanner
-        daysRemaining={daysRemaining}
-        subscriptionStatus={subscriptionStatus}
-      />
-
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
