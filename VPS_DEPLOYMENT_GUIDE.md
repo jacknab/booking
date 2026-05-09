@@ -177,8 +177,8 @@ Nginx (SSL termination + reverse proxy)
     ▼
 Node.js Express Server (port 8100)
     ├── /api/*                 → Express route handlers (TypeScript)
-    ├── /assets/, /, *.php     → PHP proxy → PHP built-in server (port 8081)
-    ├── /launchsite/           → PHP proxy → PHP built-in server (port 8081)
+    ├── /assets/, /, *.php     → PHP proxy → PHP built-in server (port 8104)
+    ├── /launchsite/           → PHP proxy → PHP built-in server (port 8104)
     ├── manage.certxa.com      → React SPA (served from dist/public)
     └── <slug>.certxa.com      → React SPA or PHP template
          │
@@ -345,7 +345,7 @@ If any of these are missing, the build failed. Check the output for errors.
 
 ## 8. PHP Server (CRITICAL — do not skip)
 
-The PHP server starts **automatically** when Node starts (see `server/php-proxy.ts`). Node spawns `php -S 127.0.0.1:8081` inside the `php/` directory using `php/router.php`.
+The PHP server starts **automatically** when Node starts (see `server/php-proxy.ts`). Node spawns `php -S 127.0.0.1:8104` inside the `php/` directory using `php/router.php`.
 
 **Verify PHP is installed:**
 ```bash
@@ -356,7 +356,7 @@ which php       # must return a path
 If PHP is not found, the entire marketing site (certxa.com homepage, all .php pages, launchsite templates) will return 502 errors.
 
 The PHP server:
-- Runs on `127.0.0.1:8081` (not exposed externally)
+- Runs on `127.0.0.1:8104` (not exposed externally)
 - Serves everything in the `php/` directory
 - Is proxied by Express at routes matching: `/`, `/assets/`, `/videos/`, `/launchsite/`, `/editor/`, `/templates/`, and any `.php` file
 
@@ -566,10 +566,10 @@ The `server/middleware/subdomain.ts` middleware inspects the `Host` header on ev
 | `80` | Nginx (HTTP → redirect) | Yes |
 | `443` | Nginx (HTTPS) | Yes |
 | `8100` | Node.js Express app | **No — localhost only** |
-| `8081` | PHP built-in server | **No — localhost only** |
+| `8104` | PHP built-in server | **No — localhost only** |
 | `5432` | PostgreSQL | **No — localhost only** |
 
-Never expose port 8100 or 8081 directly to the internet.
+Never expose ports 8100, 8101, 8104 directly to the internet.
 
 ---
 
@@ -578,7 +578,7 @@ Never expose port 8100 or 8081 directly to the internet.
 **Start:**
 1. `pm2 start ecosystem.config.cjs --env production`
 2. Node starts on port 8100
-3. Node automatically spawns PHP on port 8081
+3. Node automatically spawns PHP on port 8104
 4. App is ready once you see: `serving on port 8100` in PM2 logs
 
 **Stop:**

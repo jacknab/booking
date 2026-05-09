@@ -67,7 +67,7 @@ const defaultCorsOrigins = [
   "https://manage.certxa.com",
 ];
 if (process.env.NODE_ENV !== "production") {
-  defaultCorsOrigins.push("http://localhost:5173", "http://localhost:3000");
+  defaultCorsOrigins.push("http://localhost:8101", "http://localhost:8102");
 }
 const allowedCorsOrigins = (rawCorsOrigins ? rawCorsOrigins.split(",") : defaultCorsOrigins)
   .map((origin) => origin.trim())
@@ -411,7 +411,7 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const port = parseInt(process.env.PORT || "8100", 10);
   httpServer.listen(
     {
       port,

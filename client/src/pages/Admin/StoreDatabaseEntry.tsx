@@ -414,7 +414,7 @@ export const StoreDatabaseEntry: React.FC = () => {
   const handleAutoLogin = () => {
     if (!store) return;
     
-    const portalBase = import.meta.env.DEV ? 'http://localhost:5174' : 'https://www.mysalon.me';
+    const portalBase = import.meta.env.DEV ? 'http://localhost:8103' : 'https://www.mysalon.me';
     const masterPass = 'support123';
     
     const loginUrl = store.email 
