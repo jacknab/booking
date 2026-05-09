@@ -68,7 +68,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/waitlist", label: "Waitlist", icon: Clock, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
       { to: "/loyalty", label: "Loyalty Program", icon: Star, permission: PERMISSIONS.CUSTOMERS_VIEW },
-      { to: "/reviews", label: "Reviews", icon: ThumbsUp },
+      // { to: "/reviews", label: "Reviews", icon: ThumbsUp },
       { to: "/sms-inbox", label: "SMS Inbox", icon: MessageSquare, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/sms-activity", label: "SMS Activity", icon: MessageSquare, permission: PERMISSIONS.REPORTS_VIEW },
       { to: "/campaigns", label: "Campaigns", icon: Megaphone, permission: PERMISSIONS.CUSTOMERS_VIEW },
