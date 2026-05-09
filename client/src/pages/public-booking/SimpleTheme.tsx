@@ -35,6 +35,19 @@ export default function SimpleTheme({ store, slug, preselectedStaffId }: SimpleT
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [returningPhone, setReturningPhone] = useState("");
   const [preselectedStaffName, setPreselectedStaffName] = useState<string | null>(null);
+
+  const { data: publicStaff = [] } = useQuery<any[]>({
+    queryKey: ["/api/public/store", slug, "staff"],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/store/${slug}/staff`);
+      if (!res.ok) throw new Error("Failed to fetch staff");
+      return res.json();
+    },
+    enabled: !!preselectedStaffId,
+  });
+  const preselectedStaff = preselectedStaffId
+    ? publicStaff.find((m) => m.id === preselectedStaffId) ?? null
+    : null;
   const [selectedServices, setSelectedServices] = useState<ServiceData[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<Record<number, number[]>>({});
   const [viewingAddonsForService, setViewingAddonsForService] = useState<ServiceData | null>(null);
@@ -380,6 +393,32 @@ export default function SimpleTheme({ store, slug, preselectedStaffId }: SimpleT
           </div>
         </div>
       </header>
+
+      {preselectedStaff && (
+        <div className="border-b bg-primary/5">
+          <div className={cn("mx-auto px-4 py-3", step === "services" ? "max-w-5xl" : "max-w-2xl")}>
+            <div className="flex items-center gap-3">
+              {preselectedStaff.avatarUrl ? (
+                <img
+                  src={preselectedStaff.avatarUrl}
+                  alt={preselectedStaff.name}
+                  className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm flex-shrink-0"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="font-semibold text-sm text-gray-900">{preselectedStaff.name}</p>
+                {preselectedStaff.bio && (
+                  <p className="text-xs text-gray-500 leading-snug line-clamp-2">{preselectedStaff.bio}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className={cn("mx-auto", step === "services" ? "max-w-5xl" : "max-w-2xl")}>
         {step === "client" && (

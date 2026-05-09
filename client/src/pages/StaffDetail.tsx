@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -273,7 +274,14 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
-              <Input id="bio" {...register("bio")} data-testid="input-staff-bio" />
+              <Textarea
+                id="bio"
+                {...register("bio")}
+                rows={3}
+                placeholder="A short bio shown to clients on your booking page and website embed..."
+                data-testid="input-staff-bio"
+              />
+              <p className="text-xs text-muted-foreground">This bio appears on team booking cards and the public booking page.</p>
             </div>
 
             <div className="space-y-2">

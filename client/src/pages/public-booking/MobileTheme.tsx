@@ -47,6 +47,19 @@ export default function MobileTheme({ store, slug, preselectedStaffId }: MobileT
   const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [preselectedStaffName, setPreselectedStaffName] = useState<string | null>(null);
+
+  const { data: publicStaff = [] } = useQuery<any[]>({
+    queryKey: ["/api/public/store", slug, "staff"],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/store/${slug}/staff`);
+      if (!res.ok) throw new Error("Failed to fetch staff");
+      return res.json();
+    },
+    enabled: !!preselectedStaffId,
+  });
+  const preselectedStaff = preselectedStaffId
+    ? publicStaff.find((m) => m.id === preselectedStaffId) ?? null
+    : null;
   
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -400,6 +413,29 @@ export default function MobileTheme({ store, slug, preselectedStaffId }: MobileT
       </div>
 
       <main className="flex-1 px-4 -mt-2 z-20 overflow-y-auto">
+        {preselectedStaff && (
+          <div className="mb-4 mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            {preselectedStaff.avatarUrl ? (
+              <img
+                src={preselectedStaff.avatarUrl}
+                alt={preselectedStaff.name}
+                className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <User className="w-6 h-6 text-primary" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-gray-900">{preselectedStaff.name}</p>
+              {preselectedStaff.bio ? (
+                <p className="text-xs text-gray-500 leading-snug line-clamp-2 mt-0.5">{preselectedStaff.bio}</p>
+              ) : (
+                <p className="text-xs text-primary font-medium mt-0.5">Your chosen stylist</p>
+              )}
+            </div>
+          </div>
+        )}
         {view === "client" && (
             <div className="pt-8">
                <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Welcome!</h2>
