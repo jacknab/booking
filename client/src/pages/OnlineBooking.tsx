@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -24,6 +24,7 @@ export default function OnlineBooking() {
   const queryClient = useQueryClient();
   const { data: staffList } = useStaffList();
   const [copiedStaffId, setCopiedStaffId] = useState<number | null>(null);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [slug, setSlug] = useState("");
   const [theme, setTheme] = useState("simple");
   const [copied, setCopied] = useState(false);
@@ -47,6 +48,33 @@ export default function OnlineBooking() {
 
   const baseUrl = window.location.origin;
   const bookingUrl = slug ? `${baseUrl}/book/${slug}` : "";
+
+  const embedSnippet = useMemo(() => {
+    if (!staffList || !slug) return "";
+    const active = staffList.filter(
+      (m) => (m as any).status !== "deactivated" && (m as any).status !== "removed"
+    ).slice(0, 4);
+    if (!active.length) return "";
+    const cards = active.map((member) => {
+      const staffUrl = `${baseUrl}/book/${slug}?staff=${member.id}`;
+      const bio = ((member as any).bio || "Book an appointment with me today.").replace(/"/g, "&quot;");
+      const photoHtml = (member as any).avatarUrl
+        ? `<img src="${(member as any).avatarUrl}" alt="${member.name}" style="width:100%;height:180px;object-fit:cover;display:block;" />`
+        : `<div style="width:100%;height:180px;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);display:flex;align-items:center;justify-content:center;font-size:2.5rem;">&#128100;</div>`;
+      return `  <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);text-align:center;">
+    ${photoHtml}
+    <div style="padding:20px 16px;">
+      <h3 style="margin:0 0 6px;font-size:1rem;font-weight:700;color:#111;">${member.name}</h3>
+      <p style="margin:0 0 16px;font-size:0.8rem;color:#6b7280;line-height:1.5;">${bio}</p>
+      <a href="${staffUrl}" target="_blank" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:0.8rem;font-weight:600;">Book with me</a>
+    </div>
+  </div>`;
+    }).join("\n");
+    return `<!-- Certxa Team Booking Cards — paste anywhere on your website -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;max-width:960px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+${cards}
+</div>`;
+  }, [staffList, slug, baseUrl]);
   const subdomainUrl = slug ? `https://${slug}.mysalon.me` : "";
   const displayDomain = slug ? `${slug}.mysalon.me` : "";
 
@@ -340,6 +368,52 @@ export default function OnlineBooking() {
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-700 font-medium">How to use</p>
               <p className="text-xs text-blue-600 mt-0.5">Add a "Book with me" button on your website next to each team member's photo and paste their individual link as the button URL.</p>
+            </div>
+          </Card>
+        )}
+
+        {selectedStore?.bookingSlug && embedSnippet && (
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center">
+                <Link2 className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Embed Staff Cards on Your Website</h3>
+                <p className="text-sm text-muted-foreground">A ready-to-paste HTML block for your own website</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2 mb-4">
+              Copy this snippet and paste it into your website's HTML editor. It shows each team member's photo, name, bio, and a direct "Book with me" button — no coding needed.
+            </p>
+            <div className="relative rounded-lg overflow-hidden border bg-muted/40">
+              <pre className="text-xs font-mono p-4 overflow-x-auto max-h-52 text-muted-foreground whitespace-pre leading-relaxed">
+                {embedSnippet}
+              </pre>
+              <div className="absolute top-2 right-2">
+                <Button
+                  size="sm"
+                  variant={copiedEmbed ? "default" : "outline"}
+                  className={copiedEmbed ? "bg-green-600 hover:bg-green-600 text-white" : "bg-background"}
+                  onClick={() => {
+                    navigator.clipboard.writeText(embedSnippet);
+                    setCopiedEmbed(true);
+                    toast({ title: "HTML snippet copied", description: "Paste it into your website's code editor." });
+                    setTimeout(() => setCopiedEmbed(false), 2500);
+                  }}
+                >
+                  {copiedEmbed ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+                  {copiedEmbed ? "Copied!" : "Copy HTML"}
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {["WordPress", "Squarespace", "Wix"].map((platform) => (
+                <div key={platform} className="flex items-center gap-2 p-2.5 rounded-lg border bg-muted/20 text-xs text-muted-foreground">
+                  <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                  Works with {platform}
+                </div>
+              ))}
             </div>
           </Card>
         )}

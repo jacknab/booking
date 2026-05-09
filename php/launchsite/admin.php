@@ -132,6 +132,7 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
     </a>
     <div class="admin-header__actions">
         <span class="admin-header__user">Catalog Manager</span>
+        <a href="<?php echo BASE_PATH; ?>/blocks.php" class="admin-logout">🧩 Block Library</a>
         <a href="<?php echo BASE_PATH; ?>/" target="_blank" class="admin-logout">View Catalog ↗</a>
         <a href="?logout=1" class="admin-logout">Sign Out</a>
     </div>
