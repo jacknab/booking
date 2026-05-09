@@ -28,10 +28,8 @@ import {
   FileText,
   ListOrdered,
   GraduationCap,
-  Rocket,
   LayoutTemplate,
   Palette,
-  Search,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,6 +43,7 @@ import { useQuery } from "@tanstack/react-query";
 
 type NavItem = {
   to: string;
+  href?: string;
   label: string;
   icon: typeof LayoutDashboard;
   permission?: string;
@@ -101,12 +100,11 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "Lanchit",
+    label: "LaunchSite",
     items: [
-      { to: "/lanchit", label: "Overview", icon: Rocket },
-      { to: "/lanchit/website", label: "Website Builder", icon: LayoutTemplate },
-      { to: "/lanchit/design", label: "Design & Branding", icon: Palette },
-      { to: "/lanchit/seo", label: "SEO & Visibility", icon: Search },
+      { to: "/launchsite/", href: "/launchsite/", label: "Website Templates", icon: LayoutTemplate },
+      { to: "/launchsite/admin.php", href: "/launchsite/admin.php", label: "Manage Websites", icon: Globe },
+      { to: "/launchsite/admin-edit.php", href: "/launchsite/admin-edit.php", label: "Website Editor", icon: Palette },
     ],
   },
   {
@@ -184,18 +182,14 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                 </p>
                 {items.map((item) => {
                   const isActive = location.pathname === item.to;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={onLinkClick}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:text-primary",
-                        isActive
-                          ? "border border-primary/10 bg-card text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
-                          : "border border-transparent text-muted-foreground hover:border-border/70 hover:bg-card hover:shadow-[0_2px_10px_rgba(15,23,42,0.04)]"
-                      )}
-                    >
+                  const linkClass = cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:text-primary",
+                    isActive
+                      ? "border border-primary/10 bg-card text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
+                      : "border border-transparent text-muted-foreground hover:border-border/70 hover:bg-card hover:shadow-[0_2px_10px_rgba(15,23,42,0.04)]"
+                  );
+                  const inner = (
+                    <>
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       <span className="flex-1">{item.label}</span>
                       {item.to === "/sms-inbox" && smsUnreadCount > 0 && (
@@ -203,6 +197,25 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                           {smsUnreadCount > 9 ? "9+" : smsUnreadCount}
                         </span>
                       )}
+                    </>
+                  );
+                  return item.href ? (
+                    <a
+                      key={item.to}
+                      href={item.href}
+                      onClick={onLinkClick}
+                      className={linkClass}
+                    >
+                      {inner}
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={onLinkClick}
+                      className={linkClass}
+                    >
+                      {inner}
                     </Link>
                   );
                 })}
