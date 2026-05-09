@@ -52,7 +52,8 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
-import { startPhpServer, phpMiddleware } from "./php-proxy";
+import { startPhpServer, phpMiddleware, isPhpReady } from "./php-proxy";
+import { pool } from "./db";
 // In the esbuild CJS bundle, require is a real global — grab it the same
 // way __dirname is grabbed above so it's available for loading the SSR bundle.
 const _require: NodeRequire = (globalThis as any).require;
@@ -235,6 +236,65 @@ const publicLimiter = rateLimit({
 app.use("/api/auth", authLimiter);
 app.use("/api/public", publicLimiter);
 app.use("/api/book", publicLimiter);
+
+// ─── Health check ───────────────────────────────────────────────────────────
+// No auth required. Returns 200 when healthy, 503 when degraded.
+// Useful for monitoring tools and AI agents diagnosing VPS deployments.
+// See VPS_DEPLOYMENT_GUIDE.md §17b for full documentation.
+app.get("/api/health", async (_req, res) => {
+  const uptimeSeconds = Math.floor(process.uptime());
+  const startedAt = new Date(Date.now() - uptimeSeconds * 1000).toISOString();
+
+  // 1. Database — quick SELECT 1 with 2 s timeout
+  let dbStatus: "ok" | "error" = "error";
+  let dbError: string | undefined;
+  try {
+    const client = await Promise.race<any>([
+      pool.connect(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("connection timeout after 2s")), 2000)
+      ),
+    ]);
+    await client.query("SELECT 1");
+    client.release();
+    dbStatus = "ok";
+  } catch (err: any) {
+    dbError = err?.message ?? "unknown error";
+  }
+
+  // 2. PHP server
+  const phpStatus = isPhpReady() ? "ok" : "starting";
+
+  // 3. Required env vars (presence only — never expose values)
+  const envVars = {
+    DATABASE_URL:            !!process.env.DATABASE_URL,
+    SESSION_SECRET:          !!process.env.SESSION_SECRET,
+    APP_URL:                 !!process.env.APP_URL,
+    CORS_ORIGINS:            !!process.env.CORS_ORIGINS,
+    GOOGLE_CLIENT_ID:        !!process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_AUTH_CALLBACK_URL:!!process.env.GOOGLE_AUTH_CALLBACK_URL,
+    TWILIO_ACCOUNT_SID:      !!process.env.TWILIO_ACCOUNT_SID,
+    MAILGUN_API_KEY:         !!process.env.MAILGUN_API_KEY,
+  };
+
+  const requiredPresent = envVars.DATABASE_URL && envVars.SESSION_SECRET && envVars.APP_URL;
+  const healthy = dbStatus === "ok" && requiredPresent;
+
+  res.status(healthy ? 200 : 503).json({
+    status:          healthy ? "ok" : "degraded",
+    timestamp:       new Date().toISOString(),
+    uptime_seconds:  uptimeSeconds,
+    started_at:      startedAt,
+    node_env:        process.env.NODE_ENV ?? "unknown",
+    port:            process.env.PORT ?? "8100",
+    app_url:         process.env.APP_URL ?? "(not set)",
+    checks: {
+      database: { status: dbStatus, ...(dbError ? { error: dbError } : {}) },
+      php:      { status: phpStatus, port: 8104 },
+      env_vars: envVars,
+    },
+  });
+});
 
 app.use(subdomainMiddleware);
 

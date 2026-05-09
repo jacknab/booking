@@ -664,6 +664,74 @@ Fix: add the missing vars to your .env file or PM2 ecosystem config, then restar
 
 ---
 
+## 17b. Health Check Endpoint
+
+The app exposes a single unauthenticated status endpoint that an AI agent or monitoring tool can hit without SSH access.
+
+```
+GET https://certxa.com/api/health
+```
+
+**Returns `200 OK`** when all required systems are up. **Returns `503 Service Unavailable`** when the database is unreachable or a required env var is missing.
+
+### Example healthy response
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-05-09T10:00:00.000Z",
+  "uptime_seconds": 3600,
+  "started_at": "2026-05-09T09:00:00.000Z",
+  "node_env": "production",
+  "port": "8100",
+  "app_url": "https://certxa.com",
+  "checks": {
+    "database": { "status": "ok" },
+    "php":      { "status": "ok", "port": 8104 },
+    "env_vars": {
+      "DATABASE_URL": true,
+      "SESSION_SECRET": true,
+      "APP_URL": true,
+      "CORS_ORIGINS": true,
+      "GOOGLE_CLIENT_ID": true,
+      "GOOGLE_AUTH_CALLBACK_URL": true,
+      "TWILIO_ACCOUNT_SID": false,
+      "MAILGUN_API_KEY": false
+    }
+  }
+}
+```
+
+### Example degraded response (503)
+```json
+{
+  "status": "degraded",
+  "checks": {
+    "database": { "status": "error", "error": "connection timeout after 2s" },
+    "php":      { "status": "starting", "port": 8104 },
+    "env_vars": { "DATABASE_URL": false, "SESSION_SECRET": true, "APP_URL": true, ... }
+  }
+}
+```
+
+### How to use this as an AI agent
+
+1. **Always check `/api/health` first** before debugging a broken VPS deployment
+2. If `status` is `"degraded"`:
+   - `database.status === "error"` → PostgreSQL is down or `DATABASE_URL` is wrong. Check `pm2 logs certxa` and verify `psql $DATABASE_URL -c "SELECT 1"` works
+   - `database.error` contains `"timeout"` → DB is unreachable (wrong host/port in `DATABASE_URL`)
+   - `php.status === "starting"` → PHP hasn't finished booting. Wait 10s and retry. If still starting, run `php --version` to confirm PHP is installed
+   - `env_vars.DATABASE_URL === false` → the var is missing from `.env` entirely — server would have exited at startup; this means the server is in a partially broken state
+3. If `status` is `"ok"` but the site still looks broken:
+   - The server is running fine — the issue is likely Nginx config, DNS, or a frontend build problem
+   - Check: `sudo nginx -t` and `ls dist/public/assets/`
+
+### Notes
+- Env var values are **never** included in the response — only `true`/`false` presence
+- The DB check runs a live `SELECT 1` query with a 2-second timeout on every request — do not poll this endpoint faster than once every 30 seconds
+- `php.status` will be `"starting"` for the first ~5 seconds after the server starts, then `"ok"`
+
+---
+
 ## 17. Deploy Flow (After Initial Setup)
 
 ```bash

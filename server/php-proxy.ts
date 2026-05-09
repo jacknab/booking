@@ -44,6 +44,11 @@ function waitForPhpReady(maxMs = 10_000): Promise<void> {
   });
 }
 
+/** Returns true once the PHP built-in server has accepted its first TCP connection. */
+export function isPhpReady(): boolean {
+  return phpReady;
+}
+
 export function startPhpServer(): void {
   phpProcess = spawn("php", [
     "-d", "upload_max_filesize=55M",
