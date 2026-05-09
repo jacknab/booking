@@ -16,6 +16,8 @@ import {
   Clock,
   CalendarClock,
   Sparkles,
+  MapPin,
+  Building2,
 } from "lucide-react";
 import axios from "axios";
 import { GoogleReview } from "@shared/schema";
@@ -38,6 +40,16 @@ interface ReviewStats {
   };
   lastSyncedAt: string | null;
   nextSyncAt: string | null;
+}
+
+interface ConnectedProfile {
+  businessName: string | null;
+  locationId: string | null;
+  locationResourceName: string | null;
+  locationAddress: string | null;
+  googleAccountEmail: string | null;
+  lastSyncedAt: string | null;
+  isConnected: boolean;
 }
 
 interface GoogleReviewsManagerProps {
@@ -74,6 +86,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
   const [reviews, setReviews] = useState<GoogleReview[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
+  const [connectedProfile, setConnectedProfile] = useState<ConnectedProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
@@ -88,8 +101,21 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
     if (storeId) {
       loadReviews();
       loadStats();
+      loadProfile();
     }
   }, [storeId, filterRating, filterStatus]);
+
+  const loadProfile = async () => {
+    if (!storeId) return;
+    try {
+      const response = await axios.get(`/api/google-business/profile/${storeId}`);
+      if (response.data.profile) {
+        setConnectedProfile(response.data.profile);
+      }
+    } catch (error) {
+      console.error("Failed to load Google Business profile:", error);
+    }
+  };
 
   const loadReviews = async () => {
     if (!storeId) return;
@@ -189,6 +215,41 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
   return (
     <div className="space-y-6">
+
+      {/* Connected Business Card */}
+      {connectedProfile && connectedProfile.isConnected && (
+        <Card className="border-green-200 bg-green-50/40">
+          <CardContent className="py-3 px-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 shrink-0">
+                <Building2 size={16} className="text-green-700" />
+                <span className="text-sm font-semibold text-green-900">Connected Business</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                {connectedProfile.businessName && (
+                  <span className="font-medium text-green-900">{connectedProfile.businessName}</span>
+                )}
+                {connectedProfile.locationAddress && (
+                  <span className="flex items-center gap-1 text-green-700">
+                    <MapPin size={13} />
+                    {connectedProfile.locationAddress}
+                  </span>
+                )}
+                {connectedProfile.locationId && (
+                  <span className="text-xs font-mono text-green-600 bg-white border border-green-200 rounded px-1.5 py-0.5">
+                    ID: {connectedProfile.locationId}
+                  </span>
+                )}
+                {!connectedProfile.businessName && (
+                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                    No business name — reconnect to select a location
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sync error banner */}
       {syncError && (

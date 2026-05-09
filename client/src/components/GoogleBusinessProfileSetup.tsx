@@ -21,10 +21,27 @@ import {
 import axios from "axios";
 import { GoogleBusinessProfile } from "@shared/schema";
 
+interface StorefrontAddress {
+  regionCode?: string;
+  administrativeArea?: string;
+  locality?: string;
+  addressLines?: string[];
+}
+
 interface Location {
   name: string;
   title?: string;       // mybusinessbusinessinformation v1 uses "title"
   displayName?: string; // older field
+  storefrontAddress?: StorefrontAddress;
+}
+
+function formatAddress(addr?: StorefrontAddress): string {
+  if (!addr) return "";
+  const parts: string[] = [];
+  if (addr.addressLines?.length) parts.push(...addr.addressLines);
+  if (addr.locality) parts.push(addr.locality);
+  if (addr.administrativeArea) parts.push(addr.administrativeArea);
+  return parts.filter(Boolean).join(", ");
 }
 
 interface Account {
@@ -58,6 +75,7 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedLocationTitle, setSelectedLocationTitle] = useState<string | null>(null);
+  const [selectedLocationAddress, setSelectedLocationAddress] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showNoLocModal, setShowNoLocModal] = useState(false);
@@ -242,6 +260,7 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
         locationName: selectedLocation,
         locationId: selectedLocationId,
         businessName: selectedLocationTitle,
+        locationAddress: selectedLocationAddress,
       });
       await loadProfile();
     } catch (error: any) {
@@ -424,16 +443,29 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
                         onChange={(e) => {
                           setSelectedLocation(e.target.value);
                           setSelectedLocationId(
-                            location.name.split("/").pop() ?? ""
+                            location.name.split("/locations/")[1] ?? location.name.split("/").pop() ?? ""
                           );
                           setSelectedLocationTitle(
                             location.title ?? location.displayName ?? null
                           );
+                          setSelectedLocationAddress(
+                            formatAddress(location.storefrontAddress) || null
+                          );
                         }}
                       />
-                      <span className="flex-1 text-sm">
-                        {location.title ?? location.displayName ?? location.name}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">
+                          {location.title ?? location.displayName ?? location.name}
+                        </div>
+                        {location.storefrontAddress && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {formatAddress(location.storefrontAddress)}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-400 font-mono mt-0.5">
+                          {location.name.split("/locations/")[1] ?? location.name.split("/").pop()}
+                        </div>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -474,40 +506,60 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
                   <h4 className="font-medium text-green-900 text-sm">Connected</h4>
                   <p className="text-sm text-green-700 mt-0.5">
                     Your Google Business Profile is connected and reviews will
-                    sync automatically.
+                    sync automatically every 6 hours.
                   </p>
                 </div>
               </div>
 
+              {/* Connected Business section */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                  <ShieldCheck size={15} className="text-blue-600" />
+                  Connected Business
+                </h4>
+                {profile.businessName ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Business / Location Name</span>
+                      <span className="text-sm font-semibold text-blue-900">{profile.businessName}</span>
+                    </div>
+                    {(profile as any).locationAddress && (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Address</span>
+                        <span className="text-sm text-blue-800">{(profile as any).locationAddress}</span>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Google Location ID</span>
+                      <span className="text-xs font-mono bg-white border border-blue-200 rounded px-2 py-1 text-blue-800 break-all">
+                        {profile.locationId ?? profile.locationResourceName ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-blue-700">
+                    No business name saved. Disconnect and reconnect to select a location.
+                  </p>
+                )}
+              </div>
+
               <div className="rounded-lg border bg-gray-50 p-4 space-y-2 text-sm">
                 {profile.googleAccountEmail && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Google Account</span>
-                    <span className="font-medium">{profile.googleAccountEmail}</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-500 shrink-0">Google Account</span>
+                    <span className="font-medium text-right truncate">{profile.googleAccountEmail}</span>
                   </div>
                 )}
-                {profile.businessName && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Business Name</span>
-                    <span className="font-medium">{profile.businessName}</span>
-                  </div>
-                )}
-                {profile.locationId && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Location ID</span>
-                    <span className="font-medium font-mono text-xs">{profile.locationId}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Last Synced</span>
-                  <span className="font-medium">
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500 shrink-0">Last Synced</span>
+                  <span className="font-medium text-right">
                     {profile.lastSyncedAt
                       ? new Date(profile.lastSyncedAt).toLocaleString()
                       : "Not yet synced"}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Status</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500 shrink-0">Status</span>
                   <Badge
                     variant={profile.isConnected ? "default" : "outline"}
                     className="text-xs"

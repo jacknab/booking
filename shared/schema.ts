@@ -463,6 +463,7 @@ export const googleBusinessProfiles = pgTable("google_business_profiles", {
   businessAccountResourceName: text("business_account_resource_name"),
   locationId: text("location_id"),
   locationResourceName: text("location_resource_name"),
+  locationAddress: text("location_address"),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   tokenExpiresAt: timestamp("token_expires_at"),

@@ -4406,20 +4406,26 @@ If you have any questions, please contact your administrator.
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const { profileId, locationName, locationId, businessName } = req.body;
+    const { profileId, locationName, locationId, businessName, locationAddress } = req.body;
     if (!profileId || !locationName) {
       return res.status(400).json({ message: "profileId and locationName are required" });
     }
 
-    console.log(`[GBP] connect-location — profileId=${profileId}  locationName="${locationName}"  locationId="${locationId ?? "(none)"}"  businessName="${businessName ?? "(none)"}"`);
+    console.log(`[GBP] connect-location — profileId=${profileId}  locationName="${locationName}"  locationId="${locationId ?? "(none)"}"  businessName="${businessName ?? "(none)"}"  address="${locationAddress ?? "(none)"}"`);
+
+    if (!locationName.includes("/locations/")) {
+      console.error(`[GBP] connect-location — locationName "${locationName}" does not look like a valid location resource name (expected accounts/{id}/locations/{id})`);
+      return res.status(400).json({ message: "Invalid location resource name format. Expected accounts/{id}/locations/{id}." });
+    }
 
     try {
       const updated = await db
         .update(googleBusinessProfiles)
         .set({
           locationResourceName: locationName,
-          locationId: locationId ?? null,
+          locationId: locationId ?? locationName.split("/locations/")[1] ?? null,
           businessName: businessName ?? null,
+          locationAddress: locationAddress ?? null,
           isConnected: true,
           updatedAt: new Date(),
         })
