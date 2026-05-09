@@ -4596,6 +4596,187 @@ If you have any questions, please contact your administrator.
   });
 
   /**
+   * Bulk AI draft replies — streams SSE progress, saves pending drafts for every
+   * unresponded review that doesn't already have a pending/approved response.
+   */
+  app.post("/api/google-business/bulk-draft-replies/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+
+    // SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+      // Fetch store name for personalised replies
+      const [store] = await db
+        .select({ name: locations.name })
+        .from(locations)
+        .where(eq(locations.id, storeId))
+        .limit(1);
+      const businessName = store?.name ?? "our business";
+
+      // Fetch all unresponded reviews for this store
+      const unresponded = await db
+        .select()
+        .from(googleReviews)
+        .where(
+          and(
+            eq(googleReviews.storeId, storeId),
+            eq(googleReviews.responseStatus, "not_responded")
+          )
+        );
+
+      // Filter out any that already have a pending or approved draft
+      const existingResponses = await db
+        .select({ googleReviewId: googleReviewResponses.googleReviewId })
+        .from(googleReviewResponses)
+        .where(
+          and(
+            eq(googleReviewResponses.storeId, storeId),
+            inArray(
+              googleReviewResponses.responseStatus,
+              ["pending", "approved"]
+            )
+          )
+        );
+
+      const alreadyDraftedIds = new Set(existingResponses.map((r) => r.googleReviewId));
+      const toProcess = unresponded.filter((r) => !alreadyDraftedIds.has(r.id));
+
+      send({ type: "start", total: toProcess.length });
+
+      if (toProcess.length === 0) {
+        send({ type: "done", saved: 0 });
+        res.end();
+        return;
+      }
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      let saved = 0;
+
+      for (let i = 0; i < toProcess.length; i++) {
+        const review = toProcess[i];
+
+        const ratingLabel =
+          review.rating >= 5 ? "5-star (excellent)" :
+          review.rating === 4 ? "4-star (positive)" :
+          review.rating === 3 ? "3-star (neutral / mixed)" :
+          review.rating === 2 ? "2-star (disappointed)" :
+          "1-star (very unhappy)";
+
+        try {
+          const completion = await openai.chat.completions.create({
+            model: "gpt-5-mini",
+            messages: [{
+              role: "user",
+              content: [
+                `You are a professional customer service manager for "${businessName}", a service business.`,
+                `Write ONE reply to the following Google review.`,
+                ``,
+                `Customer name: ${review.customerName || "a customer"}`,
+                `Star rating: ${ratingLabel}`,
+                `Review text: ${review.reviewText ? `"${review.reviewText}"` : "(no written text — rating only)"}`,
+                ``,
+                `Requirements:`,
+                `- Address the customer by first name if available`,
+                `- Be warm, professional, and authentic — no corporate stiffness`,
+                `- Keep it between 40-120 words`,
+                `- For 4-5 star: thank them genuinely and invite them back`,
+                `- For 3-star: acknowledge feedback and show commitment to improvement`,
+                `- For 1-2 star: apologise sincerely, take ownership, offer to resolve offline`,
+                `- Never be defensive or dismissive`,
+                `- Do NOT include a subject line or label`,
+                ``,
+                `Return JSON: { "reply": "your reply text here" }`,
+              ].join("\n"),
+            }],
+            response_format: { type: "json_object" },
+            max_completion_tokens: 512,
+          });
+
+          const raw = completion.choices[0]?.message?.content ?? "{}";
+          let replyText = "";
+          try {
+            const parsed = JSON.parse(raw);
+            replyText = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
+          } catch { /* fall through */ }
+
+          if (replyText) {
+            const [savedResponse] = await db
+              .insert(googleReviewResponses)
+              .values({
+                googleReviewId: review.id,
+                storeId,
+                responseText: replyText,
+                responseStatus: "pending",
+                createdBy: userId,
+              })
+              .returning();
+
+            saved++;
+            send({
+              type: "progress",
+              index: i,
+              total: toProcess.length,
+              reviewId: review.id,
+              responseId: savedResponse.id,
+              customerName: review.customerName,
+              rating: review.rating,
+              reviewText: review.reviewText,
+              draftText: replyText,
+            });
+          } else {
+            send({
+              type: "progress",
+              index: i,
+              total: toProcess.length,
+              reviewId: review.id,
+              responseId: null,
+              customerName: review.customerName,
+              rating: review.rating,
+              reviewText: review.reviewText,
+              draftText: null,
+              skipped: true,
+            });
+          }
+        } catch (reviewErr) {
+          console.error(`[BulkDraft] Error on review ${review.id}:`, reviewErr);
+          send({
+            type: "progress",
+            index: i,
+            total: toProcess.length,
+            reviewId: review.id,
+            responseId: null,
+            customerName: review.customerName,
+            rating: review.rating,
+            reviewText: review.reviewText,
+            draftText: null,
+            skipped: true,
+          });
+        }
+      }
+
+      send({ type: "done", saved });
+      res.end();
+    } catch (error) {
+      console.error("Bulk draft error:", error);
+      send({ type: "error", message: "Failed to generate bulk drafts" });
+      res.end();
+    }
+  });
+
+  /**
    * Get reviews for a store
    */
   app.get("/api/google-business/reviews/:storeId", async (req, res) => {

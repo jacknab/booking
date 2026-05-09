@@ -15,10 +15,12 @@ import {
   TrendingUp,
   Clock,
   CalendarClock,
+  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { GoogleReview } from "@shared/schema";
 import { ReviewResponseDialog } from "@/components/ReviewResponseDialog";
+import { BulkDraftModal } from "@/components/BulkDraftModal";
 
 interface ReviewStats {
   totalReviews: number;
@@ -76,6 +78,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selectedReview, setSelectedReview] = useState<GoogleReview | null>(null);
+  const [showBulkDraft, setShowBulkDraft] = useState(false);
 
   useEffect(() => {
     if (storeId) {
@@ -219,7 +222,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
               )}
             </div>
 
-            {/* Sync Now button + success indicator */}
+            {/* Sync Now button + Bulk Draft button + success indicator */}
             <div className="flex items-center gap-2 shrink-0">
               {syncSuccess && (
                 <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
@@ -246,6 +249,17 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                   </>
                 )}
               </Button>
+              {stats && stats.notRespondedReviews > 0 && (
+                <Button
+                  onClick={() => setShowBulkDraft(true)}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-violet-300 bg-white text-violet-700 hover:bg-violet-50"
+                >
+                  <Sparkles size={14} />
+                  Draft {stats.notRespondedReviews} Repl{stats.notRespondedReviews === 1 ? "y" : "ies"}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -486,6 +500,15 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
           storeId={storeId}
           onClose={() => setSelectedReview(null)}
           onRefresh={() => { loadReviews(); loadStats(); }}
+        />
+      )}
+
+      {showBulkDraft && stats && (
+        <BulkDraftModal
+          storeId={storeId}
+          unrespondedCount={stats.notRespondedReviews}
+          onClose={() => setShowBulkDraft(false)}
+          onComplete={() => { loadReviews(); loadStats(); }}
         />
       )}
     </div>
