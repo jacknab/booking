@@ -341,6 +341,8 @@ export const smsLog = pgTable("sms_log", {
   twilioSid: text("twilio_sid"),
   errorMessage: text("error_message"),
   sentAt: timestamp("sent_at").notNull(),
+  smsSource: text("sms_source"),
+  costEstimate: decimal("cost_estimate", { precision: 10, scale: 4 }).default("0.0100"),
 });
 
 export const mailSettings = pgTable("mail_settings", {

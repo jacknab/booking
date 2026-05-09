@@ -177,6 +177,8 @@ export async function sendSms(
       twilioSid: message.sid,
       errorMessage: null,
       sentAt: new Date(),
+      smsSource: deductResult.source,
+      costEstimate: "0.0100",
     });
 
     return { success: true, sid: message.sid };
@@ -205,6 +207,8 @@ export async function sendSms(
       twilioSid: null,
       errorMessage,
       sentAt: new Date(),
+      smsSource: deductResult.source,
+      costEstimate: "0.0000",
     });
 
     console.error(`SMS send failed for store ${storeId}:`, errorMessage);

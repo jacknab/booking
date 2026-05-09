@@ -48,6 +48,7 @@ import OnlineBooking from "@/pages/OnlineBooking";
 import SmsSettings from "@/pages/SmsSettings";
 import MailSettings from "@/pages/MailSettings";
 import SmsInbox from "@/pages/SmsInbox";
+import SmsActivity from "@/pages/SmsActivity";
 import Campaigns from "@/pages/Campaigns";
 import ApiKeys from "@/pages/ApiKeys";
 import EliteApiDocs from "@/pages/EliteApiDocs";
@@ -246,6 +247,7 @@ function AppRoutes() {
       <Route path="/sms-settings" element={<SmsSettings />} />
       <Route path="/mail-settings" element={<MailSettings />} />
       <Route path="/sms-inbox" element={<SmsInbox />} />
+      <Route path="/sms-activity" element={<SmsActivity />} />
       <Route path="/campaigns" element={<Campaigns />} />
       <Route path="/api-keys" element={<ApiKeys />} />
       <Route path="/elite-api-docs" element={<EliteApiDocs />} />

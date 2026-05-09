@@ -8,7 +8,7 @@ import { PERMISSIONS } from "@shared/permissions";
 import { z } from "zod";
 import { db, pool } from "./db";
 import { users } from "@shared/models/auth";
-import { eq, and, desc, sql, count, gte, asc, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, desc, sql, count, gte, asc, isNull, isNotNull, inArray } from "drizzle-orm";
 import { sendEmail, sendBookingConfirmationEmail, sendReminderEmail, sendReviewRequestEmail, startEmailReminderScheduler } from "./mail";
 import { businessTemplates } from "./onboarding-data";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
@@ -3386,6 +3386,154 @@ If you have any questions, please contact your administrator.
     } catch (err) {
       console.error("[SmsUsage] GET error:", err);
       return res.status(500).json({ message: "Failed to load SMS usage" });
+    }
+  });
+
+  // === SMS ACTIVITY LEDGER ===
+
+  // GET /api/sms-activity/summary
+  app.get("/api/sms-activity/summary", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = req.query.storeId ? Number(req.query.storeId) : (req.session as any)?.storeId;
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+
+      const days = Number(req.query.days ?? 30);
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const rows = await db
+        .select({
+          smsSource: smsLog.smsSource,
+          messageType: smsLog.messageType,
+          costEstimate: smsLog.costEstimate,
+          status: smsLog.status,
+        })
+        .from(smsLog)
+        .where(
+          and(
+            eq(smsLog.storeId, storeId),
+            gte(smsLog.sentAt, since),
+            eq(smsLog.status, "sent")
+          )
+        );
+
+      const totalSent = rows.length;
+      const fromAllowance = rows.filter(r => r.smsSource === "allowance").length;
+      const fromCredits = rows.filter(r => r.smsSource === "credits").length;
+      const estimatedCost = rows.reduce((sum, r) => sum + Number(r.costEstimate ?? 0), 0);
+      const estimatedRevenue = totalSent * 0.03;
+
+      const byType: Record<string, number> = {};
+      for (const r of rows) {
+        const t = r.messageType ?? "system";
+        byType[t] = (byType[t] ?? 0) + 1;
+      }
+
+      return res.json({
+        totalSent,
+        fromAllowance,
+        fromCredits,
+        estimatedCost: Number(estimatedCost.toFixed(4)),
+        estimatedRevenue: Number(estimatedRevenue.toFixed(2)),
+        byType,
+        days,
+      });
+    } catch (err) {
+      console.error("[SmsActivity] summary error:", err);
+      return res.status(500).json({ message: "Failed to load SMS summary" });
+    }
+  });
+
+  // GET /api/sms-activity/log
+  app.get("/api/sms-activity/log", isAuthenticated, async (req, res) => {
+    try {
+      const storeId = req.query.storeId ? Number(req.query.storeId) : (req.session as any)?.storeId;
+      if (!storeId) return res.status(400).json({ message: "storeId required" });
+
+      const days = Number(req.query.days ?? 30);
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const page = Math.max(1, Number(req.query.page ?? 1));
+      const pageSize = Math.min(100, Number(req.query.pageSize ?? 25));
+      const typeFilter = req.query.type as string | undefined;
+      const sourceFilter = req.query.source as string | undefined;
+
+      const conditions = [
+        eq(smsLog.storeId, storeId),
+        gte(smsLog.sentAt, since),
+      ];
+      if (typeFilter) conditions.push(eq(smsLog.messageType, typeFilter));
+      if (sourceFilter) conditions.push(eq(smsLog.smsSource, sourceFilter));
+
+      const rows = await db
+        .select()
+        .from(smsLog)
+        .where(and(...conditions))
+        .orderBy(desc(smsLog.sentAt))
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(smsLog)
+        .where(and(...conditions));
+
+      return res.json({
+        rows,
+        total: Number(total),
+        page,
+        pageSize,
+        totalPages: Math.ceil(Number(total) / pageSize),
+      });
+    } catch (err) {
+      console.error("[SmsActivity] log error:", err);
+      return res.status(500).json({ message: "Failed to load SMS log" });
+    }
+  });
+
+  // GET /api/sms-activity/by-location (multi-location grouping)
+  app.get("/api/sms-activity/by-location", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const days = Number(req.query.days ?? 30);
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const userStores = await storage.getStores(userId);
+      if (!userStores.length) return res.json([]);
+
+      const storeIds = userStores.map(s => s.id);
+
+      const rows = await db
+        .select({
+          storeId: smsLog.storeId,
+          smsSource: smsLog.smsSource,
+          status: smsLog.status,
+          costEstimate: smsLog.costEstimate,
+        })
+        .from(smsLog)
+        .where(
+          and(
+            inArray(smsLog.storeId, storeIds),
+            gte(smsLog.sentAt, since),
+          )
+        );
+
+      const grouped = userStores.map(store => {
+        const storeRows = rows.filter(r => r.storeId === store.id && r.status === "sent");
+        return {
+          storeId: store.id,
+          storeName: store.name,
+          totalSent: storeRows.length,
+          fromAllowance: storeRows.filter(r => r.smsSource === "allowance").length,
+          fromCredits: storeRows.filter(r => r.smsSource === "credits").length,
+          estimatedCost: Number(storeRows.reduce((s, r) => s + Number(r.costEstimate ?? 0), 0).toFixed(4)),
+        };
+      });
+
+      return res.json(grouped);
+    } catch (err) {
+      console.error("[SmsActivity] by-location error:", err);
+      return res.status(500).json({ message: "Failed to load location data" });
     }
   });
 
