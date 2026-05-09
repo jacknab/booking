@@ -3999,12 +3999,12 @@ If you have any questions, please contact your administrator.
     // If the user denied access, redirect with an error flag
     if (oauthError) {
       console.warn("[Google OAuth] User denied access or Google returned an error:", oauthError);
-      return res.redirect(`/manage/reviews?google_error=${encodeURIComponent(oauthError)}`);
+      return res.redirect(`/reviews?google_error=${encodeURIComponent(oauthError)}`);
     }
 
     if (!code || !state) {
       console.error("[Google OAuth] Missing code or state in callback");
-      return res.redirect("/manage/reviews?google_error=missing_params");
+      return res.redirect("/reviews?google_error=missing_params");
     }
 
     // ── Decode & verify state ────────────────────────────────────────────────
@@ -4017,7 +4017,7 @@ If you have any questions, please contact your administrator.
       console.log("[Google OAuth]   decoded storeId:", storeId, "  csrf:", csrf);
     } catch {
       console.error("[Google OAuth] Failed to decode state payload");
-      return res.redirect("/manage/reviews?google_error=invalid_state");
+      return res.redirect("/reviews?google_error=invalid_state");
     }
 
     const expectedCsrf = (req.session as any).googleOAuthState;
@@ -4027,13 +4027,13 @@ If you have any questions, please contact your administrator.
 
     if (expectedCsrf && expectedCsrf !== csrf) {
       console.error("[Google OAuth] CSRF mismatch — possible replay or CSRF attack");
-      return res.redirect("/manage/reviews?google_error=csrf_mismatch");
+      return res.redirect("/reviews?google_error=csrf_mismatch");
     }
     // Use storeId from state; fall back to session if decoding gave us 0
     if (!storeId && fallbackStoreId) storeId = Number(fallbackStoreId);
     if (!storeId) {
       console.error("[Google OAuth] Could not determine storeId from state or session");
-      return res.redirect("/manage/reviews?google_error=missing_store");
+      return res.redirect("/reviews?google_error=missing_store");
     }
 
     // Clear CSRF state from session
@@ -4061,7 +4061,7 @@ If you have any questions, please contact your administrator.
 
       if (!tokens.access_token) {
         console.error("[Google OAuth] No access_token in response — aborting");
-        return res.redirect("/manage/reviews?google_error=no_access_token");
+        return res.redirect("/reviews?google_error=no_access_token");
       }
 
       // ── Fetch Google user info ─────────────────────────────────────────────
@@ -4171,7 +4171,7 @@ If you have any questions, please contact your administrator.
       console.log("[Google OAuth]   profileId:", profileRow.id);
 
       req.session.save(() => {
-        res.redirect(`/manage/reviews?google_connected=1&storeId=${storeId}`);
+        res.redirect(`/reviews?google_connected=1&storeId=${storeId}`);
       });
     } catch (error: any) {
       console.error("[Google OAuth] ── Callback FAILED ──────────────────────────");
@@ -4184,16 +4184,16 @@ If you have any questions, please contact your administrator.
       if (status === 429) {
         console.error("[Google OAuth] 429: Google Business Profile API quota exceeded.");
         console.error("[Google OAuth] You must request a quota increase: https://support.google.com/business/contact/api_default_quota_increase");
-        return res.redirect("/manage/reviews?google_error=quota_exceeded");
+        return res.redirect("/reviews?google_error=quota_exceeded");
       }
       if (status === 403) {
         console.error("[Google OAuth] 403: API access denied. Check that:");
         console.error("[Google OAuth]   - 'My Business Account Management API' is enabled in Google Cloud Console");
         console.error("[Google OAuth]   - OAuth consent screen has business.manage scope approved");
         console.error("[Google OAuth]   - redirect_uri matches exactly:", process.env.GOOGLE_REDIRECT_URI);
-        return res.redirect("/manage/reviews?google_error=access_denied");
+        return res.redirect("/reviews?google_error=access_denied");
       }
-      return res.redirect("/manage/reviews?google_error=server_error");
+      return res.redirect("/reviews?google_error=server_error");
     }
   });
 
