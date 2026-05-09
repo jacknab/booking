@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -134,6 +135,7 @@ export default function Campaigns() {
   };
 
   return (
+    <AppLayout>
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -308,5 +310,6 @@ export default function Campaigns() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppLayout>
   );
 }
