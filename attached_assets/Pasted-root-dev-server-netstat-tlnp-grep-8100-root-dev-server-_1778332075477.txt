@@ -1,0 +1,36 @@
+root@dev-server:/# netstat -tlnp | grep :8100
+root@dev-server:/# pm2 logs certxa --lines 20
+[TAILING] Tailing last 20 lines for [certxa] process (change the value with --lines option)
+/apps/certxa/logs/pm2-out.log last 20 lines:
+10|certxa  | 590ea5b63e6","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"admin","staffId":null,"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-04-21T16:25:56.386Z","updatedAt":"2026-04-21T16:25:56.386Z","subscriptionStatus":"active","trialStartedAt":null,"trialEndsAt":null}
+10|certxa  | 2026-04-21 19:21:34 +00:00: 7:21:34 PM [express] GET /api/calendar-settings 304 in 9ms
+10|certxa  | 2026-04-21 19:21:34 +00:00: 7:21:34 PM [express] GET /api/staff 304 in 9ms :: [{"id":1,"name":"TOM","email":null,"phone":null,"role":"stylist","bio":null,"color":"#f472b6","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"password":null},{"id":2,"name":"SUE","email":null,"phone":null,"role":"stylist","bio":null,"color":"#a78bfa","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"password":null},{"id":3,"name":"LYNN","email":null,"phone":null,"role":"stylist","bio":null,"color":"#60a5fa","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"password":null}]
+10|certxa  | 2026-04-21 19:21:34 +00:00: 7:21:34 PM [express] GET /api/appointments 304 in 12ms :: []
+10|certxa  | 2026-04-21 19:21:34 +00:00: 7:21:34 PM [express] GET /api/business-hours 304 in 5ms :: [{"id":1,"storeId":1,"dayOfWeek":0,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":2,"storeId":1,"dayOfWeek":1,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":3,"storeId":1,"dayOfWeek":2,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":4,"storeId":1,"dayOfWeek":3,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":5,"storeId":1,"dayOfWeek":4,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":6,"storeId":1,"dayOfWeek":5,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":7,"storeId":1,"dayOfWeek":6,"openTime":"09:00","closeTime":"17:00","isClosed":true}]
+10|certxa  | 2026-04-21 19:23:39 +00:00: 7:23:39 PM [express] GET /api/stores 304 in 31ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"3038720748","email":"toby@me.com","category":"Nail Salon","city":"Denver","state":"CO","postcode":"80203","bookingSlug":null,"bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"userId":"880c7bc2-cb0d-4569-9870-c590ea5b63e6","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10}]
+10|certxa  | 2026-04-21 19:23:39 +00:00: 7:23:39 PM [express] GET /api/calendar-settings 304 in 26ms
+10|certxa  | 2026-04-21 19:23:39 +00:00: 7:23:39 PM [express] GET /api/business-hours 304 in 23ms :: [{"id":1,"storeId":1,"dayOfWeek":0,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":2,"storeId":1,"dayOfWeek":1,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":3,"storeId":1,"dayOfWeek":2,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":4,"storeId":1,"dayOfWeek":3,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":5,"storeId":1,"dayOfWeek":4,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":6,"storeId":1,"dayOfWeek":5,"openTime":"09:00","closeTime":"17:00","isClosed":true},{"id":7,"storeId":1,"dayOfWeek":6,"openTime":"09:00","closeTime":"17:00","isClosed":true}]
+10|certxa  | 2026-04-21 19:23:39 +00:00: 7:23:39 PM [express] GET /api/staff 304 in 28ms :: [{"id":1,"name":"TOM","email":null,"phone":null,"role":"stylist","bio":null,"color":"#f472b6","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"password":null},{"id":2,"name":"SUE","email":null,"phone":null,"role":"stylist","bio":null,"color":"#a78bfa","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"password":null},{"id":3,"name":"LYNN","email":null,"phone":null,"role":"stylist","bio":null,"color":"#60a5fa","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"password":null}]
+10|certxa  | 2026-04-21 19:23:39 +00:00: 7:23:39 PM [express] GET /api/appointments 304 in 34ms :: []
+
+/apps/certxa/logs/pm2-error.log last 20 lines:
+10|certxa  | 2026-04-21 19:03:10 +00:00:   syscall: 'stat',
+10|certxa  | 2026-04-21 19:03:10 +00:00:   path: '/apps/booking/dist/public/index.html',
+10|certxa  | 2026-04-21 19:03:10 +00:00:   expose: false,
+10|certxa  | 2026-04-21 19:03:10 +00:00:   statusCode: 404,
+10|certxa  | 2026-04-21 19:03:10 +00:00:   status: 404
+10|certxa  | 2026-04-21 19:03:10 +00:00: }
+10|certxa  | 2026-05-09 12:58:26 +00:00: Google OAuth not configured in passport.ts: Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET
+10|certxa  | 2026-05-09 12:58:27 +00:00: TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at fileURLToPath (node:internal/url:1487:11)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at Object.<anonymous> (/apps/certxa/dist/index.cjs:579:865)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at Module.load (node:internal/modules/cjs/loader:1266:32)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at Module._load (node:internal/modules/cjs/loader:1091:12)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at cjsLoader (node:internal/modules/esm/translators:298:15)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+10|certxa  | 2026-05-09 12:58:27 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-09 12:58:27 +00:00:   code: 'ERR_INVALID_ARG_TYPE'
+10|certxa  | 2026-05-09 12:58:27 +00:00: }

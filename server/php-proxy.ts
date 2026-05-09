@@ -3,7 +3,6 @@ import { spawn, type ChildProcess } from "child_process";
 import net from "net";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 import type { Request, Response, NextFunction } from "express";
 
 // Directory where Vite serves its static public assets (client/public/).
@@ -18,11 +17,15 @@ let phpProcess: ChildProcess | null = null;
 let phpReady = false;
 let phpReadyPromise: Promise<void> | null = null;
 
-const phpDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "php"
-);
+// Resolve the php/ directory safely in both ESM (dev) and esbuild CJS (prod).
+// esbuild injects __dirname in CJS bundles pointing to dist/ — one level above
+// is the project root where php/ lives. In ESM dev, process.cwd() is the
+// project root (tsx is invoked from there), so php/ is directly accessible.
+// Avoids import.meta.url which becomes undefined after esbuild CJS minification.
+const _cjsDir: string | undefined = (globalThis as any).__dirname; // dist/ in prod
+const phpDir = _cjsDir
+  ? path.resolve(_cjsDir, "..", "php")   // prod: dist/ → project root → php/
+  : path.resolve(process.cwd(), "php");  // dev:  cwd = project root → php/
 
 /** Poll the PHP port until it accepts a TCP connection (max 10 s). */
 function waitForPhpReady(maxMs = 10_000): Promise<void> {
