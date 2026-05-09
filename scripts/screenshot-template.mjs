@@ -5,7 +5,7 @@
  * template and saves it as a JPEG thumbnail.
  *
  * Usage:
- *   node scripts/screenshot-template.mjs --id=<template-id> --out=<path.jpg> [--port=5000]
+ *   node scripts/screenshot-template.mjs --id=<template-id> --out=<path.jpg> [--port=8104]
  *
  * Exit codes:
  *   0 — screenshot saved successfully
@@ -15,9 +15,11 @@
 import puppeteer from 'puppeteer-core';
 import { existsSync } from 'fs';
 
-// Chromium binary bundled with the playwright-browsers-chromium nix package.
-// The wrapper script sets SSL_CERT_FILE / FONTCONFIG_FILE then execs the real binary.
+// Prefer the env var set by Replit's playwright nix package; fall back to a
+// known nix-store path so the script still works in CI / older environments.
 const CHROMIUM_PATH =
+  process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE ||
+  '/nix/store/kcvsxrmgwp3ffz5jijyy7wn9fcsjl4hz-playwright-browsers-1.55.0-with-cjk/chromium-1187/chrome-linux/chrome' ||
   '/nix/store/0n9rl5l9syy808xi9bk4f6dhnfrvhkww-playwright-browsers-chromium/chromium-1080/chrome-linux/chrome';
 
 // Parse --key=value CLI args
@@ -33,11 +35,11 @@ function parseArgs(argv) {
 }
 
 async function main() {
-  const { id, out, port = '5000' } = parseArgs(process.argv.slice(2));
+  const { id, out, port = '8104' } = parseArgs(process.argv.slice(2));
 
   if (!id || !out) {
     process.stderr.write(
-      'Usage: screenshot-template.mjs --id=<template-id> --out=<path.jpg> [--port=5000]\n'
+      'Usage: screenshot-template.mjs --id=<template-id> --out=<path.jpg> [--port=8104]\n'
     );
     process.exit(1);
   }
@@ -47,6 +49,8 @@ async function main() {
     process.exit(1);
   }
 
+  // Scraped templates are served as static HTML files directly; React templates
+  // are served as SPA routes. Both end up at the same path pattern.
   const url = `http://127.0.0.1:${port}/launchsite/templates/${encodeURIComponent(id)}/`;
   process.stdout.write(`Screenshotting: ${url}\n`);
 

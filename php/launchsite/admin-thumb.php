@@ -198,30 +198,32 @@ $name_safe = htmlspecialchars($t['name']);
         <ul class="result-steps" id="steps">
 <?php
 
-$workspace_root    = dirname(__DIR__);
-$screenshot_script = $workspace_root . '/scripts/src/screenshot.mjs';
+$workspace_root    = dirname(dirname(__DIR__));
+$screenshot_script = $workspace_root . '/scripts/screenshot-template.mjs';
 
 $node = trim(shell_exec('which node 2>/dev/null') ?: '');
 if (!$node || !file_exists($node)) $node = '/home/runner/.nix-profile/bin/node';
 
-$env_prefix = 'HOME=' . escapeshellarg(getenv('HOME') ?: '/home/runner')
-            . ' PATH=' . escapeshellarg(getenv('PATH') ?: '/home/runner/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin');
+$chromium_env = getenv('REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE') ?: '';
+$env_prefix   = 'HOME=' . escapeshellarg(getenv('HOME') ?: '/home/runner')
+              . ' PATH=' . escapeshellarg(getenv('PATH') ?: '/home/runner/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin')
+              . ($chromium_env ? ' REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE=' . escapeshellarg($chromium_env) : '');
 
 // Validate script exists
 if (!file_exists($screenshot_script)) {
-    step_t('❌', "Screenshot script not found at <code>scripts/src/screenshot.mjs</code>");
+    step_t('❌', "Screenshot script not found at <code>scripts/screenshot-template.mjs</code>");
     echo "</ul></div><div class='result-actions' style='margin-top:24px;'>"
        . "<a href='" . BASE_PATH . "/admin.php' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
        . "</div></div></body></html>";
     exit;
 }
 
-// Build the template URL — React templates are served at their react_path on port 8008
+// PHP server runs on port 8104
 $react_path   = $t['react_path'] ?? ('/launchsite/templates/' . $template_id . '/');
-$template_url = 'http://localhost:8008' . $react_path;
+$template_url = 'http://localhost:8104' . $react_path;
 
 step_t('🌐', "Template URL: <code>" . htmlspecialchars($template_url) . "</code>");
-step_t('🖥️', 'Launching headless browser at 1440px viewport…
+step_t('🖥️', 'Launching headless browser at 1280×800 viewport…
     <span id="ss-tick" style="color:rgba(255,255,255,0.4);font-family:monospace;margin-left:6px;"></span>');
 
 $tmp_jpg = $thumbs_dir . '/' . $template_id . '_tmp_' . time() . '.jpg';
@@ -229,9 +231,10 @@ $out_jpg = $thumbs_dir . '/' . $template_id . '.jpg';
 
 $cmd = "$env_prefix " . escapeshellarg($node)
      . " " . escapeshellarg($screenshot_script)
-     . " " . escapeshellarg($template_url)
-     . " " . escapeshellarg($tmp_jpg)
-     . " 1440 2>&1";
+     . " --id=" . escapeshellarg($template_id)
+     . " --out=" . escapeshellarg($tmp_jpg)
+     . " --port=8104"
+     . " 2>&1";
 
 $desc    = [['pipe','r'], ['pipe','w'], ['pipe','w']];
 $proc    = proc_open($cmd, $desc, $pipes);
