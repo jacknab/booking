@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import MarketingNav from "@/components/layout/MarketingNav";
@@ -9,6 +9,7 @@ import {
   CalendarDays, CreditCard, Star, Gift,
   BarChart2, ClipboardList, MessageSquare, ShieldCheck,
   Smartphone, Globe, Clock, Zap, Check,
+  Scissors, Sparkles, QrCode, TrendingUp,
 } from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 import { useToast } from "@/hooks/use-toast";
@@ -429,11 +430,72 @@ export default function Auth() {
   );
 }
 
+/* ─── Rotating ad slides for the register panel ─── */
+const AD_SLIDES = [
+  {
+    tag: "SalonOS",
+    tagColor: "#c4b5fd",
+    tagBg: "rgba(139,92,246,0.20)",
+    tagBorder: "rgba(139,92,246,0.35)",
+    icon: <Scissors style={{ width: 13, height: 13 }} />,
+    headline: ["Your whole salon,", "one screen."],
+    accentWord: "salon,",
+    sub: "Booking, POS, loyalty, intake forms — finally unified.",
+  },
+  {
+    tag: "Smart Scheduling",
+    tagColor: "#FCD34D",
+    tagBg: "rgba(245,158,11,0.12)",
+    tagBorder: "rgba(245,158,11,0.28)",
+    icon: <Calendar style={{ width: 13, height: 13 }} />,
+    headline: ["Fill your calendar", "while you sleep."],
+    accentWord: "calendar",
+    sub: "Online booking works for you 24/7 — even after hours.",
+  },
+  {
+    tag: "Client Retention",
+    tagColor: "#6ee7b7",
+    tagBg: "rgba(16,185,129,0.12)",
+    tagBorder: "rgba(16,185,129,0.28)",
+    icon: <Sparkles style={{ width: 13, height: 13 }} />,
+    headline: ["Turn one-timers", "into regulars."],
+    accentWord: "regulars.",
+    sub: "Loyalty rewards, gift cards & automated follow-ups.",
+  },
+  {
+    tag: "Certxa Queue",
+    tagColor: "#a5f3fc",
+    tagBg: "rgba(14,165,233,0.12)",
+    tagBorder: "rgba(14,165,233,0.28)",
+    icon: <QrCode style={{ width: 13, height: 13 }} />,
+    headline: ["Walk-ins without", "the wait-around."],
+    accentWord: "wait-around.",
+    sub: "Virtual check-in, live board display & smart SMS alerts.",
+  },
+];
+
 /* ─── Trial left panel (register mode) ─── */
 function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: React.ReactNode } | null }) {
   const PLUM      = "#3B0764";
   const PLUM_MID  = "#5B21B6";
   const GOLD      = "#F59E0B";
+
+  const [slideIdx, setSlideIdx] = useState(0);
+  const [visible, setVisible]   = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setSlideIdx(i => (i + 1) % AD_SLIDES.length);
+        setVisible(true);
+      }, 420);
+    }, 4200);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const slide = AD_SLIDES[slideIdx];
 
   return (
     <div
@@ -480,41 +542,91 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
           fontSize: "1.45rem", fontWeight: 700,
           letterSpacing: "-0.02em",
           color: "#fff", textDecoration: "none",
-          marginBottom: 20, display: "block",
+          marginBottom: 28, display: "block",
         }}>
           Certxa<span style={{ color: GOLD }}>.</span>
         </a>
 
-        {/* Offer badge */}
+        {/* ── Animated ad block ── */}
+        <div style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(10px)",
+          transition: "opacity 0.38s ease, transform 0.38s ease",
+          marginBottom: 22,
+        }}>
+          {/* Product tag */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            padding: "5px 13px", borderRadius: 50,
+            background: slide.tagBg,
+            border: `1px solid ${slide.tagBorder}`,
+            marginBottom: 16, width: "fit-content",
+          }}>
+            <span style={{ color: slide.tagColor, display: "flex" }}>{slide.icon}</span>
+            <span style={{ fontSize: ".7rem", fontWeight: 700, color: slide.tagColor, letterSpacing: ".07em", textTransform: "uppercase" }}>
+              {slide.tag}
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h2 style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: "clamp(2.4rem, 3.4vw, 3.1rem)",
+            fontWeight: 700, letterSpacing: "-0.03em",
+            lineHeight: 1.06, color: "#fff",
+            margin: "0 0 12px",
+          }}>
+            {slide.headline.map((line, i) => (
+              <span key={i} style={{ display: "block" }}>
+                {line.split(" ").map((word, wi) =>
+                  word === slide.accentWord
+                    ? <em key={wi} style={{ color: GOLD, fontStyle: "italic" }}>{word} </em>
+                    : <span key={wi}>{word} </span>
+                )}
+              </span>
+            ))}
+          </h2>
+
+          {/* Sub */}
+          <p style={{
+            color: "rgba(255,255,255,0.52)", fontSize: ".88rem",
+            lineHeight: 1.6, maxWidth: 340, margin: 0,
+          }}>
+            {slide.sub}
+          </p>
+        </div>
+
+        {/* Slide dots */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+          {AD_SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => { setVisible(false); setTimeout(() => { setSlideIdx(i); setVisible(true); }, 300); }}
+              style={{
+                width: i === slideIdx ? 22 : 6,
+                height: 6, borderRadius: 3,
+                background: i === slideIdx ? GOLD : "rgba(255,255,255,0.2)",
+                border: "none", cursor: "pointer", padding: 0,
+                transition: "width 0.35s ease, background 0.35s ease",
+              }}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* 60-day free pill */}
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 8,
           padding: "5px 14px", borderRadius: 50,
-          background: "rgba(245,158,11,0.12)",
-          border: "1px solid rgba(245,158,11,0.28)",
-          marginBottom: 18, width: "fit-content",
+          background: "rgba(245,158,11,0.10)",
+          border: "1px solid rgba(245,158,11,0.22)",
+          marginBottom: 20, width: "fit-content",
         }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD }} />
-          <span style={{ fontSize: ".72rem", fontWeight: 700, color: "#FCD34D", letterSpacing: ".06em", textTransform: "uppercase" }}>
-            Limited offer — 60 days free
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD, flexShrink: 0 }} />
+          <span style={{ fontSize: ".7rem", fontWeight: 700, color: "#FCD34D", letterSpacing: ".06em", textTransform: "uppercase" }}>
+            Free for 60 days — no credit card
           </span>
         </div>
-
-        {/* Headline */}
-        <h2 style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: "clamp(2.2rem, 3.2vw, 3rem)",
-          fontWeight: 700, letterSpacing: "-0.03em",
-          lineHeight: 1.05, color: "#fff",
-          margin: "0 0 14px",
-        }}>
-          Everything<br />
-          <em style={{ color: GOLD, fontStyle: "italic" }}>Certxa</em> offers.<br />
-          Free for 60 days.
-        </h2>
-
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: ".88rem", lineHeight: 1.55, maxWidth: 360, margin: "0 0 18px" }}>
-          No credit card required. Complete access to every feature for 60 days.
-        </p>
 
         {/* Feature grid — first 8 only */}
         <div style={{ marginBottom: 20 }}>
