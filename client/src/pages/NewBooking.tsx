@@ -455,29 +455,29 @@ export default function NewBooking() {
             {mobileCatStep === "categories" && (
               <>
                 {/* Header */}
-                <div className="flex items-center gap-3 px-4 py-4 bg-gray-950 shrink-0">
-                  <Button variant="ghost" size="icon" onClick={handleCancel} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-cancel-booking">
+                <div className="flex items-center gap-3 px-4 py-4 bg-white border-b border-gray-200 shrink-0">
+                  <Button variant="ghost" size="icon" onClick={handleCancel} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" data-testid="button-cancel-booking">
                     <X className="w-5 h-5" />
                   </Button>
-                  <h1 className="font-bold text-lg flex-1 text-white tracking-tight">New Booking</h1>
+                  <h1 className="font-bold text-lg flex-1 text-gray-900 tracking-tight">New Booking</h1>
                   {selectedCustomer && (
-                    <span className="text-sm text-white/60 truncate max-w-[120px]">{selectedCustomer.name}</span>
+                    <span className="text-sm text-gray-500 truncate max-w-[120px]">{selectedCustomer.name}</span>
                   )}
                 </div>
-                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                <div className="flex gap-1.5 px-4 pb-3 pt-3 bg-white border-b border-gray-100 shrink-0">
                   {[1,2,3,4,5,6].map((s) => (
-                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 1 ? "bg-primary" : "bg-white/15")} />
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 1 ? "bg-primary" : "bg-gray-200")} />
                   ))}
                 </div>
 
                 {/* Category list — full page, desktop sidebar style */}
-                <div className="flex-1 overflow-y-auto bg-gray-950">
-                  <div className="px-4 py-3 border-b border-white/8">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-widest">Services</p>
+                <div className="flex-1 overflow-y-auto bg-[#F7F5F0]">
+                  <div className="px-4 py-3 border-b border-gray-200">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Services</p>
                   </div>
                   {servicesLoading ? (
                     <div className="flex items-center justify-center h-40">
-                      <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                     </div>
                   ) : (
                     <nav className="py-2">
@@ -491,12 +491,12 @@ export default function NewBooking() {
                               setMobileCatStep("services");
                             }}
                             data-testid={`button-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
-                            className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 border-l-[3px] border-transparent hover:bg-white/5 active:bg-white/10 transition-colors"
+                            className="w-full text-left px-5 py-4 flex items-center justify-between gap-3 border-l-[3px] border-transparent hover:bg-gray-100 active:bg-gray-200 transition-colors"
                           >
-                            <span className="font-semibold text-base text-white/90">{cat}</span>
+                            <span className="font-semibold text-base text-gray-900">{cat}</span>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-xs text-white/40">{count} service{count !== 1 ? "s" : ""}</span>
-                              <ArrowLeft className="w-4 h-4 text-white/30 rotate-180" />
+                              <span className="text-xs text-gray-400">{count} service{count !== 1 ? "s" : ""}</span>
+                              <ArrowLeft className="w-4 h-4 text-gray-400 rotate-180" />
                             </div>
                           </button>
                         );
@@ -511,27 +511,27 @@ export default function NewBooking() {
             {mobileCatStep === "services" && (
               <>
                 {/* Header with back to categories */}
-                <div className="flex items-center gap-3 px-4 py-4 bg-gray-950 shrink-0">
+                <div className="flex items-center gap-3 px-4 py-4 bg-white border-b border-gray-200 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setMobileCatStep("categories")}
-                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
                     data-testid="button-back-categories"
                   >
                     <ArrowLeft className="w-5 h-5" />
 
                   </Button>
                   <div className="flex-1 min-w-0">
-                    <h1 className="font-bold text-base text-white leading-tight truncate">{activeCategory}</h1>
+                    <h1 className="font-bold text-base text-gray-900 leading-tight truncate">{activeCategory}</h1>
                     {selectedCustomer && (
-                      <p className="text-xs text-white/50 truncate">{selectedCustomer.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{selectedCustomer.name}</p>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-1.5 px-4 pb-3 bg-gray-950 shrink-0">
+                <div className="flex gap-1.5 px-4 pb-3 pt-3 bg-white border-b border-gray-100 shrink-0">
                   {[1,2,3,4,5,6].map((s) => (
-                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 2 ? "bg-primary" : "bg-white/15")} />
+                    <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-300", s <= 2 ? "bg-primary" : "bg-gray-200")} />
                   ))}
                 </div>
 
