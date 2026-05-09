@@ -323,6 +323,7 @@ require 'includes/nav.php';
           'fee'         => '1.2%',
           'featured'    => false,
           'cta_label'   => 'See Details',
+          'cta_href'    => '/elite-details',
           'cta_class'   => 'btn-secondary',
           'features'    => [
             [true,  'Everything in Professional, plus:'],
@@ -364,7 +365,7 @@ require 'includes/nav.php';
           <?php endif; ?>
         </div>
 
-        <a href="#" class="btn <?= $plan['cta_class'] ?>"><?= $plan['cta_label'] ?></a>
+        <a href="<?= $plan['cta_href'] ?? '#' ?>" class="btn <?= $plan['cta_class'] ?>"><?= $plan['cta_label'] ?></a>
         <p class="plan-note">No credit card required</p>
 
         <hr class="plan-divider">
