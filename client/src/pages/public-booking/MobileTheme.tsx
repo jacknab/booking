@@ -31,11 +31,12 @@ import { StoreData, ServiceData, CategoryData, TimeSlot, AddonData, ServiceAddon
 interface MobileThemeProps {
   store: StoreData;
   slug: string;
+  preselectedStaffId?: number;
 }
 
 type ViewState = "client" | "home" | "category" | "time" | "confirm" | "profile";
 
-export default function MobileTheme({ store, slug }: MobileThemeProps) {
+export default function MobileTheme({ store, slug, preselectedStaffId }: MobileThemeProps) {
   const [view, setView] = useState<ViewState>("client");
   const [clientType, setClientType] = useState<"new" | "returning" | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [preselectedStaffName, setPreselectedStaffName] = useState<string | null>(null);
   
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -108,19 +110,27 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
     : null;
 
   const { data: slots, isLoading: slotsLoading } = useQuery<TimeSlot[]>({
-    queryKey: ["/api/public/store", slug, "availability", primaryService?.id, dateString, totalDuration],
+    queryKey: ["/api/public/store", slug, "availability", primaryService?.id, dateString, totalDuration, preselectedStaffId],
     queryFn: async () => {
       const params = new URLSearchParams({
         serviceId: String(primaryService!.id),
         date: dateString!,
         duration: String(totalDuration),
       });
+      if (preselectedStaffId) params.set("staffId", String(preselectedStaffId));
       const res = await fetch(`/api/public/store/${slug}/availability?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch availability");
       return res.json();
     },
     enabled: !!slug && !!primaryService && !!dateString && totalDuration > 0,
   });
+
+  useMemo(() => {
+    if (preselectedStaffId && slots && slots.length > 0 && !preselectedStaffName) {
+      const match = slots.find(s => s.staffId === preselectedStaffId);
+      if (match) setPreselectedStaffName(match.staffName);
+    }
+  }, [slots, preselectedStaffId]);
 
   const profilePhone = customerPhone || returningPhone;
   const { data: history, isLoading: historyLoading } = useQuery<any[]>({
@@ -373,6 +383,12 @@ export default function MobileTheme({ store, slug }: MobileThemeProps) {
                     {closingTime && (
                       <p className="text-white/80 text-sm flex items-center gap-1">
                           <Clock className="w-3 h-3" /> Open until {closingTime}
+                      </p>
+                    )}
+                    {preselectedStaffId && (
+                      <p className="text-white/90 text-sm flex items-center gap-1 font-medium">
+                        <User className="w-3 h-3" />
+                        {preselectedStaffName ? `Booking with ${preselectedStaffName}` : "Booking with your chosen stylist"}
                       </p>
                     )}
                 </div>

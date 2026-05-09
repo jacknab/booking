@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { StoreData } from "./public-booking/types";
@@ -8,6 +8,9 @@ import ClassicTheme from "./public-booking/ClassicTheme";
 
 export default function PublicBooking() {
   const { slug } = useParams<{ slug?: string }>();
+  const [searchParams] = useSearchParams();
+  const staffParam = searchParams.get("staff");
+  const preselectedStaffId = staffParam ? Number(staffParam) : undefined;
 
   // If accessed via slug URL, fetch store from public endpoint (no auth required)
   const { data: slugStore, isLoading: slugLoading } = useQuery<StoreData>({
@@ -47,12 +50,12 @@ export default function PublicBooking() {
   const effectiveSlug = slug || effectiveStore.bookingSlug;
 
   if (effectiveStore.bookingTheme === "mobile") {
-    return <MobileTheme store={effectiveStore as StoreData} slug={effectiveSlug!} />;
+    return <MobileTheme store={effectiveStore as StoreData} slug={effectiveSlug!} preselectedStaffId={preselectedStaffId} />;
   }
 
   if (effectiveStore.bookingTheme === "classic") {
-    return <ClassicTheme store={effectiveStore as StoreData} slug={effectiveSlug!} />;
+    return <ClassicTheme store={effectiveStore as StoreData} slug={effectiveSlug!} preselectedStaffId={preselectedStaffId} />;
   }
 
-  return <SimpleTheme store={effectiveStore as StoreData} slug={effectiveSlug!} />;
+  return <SimpleTheme store={effectiveStore as StoreData} slug={effectiveSlug!} preselectedStaffId={preselectedStaffId} />;
 }

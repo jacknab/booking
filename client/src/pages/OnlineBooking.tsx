@@ -7,12 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Globe, Copy, Check, ExternalLink, Link2, QrCode, Loader2, Smartphone, LayoutList, Layout, Shield } from "lucide-react";
+import { Globe, Copy, Check, ExternalLink, Link2, QrCode, Loader2, Smartphone, LayoutList, Layout, Shield, Users, User } from "lucide-react";
 import { QRCodeImage } from "@/components/ui/qr-code";
 import { BookingInstructionsCard } from "@/components/BookingInstructionsCard";
 import html2canvas from "html2canvas";
 import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useStaffList } from "@/hooks/use-staff";
 
 export default function OnlineBooking() {
     const qrRef = useRef<HTMLDivElement>(null);
@@ -21,6 +22,8 @@ export default function OnlineBooking() {
   const { selectedStore } = useSelectedStore();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: staffList } = useStaffList();
+  const [copiedStaffId, setCopiedStaffId] = useState<number | null>(null);
   const [slug, setSlug] = useState("");
   const [theme, setTheme] = useState("simple");
   const [copied, setCopied] = useState(false);
@@ -282,6 +285,64 @@ export default function OnlineBooking() {
             </>
           )}
         </Card>
+
+        {selectedStore?.bookingSlug && staffList && staffList.length > 0 && (
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Team Booking Links</h3>
+                <p className="text-sm text-muted-foreground">Give each team member their own direct booking link</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4 mt-2">
+              Clients can use these links to book directly with a specific team member — perfect for placing on your website next to each stylist's profile.
+            </p>
+            <div className="space-y-3">
+              {staffList.map((member) => {
+                const staffUrl = `${baseUrl}/book/${slug}?staff=${member.id}`;
+                const isCopied = copiedStaffId === member.id;
+                return (
+                  <div key={member.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {(member as any).avatarUrl ? (
+                          <img src={(member as any).avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                          <User className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{member.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{staffUrl}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-shrink-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(staffUrl);
+                        setCopiedStaffId(member.id);
+                        toast({ title: `Link copied for ${member.name}` });
+                        setTimeout(() => setCopiedStaffId(null), 2000);
+                      }}
+                    >
+                      {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span className="ml-1.5">{isCopied ? "Copied" : "Copy"}</span>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-700 font-medium">How to use</p>
+              <p className="text-xs text-blue-600 mt-0.5">Add a "Book with me" button on your website next to each team member's photo and paste their individual link as the button URL.</p>
+            </div>
+          </Card>
+        )}
 
         {selectedStore?.bookingSlug && (
           <Card className="p-6">

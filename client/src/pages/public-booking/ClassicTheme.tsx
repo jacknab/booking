@@ -28,13 +28,15 @@ type Step = "client" | "services" | "time" | "confirm";
 interface ClassicThemeProps {
   store: StoreData;
   slug: string;
+  preselectedStaffId?: number;
 }
 
-export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
+export default function ClassicTheme({ store, slug, preselectedStaffId }: ClassicThemeProps) {
   const [step, setStep] = useState<Step>("client");
   const [clientType, setClientType] = useState<"new" | "returning" | null>(null);
   const [returningPhone, setReturningPhone] = useState("");
   const [selectedServices, setSelectedServices] = useState<ServiceData[]>([]);
+  const [preselectedStaffName, setPreselectedStaffName] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
     new Set()
   );
@@ -84,6 +86,7 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
       primaryService?.id,
       dateString,
       totalDuration,
+      preselectedStaffId,
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -91,6 +94,7 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
         date: dateString!,
         duration: String(totalDuration),
       });
+      if (preselectedStaffId) params.set("staffId", String(preselectedStaffId));
       const res = await fetch(
         `/api/public/store/${slug}/availability?${params}`,
         { credentials: "include" }
@@ -101,6 +105,13 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
     enabled:
       !!slug && !!primaryService && !!dateString && totalDuration > 0,
   });
+
+  useMemo(() => {
+    if (preselectedStaffId && slots && slots.length > 0 && !preselectedStaffName) {
+      const match = slots.find(s => s.staffId === preselectedStaffId);
+      if (match) setPreselectedStaffName(match.staffName);
+    }
+  }, [slots, preselectedStaffId]);
 
   const bookMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -270,6 +281,12 @@ export default function ClassicTheme({ store, slug }: ClassicThemeProps) {
           </h1>
           {store.address && (
             <p className="text-xs text-gray-500 mt-0.5">{store.address}</p>
+          )}
+          {preselectedStaffId && (
+            <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full mt-1">
+              <User className="w-3 h-3" />
+              {preselectedStaffName ? `Booking with ${preselectedStaffName}` : "Booking with your chosen stylist"}
+            </span>
           )}
         </div>
         <Button

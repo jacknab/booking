@@ -26,13 +26,15 @@ type Step = "client" | "services" | "time" | "confirm";
 interface SimpleThemeProps {
   store: StoreData;
   slug: string;
+  preselectedStaffId?: number;
 }
 
-export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
+export default function SimpleTheme({ store, slug, preselectedStaffId }: SimpleThemeProps) {
   const [step, setStep] = useState<Step>("client");
   const [clientType, setClientType] = useState<"new" | "returning" | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [returningPhone, setReturningPhone] = useState("");
+  const [preselectedStaffName, setPreselectedStaffName] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<ServiceData[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<Record<number, number[]>>({});
   const [viewingAddonsForService, setViewingAddonsForService] = useState<ServiceData | null>(null);
@@ -118,19 +120,27 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
     : null;
 
   const { data: slots, isLoading: slotsLoading } = useQuery<TimeSlot[]>({
-    queryKey: ["/api/public/store", slug, "availability", primaryService?.id, dateString, totalDuration],
+    queryKey: ["/api/public/store", slug, "availability", primaryService?.id, dateString, totalDuration, preselectedStaffId],
     queryFn: async () => {
       const params = new URLSearchParams({
         serviceId: String(primaryService!.id),
         date: dateString!,
         duration: String(totalDuration),
       });
+      if (preselectedStaffId) params.set("staffId", String(preselectedStaffId));
       const res = await fetch(`/api/public/store/${slug}/availability?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch availability");
       return res.json();
     },
     enabled: !!slug && !!primaryService && !!dateString && totalDuration > 0,
   });
+
+  useMemo(() => {
+    if (preselectedStaffId && slots && slots.length > 0 && !preselectedStaffName) {
+      const match = slots.find(s => s.staffId === preselectedStaffId);
+      if (match) setPreselectedStaffName(match.staffName);
+    }
+  }, [slots, preselectedStaffId]);
 
   const bookMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -359,6 +369,14 @@ export default function SimpleTheme({ store, slug }: SimpleThemeProps) {
               <span className="text-gray-300">|</span>
               <span className="font-medium text-gray-700">Open until {closingTime || "Close"}</span>
             </div>
+            {preselectedStaffId && (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full">
+                  <User className="w-3 h-3" />
+                  {preselectedStaffName ? `Booking with ${preselectedStaffName}` : "Booking with your chosen stylist"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </header>
