@@ -492,7 +492,7 @@ require 'includes/nav.php';
             <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
-            <td>Transaction fee (UK cards)</td>
+            <td>Transaction fee (US cards)</td>
             <td>1.6%</td><td class="featured-col ct-text">1.4%</td><td class="ct-text">1.2%</td>
           </tr>
           <tr>
