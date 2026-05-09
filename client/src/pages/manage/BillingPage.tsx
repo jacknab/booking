@@ -23,7 +23,8 @@ const PLANS = [
     price: 9,
     tagline: "For independent stylists & booth renters",
     highlight: "1 calendar · 1 staff",
-    features: ["1 calendar", "1 staff member", "Online booking page", "Payments & card reader", "200 SMS/mo"],
+    features: ["1 calendar", "1 staff member", "Online booking page", "200 SMS/mo"],
+    notIncluded: ["Payments & card reader"],
     apiDocs: false,
   },
   {
@@ -512,6 +513,11 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-xs text-zinc-400">
                       <span className={isElite ? "text-amber-400" : "text-emerald-400"}>✓</span> {f}
+                    </li>
+                  ))}
+                  {(plan as any).notIncluded?.map((f: string) => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-zinc-600 line-through">
+                      <span className="text-zinc-600">✕</span> {f}
                     </li>
                   ))}
                 </ul>
