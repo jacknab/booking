@@ -30,13 +30,7 @@ import "dotenv/config";
       console.warn("");
     }
   }
-  if (process.env.NODE_ENV === "production") {
-    const port = parseInt(process.env.PORT || "8100", 10);
-    if (port < 8100) {
-      console.warn(`\n[certxa] WARNING — PORT=${port} is below 8100. All app ports must be 8100+. Defaulting to 8100.\n`);
-      process.env.PORT = "8100";
-    }
-  }
+  // Port validation removed — Replit requires port 5000 for web preview
 })();
 
 import cors from "cors";
@@ -285,7 +279,7 @@ app.get("/api/health", async (_req, res) => {
     uptime_seconds:  uptimeSeconds,
     started_at:      startedAt,
     node_env:        process.env.NODE_ENV ?? "unknown",
-    port:            process.env.PORT ?? "8100",
+    port:            process.env.PORT ?? "5000",
     app_url:         process.env.APP_URL ?? "(not set)",
     checks: {
       database: { status: dbStatus, ...(dbError ? { error: dbError } : {}) },
@@ -510,7 +504,7 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  const port = parseInt(process.env.PORT || "8100", 10);
+  const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
       port,

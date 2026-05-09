@@ -336,7 +336,7 @@ export function setupAuth(app: Express) {
         expiresAt,
       });
 
-      const appUrl = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost:8100"}`;
+      const appUrl = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost:5000"}`;
       const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
       const html = `
