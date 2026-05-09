@@ -146,9 +146,15 @@ require 'includes/nav.php';
 .feat-plum  { background: var(--plum-light); color: var(--plum-mid); }
 .feat-dim   { color: var(--mid-grey) !important; }
 .feat-dim .feat-icon { background: var(--light-grey); color: var(--mid-grey); }
+.feat-soon  { background: #EDE9FE; color: #7C3AED; }
+.feat-soon-label { font-size: .68rem; font-weight: 700; color: #7C3AED; background: #EDE9FE; padding: 1px 7px; border-radius: 50px; margin-left: 6px; vertical-align: middle; letter-spacing: .04em; }
 
 .plan-card .btn { width: 100%; justify-content: center; margin-bottom: 12px; }
 .plan-note { text-align: center; font-size: .78rem; color: var(--mid-grey); }
+.plan-fee-note { font-size: .73rem; color: var(--mid-grey); margin-top: 5px; }
+.plan-fee-note strong { color: var(--plum-mid); }
+
+.ct-soon { font-size: .75rem; font-weight: 700; color: #7C3AED; background: #EDE9FE; padding: 3px 10px; border-radius: 50px; white-space: nowrap; }
 
 /* Compare table */
 .compare-section { padding: 80px 0; background: var(--cream); }
@@ -261,6 +267,7 @@ require 'includes/nav.php';
           'featured'    => false,
           'cta_label'   => 'Start Free Trial',
           'cta_class'   => 'btn-secondary',
+          'fee'         => null,
           'features'    => [
             [true,  'Online booking page'],
             [true,  '1 calendar'],
@@ -269,7 +276,7 @@ require 'includes/nav.php';
             [true,  'SMS & email reminders (200/mo)'],
             [true,  'Basic website builder'],
             [false, 'Payments & card reader'],
-            [false, 'iOS & Android app'],
+            ['soon','iOS & Android app'],
             [false, 'Reserve With Google'],
             [false, 'Automated review requests'],
             [false, 'Advanced reporting'],
@@ -286,6 +293,7 @@ require 'includes/nav.php';
           'old_annual'  => '22',
           'period'      => '/month',
           'billing'     => 'Billed monthly — or $18/mo billed annually',
+          'fee'         => '1.4%',
           'featured'    => true,
           'cta_label'   => 'Start Free Trial',
           'cta_class'   => 'btn-primary',
@@ -312,6 +320,7 @@ require 'includes/nav.php';
           'old_annual'  => null,
           'period'      => '/month',
           'billing'     => 'Billed monthly — or $63/mo billed annually',
+          'fee'         => '1.2%',
           'featured'    => false,
           'cta_label'   => 'See Details',
           'cta_class'   => 'btn-secondary',
@@ -350,6 +359,9 @@ require 'includes/nav.php';
           </div>
           <div class="plan-price-period"><?= $plan['period'] ?></div>
           <div class="plan-billing-note" id="note-<?= strtolower($plan['name']) ?>"><?= $plan['billing'] ?></div>
+          <?php if (!empty($plan['fee'])): ?>
+          <div class="plan-fee-note"><strong><?= $plan['fee'] ?></strong> card processing fee per transaction</div>
+          <?php endif; ?>
         </div>
 
         <a href="#" class="btn <?= $plan['cta_class'] ?>"><?= $plan['cta_label'] ?></a>
@@ -359,11 +371,12 @@ require 'includes/nav.php';
 
         <ul class="plan-features">
           <?php foreach ($plan['features'] as $feat): ?>
-          <li class="<?= !$feat[0] ? 'feat-dim' : '' ?>">
-            <span class="feat-icon <?= $feat[0] ? ($isF ? 'feat-plum' : 'feat-check') : '' ?>">
-              <?= $feat[0] ? '✓' : '–' ?>
+          <?php $isSoon = ($feat[0] === 'soon'); ?>
+          <li class="<?= (!$feat[0] && !$isSoon) ? 'feat-dim' : '' ?>">
+            <span class="feat-icon <?= $isSoon ? 'feat-soon' : ($feat[0] ? ($isF ? 'feat-plum' : 'feat-check') : '') ?>">
+              <?= $isSoon ? '◷' : ($feat[0] ? '✓' : '–') ?>
             </span>
-            <?= $feat[1] ?>
+            <?= $feat[1] ?><?php if ($isSoon): ?><span class="feat-soon-label">Coming Soon</span><?php endif; ?>
           </li>
           <?php endforeach; ?>
         </ul>
@@ -430,8 +443,10 @@ require 'includes/nav.php';
             <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
-            <td>Deposits & prepayments</td>
-            <td class="ct-cross">–</td><td class="ct-cross featured-col">–</td><td class="ct-cross">–</td>
+            <td>Deposits &amp; prepayments</td>
+            <td class="featured-col" style="background:rgba(91,33,182,.04);"><span class="ct-soon">Coming Soon</span></td>
+            <td class="featured-col"><span class="ct-soon">Coming Soon</span></td>
+            <td><span class="ct-soon">Coming Soon</span></td>
           </tr>
           <tr>
             <td>Multi-location booking</td>
@@ -470,8 +485,8 @@ require 'includes/nav.php';
             <td class="ct-check">✓</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
-            <td>SMS & email reminders</td>
-            <td>250/month</td><td class="featured-col ct-text">Unlimited</td><td class="ct-text">Unlimited</td>
+            <td>SMS &amp; email reminders</td>
+            <td>200/month</td><td class="featured-col ct-text">Unlimited</td><td class="ct-text">Unlimited</td>
           </tr>
           <tr>
             <td>Birthday & anniversary messages</td>
@@ -493,7 +508,11 @@ require 'includes/nav.php';
           </tr>
           <tr>
             <td>Transaction fee (US cards)</td>
-            <td>1.6%</td><td class="featured-col ct-text">1.4%</td><td class="ct-text">1.2%</td>
+            <td class="ct-cross">–</td><td class="featured-col ct-text">1.4%</td><td class="ct-text">1.2%</td>
+          </tr>
+          <tr>
+            <td>Transaction fee (international cards)</td>
+            <td class="ct-cross">–</td><td class="featured-col ct-text">3.9%</td><td class="ct-text">3.9%</td>
           </tr>
           <tr>
             <td>Gift cards</td>
@@ -511,7 +530,7 @@ require 'includes/nav.php';
           <tr class="section-row"><td colspan="4">Website & Branding</td></tr>
           <tr>
             <td>Website builder</td>
-            <td>Basic (1 site, 3 templates)</td><td class="featured-col ct-text">Premium (2 sites, 15+ templates)</td><td class="ct-text">Premium (15+ templates)</td>
+            <td>Basic (1 site, 3 templates)</td><td class="featured-col ct-text">Premium (2 sites, 15+ templates)</td><td class="ct-text">Premium (5 sites, 15+ templates)</td>
           </tr>
           <tr>
             <td>Custom domain</td>
