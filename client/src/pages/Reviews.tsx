@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import type { Review } from "@shared/schema";
 import { GoogleConnectGate } from "@/components/GoogleConnectGate";
 import { GoogleBusinessProfileSetup } from "@/components/GoogleBusinessProfileSetup";
+import { GoogleReviewsManager } from "@/components/GoogleReviewsManager";
 import { YelpConnectGate } from "@/components/YelpConnectGate";
 import { YelpAliasForm } from "@/components/YelpAliasForm";
 import { FacebookConnectGate } from "@/components/FacebookConnectGate";
@@ -78,28 +79,21 @@ export default function Reviews() {
     const googleError     = params.get("google_error");
 
     if (googleConnected || googleError) {
-      // Clean up URL immediately so a browser refresh doesn't replay
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     if (googleConnected === "1") {
-      // Server completed the token exchange — show account/location picker
       setGateStep("google-setup");
       return;
     }
 
     if (googleError) {
       const message = GOOGLE_ERROR_MESSAGES[googleError] ?? `Google authorization error: ${googleError}`;
-      toast({
-        title: "Google connection failed",
-        description: message,
-        variant: "destructive",
-      });
-      // Stay on google gate so user can retry
+      toast({ title: "Google connection failed", description: message, variant: "destructive" });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: googleProfile, isLoading: googleLoading, refetch: refetchGoogleProfile } = useQuery({
+  const { data: googleProfile, isLoading: googleLoading } = useQuery({
     queryKey: ["/api/google-business/profile", storeId],
     queryFn: async () => {
       if (!storeId) return null;
@@ -112,13 +106,11 @@ export default function Reviews() {
   });
 
   const isGoogleConnected = !!googleProfile?.isConnected;
-
-  // Token expiry: is the stored OAuth token expired?
   const isTokenExpired = googleProfile?.tokenExpiresAt
     ? new Date(googleProfile.tokenExpiresAt) < new Date()
     : false;
 
-  // If Google is already fully connected, skip the gate and jump to reviews
+  // If Google is already fully connected, skip the google gate
   const effectiveStep = !googleLoading && isGoogleConnected && gateStep === "google"
     ? "done"
     : gateStep;
@@ -142,8 +134,7 @@ export default function Reviews() {
         return;
       }
       window.location.href = data.authUrl;
-    } catch (err) {
-      console.error("[Google OAuth] Failed to get auth URL:", err);
+    } catch {
       toast({ title: "Could not start Google sign-in", description: "Please try again.", variant: "destructive" });
       setGoogleConnecting(false);
     }
@@ -190,12 +181,9 @@ export default function Reviews() {
     },
   });
 
-  const reviewLink = (appointmentId: number) =>
-    `${window.location.origin}/review/${appointmentId}`;
-
   const copyLink = (appointmentId: number | null) => {
     if (!appointmentId) return;
-    navigator.clipboard.writeText(reviewLink(appointmentId));
+    navigator.clipboard.writeText(`${window.location.origin}/review/${appointmentId}`);
     toast({ title: "Review link copied!" });
   };
 
@@ -218,7 +206,7 @@ export default function Reviews() {
     return Math.round(((stats.distribution[star] || 0) / stats.total) * 100);
   };
 
-  // ── Gate screens ────────────────────────────────────────────────────────────
+  // ── Gate screens ─────────────────────────────────────────────────────────────
 
   if (effectiveStep === "google") {
     return (
@@ -232,7 +220,6 @@ export default function Reviews() {
     );
   }
 
-  // Account + location picker after OAuth redirect
   if (effectiveStep === "google-setup") {
     return (
       <AppLayout>
@@ -295,220 +282,259 @@ export default function Reviews() {
     );
   }
 
-  // ── Main reviews view ────────────────────────────────────────────────────────
+  // ── Main reviews view ─────────────────────────────────────────────────────────
 
   return (
     <AppLayout>
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold">Client Reviews</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Collect and manage feedback from your clients
-          </p>
-        </div>
+      <div className="max-w-5xl mx-auto space-y-10">
 
-        {/* Reconnect Google button — shown when token expired or profile not fully linked */}
-        {googleProfile && (isTokenExpired || !googleProfile.isConnected) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGoogleConnect}
-            disabled={googleConnecting}
-            className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
-          >
-            {googleConnecting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Reconnect Google
-          </Button>
-        )}
-      </div>
-
-      {/* Token expired warning banner */}
-      {isTokenExpired && googleProfile && (
-        <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="font-medium">Google connection needs renewal.</span>{" "}
-            Your Google Business Profile access token has expired. Click{" "}
-            <button
-              className="underline font-medium"
-              onClick={handleGoogleConnect}
-              disabled={googleConnecting}
-            >
-              Reconnect Google
-            </button>{" "}
-            to restore review syncing.
-          </div>
-        </div>
-      )}
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-5 flex flex-col items-center gap-1">
-          <p className="text-4xl font-bold text-primary">{stats?.avg?.toFixed(1) ?? "—"}</p>
-          <StarRating rating={Math.round(stats?.avg ?? 0)} size="lg" />
-          <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
-        </Card>
-        <Card className="p-5 flex flex-col items-center justify-center gap-1">
-          <p className="text-4xl font-bold">{stats?.total ?? 0}</p>
-          <p className="text-sm text-muted-foreground">Total Reviews</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm font-medium mb-3">Rating Distribution</p>
-          <div className="space-y-1.5">
-            {[5, 4, 3, 2, 1].map((star) => (
-              <div key={star} className="flex items-center gap-2 text-xs">
-                <span className="w-2 text-right text-muted-foreground">{star}</span>
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
-                <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="h-full bg-yellow-400 rounded-full transition-all"
-                    style={{ width: `${ratingPercent(star)}%` }}
-                  />
-                </div>
-                <span className="w-6 text-muted-foreground">{stats?.distribution[star] ?? 0}</span>
+        {/* ── Google Reviews section (only when connected) ────────────────────── */}
+        {isGoogleConnected && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <GoogleColorIcon />
+                  Google Reviews
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Synced from your Google Business Profile — auto-updates every 6 hours
+                </p>
               </div>
-            ))}
-          </div>
-        </Card>
-      </div>
 
-      {/* How to collect reviews callout */}
-      <Card className="p-4 bg-muted/40 border-dashed">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium">How to collect reviews</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              After completing an appointment, copy its review link and send it to your client via SMS or email.
-              The link takes them to a simple star-rating form — no account needed.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by client, service, or comment..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-1.5">
-          {[null, 5, 4, 3, 2, 1].map((star) => (
-            <Button
-              key={star ?? "all"}
-              size="sm"
-              variant={filterRating === star ? "default" : "outline"}
-              onClick={() => setFilterRating(star)}
-              className="gap-1"
-            >
-              {star ? (
-                <>
-                  {star}
-                  <Star className="h-3 w-3 fill-current" />
-                </>
-              ) : (
-                "All"
+              {/* Reconnect button when token is expired */}
+              {isTokenExpired && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGoogleConnect}
+                  disabled={googleConnecting}
+                  className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  {googleConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Reconnect Google
+                </Button>
               )}
-            </Button>
-          ))}
-        </div>
-      </div>
+            </div>
 
-      {/* Reviews list */}
-      {filtered.length === 0 ? (
-        <Card className="p-12 text-center">
-          <StarIcon className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="font-medium text-muted-foreground">
-            {reviewsData.length === 0 ? "No reviews yet" : "No reviews match your filters"}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {reviewsData.length === 0
-              ? "Send review links to clients after their appointments"
-              : "Try adjusting your search or rating filter"}
-          </p>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((review) => (
-            <Card key={review.id} className={cn("p-4", !review.isPublic && "opacity-60")}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <StarRating rating={review.rating} />
-                    {review.isFeatured && (
-                      <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                        Featured
-                      </Badge>
-                    )}
-                    {!review.isPublic && (
-                      <Badge variant="secondary" className="text-xs">Hidden</Badge>
-                    )}
-                  </div>
-                  {review.comment && (
-                    <p className="text-sm text-foreground leading-relaxed">&ldquo;{review.comment}&rdquo;</p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                    <span className="font-medium text-foreground">{review.customerName || "Anonymous"}</span>
-                    {review.serviceName && <span>· {review.serviceName}</span>}
-                    {review.staffName && <span>· with {review.staffName}</span>}
-                    <span>·{" "}{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ""}</span>
-                  </div>
+            {/* Expired token warning */}
+            {isTokenExpired && (
+              <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">Google connection needs renewal.</span>{" "}
+                  Your access token has expired — review syncing is paused.{" "}
+                  <button className="underline font-medium" onClick={handleGoogleConnect} disabled={googleConnecting}>
+                    Reconnect Google
+                  </button>{" "}
+                  to resume.
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {review.appointmentId && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      title="Copy review link"
-                      onClick={() => copyLink(review.appointmentId)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    title={review.isFeatured ? "Unfeature" : "Feature"}
-                    onClick={() => toggleMutation.mutate({ id: review.id, field: "isFeatured", value: !review.isFeatured })}
-                  >
-                    <Star className={cn("h-4 w-4", review.isFeatured ? "fill-yellow-400 text-yellow-400" : "")} />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    title={review.isPublic ? "Hide review" : "Show review"}
-                    onClick={() => toggleMutation.mutate({ id: review.id, field: "isPublic", value: !review.isPublic })}
-                  >
-                    {review.isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => deleteMutation.mutate(review.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+              </div>
+            )}
+
+            <GoogleReviewsManager storeId={storeId} />
+          </section>
+        )}
+
+        {/* ── Divider between sections (only when Google is connected) ─────────── */}
+        {isGoogleConnected && (
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-muted" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-4 text-xs text-muted-foreground uppercase tracking-widest">
+                Client reviews collected via Certxa
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Client reviews section ────────────────────────────────────────────── */}
+        <section className="space-y-6">
+          {!isGoogleConnected && (
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-bold">Client Reviews</h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Collect and manage feedback from your clients
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Stats cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="p-5 flex flex-col items-center gap-1">
+              <p className="text-4xl font-bold text-primary">{stats?.avg?.toFixed(1) ?? "—"}</p>
+              <StarRating rating={Math.round(stats?.avg ?? 0)} size="lg" />
+              <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
+            </Card>
+            <Card className="p-5 flex flex-col items-center justify-center gap-1">
+              <p className="text-4xl font-bold">{stats?.total ?? 0}</p>
+              <p className="text-sm text-muted-foreground">Total Reviews</p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-sm font-medium mb-3">Rating Distribution</p>
+              <div className="space-y-1.5">
+                {[5, 4, 3, 2, 1].map((star) => (
+                  <div key={star} className="flex items-center gap-2 text-xs">
+                    <span className="w-2 text-right text-muted-foreground">{star}</span>
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                    <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-yellow-400 rounded-full transition-all"
+                        style={{ width: `${ratingPercent(star)}%` }}
+                      />
+                    </div>
+                    <span className="w-6 text-muted-foreground">{stats?.distribution[star] ?? 0}</span>
+                  </div>
+                ))}
               </div>
             </Card>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+
+          {/* How to collect reviews */}
+          <Card className="p-4 bg-muted/40 border-dashed">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">How to collect reviews</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  After completing an appointment, copy its review link and send it to your client via SMS or email.
+                  The link takes them to a simple star-rating form — no account needed.
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by client, service, or comment..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-1.5">
+              {[null, 5, 4, 3, 2, 1].map((star) => (
+                <Button
+                  key={star ?? "all"}
+                  size="sm"
+                  variant={filterRating === star ? "default" : "outline"}
+                  onClick={() => setFilterRating(star)}
+                  className="gap-1"
+                >
+                  {star ? (
+                    <>{star}<Star className="h-3 w-3 fill-current" /></>
+                  ) : (
+                    "All"
+                  )}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reviews list */}
+          {filtered.length === 0 ? (
+            <Card className="p-12 text-center">
+              <StarIcon className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="font-medium text-muted-foreground">
+                {reviewsData.length === 0 ? "No reviews yet" : "No reviews match your filters"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {reviewsData.length === 0
+                  ? "Send review links to clients after their appointments"
+                  : "Try adjusting your search or rating filter"}
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((review) => (
+                <Card key={review.id} className={cn("p-4", !review.isPublic && "opacity-60")}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StarRating rating={review.rating} />
+                        {review.isFeatured && (
+                          <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            Featured
+                          </Badge>
+                        )}
+                        {!review.isPublic && (
+                          <Badge variant="secondary" className="text-xs">Hidden</Badge>
+                        )}
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-foreground leading-relaxed">&ldquo;{review.comment}&rdquo;</p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                        <span className="font-medium text-foreground">{review.customerName || "Anonymous"}</span>
+                        {review.serviceName && <span>· {review.serviceName}</span>}
+                        {review.staffName && <span>· with {review.staffName}</span>}
+                        <span>· {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ""}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {review.appointmentId && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          title="Copy review link"
+                          onClick={() => copyLink(review.appointmentId)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title={review.isFeatured ? "Unfeature" : "Feature"}
+                        onClick={() => toggleMutation.mutate({ id: review.id, field: "isFeatured", value: !review.isFeatured })}
+                      >
+                        <Star className={cn("h-4 w-4", review.isFeatured ? "fill-yellow-400 text-yellow-400" : "")} />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title={review.isPublic ? "Hide review" : "Show review"}
+                        onClick={() => toggleMutation.mutate({ id: review.id, field: "isPublic", value: !review.isPublic })}
+                      >
+                        {review.isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => deleteMutation.mutate(review.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </AppLayout>
+  );
+}
+
+function GoogleColorIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+    </svg>
   );
 }
