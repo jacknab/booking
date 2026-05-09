@@ -1,4 +1,44 @@
 import "dotenv/config";
+
+// ─── Startup environment validation ────────────────────────────────────────
+// Runs before anything else. Hard-exits if required vars are missing so
+// a misconfigured deployment fails immediately with a clear message instead
+// of silently serving a broken app.
+(function validateEnv() {
+  const REQUIRED: Record<string, string> = {
+    DATABASE_URL:   "PostgreSQL connection string (postgresql://user:pass@host/db)",
+    SESSION_SECRET: "Session cookie signing secret — generate with: openssl rand -hex 64",
+    APP_URL:        "Public base URL e.g. https://certxa.com",
+  };
+  const missing = Object.entries(REQUIRED).filter(([k]) => !process.env[k]);
+  if (missing.length) {
+    console.error("\n[certxa] STARTUP FAILURE — missing required environment variables:");
+    missing.forEach(([k, desc]) => console.error(`  MISSING: ${k}\n          ${desc}`));
+    console.error("\nFix: add the missing vars to your .env file or PM2 ecosystem config, then restart.\n");
+    process.exit(1);
+  }
+  if (process.env.NODE_ENV === "production") {
+    const RECOMMENDED: Record<string, string> = {
+      CORS_ORIGINS:             "Comma-separated allowed origins e.g. https://certxa.com",
+      GOOGLE_CLIENT_ID:         "Google OAuth client ID (needed for Google login)",
+      GOOGLE_AUTH_CALLBACK_URL: "Google OAuth callback e.g. https://certxa.com/api/auth/google/callback",
+    };
+    const missingRec = Object.entries(RECOMMENDED).filter(([k]) => !process.env[k]);
+    if (missingRec.length) {
+      console.warn("\n[certxa] WARNING — missing optional environment variables (some features may be disabled):");
+      missingRec.forEach(([k, desc]) => console.warn(`  MISSING: ${k}\n          ${desc}`));
+      console.warn("");
+    }
+  }
+  if (process.env.NODE_ENV === "production") {
+    const port = parseInt(process.env.PORT || "8100", 10);
+    if (port < 8100) {
+      console.warn(`\n[certxa] WARNING — PORT=${port} is below 8100. All app ports must be 8100+. Defaulting to 8100.\n`);
+      process.env.PORT = "8100";
+    }
+  }
+})();
+
 import cors from "cors";
 import express, { type Request, Response, NextFunction } from "express";
 import rateLimit from "express-rate-limit";

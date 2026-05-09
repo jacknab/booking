@@ -561,15 +561,24 @@ The `server/middleware/subdomain.ts` middleware inspects the `Host` header on ev
 
 ## 15. Port Map
 
-| Port | Service | Exposed? |
-|---|---|---|
-| `80` | Nginx (HTTP → redirect) | Yes |
-| `443` | Nginx (HTTPS) | Yes |
-| `8100` | Node.js Express app | **No — localhost only** |
-| `8104` | PHP built-in server | **No — localhost only** |
-| `5432` | PostgreSQL | **No — localhost only** |
+**All application ports are 8100 or higher. Ports below 8100 are not used by this app.**
 
-Never expose ports 8100, 8101, 8104 directly to the internet.
+| Port | Service | File | Exposed to internet? |
+|---|---|---|---|
+| `80` | Nginx HTTP → HTTPS redirect | Nginx config | Yes |
+| `443` | Nginx HTTPS (SSL termination) | Nginx config | Yes |
+| `8100` | Node.js / Express main server | `ecosystem.config.cjs`, `server/index.ts` | **No — localhost only** |
+| `8101` | Vite dev server (dev only) | `vite.config.ts` | **No — dev only** |
+| `8102` | Dev CORS origin (reserved) | `server/index.ts` | **No — dev only** |
+| `8103` | Admin portal dev server (dev only) | `client/src/pages/Admin/StoreDatabaseEntry.tsx` | **No — dev only** |
+| `8104` | PHP built-in server (internal) | `server/php-proxy.ts` | **No — localhost only** |
+| `5432` | PostgreSQL | `.env` `DATABASE_URL` | **No — localhost only** |
+
+**Rules:**
+- Nginx listens on 80/443 and proxies all traffic to `127.0.0.1:8100`
+- Never open ports 8100–8104 in your firewall — they must stay localhost-only
+- The PHP server (8104) is spawned automatically by Node on startup — do not start it manually
+- Ports 8101–8103 are development-only and are never active when `NODE_ENV=production`
 
 ---
 
@@ -594,9 +603,64 @@ npm run build && pm2 restart certxa
 
 **View logs:**
 ```bash
-pm2 logs certxa          # live logs
+pm2 logs certxa              # live logs
 pm2 logs certxa --lines 200  # last 200 lines
+cat /apps/booking/logs/pm2-error.log  # errors only
 ```
+
+---
+
+## 16b. Startup Validation — What the Logs Should Look Like
+
+The server runs an environment check **before anything else loads** (see `server/index.ts` top of file). Read the PM2 logs immediately after starting to confirm it passed.
+
+### Healthy startup output (what you want to see)
+```
+[PHP] Starting on port 8104
+[PHP] Server is ready
+[db:pool] New connection established
+[Dunning] Billing dunning scheduler started ...
+[SMS] Reminder scheduler started ...
+[express] serving on port 8100       ← THIS LINE confirms success
+```
+
+### STARTUP FAILURE — missing required env vars
+```
+[certxa] STARTUP FAILURE — missing required environment variables:
+  MISSING: DATABASE_URL
+          PostgreSQL connection string (postgresql://user:pass@host/db)
+  MISSING: SESSION_SECRET
+          Session cookie signing secret — generate with: openssl rand -hex 64
+
+Fix: add the missing vars to your .env file or PM2 ecosystem config, then restart.
+```
+**What to do:** The process exits immediately (exit code 1). Open `.env`, add the missing variables listed, then run `pm2 restart certxa`.
+
+### WARNING — missing optional env vars
+```
+[certxa] WARNING — missing optional environment variables (some features may be disabled):
+  MISSING: GOOGLE_CLIENT_ID
+          Google OAuth client ID (needed for Google login)
+  MISSING: GOOGLE_AUTH_CALLBACK_URL
+          Google OAuth callback e.g. https://certxa.com/api/auth/google/callback
+```
+**What to do:** The server continues running. Google login will be disabled. Add the vars to `.env` and restart when ready. Other core features (booking, appointments, auth) still work.
+
+### WARNING — port below 8100
+```
+[certxa] WARNING — PORT=5000 is below 8100. All app ports must be 8100+. Defaulting to 8100.
+```
+**What to do:** Update `PORT=8100` in `.env` or `ecosystem.config.cjs`. This override only applies in production (`NODE_ENV=production`).
+
+### Required env vars checked at startup
+| Variable | Behaviour if missing |
+|---|---|
+| `DATABASE_URL` | Hard exit — server will not start |
+| `SESSION_SECRET` | Hard exit — server will not start |
+| `APP_URL` | Hard exit — server will not start |
+| `CORS_ORIGINS` | Warning only — defaults to certxa.com domains |
+| `GOOGLE_CLIENT_ID` | Warning only — Google login disabled |
+| `GOOGLE_AUTH_CALLBACK_URL` | Warning only — Google OAuth will fail |
 
 ---
 
