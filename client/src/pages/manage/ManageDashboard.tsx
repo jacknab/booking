@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, LogOut, Calendar, Globe, CreditCard, ArrowRight,
-  ExternalLink, CheckCircle, Clock, AlertTriangle, Zap,
-  ChevronRight, LayoutDashboard, Settings, Sparkles, RefreshCw,
+  ExternalLink, AlertTriangle, Zap,
+  ChevronRight, LayoutDashboard, Settings, Sparkles, RefreshCw, Radio,
 } from "lucide-react";
 
 interface ManageOverview {
@@ -36,6 +36,7 @@ interface ManageOverview {
       email: string;
       slug: string | null;
     }>;
+    activeCount: number;
   };
 }
 
@@ -331,8 +332,21 @@ export default function ManageDashboard() {
                   </div>
                 </div>
 
-                {launchsite.websites.length > 1 && (
-                  <p className="text-zinc-600 text-xs px-1">+{launchsite.websites.length - 1} more site{launchsite.websites.length - 1 !== 1 ? "s" : ""}</p>
+                {launchsite.websites.length > 0 && (
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5">
+                      <Radio className="w-3 h-3 text-emerald-400" />
+                      <span className="text-xs text-zinc-400">
+                        <span className="font-semibold text-emerald-400">{launchsite.activeCount}</span>
+                        {" "}of{" "}
+                        <span className="font-semibold text-white">{launchsite.websites.length}</span>
+                        {" "}site{launchsite.websites.length !== 1 ? "s" : ""} live
+                      </span>
+                    </div>
+                    {launchsite.websites.length > 1 && (
+                      <span className="text-zinc-600 text-xs">+{launchsite.websites.length - 1} more</span>
+                    )}
+                  </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-2">

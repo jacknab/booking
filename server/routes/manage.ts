@@ -66,7 +66,9 @@ router.get("/overview", requireAuth, async (req: any, res) => {
       websites = [];
     }
 
-    res.json({ user, salonos: { stores }, launchsite: { websites } });
+    const activeCount = websites.filter((w) => w.status === "active").length;
+
+    res.json({ user, salonos: { stores }, launchsite: { websites, activeCount } });
   } catch (err: any) {
     console.error("[Manage] overview error:", err);
     res.status(500).json({ error: "Server error" });
