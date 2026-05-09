@@ -87,3 +87,4 @@ GOOGLE_REDIRECT_URI = "https://04d80595-4e34-4568-a0f2-3042046716cb-00-25h5iy32a
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://certxa.com/api/google-business/callback"
+COOKIE_DOMAIN = ".certxa.com"

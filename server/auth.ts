@@ -24,8 +24,10 @@ export function setupAuth(app: Express) {
     tableName: "sessions",
   });
 
-  // Detect if we are running inside Replit (always HTTPS even in dev mode).
-  const isReplit = !!(process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID);
+  // REPLIT_DEV_DOMAIN is only injected in the Replit dev workspace.
+  // REPL_ID is present in both dev and deployed Replit environments.
+  const isReplitDev = !!process.env.REPLIT_DEV_DOMAIN;
+  const isReplit    = !!(process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID);
 
   // Use secure cookies whenever:
   //   • We are in production mode (VPS with TLS termination), OR
@@ -33,9 +35,11 @@ export function setupAuth(app: Express) {
   const secureCookies = process.env.NODE_ENV === "production" || isReplit;
 
   // Restrict the cookie domain only when COOKIE_DOMAIN is explicitly set (e.g. ".certxa.com").
-  // On Replit or local dev, leave it undefined so the cookie binds to the current origin only.
+  // Skip it in Replit dev — the proxied *.replit.dev origin doesn't need a shared domain.
+  // In Replit production (custom domain) and on the VPS, honour the value so cookies are
+  // shared across subdomains correctly.
   const cookieDomain =
-    !isReplit && process.env.COOKIE_DOMAIN ? process.env.COOKIE_DOMAIN : undefined;
+    !isReplitDev && process.env.COOKIE_DOMAIN ? process.env.COOKIE_DOMAIN : undefined;
 
   app.use(
     session({
