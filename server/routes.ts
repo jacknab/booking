@@ -4349,6 +4349,8 @@ If you have any questions, please contact your administrator.
       return res.status(400).json({ message: "profileId and accountName are required" });
     }
 
+    console.log(`[GBP] /locations — profileId=${profileId}  accountName="${accountName}"`);
+
     try {
       const profiles = await db
         .select()
@@ -4360,21 +4362,40 @@ If you have any questions, please contact your administrator.
         return res.status(404).json({ message: "Profile not found" });
       }
 
+      console.log(`[GBP] /locations — profile storeId=${profiles[0].storeId}  accessToken present: ${!!profiles[0].accessToken}  refreshToken present: ${!!profiles[0].refreshToken}`);
+
       const apiManager = createApiManagerFromProfile(profiles[0]);
       const locationsData = await apiManager.getLocations(accountName);
-      const locs = locationsData.locations ?? [];
+      const locs: any[] = locationsData.locations ?? [];
+
+      console.log(`[GBP] /locations — returning ${locs.length} location(s) to frontend`);
+      locs.forEach((l: any, i: number) => {
+        console.log(`[GBP]   [${i}] name="${l.name}"  title="${l.title ?? "(none)"}"  storefrontAddress=${l.storefrontAddress ? JSON.stringify(l.storefrontAddress) : "(none)"}`);
+      });
+
+      if (locs.length === 0) {
+        console.warn(`[GBP] /locations — ZERO locations returned for account "${accountName}". The user will see a "No Locations Found" dialog.`);
+      }
 
       res.json({ locations: locs });
     } catch (error: any) {
-      console.error("Error fetching locations:", error);
       const status = error?.code ?? error?.response?.status ?? error?.status;
+      const errMsg = error?.message ?? String(error);
+      console.error(`[GBP] /locations FAILED — status=${status ?? "(none)"}  message=${errMsg}`);
+      if (error?.response?.data) {
+        console.error(`[GBP] /locations Google error body: ${JSON.stringify(error.response.data).slice(0, 400)}`);
+      }
       if (status === 429) {
         return res.status(429).json({
-          message:
-            "Google API quota exceeded. Request a quota increase at https://support.google.com/business/contact/api_default_quota_increase before fetching locations.",
+          message: "Google API quota exceeded. Request a quota increase at https://support.google.com/business/contact/api_default_quota_increase before fetching locations.",
         });
       }
-      res.status(500).json({ message: "Failed to fetch locations" });
+      if (status === 403) {
+        return res.status(403).json({
+          message: `Google denied access to locations: ${errMsg}. Ensure the Business Profile API is enabled in your Google Cloud project.`,
+        });
+      }
+      res.status(500).json({ message: `Failed to fetch locations: ${errMsg}` });
     }
   });
 
@@ -4390,6 +4411,8 @@ If you have any questions, please contact your administrator.
       return res.status(400).json({ message: "profileId and locationName are required" });
     }
 
+    console.log(`[GBP] connect-location — profileId=${profileId}  locationName="${locationName}"  locationId="${locationId ?? "(none)"}"  businessName="${businessName ?? "(none)"}"`);
+
     try {
       const updated = await db
         .update(googleBusinessProfiles)
@@ -4403,9 +4426,30 @@ If you have any questions, please contact your administrator.
         .where(eq(googleBusinessProfiles.id, profileId))
         .returning();
 
-      res.json({ message: "Location connected successfully", profile: updated[0] });
-    } catch (error) {
-      console.error("Error connecting location:", error);
+      if (!updated.length) {
+        console.error(`[GBP] connect-location — profile id=${profileId} not found`);
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      const connectedProfile = updated[0];
+      console.log(`[GBP] connect-location — DB updated. storeId=${connectedProfile.storeId}  locationResourceName="${connectedProfile.locationResourceName}"`);
+
+      // ── Auto-trigger review sync immediately after location is connected ──
+      // Fire-and-forget: don't let a sync failure block the connect response.
+      // Errors are logged but not surfaced to the client here.
+      setImmediate(async () => {
+        try {
+          console.log(`[GBP] connect-location — auto-syncing reviews for storeId=${connectedProfile.storeId}…`);
+          const result = await syncGoogleReviews(connectedProfile.storeId);
+          console.log(`[GBP] connect-location — auto-sync complete: ${result.synced} review(s) synced`);
+        } catch (syncErr: any) {
+          console.error(`[GBP] connect-location — auto-sync FAILED for storeId=${connectedProfile.storeId}: ${syncErr?.message ?? syncErr}`);
+        }
+      });
+
+      res.json({ message: "Location connected successfully", profile: connectedProfile, syncTriggered: true });
+    } catch (error: any) {
+      console.error("[GBP] connect-location ERROR:", error?.message ?? error);
       res.status(500).json({ message: "Failed to connect location" });
     }
   });
@@ -4507,13 +4551,42 @@ If you have any questions, please contact your administrator.
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const storeId = Number(req.params.storeId);
+    console.log(`[GBP] Manual sync-reviews triggered for storeId=${storeId}`);
 
     try {
-      await syncGoogleReviews(storeId);
-      res.json({ message: "Reviews synced successfully" });
-    } catch (error) {
-      console.error("Error syncing reviews:", error);
-      res.status(500).json({ message: "Failed to sync reviews" });
+      const result = await syncGoogleReviews(storeId);
+      console.log(`[GBP] sync-reviews complete — synced=${result.synced}  location="${result.locationResourceName}"  business="${result.businessName ?? "(none)"}"`);
+      res.json({
+        message: "Reviews synced successfully",
+        synced: result.synced,
+        locationResourceName: result.locationResourceName,
+        businessName: result.businessName,
+      });
+    } catch (error: any) {
+      const errMsg = error?.message ?? String(error);
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      console.error(`[GBP] sync-reviews FAILED for storeId=${storeId} — status=${status ?? "(none)"}  message=${errMsg}`);
+      if (error?.response?.data) {
+        console.error(`[GBP] sync-reviews Google API error body: ${JSON.stringify(error.response.data).slice(0, 400)}`);
+      }
+
+      // Surface permission/quota errors explicitly to the client
+      if (status === 403) {
+        return res.status(403).json({
+          message: `Google denied access to reviews: ${errMsg}. Ensure the Business Profile API is enabled and business.manage scope is approved.`,
+        });
+      }
+      if (status === 429) {
+        return res.status(429).json({
+          message: "Google Business Profile API quota exceeded. Request a quota increase at https://support.google.com/business/contact/api_default_quota_increase",
+        });
+      }
+      if (status === 404) {
+        return res.status(404).json({
+          message: `Google location not found: ${errMsg}. The location resource name may be incorrect — please reconnect your Google Business Profile.`,
+        });
+      }
+      res.status(500).json({ message: `Failed to sync reviews: ${errMsg}` });
     }
   });
 

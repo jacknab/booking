@@ -77,6 +77,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selectedReview, setSelectedReview] = useState<GoogleReview | null>(null);
@@ -127,12 +128,16 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
     try {
       setSyncing(true);
       setSyncSuccess(false);
-      await axios.post(`/api/google-business/sync-reviews/${storeId}`);
+      setSyncError(null);
+      const response = await axios.post(`/api/google-business/sync-reviews/${storeId}`);
       await Promise.all([loadReviews(), loadStats()]);
       setSyncSuccess(true);
       setTimeout(() => setSyncSuccess(false), 4000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to sync reviews:", error);
+      const msg = error?.response?.data?.message ?? error?.message ?? "Failed to sync reviews. Check server logs for details.";
+      setSyncError(msg);
+      setTimeout(() => setSyncError(null), 10000);
     } finally {
       setSyncing(false);
     }
@@ -184,6 +189,17 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
   return (
     <div className="space-y-6">
+
+      {/* Sync error banner */}
+      {syncError && (
+        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <span className="font-medium">Sync failed: </span>
+            <span>{syncError}</span>
+          </div>
+        </div>
+      )}
 
       {/* Sync Status Bar */}
       <Card className="border-blue-100 bg-blue-50/50">

@@ -115,6 +115,7 @@ export class GoogleBusinessAPIManager {
    * Uses mybusinessaccountmanagement v1 with proper auth.
    */
   async getBusinessAccounts(): Promise<any> {
+    console.log("[GBP] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list");
     // Pass the OAuth client directly into the API constructor
     const service = google.mybusinessaccountmanagement({
       version: "v1",
@@ -122,9 +123,26 @@ export class GoogleBusinessAPIManager {
     });
     try {
       const response = await service.accounts.list({});
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching business accounts:", error);
+      const data = response.data;
+      const accounts: any[] = data.accounts ?? [];
+      console.log(`[GBP] getBusinessAccounts — raw response: ${JSON.stringify(data).slice(0, 500)}`);
+      console.log(`[GBP] getBusinessAccounts — accounts found: ${accounts.length}`);
+      accounts.forEach((a: any, i: number) => {
+        console.log(`[GBP]   [${i}] name="${a.name}"  accountName="${a.accountName ?? "(none)"}"  type="${a.type ?? "(none)"}"  verificationState="${a.verificationState ?? "(none)"}"  vettedState="${a.vettedState ?? "(none)"}"`);
+      });
+      if (accounts.length === 0) {
+        console.warn("[GBP] getBusinessAccounts — ZERO accounts returned. The authenticated Google account has no Business Profile. The user needs to create one at business.google.com.");
+      }
+      return data;
+    } catch (error: any) {
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      const msg = error?.message ?? String(error);
+      const responseBody = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
+      console.error(`[GBP] getBusinessAccounts FAILED — status: ${status}  message: ${msg}`);
+      console.error(`[GBP] getBusinessAccounts FAILED — response body: ${responseBody}`);
+      if (status === 403) {
+        console.error("[GBP] 403: Ensure 'My Business Account Management API' is enabled in Google Cloud Console and the business.manage scope is on the OAuth consent screen.");
+      }
       throw error;
     }
   }
@@ -134,6 +152,7 @@ export class GoogleBusinessAPIManager {
    * Uses mybusinessbusinessinformation v1 with proper auth.
    */
   async getLocations(accountName: string): Promise<any> {
+    console.log(`[GBP] getLocations — account: ${accountName}`);
     const service = google.mybusinessbusinessinformation({
       version: "v1",
       auth: this.oauth2Client,
@@ -141,12 +160,34 @@ export class GoogleBusinessAPIManager {
     try {
       const response = await service.accounts.locations.list({
         parent: accountName,
-        // readMask is required by mybusinessbusinessinformation v1
-        readMask: "name,title,storeCode,storefrontAddress",
+        // readMask is REQUIRED by mybusinessbusinessinformation v1
+        // "title" is the human-readable business name
+        readMask: "name,title,storeCode,storefrontAddress,phoneNumbers,websiteUri",
+      } as any);
+      const data = response.data;
+      const locs: any[] = data.locations ?? [];
+      console.log(`[GBP] getLocations — raw response: ${JSON.stringify(data).slice(0, 500)}`);
+      console.log(`[GBP] getLocations — locations found: ${locs.length}`);
+      locs.forEach((l: any, i: number) => {
+        console.log(`[GBP]   [${i}] name="${l.name}"  title="${l.title ?? "(none)"}"  storeCode="${l.storeCode ?? "(none)"}"`);
+        if (l.storefrontAddress) {
+          console.log(`[GBP]       address: ${JSON.stringify(l.storefrontAddress)}`);
+        }
       });
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching locations:", error);
+      if (locs.length === 0) {
+        console.warn(`[GBP] getLocations — ZERO locations returned for account ${accountName}. The account may have no verified locations in Google Business Profile.`);
+      }
+      return data;
+    } catch (error: any) {
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      const msg = error?.message ?? String(error);
+      console.error(`[GBP] getLocations FAILED — status: ${status}  message: ${msg}`);
+      if (status === 403) {
+        console.error("[GBP] 403: Ensure 'Business Profile API' is enabled in Google Cloud Console and the business.manage scope is approved.");
+      }
+      if (status === 404) {
+        console.error(`[GBP] 404: Account "${accountName}" not found or this token does not have access to it.`);
+      }
       throw error;
     }
   }
@@ -157,15 +198,46 @@ export class GoogleBusinessAPIManager {
    * because the googleapis npm package does not bundle this API.
    */
   async getReviews(locationName: string): Promise<GoogleReviewData[]> {
+    console.log(`[GBP] getReviews — location: ${locationName}`);
+    const url = `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews`;
+    console.log(`[GBP] getReviews — URL: ${url}`);
     try {
-      const response = await this.oauth2Client.request<{ reviews?: GoogleReviewData[] }>({
-        url: `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews`,
+      const response = await this.oauth2Client.request<{
+        reviews?: GoogleReviewData[];
+        totalReviewCount?: number;
+        averageRating?: number;
+        nextPageToken?: string;
+      }>({
+        url,
         method: "GET",
         params: { pageSize: 50 },
       });
-      return response.data.reviews ?? [];
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
+      const reviews = response.data.reviews ?? [];
+      console.log(`[GBP] getReviews — totalReviewCount from API: ${response.data.totalReviewCount ?? "(not returned)"}`);
+      console.log(`[GBP] getReviews — averageRating from API: ${response.data.averageRating ?? "(not returned)"}`);
+      console.log(`[GBP] getReviews — reviews in this page: ${reviews.length}`);
+      if (reviews.length === 0) {
+        console.warn(`[GBP] getReviews — ZERO reviews returned for location "${locationName}". This could mean the location has no reviews, or the API access does not include review data.`);
+        console.warn(`[GBP] getReviews — raw response: ${JSON.stringify(response.data).slice(0, 300)}`);
+      } else {
+        reviews.slice(0, 3).forEach((r: any, i: number) => {
+          console.log(`[GBP]   [${i}] reviewId="${r.name}"  rating="${r.starRating ?? r.rating}"  reviewer="${r.reviewer?.displayName ?? "(none)"}"`);
+        });
+      }
+      return reviews;
+    } catch (error: any) {
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      const msg = error?.message ?? String(error);
+      const responseBody = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
+      console.error(`[GBP] getReviews FAILED — location: ${locationName}`);
+      console.error(`[GBP] getReviews FAILED — status: ${status}  message: ${msg}`);
+      console.error(`[GBP] getReviews FAILED — response body: ${responseBody}`);
+      if (status === 403) {
+        console.error("[GBP] 403 on reviews: The Business Profile API may not have reviews scope, or the location does not belong to this account.");
+      }
+      if (status === 404) {
+        console.error(`[GBP] 404 on reviews: Location resource "${locationName}" not found. Verify the location name format is exactly as returned by getLocations (e.g. accounts/123/locations/456).`);
+      }
       throw error;
     }
   }
@@ -248,11 +320,14 @@ export function createApiManagerFromProfile(profile: {
 
 /**
  * Sync reviews from Google for a store and upsert into the local database.
+ * Returns a summary of what was synced so callers can include it in API responses.
  */
 export async function syncGoogleReviews(
   storeId: number,
   _legacyOAuth2Client?: OAuth2Client   // signature kept for backward compat
-): Promise<void> {
+): Promise<{ synced: number; locationResourceName: string; businessName: string | null }> {
+  console.log(`[GBP:sync] ── Starting sync for storeId=${storeId} ───────────────`);
+
   // Load the stored profile
   const profiles = await db
     .select()
@@ -260,22 +335,47 @@ export async function syncGoogleReviews(
     .where(eq(googleBusinessProfiles.storeId, storeId))
     .limit(1);
 
-  if (!profiles.length || !profiles[0].locationResourceName) {
+  if (!profiles.length) {
+    const msg = `[GBP:sync] No Google Business Profile row found for storeId=${storeId}`;
+    console.error(msg);
     throw new Error("Google Business Profile not connected for this store");
   }
 
   const googleProfile = profiles[0];
+  console.log(`[GBP:sync] Profile found — id=${googleProfile.id}  isConnected=${googleProfile.isConnected}  businessName="${googleProfile.businessName ?? "(none)"}"  locationResourceName="${googleProfile.locationResourceName ?? "(none)"}"`);
+  console.log(`[GBP:sync]   accessToken present: ${!!googleProfile.accessToken}  refreshToken present: ${!!googleProfile.refreshToken}`);
+  console.log(`[GBP:sync]   tokenExpiresAt: ${googleProfile.tokenExpiresAt?.toISOString() ?? "(none)"}`);
+
+  if (!googleProfile.locationResourceName) {
+    const msg = `[GBP:sync] locationResourceName is NULL for storeId=${storeId}. User must complete location selection in the Google Business setup.`;
+    console.error(msg);
+    throw new Error("No location connected. Please reconnect your Google Business Profile and select a location.");
+  }
+
+  if (!googleProfile.accessToken) {
+    const msg = `[GBP:sync] accessToken is NULL for storeId=${storeId}. Re-authentication required.`;
+    console.error(msg);
+    throw new Error("Google access token missing. Please reconnect your Google Business Profile.");
+  }
+
   const apiManager = createApiManagerFromProfile(googleProfile);
 
   // Fetch reviews from the Google API
-  const reviews = await apiManager.getReviews(googleProfile.locationResourceName!);
+  console.log(`[GBP:sync] Calling getReviews for location: ${googleProfile.locationResourceName}`);
+  const reviews = await apiManager.getReviews(googleProfile.locationResourceName);
+  console.log(`[GBP:sync] getReviews returned ${reviews.length} review(s)`);
 
   // Upsert each review into the database
+  let insertedCount = 0;
+  let updatedCount = 0;
+
   for (const review of reviews) {
     const googleReviewId = review.name.split("/").pop() ?? review.name;
     const rating = normalizeStarRating((review as any).starRating ?? (review as any).rating);
     const reviewText = review.comment ?? (review as any).reviewText;
     const hasReply = !!(review.reviewReply ?? review.publisherResponse);
+
+    console.log(`[GBP:sync]   review="${googleReviewId}"  rating=${rating}  reviewer="${review.reviewer?.displayName ?? "Anonymous"}"  hasReply=${hasReply}`);
 
     const existing = await db
       .select()
@@ -297,6 +397,7 @@ export async function syncGoogleReviews(
         reviewerLanguageCode: "en",
         responseStatus: hasReply ? "responded" : "not_responded",
       });
+      insertedCount++;
     } else {
       await db
         .update(googleReviews)
@@ -307,6 +408,7 @@ export async function syncGoogleReviews(
           updatedAt: new Date(),
         })
         .where(eq(googleReviews.googleReviewId, googleReviewId));
+      updatedCount++;
     }
   }
 
@@ -316,7 +418,13 @@ export async function syncGoogleReviews(
     .set({ lastSyncedAt: new Date() })
     .where(eq(googleBusinessProfiles.id, googleProfile.id));
 
-  console.log(`Synced ${reviews.length} reviews for store ${storeId}`);
+  console.log(`[GBP:sync] ── Sync complete for storeId=${storeId}: ${reviews.length} reviews (${insertedCount} new, ${updatedCount} updated) ──`);
+
+  return {
+    synced: reviews.length,
+    locationResourceName: googleProfile.locationResourceName,
+    businessName: googleProfile.businessName,
+  };
 }
 
 /**
