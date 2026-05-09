@@ -86,13 +86,13 @@ async function buildReminderEmail(email: string, firstName: string | null, daysL
             Keep your booking calendar, website, client data, and everything else you've built —
             just subscribe before your trial ends.
           </p>
-          <a href="https://certxa.com/manage/billing"
+          <a href="${process.env.APP_URL || ""}/manage/billing"
              style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:10px;margin-bottom:24px;">
             Choose a plan →
           </a>
           <p style="margin:0;color:#52525b;font-size:13px;">
             Questions? Reply to this email or visit
-            <a href="https://certxa.com" style="color:#8b5cf6;">certxa.com</a>.
+            <a href="${process.env.APP_URL || ""}" style="color:#8b5cf6;">${process.env.APP_URL ? new URL(process.env.APP_URL).hostname : "our website"}</a>.
           </p>
         </td></tr>
         <tr><td style="padding:20px 36px;border-top:1px solid #27272a;">

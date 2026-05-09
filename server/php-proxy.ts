@@ -5,8 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import type { Request, Response, NextFunction } from "express";
 
-const PHP_PORT = 8104;
-const PHP_HOST = "127.0.0.1";
+const PHP_PORT = parseInt(process.env.PHP_PORT || "8104", 10);
+const PHP_HOST = process.env.PHP_HOST || "127.0.0.1";
 const PHP_BASE_URL = `http://${PHP_HOST}:${PHP_PORT}`;
 
 let phpProcess: ChildProcess | null = null;

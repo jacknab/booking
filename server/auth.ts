@@ -32,10 +32,10 @@ export function setupAuth(app: Express) {
   //   • We are inside Replit (proxied HTTPS regardless of NODE_ENV).
   const secureCookies = process.env.NODE_ENV === "production" || isReplit;
 
-  // Only restrict the cookie domain to *.certxa.com on the real production VPS.
-  // On Replit the domain is the *.replit.dev domain, so leave it undefined there.
+  // Restrict the cookie domain only when COOKIE_DOMAIN is explicitly set (e.g. ".certxa.com").
+  // On Replit or local dev, leave it undefined so the cookie binds to the current origin only.
   const cookieDomain =
-    process.env.NODE_ENV === "production" && !isReplit ? ".certxa.com" : undefined;
+    !isReplit && process.env.COOKIE_DOMAIN ? process.env.COOKIE_DOMAIN : undefined;
 
   app.use(
     session({

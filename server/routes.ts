@@ -1115,7 +1115,7 @@ export async function registerRoutes(
               </p>
             </div>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'https://www.mysalon.me'}/staff-auth" 
+              <a href="${process.env.FRONTEND_URL || process.env.APP_URL || ''}/staff-auth" 
                  style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Log In to Staff Portal
               </a>
@@ -1139,7 +1139,7 @@ Temporary Password: ${tempPassword}
 
 Important: Please log in and change your password as soon as possible.
 
-Log in at: ${process.env.FRONTEND_URL || 'https://www.mysalon.me'}/staff-auth
+Log in at: ${process.env.FRONTEND_URL || process.env.APP_URL || ''}/staff-auth
 
 If you have any questions, please contact your administrator.
       `;
@@ -6850,7 +6850,7 @@ If you have any questions, please contact your administrator.
       // Build invite URL
       const baseUrl = process.env.REPLIT_DEV_DOMAIN
         ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : (process.env.APP_URL || "https://certxa.com");
+        : (process.env.APP_URL || "");
       const inviteUrl = `${baseUrl}/accept-invite?token=${inviteToken}`;
 
       // Send invite email (gracefully falls back if Mailgun not configured)

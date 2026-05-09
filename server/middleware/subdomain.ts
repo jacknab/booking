@@ -14,6 +14,10 @@ declare global {
   }
 }
 
+// Derive the app domain from APP_URL so no domain name is hardcoded here.
+const _appUrl = process.env.APP_URL || "";
+const _appDomain = (() => { try { return _appUrl ? new URL(_appUrl).hostname : ""; } catch { return ""; } })();
+
 // Reserved subdomains that should never be treated as user sites
 const RESERVED_SUBDOMAINS = new Set([
   'www', 'app', 'api', 'mail', 'ftp', 'admin', 'certxa',
@@ -124,11 +128,11 @@ function renderNotFoundPage(requestedDomain: string, matches: SlugMatch[]): stri
 
   const suggestions = matches
     .map(m => {
-      const url = `https://${m.slug}.certxa.com`;
+      const url = `https://${m.slug}.${_appDomain || "localhost"}`;
       return `<a href="${url}" class="match-link">
         <span class="match-icon">🌐</span>
         <span class="match-text">
-          <span class="match-url">${m.slug}.certxa.com</span>
+          <span class="match-url">${m.slug}.${_appDomain || "localhost"}</span>
           <span class="match-name">${m.businessName}</span>
         </span>
         <span class="match-arrow">→</span>
@@ -255,7 +259,7 @@ function renderNotFoundPage(requestedDomain: string, matches: SlugMatch[]): stri
          <div class="matches">${suggestions}</div>`
       : `<p class="subtitle">That address doesn't exist on Certxa and we couldn't find anything similar. Double-check the URL and try again.</p>`
     }
-    <a href="https://certxa.com" class="back-link">← Back to certxa.com</a>
+    <a href="${_appUrl || "/"}" class="back-link">← Back to ${_appDomain || "home"}</a>
   </div>
 </body>
 </html>`;
@@ -267,9 +271,10 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
   const host = (hostHeader || req.headers.host || "").split(":")[0];
   const parts = host.split('.');
 
-  // Only act on subdomains of certxa.com or localhost — ignore Replit dev domains and any other hosts
+  // Only act on subdomains of the configured app domain or localhost.
+  // Replit dev domains and any other hosts are passed through immediately.
   const rootDomain = parts.slice(-2).join('.');
-  if (rootDomain !== 'certxa.com' && rootDomain !== 'localhost') return next();
+  if (rootDomain !== _appDomain && rootDomain !== 'localhost') return next();
 
   // Only act on subdomains: slug.certxa.com or slug.localhost
   if (parts.length < 2) return next();
@@ -314,7 +319,7 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
         a{color:#a78bfa;text-decoration:none;} a:hover{text-decoration:underline;}</style>
         </head><body><div class="box"><h1>${row.business_name}</h1>
         <p>This website is currently inactive.</p>
-        <p>The account's free trial has ended. <a href="https://certxa.com">Learn more at certxa.com</a></p>
+        <p>The account's free trial has ended. <a href="${_appUrl || "/"}">Learn more</a></p>
         </div></body></html>`);
     }
 
@@ -341,7 +346,7 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
     // 3. No exact match found — look for close slug matches and show smart not-found page
     // Only trigger this for subdomains that look like user sites (not API/asset paths)
     if (req.path === '/' || req.path === '') {
-      const requestedDomain = `${subdomain}.certxa.com`;
+      const requestedDomain = `${subdomain}.${_appDomain || "localhost"}`;
       const closeMatches = await findCloseSlugs(subdomain);
       return res.status(404).send(renderNotFoundPage(requestedDomain, closeMatches));
     }

@@ -95,13 +95,21 @@ const rawCorsOrigins =
   process.env.CORS_ORIGIN ||
   "";
 const allowAllCorsOrigins = process.env.CORS_ALLOW_ALL === "true";
-const defaultCorsOrigins = [
-  "https://certxa.com",
-  "https://www.certxa.com",
-  "https://manage.certxa.com",
+
+// Derive the public-facing domain from APP_URL so no domain name is hardcoded.
+const _appUrl = process.env.APP_URL || "";
+const _appDomain = (() => { try { return _appUrl ? new URL(_appUrl).hostname : ""; } catch { return ""; } })();
+
+const defaultCorsOrigins: string[] = [
+  ...(_appUrl ? [_appUrl] : []),
+  ...(_appDomain ? [`https://www.${_appDomain}`, `https://manage.${_appDomain}`] : []),
 ];
 if (process.env.NODE_ENV !== "production") {
-  defaultCorsOrigins.push("http://localhost:8101", "http://localhost:8102");
+  // Allow additional local-dev ports via DEV_CORS_PORTS env var (comma-separated).
+  // The main app is on port 5000 (same-origin), so extra ports are only needed
+  // when running a standalone Vite dev server separately.
+  const devPorts = (process.env.DEV_CORS_PORTS || "").split(",").map(p => p.trim()).filter(Boolean);
+  devPorts.forEach(p => defaultCorsOrigins.push(`http://localhost:${p}`));
 }
 const allowedCorsOrigins = (rawCorsOrigins ? rawCorsOrigins.split(",") : defaultCorsOrigins)
   .map((origin) => origin.trim())
@@ -160,8 +168,8 @@ const corsOptions: cors.CorsOptions = {
     if (!origin) return callback(null, true);
     if (allowAllCorsOrigins) return callback(null, true);
     if (allowedCorsOrigins.includes(origin)) return callback(null, true);
-    // Allow any *.certxa.com subdomain (manage., booking slugs, user sites, etc.)
-    if (origin.endsWith(".certxa.com") || origin === "https://certxa.com") return callback(null, true);
+    // Allow any subdomain of the configured app domain (manage., booking slugs, user sites, etc.)
+    if (_appDomain && (origin.endsWith(`.${_appDomain}`) || origin === _appUrl)) return callback(null, true);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -190,7 +198,7 @@ app.use((req, res, next) => {
     : "connect-src 'self' https:;";
   res.setHeader(
     "Content-Security-Policy",
-    `default-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.googletagmanager.com https://certxa.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.googletagmanager.com https://certxa.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https:; ${cspConnectSrc} frame-src 'self' https://certxa.com;`
+    `default-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.googletagmanager.com${_appUrl ? ` ${_appUrl}` : ""}; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.googletagmanager.com${_appUrl ? ` ${_appUrl}` : ""}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https:; ${cspConnectSrc} frame-src 'self'${_appUrl ? ` ${_appUrl}` : ""};`
   );
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
@@ -283,7 +291,7 @@ app.get("/api/health", async (_req, res) => {
     app_url:         process.env.APP_URL ?? "(not set)",
     checks: {
       database: { status: dbStatus, ...(dbError ? { error: dbError } : {}) },
-      php:      { status: phpStatus, port: 8104 },
+      php:      { status: phpStatus, port: parseInt(process.env.PHP_PORT || "8104", 10) },
       env_vars: envVars,
     },
   });

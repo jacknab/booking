@@ -4,11 +4,10 @@ import { storage } from "./storage";
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   // Dynamic callback URL based on environment
-  const callbackURL = process.env.GOOGLE_AUTH_CALLBACK_URL || (
-    process.env.NODE_ENV === "production"
-      ? "https://certxa.com/api/auth/google/callback"
-      : `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
-  );
+  // GOOGLE_AUTH_CALLBACK_URL must be set explicitly in production.
+  // In development on Replit, fall back to the Replit dev domain.
+  const _base = process.env.APP_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000");
+  const callbackURL = process.env.GOOGLE_AUTH_CALLBACK_URL || `${_base}/api/auth/google/callback`;
 
   passport.use(
     new GoogleStrategy(

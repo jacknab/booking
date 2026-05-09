@@ -79,8 +79,12 @@ router.get("/overview", requireAuth, async (req: any, res) => {
 router.post("/logout", (req: any, res) => {
   req.session.destroy((err: any) => {
     if (err) return res.status(500).json({ error: "Logout failed" });
+    // Cookie domain: in production restrict to the configured app domain so the
+    // cookie is cleared across all subdomains. On Replit / local dev, omit the
+    // domain so the browser clears the cookie for the current origin only.
+    const _cookieDomain = process.env.COOKIE_DOMAIN || undefined;
     res.clearCookie("connect.sid", {
-      domain: process.env.NODE_ENV === "production" ? ".certxa.com" : undefined,
+      domain: _cookieDomain,
       path: "/",
     });
     res.json({ ok: true });
