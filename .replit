@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
+modules = ["nodejs-20", "web", "python-3.11", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -8,10 +8,6 @@ channel = "stable-25_05"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5063
-externalPort = 3003
 
 [[ports]]
 localPort = 8008
@@ -64,7 +60,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "NODE_ENV=development node_modules/.bin/tsx server/index.ts"
 waitForPort = 5000
 
 [agent]
