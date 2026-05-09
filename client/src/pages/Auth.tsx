@@ -43,7 +43,7 @@ const TRIAL_FEATURES = [
   { icon: Globe,        text: "Online booking widget" },
   { icon: CreditCard,   text: "Point of Sale & payments" },
   { icon: Users,        text: "Staff management" },
-  { icon: MessageSquare,text: "SMS & email reminders" },
+  { icon: MessageSquare,text: "SMS & email reminders (credits sold separately)" },
   { icon: Star,         text: "Loyalty program & rewards" },
   { icon: Gift,         text: "Gift cards" },
   { icon: Clock,        text: "Waitlist & virtual queue" },
@@ -355,9 +355,22 @@ export default function Auth() {
               </button>
 
               {mode === "register" && (
-                <p style={{ textAlign: "center", fontSize: ".72rem", color: "#9ca3af", margin: "-4px 0 0" }}>
-                  Full access to everything. Cancel any time.
-                </p>
+                <div style={{ margin: "-4px 0 0" }}>
+                  <p style={{ textAlign: "center", fontSize: ".72rem", color: "#9ca3af", marginBottom: 8 }}>
+                    Complete access to all features for 60 days. No credit card required.
+                  </p>
+                  <div style={{
+                    display: "flex", alignItems: "flex-start", gap: 7,
+                    background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.22)",
+                    borderRadius: 8, padding: "7px 10px",
+                  }}>
+                    <span style={{ fontSize: ".8rem", lineHeight: 1, marginTop: 1, flexShrink: 0 }}>📱</span>
+                    <p style={{ fontSize: ".7rem", color: "#b45309", lineHeight: 1.45, margin: 0 }}>
+                      <strong style={{ color: "#92400e" }}>SMS not included in trial.</strong>{" "}
+                      To send SMS reminders and notifications, you'll need to purchase an SMS package from your dashboard after signing up.
+                    </p>
+                  </div>
+                </div>
               )}
             </form>
 
@@ -504,10 +517,20 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
           Free for 60 days.
         </h2>
 
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 380, margin: "0 0 36px" }}>
-          No credit card required. No feature limits. No tricks.
-          Just the full platform from day one.
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 380, margin: "0 0 16px" }}>
+          No credit card required. Complete access to every feature for 60 days.
         </p>
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 8,
+          background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)",
+          borderRadius: 10, padding: "9px 13px", maxWidth: 380, marginBottom: 36,
+        }}>
+          <span style={{ fontSize: ".85rem", lineHeight: 1, marginTop: 2, flexShrink: 0 }}>📱</span>
+          <p style={{ fontSize: ".78rem", color: "rgba(253,211,77,0.8)", lineHeight: 1.5, margin: 0 }}>
+            <strong style={{ color: "#FCD34D" }}>SMS credits not included.</strong>{" "}
+            Purchase an SMS package from your dashboard to activate text reminders and notifications.
+          </p>
+        </div>
 
         {/* Feature grid */}
         <div style={{ marginBottom: 32 }}>
