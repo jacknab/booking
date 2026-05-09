@@ -179,3 +179,9 @@ id = "Fk5ICQdAiyItrIPiS5uzR"
 uri = "file://docs/elite-api-access.md"
 type = "text"
 title = "Certxa Elite — API Access & Integrations"
+
+[[outputs]]
+id = "OcSfBSWW2A-vC18Rhk7Th"
+uri = "file://certxa-pricing-suggestions.md"
+type = "text"
+title = "Certxa Pricing Page — Outstanding Suggestions"
