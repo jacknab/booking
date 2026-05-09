@@ -497,11 +497,11 @@ require 'includes/nav.php';
           </tr>
           <tr>
             <td>Gift cards</td>
-            <td class="ct-check">✓</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
+            <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
             <td>Next-day payouts</td>
-            <td class="ct-check">✓</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
+            <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
             <td>Commission tracking</td>
