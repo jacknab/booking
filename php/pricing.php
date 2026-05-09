@@ -431,7 +431,7 @@ require 'includes/nav.php';
           </tr>
           <tr>
             <td>Deposits & prepayments</td>
-            <td class="ct-check">✓</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
+            <td class="ct-cross">–</td><td class="ct-cross featured-col">–</td><td class="ct-cross">–</td>
           </tr>
           <tr>
             <td>Multi-location booking</td>
