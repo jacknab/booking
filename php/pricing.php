@@ -42,10 +42,10 @@ define('PAGE_SCHEMA', json_encode([
       ],
       [
         '@type'           => 'Offer',
-        'name'            => 'Enterprise Plan',
-        'price'           => '129',
+        'name'            => 'Elite Plan',
+        'price'           => '79',
         'priceCurrency'   => 'USD',
-        'description'     => 'For multi-location salon businesses. All features, multi-location management, white-label booking, API access, and dedicated account manager.',
+        'description'     => 'For multi-location businesses. All features, done-for-you setup, API access, 50,000 SMS credits/month, and priority support.',
         'billingIncrement' => 'P1M',
       ],
     ],
@@ -268,8 +268,8 @@ require 'includes/nav.php';
             [true,  'Up to 500 client profiles'],
             [true,  'SMS & email reminders (200/mo)'],
             [true,  'Basic website builder'],
-            [true,  'Payments & card reader'],
-            [true,  'iOS & Android app'],
+            [false, 'Payments & card reader'],
+            [false, 'iOS & Android app'],
             [false, 'Reserve With Google'],
             [false, 'Automated review requests'],
             [false, 'Advanced reporting'],
@@ -306,14 +306,14 @@ require 'includes/nav.php';
         [
           'name'        => 'Elite',
           'tagline'     => 'For multi-location businesses and high-volume salon groups.',
-          'monthly'     => '119',
-          'annual'      => '95',
+          'monthly'     => '79',
+          'annual'      => '63',
           'old_monthly' => null,
-          'old_annual'  => '119',
+          'old_annual'  => null,
           'period'      => '/month',
-          'billing'     => 'Billed monthly — or $95/mo billed annually',
+          'billing'     => 'Billed monthly — or $63/mo billed annually',
           'featured'    => false,
-          'cta_label'   => 'See Pricing',
+          'cta_label'   => 'See Details',
           'cta_class'   => 'btn-secondary',
           'features'    => [
             [true,  'Everything in Professional, plus:'],
@@ -407,7 +407,7 @@ require 'includes/nav.php';
             <th style="width:34%;"></th>
             <th><div class="plan-header">Solo</div><div class="plan-header-price">From $7/mo</div></th>
             <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $18/mo ⭐</div></th>
-            <th><div class="plan-header">Elite</div><div class="plan-header-price">From $95/mo</div></th>
+            <th><div class="plan-header">Elite</div><div class="plan-header-price">From $63/mo</div></th>
           </tr>
         </thead>
         <tbody>
@@ -489,7 +489,7 @@ require 'includes/nav.php';
           <tr class="section-row"><td colspan="4">Payments & POS</td></tr>
           <tr>
             <td>Card reader & POS</td>
-            <td class="ct-check">✓</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
+            <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
             <td>Transaction fee (UK cards)</td>
@@ -706,7 +706,7 @@ function setBilling(type) {
   const notes = {
     solo:         isAnnual ? 'Billed annually as $84/year — save $24' : 'Billed monthly, cancel any time',
     professional: isAnnual ? 'Billed annually as $216/year — save $48' : 'Billed monthly, cancel any time',
-    elite:        isAnnual ? 'Billed annually as $1,140/year — save $288' : 'Billed monthly, cancel any time',
+    elite:        isAnnual ? 'Billed annually as $756/year — save $192' : 'Billed monthly, cancel any time',
   };
   Object.keys(notes).forEach(k => {
     const el = document.getElementById('note-' + k);
