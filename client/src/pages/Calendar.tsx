@@ -12,7 +12,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical, Plus } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -663,11 +663,18 @@ export default function Calendar() {
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Button onClick={() => setShowNewApptMenu(v => !v)} data-testid="button-new-appointment" className={cn("gap-3", isMobile && "hidden")}>
-              <Sparkle className="w-4 h-4 fill-current" />
-              <Sparkle className="w-4 h-4 fill-current" />
-              <Sparkle className="w-4 h-4 fill-current" />
-            </Button>
+            <button
+              onClick={() => setShowNewApptMenu(v => !v)}
+              data-testid="button-new-appointment"
+              aria-label="New appointment"
+              className={cn(
+                "flex items-center justify-center rounded-full shadow-lg hover:opacity-90 active:scale-95 transition-all duration-100",
+                isMobile && "hidden"
+              )}
+              style={{ width: 44, height: 44, backgroundColor: "#0f172a" }}
+            >
+              <Plus className="w-5 h-5 text-white" />
+            </button>
             {showNewApptMenu && (
               <>
                 <div
