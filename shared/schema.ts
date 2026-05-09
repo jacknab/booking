@@ -47,6 +47,14 @@ export type {
   ClientWithDetails,
 } from "./schema/clients";
 
+// Re-export api-keys table so drizzle-kit includes it in db:push
+export { apiKeys } from "./schema/api-keys";
+export type { ApiKey, InsertApiKey } from "./schema/api-keys";
+
+// Re-export campaigns table so drizzle-kit includes it in db:push
+export { campaigns } from "./schema/campaigns";
+export type { Campaign, InsertCampaign } from "./schema/campaigns";
+
 // Re-export billing schema tables so callers can import from @shared/schema
 export {
   billingPlans,
