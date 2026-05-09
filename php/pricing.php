@@ -521,10 +521,7 @@ require 'includes/nav.php';
             <td>Instagram gallery sync</td>
             <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
-          <tr>
-            <td>Branded client app</td>
-            <td class="ct-cross">–</td><td class="ct-cross featured-col">–</td><td class="ct-check">✓</td>
-          </tr>
+
 
           <tr class="section-row"><td colspan="4">Reporting & Support</td></tr>
           <tr>
@@ -565,7 +562,7 @@ require 'includes/nav.php';
         ['$12', '/mo', 'Advanced Analytics', 'Deep-dive reporting with custom date ranges, staff breakdowns, and CSV exports for your accountant.'],
         ['$19', '/mo', 'Two-Way SMS', 'Let clients reply to reminder texts directly. Messages land in your Certxa inbox for easy management.'],
         ['$7', '/mo', 'Extra SMS Bundle', '500 additional SMS messages per month for high-volume salons who need more than their plan includes.'],
-        ['$25', '/mo', 'Branded Client App', 'Your own white-label iOS and Android app with your logo, colours, and name in the App Store.'],
+
         ['Free', '', 'Reserve With Google', 'Included on Professional and Elite. Connect your Google listing and take bookings directly from search results.'],
       ];
       foreach ($addons as $a):
