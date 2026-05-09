@@ -444,7 +444,7 @@ export default function NewBooking() {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-background overflow-hidden">
+    <div className="h-screen w-screen flex bg-[#F7F5F0] overflow-hidden">
       {/* ── SERVICES STEP ── */}
       {step === "services" && (
         <>

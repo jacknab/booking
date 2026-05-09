@@ -2868,15 +2868,15 @@ function ChooseClientPanel({
           className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
           onClick={onClose}
         />
-        <div className="absolute right-0 top-0 h-full w-full sm:w-[740px] bg-background flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
-          <div className="px-4 py-4 flex items-center justify-between gap-2 bg-gray-950">
+        <div className="absolute right-0 top-0 h-full w-full sm:w-[740px] bg-[#F7F5F0] flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+          <div className="px-4 py-4 flex items-center justify-between gap-2 bg-white border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-back-name-entry">
+              <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={() => { setShowNameEntry(false); setClientName(""); setPhoneDigits(""); setSearchDone(false); setShiftActive(true); }} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" data-testid="button-back-name-entry">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <span className="font-semibold text-sm text-white">Enter Client Name</span>
+              <span className="font-semibold text-sm text-gray-900">Enter Client Name</span>
             </div>
-            <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={onClose} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-close-name-entry">
+            <Button variant="ghost" size="icon" onPointerDown={e => e.preventDefault()} onClick={onClose} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" data-testid="button-close-name-entry">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -3022,35 +3022,35 @@ function ChooseClientPanel({
         className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-card flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-[#F7F5F0] flex flex-col shadow-[-8px_0_24px_rgba(0,0,0,0.12)] border-l">
         {/* Header */}
-        <div className="px-4 py-4 flex items-center justify-between gap-2 bg-gray-950">
+        <div className="px-4 py-4 flex items-center justify-between gap-2 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={onClose} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-back-client-lookup">
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" data-testid="button-back-client-lookup">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <span className="font-semibold text-base text-white">Choose A Client</span>
+            <span className="font-semibold text-base text-gray-900">Choose A Client</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-white/70 hover:text-white hover:bg-white/10" data-testid="button-close-client-lookup">
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-900 hover:bg-gray-100" data-testid="button-close-client-lookup">
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Content fills all remaining height — bottom padding clears the mobile nav bar (56px + safe area) */}
         <div
-          className="flex-1 flex flex-col px-4 pt-5 min-h-0 bg-gray-950 md:pb-4"
+          className="flex-1 flex flex-col px-4 pt-5 min-h-0 bg-[#F7F5F0] md:pb-4"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)" }}
         >
           {/* Phone number display */}
-          <div className="w-full rounded-2xl bg-gray-900 border border-gray-800 py-6 px-4 mb-5 text-center">
+          <div className="w-full rounded-2xl bg-white border border-gray-200 shadow-sm py-6 px-4 mb-5 text-center">
             {phoneDigits.length > 0 ? (
               <p className="text-4xl font-bold tracking-widest text-primary" data-testid="text-phone-display">
                 {formatPhone(phoneDigits)}
               </p>
             ) : (
               <>
-                <p className="text-base font-semibold text-white" data-testid="text-enter-phone">Enter Phone Number</p>
-                <p className="text-sm text-white/40 mt-1 flex items-center justify-center gap-1.5">
+                <p className="text-base font-semibold text-gray-900" data-testid="text-enter-phone">Enter Phone Number</p>
+                <p className="text-sm text-gray-400 mt-1 flex items-center justify-center gap-1.5">
                   Tap <PersonStanding className="w-4 h-4 inline" /> for walk-in
                 </p>
               </>
@@ -3072,7 +3072,7 @@ function ChooseClientPanel({
                         type="button"
                         onPointerDown={e => e.preventDefault()}
                         onClick={onWalkIn}
-                        className="flex-1 rounded-2xl bg-gray-800 text-white/50 flex items-center justify-center hover:bg-gray-700 active:scale-95 transition-all"
+                        className="flex-1 rounded-2xl bg-gray-200 text-gray-500 flex items-center justify-center hover:bg-gray-300 active:scale-95 transition-all"
                         data-testid="numpad-walkin"
                       >
                         <PersonStanding className="w-7 h-7" />
@@ -3089,7 +3089,7 @@ function ChooseClientPanel({
                         type="button"
                         onPointerDown={e => e.preventDefault()}
                         onClick={handleBackspace}
-                        className="flex-1 rounded-2xl bg-gray-800 text-white/50 flex items-center justify-center hover:bg-gray-700 active:scale-95 transition-all"
+                        className="flex-1 rounded-2xl bg-gray-200 text-gray-500 flex items-center justify-center hover:bg-gray-300 active:scale-95 transition-all"
                         data-testid="numpad-backspace"
                       >
                         <Delete className="w-7 h-7" />
@@ -3102,7 +3102,7 @@ function ChooseClientPanel({
                       type="button"
                       onPointerDown={e => e.preventDefault()}
                       onClick={() => handleDigit(key)}
-                      className="flex-1 rounded-2xl bg-gray-800 text-3xl font-bold text-white hover:bg-gray-700 active:scale-95 transition-all"
+                      className="flex-1 rounded-2xl bg-white text-3xl font-bold text-gray-900 shadow-sm border border-gray-100 hover:bg-gray-50 active:scale-95 transition-all"
                       data-testid={`numpad-${key}`}
                     >
                       {key}
