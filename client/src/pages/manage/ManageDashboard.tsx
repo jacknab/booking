@@ -307,47 +307,28 @@ export default function ManageDashboard() {
               />
             ) : (
               <div className="space-y-4">
-                <div className="bg-white/[0.04] rounded-xl border border-white/[0.06] px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-white font-semibold text-sm truncate">{primarySite.business_name}</p>
-                    {primarySite.slug ? (
-                      <p className="text-zinc-500 text-xs mt-0.5">{primarySite.slug}.certxa.com</p>
-                    ) : (
-                      <p className="text-zinc-600 text-xs mt-0.5">Domain not assigned</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <SiteStatusBadge status={primarySite.status} />
-                    {primarySite.slug && (
-                      <a
-                        href={`https://${primarySite.slug}.certxa.com`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-zinc-600 hover:text-zinc-300 transition-colors"
-                        title="View website"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
+                {/* Site list — up to 3, each with a health dot */}
+                <div className="space-y-1.5">
+                  {launchsite.websites.slice(0, 3).map((site) => (
+                    <SiteHealthRow key={site.id} site={site} />
+                  ))}
+                  {launchsite.websites.length > 3 && (
+                    <p className="text-zinc-600 text-xs px-1 pt-0.5">
+                      +{launchsite.websites.length - 3} more site{launchsite.websites.length - 3 !== 1 ? "s" : ""}
+                    </p>
+                  )}
                 </div>
 
-                {launchsite.websites.length > 0 && (
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-1.5">
-                      <Radio className="w-3 h-3 text-emerald-400" />
-                      <span className="text-xs text-zinc-400">
-                        <span className="font-semibold text-emerald-400">{launchsite.activeCount}</span>
-                        {" "}of{" "}
-                        <span className="font-semibold text-white">{launchsite.websites.length}</span>
-                        {" "}site{launchsite.websites.length !== 1 ? "s" : ""} live
-                      </span>
-                    </div>
-                    {launchsite.websites.length > 1 && (
-                      <span className="text-zinc-600 text-xs">+{launchsite.websites.length - 1} more</span>
-                    )}
-                  </div>
-                )}
+                {/* Live count summary */}
+                <div className="flex items-center gap-1.5 px-1">
+                  <Radio className="w-3 h-3 text-emerald-400" />
+                  <span className="text-xs text-zinc-400">
+                    <span className="font-semibold text-emerald-400">{launchsite.activeCount}</span>
+                    {" "}of{" "}
+                    <span className="font-semibold text-white">{launchsite.websites.length}</span>
+                    {" "}site{launchsite.websites.length !== 1 ? "s" : ""} live
+                  </span>
+                </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <a
@@ -523,17 +504,63 @@ function BillingStatCard({
   );
 }
 
+const SITE_STATUS_MAP: Record<string, { label: string; cls: string; dot: string; pulse: boolean }> = {
+  active:          { label: "Live",    cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25", dot: "bg-emerald-400", pulse: true  },
+  pending:         { label: "Pending", cls: "bg-amber-500/15 text-amber-400 border-amber-500/25",       dot: "bg-amber-400",  pulse: false },
+  pending_payment: { label: "Pending", cls: "bg-amber-500/15 text-amber-400 border-amber-500/25",       dot: "bg-amber-400",  pulse: false },
+  inactive:        { label: "Offline", cls: "bg-zinc-700/20 text-zinc-400 border-zinc-600/25",          dot: "bg-zinc-500",   pulse: false },
+};
+
+function getSiteStatus(status: string) {
+  return SITE_STATUS_MAP[status] ?? SITE_STATUS_MAP["active"];
+}
+
 function SiteStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    active:          { label: "Live",    cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
-    pending_payment: { label: "Pending", cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
-    inactive:        { label: "Offline", cls: "bg-zinc-700/20 text-zinc-400 border-zinc-600/25" },
-  };
-  const { label, cls } = map[status] ?? map["active"];
+  const { label, cls, dot, pulse } = getSiteStatus(status);
   return (
-    <span className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full border ${cls}`}>
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border ${cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot} ${pulse ? "animate-pulse" : ""}`} />
       {label}
     </span>
+  );
+}
+
+function SiteHealthRow({ site }: {
+  site: { id: number; business_name: string; status: string; slug: string | null };
+}) {
+  const { dot, pulse } = getSiteStatus(site.status);
+  const { label, cls } = getSiteStatus(site.status);
+  return (
+    <div className="flex items-center gap-2.5 bg-white/[0.04] rounded-xl border border-white/[0.06] px-3 py-2.5">
+      {/* Health dot */}
+      <span
+        className={`w-2 h-2 rounded-full flex-shrink-0 ${dot} ${pulse ? "animate-pulse" : ""}`}
+        title={label}
+      />
+      {/* Name + domain */}
+      <div className="min-w-0 flex-1">
+        <p className="text-white text-xs font-semibold truncate">{site.business_name}</p>
+        <p className="text-zinc-600 text-[11px] truncate">
+          {site.slug ? `${site.slug}.certxa.com` : "Domain not assigned"}
+        </p>
+      </div>
+      {/* Badge */}
+      <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full border flex-shrink-0 ${cls}`}>
+        {label}
+      </span>
+      {/* External link */}
+      {site.slug && (
+        <a
+          href={`https://${site.slug}.certxa.com`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0"
+          title="View website"
+        >
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
+    </div>
   );
 }
 
