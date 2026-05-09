@@ -783,13 +783,14 @@ PYEOF
     }
 
     if [ -f "${APP_DIR}/.env" ]; then
-        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, CORS_ORIGINS, APP_URL, GOOGLE_REDIRECT_URI, GOOGLE_AUTH_CALLBACK_URL."
+        info ".env exists — updating DATABASE_URL, PORT, NODE_ENV, CORS_ORIGINS, APP_URL, COOKIE_DOMAIN, GOOGLE_REDIRECT_URI, GOOGLE_AUTH_CALLBACK_URL."
         upsert_env "DATABASE_URL"             "${NEW_DB_URL}"
         upsert_env "PORT"                     "${APP_PORT}"
         upsert_env "NODE_ENV"                 "production"
         upsert_env "CORS_ALLOW_ALL"           "false"
         upsert_env "CORS_ORIGINS"             "https://${DOMAIN},https://www.${DOMAIN}"
         upsert_env "APP_URL"                  "https://${DOMAIN}"
+        upsert_env "COOKIE_DOMAIN"            ".${DOMAIN}"
         upsert_env "GOOGLE_REDIRECT_URI"      "https://${DOMAIN}/google-business"
         upsert_env "GOOGLE_AUTH_CALLBACK_URL" "https://${DOMAIN}/api/auth/google/callback"
         if ! grep -q "^SESSION_SECRET=" "${APP_DIR}/.env"; then
@@ -823,11 +824,14 @@ TRIAL_PERIOD_DAYS=60
 # ─── Marketing pages (1, 2, or 3 product groups visible) ────────────────────
 ACTIVE_GROUPS=3
 
+# ─── Domain ───────────────────────────────────────────────────────────────────
+APP_URL=https://${DOMAIN}
+COOKIE_DOMAIN=.${DOMAIN}
+
 # ─── Google OAuth ─────────────────────────────────────────────────────────────
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=https://${DOMAIN}/google-business
-APP_URL=https://${DOMAIN}
 GOOGLE_AUTH_CALLBACK_URL=https://${DOMAIN}/api/auth/google/callback
 
 # ─── Mailgun ─────────────────────────────────────────────────────────────────
@@ -1068,6 +1072,7 @@ module.exports = {
         TRIAL_PERIOD_DAYS: '${ENV_TRIAL_DAYS}',
         ACTIVE_GROUPS: '${ENV_ACTIVE_GROUPS}',
         APP_URL: 'https://${DOMAIN}',
+        COOKIE_DOMAIN: '.${DOMAIN}',
         GOOGLE_REDIRECT_URI: 'https://${DOMAIN}/google-business',
         GOOGLE_AUTH_CALLBACK_URL: 'https://${DOMAIN}/api/auth/google/callback'
       },

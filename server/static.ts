@@ -1,56 +1,3 @@
-#!/usr/bin/env bash
-# =============================================================================
-#  update.sh – Patch Certxa server files and rebuild on the VPS
-#
-#  Run from your app directory:
-#    bash update.sh
-# =============================================================================
-set -euo pipefail
-
-RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; RESET='\033[0m'
-info()    { echo -e "${CYAN}[INFO]${RESET}  $*"; }
-success() { echo -e "${GREEN}[OK]${RESET}    $*"; }
-error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
-
-APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-info "App directory: $APP_DIR"
-
-# ── Detect service name from .setup_config (written by setup.sh) ────────────
-SERVICE_NAME="certxa"
-if [ -f "${APP_DIR}/.setup_config" ]; then
-    # shellcheck disable=SC1090
-    source "${APP_DIR}/.setup_config"
-fi
-
-# ── Detect APP_URL from .env (written by setup.sh step 6) ───────────────────
-APP_URL=""
-if [ -f "${APP_DIR}/.env" ]; then
-    APP_URL=$(grep "^APP_URL=" "${APP_DIR}/.env" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)
-fi
-if [ -z "${APP_URL:-}" ]; then
-    warn_msg() { echo -e "${CYAN}[WARN]${RESET}  $*"; }
-    warn_msg "APP_URL not found in .env — sitemap/canonical URLs will be empty."
-    warn_msg "Set APP_URL=https://yourdomain.com in ${APP_DIR}/.env and re-run."
-fi
-
-# NOTE: server/index.ts is NOT patched here — edit it directly in the repo
-# and redeploy via git pull + rebuild. The source file is the canonical version.
-
-# ── Sync server/static.ts from the repository source ───────────────────────
-# server/static.ts reads APP_URL at runtime from process.env — no hardcoded
-# domain. The canonical version lives in the git repo; this step is a no-op
-# if the file already matches (git pull would have updated it).
-info "Verifying server/static.ts is up to date (no hardcoded domains)..."
-if grep -q 'BASE_URL = "https://' "${APP_DIR}/server/static.ts" 2>/dev/null; then
-    error "server/static.ts still has a hardcoded BASE_URL. Pull the latest code from git and re-run."
-fi
-success "server/static.ts looks correct (reads APP_URL from environment)."
-
-# ── Write server/static.ts ──────────────────────────────────────────────────
-# This is written here only as a safety net in case the file is missing or
-# corrupted. It always reads APP_URL from process.env — never hardcoded.
-info "Writing server/static.ts ..."
-cat > "$APP_DIR/server/static.ts" << 'ENDOFFILE'
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import fs from "fs";
 import path from "path";
@@ -84,8 +31,6 @@ const SEO_CONFIG: Record<string, PageSeo> = {
   "/window-cleaning": { title: "Window Cleaning Scheduling Software — Routes & Invoices | Certxa", description: "Schedule window cleaning routes, manage recurring clients, and invoice automatically. Built for residential and commercial window cleaners.", canonical: `${BASE_URL}/window-cleaning` },
 };
 
-// Public landing pages that get server-side rendered for SEO.
-// All other routes fall through to the SPA catch-all below.
 const SSR_ROUTES = new Set(Object.keys(SEO_CONFIG));
 
 export function serveStatic(app: Express) {
@@ -96,8 +41,6 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Load SSR bundle and index.html template once at startup (not per-request).
-  // __dirname in the CJS bundle points to dist/, so paths resolve correctly.
   const ssrBundlePath = path.resolve(__dirname, "server/entry-server.cjs");
   const indexHtmlPath = path.resolve(distPath, "index.html");
   let ssrRender: ((url: string) => { html: string }) | null = null;
@@ -115,45 +58,32 @@ export function serveStatic(app: Express) {
     console.log("[SSR] Bundle not found at", ssrBundlePath, "— serving SPA only");
   }
 
-  // Cache control middleware for static assets
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Immutable assets (have hash in filename) - cache for 1 year
     if (/\.[a-f0-9]{8}\.|assets\/.*\/.+\.[a-f0-9]{8}\./.test(req.path)) {
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    }
-    // SVG, PNG, JPG, WebP - cache for 30 days
-    else if (/\.(svg|png|jpg|jpeg|webp|ico)$/.test(req.path)) {
+    } else if (/\.(svg|png|jpg|jpeg|webp|ico)$/.test(req.path)) {
       res.setHeader("Cache-Control", "public, max-age=2592000");
-    }
-    // CSS and JS - cache for 1 hour
-    else if (/\.(css|js)$/.test(req.path)) {
+    } else if (/\.(css|js)$/.test(req.path)) {
       res.setHeader("Cache-Control", "public, max-age=3600");
-    }
-    // Fonts - cache for 1 year
-    else if (/\.(woff|woff2|ttf|eot)$/.test(req.path)) {
+    } else if (/\.(woff|woff2|ttf|eot)$/.test(req.path)) {
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    }
-    // HTML - never cache
-    else if (/\.html$/.test(req.path) || req.path === "/") {
+    } else if (/\.html$/.test(req.path) || req.path === "/") {
       res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       res.setHeader("ETag", `"${Date.now()}"`);
     }
     next();
   });
 
-  // Serve static files with Express
   app.use(express.static(distPath, {
     maxAge: "1h",
     dotfiles: "deny",
   }));
 
-  // Serve robots.txt
   app.get("/robots.txt", (_req: Request, res: Response) => {
     res.setHeader("Cache-Control", "public, max-age=86400");
     res.sendFile(path.resolve(distPath, "robots.txt"));
   });
 
-  // Serve sitemap.xml
   app.get("/sitemap.xml", (_req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/xml");
     res.setHeader("Cache-Control", "public, max-age=86400");
@@ -183,9 +113,6 @@ export function serveStatic(app: Express) {
     res.send(sitemap);
   });
 
-  // SSR handler — intercepts landing page routes and injects pre-rendered HTML.
-  // Runs BEFORE the SPA catch-all so search engines get full page content.
-  // Any failure falls through to the SPA catch-all so the app never breaks.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const reqPath = req.url.split("?")[0];
     if (reqPath.startsWith("/api/") || reqPath === "/ws" || reqPath.startsWith("/ws/")) {
@@ -196,15 +123,12 @@ export function serveStatic(app: Express) {
 
     try {
       const { html: appHtml } = ssrRender(req.url);
-      // Support both the <!--ssr-outlet--> placeholder and the plain root div,
-      // so this works regardless of when the client was last built.
       let rendered = indexTemplate;
       if (indexTemplate.includes("<!--ssr-outlet-->")) {
         rendered = indexTemplate.replace("<!--ssr-outlet-->", appHtml);
       } else {
         rendered = indexTemplate.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
       }
-      // Inject page-specific title, meta description, og tags, and canonical.
       const seo = SEO_CONFIG[reqPath];
       if (seo) {
         rendered = rendered.replace(/<title>[^<]*<\/title>/, `<title>${seo.title}</title>`);
@@ -224,7 +148,6 @@ export function serveStatic(app: Express) {
     }
   });
 
-  // SPA catch-all — serves index.html for all remaining non-API routes.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const reqPath = req.url.split("?")[0];
     if (
@@ -245,129 +168,3 @@ export function serveStatic(app: Express) {
     });
   });
 }
-ENDOFFILE
-success "server/static.ts written."
-
-# ── Rebuild SSR bundle (entry-server.tsx → dist/server/entry-server.cjs) ───
-info "Rebuilding SSR bundle ..."
-mkdir -p "$APP_DIR/dist/server"
-node - << 'ENDOFJS'
-const { build } = require('esbuild');
-const { existsSync } = require('fs');
-const path = require('path');
-
-const ROOT = process.cwd();
-const extensions = ['.tsx','.ts','.jsx','.js','/index.tsx','/index.ts','/index.jsx','/index.js'];
-
-function resolveWithExt(base) {
-  for (const ext of extensions) {
-    const full = base + ext;
-    if (existsSync(full)) return full;
-  }
-  return undefined;
-}
-
-const pathAliasPlugin = {
-  name: 'path-alias',
-  setup(build) {
-    build.onResolve({ filter: /^@\// }, (args) => {
-      const base = path.resolve(ROOT, 'client/src', args.path.slice(2));
-      return { path: resolveWithExt(base) ?? base };
-    });
-    build.onResolve({ filter: /^@shared\// }, (args) => {
-      const base = path.resolve(ROOT, 'shared', args.path.slice(8));
-      return { path: resolveWithExt(base) ?? base };
-    });
-    build.onResolve({ filter: /^@assets\// }, (args) => {
-      const base = path.resolve(ROOT, 'attached_assets', args.path.slice(8));
-      return { path: resolveWithExt(base) ?? base };
-    });
-  },
-};
-
-build({
-  entryPoints: [path.resolve(ROOT, 'client/src/entry-server.tsx')],
-  platform: 'node',
-  bundle: true,
-  format: 'cjs',
-  outfile: path.resolve(ROOT, 'dist/server/entry-server.cjs'),
-  jsx: 'automatic',
-  define: { 'process.env.NODE_ENV': '"production"' },
-  plugins: [pathAliasPlugin],
-  logLevel: 'info',
-  minify: false,
-}).then(() => {
-  console.log('SSR bundle rebuilt successfully.');
-}).catch(err => {
-  console.error('SSR build failed:', err);
-  process.exit(1);
-});
-ENDOFJS
-success "SSR bundle rebuilt → dist/server/entry-server.cjs"
-
-# ── Rebuild server bundle only (fast, ~2 seconds) ─────────────────────────
-info "Rebuilding server bundle ..."
-node - << 'ENDOFJS'
-const { build } = require('esbuild');
-const { readFileSync } = require('fs');
-
-const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
-const allowlist = [
-  'bcryptjs','connect-pg-simple','date-fns','date-fns-tz',
-  'drizzle-orm','drizzle-zod','express','express-session',
-  'nanoid','pg','ws','zod','zod-validation-error',
-];
-const allDeps = [
-  ...Object.keys(pkg.dependencies || {}),
-  ...Object.keys(pkg.devDependencies || {}),
-];
-const externals = allDeps.filter(d => !allowlist.includes(d));
-
-build({
-  entryPoints: ['server/index.ts'],
-  platform: 'node',
-  bundle: true,
-  format: 'cjs',
-  outfile: 'dist/index.cjs',
-  define: { 'process.env.NODE_ENV': '"production"' },
-  minify: true,
-  external: externals,
-  logLevel: 'info',
-}).then(() => {
-  console.log('Server bundle rebuilt successfully.');
-}).catch(err => {
-  console.error('Build failed:', err);
-  process.exit(1);
-});
-ENDOFJS
-success "Server bundle rebuilt → dist/index.cjs"
-
-# ── Restart PM2 ────────────────────────────────────────────────────────────
-info "Restarting PM2 process '${SERVICE_NAME}'..."
-if pm2 list 2>/dev/null | grep -q "${SERVICE_NAME}"; then
-    pm2 restart "${SERVICE_NAME}"
-    success "PM2 process '${SERVICE_NAME}' restarted."
-else
-    info "PM2 process '${SERVICE_NAME}' not found — attempting to start from ecosystem config..."
-    if [ -f "${APP_DIR}/ecosystem.config.cjs" ]; then
-        pm2 start "${APP_DIR}/ecosystem.config.cjs"
-        pm2 save
-        success "PM2 process started from ecosystem.config.cjs."
-    else
-        info "No ecosystem.config.cjs found. Starting dist/index.cjs directly..."
-        pm2 start dist/index.cjs --name "${SERVICE_NAME}"
-        pm2 save
-        success "PM2 process '${SERVICE_NAME}' started."
-    fi
-fi
-
-echo ""
-success "Update complete! The app should now be running correctly."
-echo ""
-if [ -n "${APP_URL:-}" ]; then
-    echo "Verify with:"
-    echo "  curl -I ${APP_URL}/assets/ | head"
-    echo "  (CSS/JS assets should return content-type: text/css or application/javascript)"
-fi
-echo ""
-echo "Check logs with: pm2 logs ${SERVICE_NAME} --lines 30"
