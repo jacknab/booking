@@ -1,0 +1,106 @@
+this is where we verify if everything is actually working vs just “login succeeded”.
+
+We’re not guessing anymore, we’re checking real data flow.
+
+🧪 What “working correctly” looks like
+
+After Google login, your backend should successfully return something like:
+
+{
+  "accounts": [...],
+  "locations": [...]
+}
+
+Or at minimum:
+
+account ID(s)
+location name(s)
+address
+place ID / resource name
+
+If you’re getting:
+
+empty arrays ❌
+undefined ❌
+or just user profile data ❌
+
+Then OAuth is fine, but the Business Profile API call is broken.
+
+🔍 Step-by-step: how to check Certxa data is actually coming through
+1. Check your callback response
+
+Go to your backend route:
+
+/api/google-business/callback
+
+After login, log THIS:
+
+console.log("GOOGLE CALLBACK CODE:", req.query.code);
+console.log("TOKEN RESPONSE:", tokenData);
+
+You MUST confirm:
+
+you are getting an access_token
+not just a “success redirect”
+2. Check the actual API call response
+
+Find the request like:
+
+fetch("https://mybusinessbusinessinformation.googleapis.com/v1/accounts/.../locations", {
+  headers: {
+    Authorization: `Bearer ${access_token}`
+  }
+})
+
+Now log:
+
+console.log("BUSINESS PROFILE RESPONSE:", response.data);
+3. What a GOOD response looks like
+
+You should see something like:
+
+{
+  "locations": [
+    {
+      "name": "Certxa Salon",
+      "address": "...",
+      "title": "Certxa"
+    }
+  ]
+}
+
+Even 1 location = success.
+
+4. What a BAD response looks like
+❌ Empty but “success”
+{
+  "locations": []
+}
+
+👉 Means:
+
+wrong account being queried OR
+missing permissions on that Google Business Profile
+❌ Error response
+{
+  "error": "403 PERMISSION_DENIED"
+}
+
+👉 Means:
+
+scope issue OR
+user doesn’t actually own/manager the Certxa profile
+⚠️ Most likely issue in your case (based on everything you’ve shown)
+
+I’m leaning toward this:
+
+You are authenticated correctly, but NOT querying the correct account structure
+
+Google Business Profile API requires a 2-step chain:
+
+Get accounts:
+accounts.list
+Then get locations:
+accounts/{accountId}/locations
+
+Most broken setups skip step 1 and try to guess account IDs.
