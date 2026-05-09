@@ -6777,7 +6777,7 @@ If you have any questions, please contact your administrator.
       // Build invite URL
       const baseUrl = process.env.REPLIT_DEV_DOMAIN
         ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : "https://certxa.com";
+        : (process.env.APP_URL || "https://certxa.com");
       const inviteUrl = `${baseUrl}/accept-invite?token=${inviteToken}`;
 
       // Send invite email (gracefully falls back if Mailgun not configured)
