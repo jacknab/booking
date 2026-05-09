@@ -444,34 +444,49 @@ export default function BillingPage({ salonId }: { salonId: number }) {
         <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {PLANS.map((plan) => {
             const isCurrent = currentPlan.code === plan.code;
+            const isElite = plan.code === "elite";
             return (
               <div
                 key={plan.code}
                 className={`rounded-xl border p-5 relative transition-all ${
-                  isCurrent
+                  isElite && isCurrent
+                    ? "border-amber-500/70 bg-amber-500/[0.06] shadow-[0_0_24px_-4px_rgba(251,191,36,0.15)]"
+                    : isElite
+                    ? "border-amber-500/40 bg-amber-500/[0.04] hover:border-amber-400/60 shadow-[0_0_20px_-6px_rgba(251,191,36,0.12)]"
+                    : isCurrent
                     ? "border-violet-500/60 bg-violet-500/[0.08]"
                     : "border-zinc-700/40 bg-zinc-800/30 hover:border-zinc-600/60"
                 }`}
               >
-                {isCurrent && (
+                {isCurrent && !isElite && (
                   <span className="absolute -top-3 left-4 text-[10px] font-bold bg-violet-600 text-white px-2.5 py-1 rounded-full uppercase tracking-wider">
                     Current
                   </span>
                 )}
+                {isElite && isCurrent && (
+                  <span className="absolute -top-3 left-4 text-[10px] font-bold bg-amber-500 text-zinc-950 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    Current
+                  </span>
+                )}
+                {isElite && !isCurrent && (
+                  <span className="absolute -top-3 left-4 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    Highest Tier
+                  </span>
+                )}
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <p className="text-white font-bold text-sm">{plan.name}</p>
+                    <p className={`font-bold text-sm ${isElite ? "text-amber-100" : "text-white"}`}>{plan.name}</p>
                     <p className="text-zinc-500 text-xs mt-0.5">{plan.tagline}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="text-2xl font-bold text-white">${plan.price}</span>
+                    <span className={`text-2xl font-bold ${isElite ? "text-amber-200" : "text-white"}`}>${plan.price}</span>
                     <span className="text-zinc-500 text-xs">/mo</span>
                   </div>
                 </div>
                 <ul className="space-y-1.5 mb-4">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-xs text-zinc-400">
-                      <span className="text-emerald-400">✓</span> {f}
+                      <span className={isElite ? "text-amber-400" : "text-emerald-400"}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -484,7 +499,15 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                     View API Integration Documentation →
                   </Link>
                 )}
-                {!isCurrent && isActive && stripeConfigured && (
+                {isElite && !isCurrent && (
+                  <Link
+                    to="/elite-details"
+                    className="flex items-center justify-center gap-1.5 w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-400/50 text-amber-300 hover:text-amber-200 text-xs font-medium py-2 px-3 rounded-lg transition-all mt-1"
+                  >
+                    See Details <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+                {!isElite && !isCurrent && isActive && stripeConfigured && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -494,8 +517,13 @@ export default function BillingPage({ salonId }: { salonId: number }) {
                     Switch to {plan.name}
                   </Button>
                 )}
-                {isCurrent && (
+                {isCurrent && !isElite && (
                   <div className="flex items-center gap-1.5 text-xs text-violet-300">
+                    <BadgeCheck className="w-3.5 h-3.5" /> Active plan
+                  </div>
+                )}
+                {isCurrent && isElite && (
+                  <div className="flex items-center gap-1.5 text-xs text-amber-300">
                     <BadgeCheck className="w-3.5 h-3.5" /> Active plan
                   </div>
                 )}

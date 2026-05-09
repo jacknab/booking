@@ -51,6 +51,7 @@ import SmsInbox from "@/pages/SmsInbox";
 import Campaigns from "@/pages/Campaigns";
 import ApiKeys from "@/pages/ApiKeys";
 import EliteApiDocs from "@/pages/EliteApiDocs";
+import EliteDetails from "@/pages/EliteDetails";
 import MultiLocationDashboard from "@/pages/MultiLocationDashboard";
 import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import SeoRegionsAdmin from "@/pages/admin/SeoRegionsAdmin";
@@ -248,6 +249,7 @@ function AppRoutes() {
       <Route path="/campaigns" element={<Campaigns />} />
       <Route path="/api-keys" element={<ApiKeys />} />
       <Route path="/elite-api-docs" element={<EliteApiDocs />} />
+      <Route path="/elite-details" element={<EliteDetails />} />
       <Route path="/multi-location" element={<MultiLocationDashboard />} />
       <Route path="/cash-drawer" element={<CashDrawer />} />
       <Route path="/marketing" element={<Navigate to="/campaigns" replace />} />

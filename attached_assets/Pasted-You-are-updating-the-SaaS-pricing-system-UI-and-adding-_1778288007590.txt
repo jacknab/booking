@@ -1,0 +1,126 @@
+You are updating the SaaS pricing system UI and adding a new premium plan details experience.
+
+TASK 1 — Update Elite Pricing Card (Pricing Page)
+
+Locate the “Elite” pricing card and update ONLY this card.
+
+Changes:
+Keep Elite price exactly as it is
+Replace any CTA button text such as:
+→ “See Pricing”
+with:
+→ “See Details”
+Ensure the Elite card visually feels like the highest tier plan:
+Slight emphasis (border, highlight, or elevation)
+Do NOT over-style or break design consistency
+Do NOT modify other plans
+UX intent:
+This card should not explain everything
+It should only act as a gateway to the details page
+“See Details” should imply deeper breakdown, not pricing comparison
+TASK 2 — Create Elite Plan Details Page
+
+Create a new route/page:
+
+/elite-details (or match existing routing structure)
+
+This page is NOT a pricing page — it is a product delivery and value breakdown page.
+
+PAGE STRUCTURE
+1. Header Section
+Title: Elite Plan
+Subtitle:
+“A fully managed, done-for-you system setup built for multi-location businesses.”
+
+Keep it premium, minimal, not salesy.
+
+2. Sticky Summary Panel (important)
+
+Create a persistent panel (right side on desktop, top sticky on mobile):
+
+Include:
+
+Elite price
+Primary CTA button: “Get Started with Elite”
+Optional billing toggle if already supported
+
+This panel should always be visible while scrolling.
+
+3. Core Value Block (MOST IMPORTANT SECTION)
+
+Replace any idea of “onboarding session” or “call”.
+
+Title:
+
+Done-for-you onboarding & system setup
+
+Description:
+
+“We fully configure your entire system for you using your business data. No setup required on your side.”
+
+Include bullet breakdown:
+Business branding setup (logo, colors, identity)
+Multi-location configuration (all locations structured correctly)
+Services & pricing setup (from PDF, images, or website URL)
+Staff accounts created per location
+Full system configuration (settings, permissions, structure)
+Quality check before delivery
+Final delivery with ready-to-use login access
+Important:
+
+This is the main selling point of Elite. Make it visually distinct (card or highlighted section).
+
+4. Features Breakdown (grouped, NOT flat list)
+
+Create grouped sections:
+
+Core System
+Booking system
+Calendar management
+Client database
+Multi-Location Operations
+Location dashboards
+Staff per location
+Performance tracking per location
+Growth Tools
+Messaging tools (SMS/email if exists)
+Analytics dashboard
+Reporting tools
+Elite Only
+Done-for-you setup service
+Priority support
+Advanced reporting access
+5. “How it works” section (new addition)
+
+Add a simple 3-step flow:
+
+You sign up for Elite
+You submit business info (or provide website link)
+We build your full system and deliver ready-to-use access
+
+Keep it extremely simple and visual.
+
+6. Trust / reassurance block
+
+Add a short section:
+
+“No setup required on your side”
+“We handle everything for you”
+“Your system is delivered ready to use”
+
+This reduces hesitation and abandonment.
+
+7. Final CTA section
+Button: Get Started with Elite
+Subtext: “We begin setup immediately after signup.”
+DESIGN RULES
+Keep UI clean, modern SaaS style
+Avoid long walls of text
+Avoid duplicating pricing information
+Do NOT turn this into another pricing comparison page
+Elite should feel like a service layer, not a feature tier
+Emphasize clarity and premium positioning over quantity of features
+IMPORTANT
+Do NOT modify other plans
+Do NOT change backend pricing logic
+Only UI changes for Elite card + new page
