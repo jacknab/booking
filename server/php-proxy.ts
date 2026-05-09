@@ -5,9 +5,19 @@ import path from "path";
 import fs from "fs";
 import type { Request, Response, NextFunction } from "express";
 
+// esbuild injects __dirname into CJS bundles pointing to dist/.
+// In ESM dev (tsx), it is undefined — process.cwd() is the project root instead.
+const _cjsDir: string | undefined = (globalThis as any).__dirname;
+
 // Directory where Vite serves its static public assets (client/public/).
 // Files here take priority over the PHP site for the same URL path.
 const CLIENT_PUBLIC_DIR = path.resolve(process.cwd(), "client", "public");
+
+// In production, Vite writes hashed assets (index-XXXX.css, etc.) to dist/public.
+// We check here too so PHP never intercepts /assets/index-HASH.css|js files.
+const DIST_PUBLIC_DIR = _cjsDir
+  ? path.resolve(_cjsDir, "public")                 // prod: dist/public/
+  : path.resolve(process.cwd(), "dist", "public");  // dev fallback
 
 const PHP_PORT = parseInt(process.env.PHP_PORT || "8104", 10);
 const PHP_HOST = process.env.PHP_HOST || "127.0.0.1";
@@ -18,11 +28,7 @@ let phpReady = false;
 let phpReadyPromise: Promise<void> | null = null;
 
 // Resolve the php/ directory safely in both ESM (dev) and esbuild CJS (prod).
-// esbuild injects __dirname in CJS bundles pointing to dist/ — one level above
-// is the project root where php/ lives. In ESM dev, process.cwd() is the
-// project root (tsx is invoked from there), so php/ is directly accessible.
 // Avoids import.meta.url which becomes undefined after esbuild CJS minification.
-const _cjsDir: string | undefined = (globalThis as any).__dirname; // dist/ in prod
 const phpDir = _cjsDir
   ? path.resolve(_cjsDir, "..", "php")   // prod: dist/ → project root → php/
   : path.resolve(process.cwd(), "php");  // dev:  cwd = project root → php/
@@ -185,12 +191,15 @@ export async function phpMiddleware(req: Request, res: Response, next: NextFunct
   if ((req as any).isManageSubdomain) return next();
   if (!isPhpRoute(req.path)) return next();
 
-  // For paths that could be served by either PHP or Vite (e.g. /videos/),
-  // prefer the local client/public copy if it exists so the React app's
-  // assets (onboarding videos, etc.) are never accidentally swallowed by PHP.
+  // For paths that could be served by either PHP or Vite, prefer local files
+  // so React assets are never accidentally swallowed by the PHP proxy.
+  // Check both client/public (dev source) and dist/public (prod build output).
+  // This is critical for /assets/index-HASH.css|js — Vite hashed files only
+  // exist in dist/public; without this check they'd be forwarded to PHP and
+  // returned as text/html, causing "Refused to apply style" MIME errors.
   if (req.path.startsWith("/videos/") || req.path.startsWith("/assets/")) {
-    const localFile = path.join(CLIENT_PUBLIC_DIR, req.path);
-    if (fs.existsSync(localFile)) return next();
+    if (fs.existsSync(path.join(CLIENT_PUBLIC_DIR, req.path))) return next();
+    if (fs.existsSync(path.join(DIST_PUBLIC_DIR, req.path))) return next();
   }
 
   if (!phpReady && phpReadyPromise) {
