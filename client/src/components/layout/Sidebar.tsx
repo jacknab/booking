@@ -28,6 +28,10 @@ import {
   FileText,
   ListOrdered,
   GraduationCap,
+  Rocket,
+  LayoutTemplate,
+  Palette,
+  Search,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -94,6 +98,15 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         icon: BarChart3,
         anyOf: [PERMISSIONS.COMMISSIONS_VIEW_ALL, PERMISSIONS.COMMISSIONS_VIEW_OWN],
       },
+    ],
+  },
+  {
+    label: "Lanchit",
+    items: [
+      { to: "/lanchit", label: "Overview", icon: Rocket },
+      { to: "/lanchit/website", label: "Website Builder", icon: LayoutTemplate },
+      { to: "/lanchit/design", label: "Design & Branding", icon: Palette },
+      { to: "/lanchit/seo", label: "SEO & Visibility", icon: Search },
     ],
   },
   {

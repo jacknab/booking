@@ -32,7 +32,7 @@ interface SmsStatus {
 export function SmsBalanceBanner() {
   const { selectedStore } = useSelectedStore();
   const [dismissed, setDismissed] = useState(false);
-  const [upsellShown, setUpsellShown] = useState(false);
+  const [upsellShown, setUpsellShown] = useState(() => sessionStorage.getItem("sms_upsell_shown") === "1");
   const [showUpsell, setShowUpsell] = useState(false);
 
   const { data: smsStatus } = useQuery<SmsStatus>({
@@ -62,6 +62,7 @@ export function SmsBalanceBanner() {
     if (isCritical && !upsellShown && smsStatus) {
       setShowUpsell(true);
       setUpsellShown(true);
+      sessionStorage.setItem("sms_upsell_shown", "1");
     }
   }, [isCritical, upsellShown, smsStatus]);
 
