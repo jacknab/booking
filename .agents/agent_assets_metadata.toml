@@ -191,3 +191,9 @@ id = "QNbK98mt0eJbUvj4MrYL5"
 uri = "file://VPS_DEPLOYMENT_GUIDE.md"
 type = "text"
 title = "Certxa VPS Deployment Guide (Updated)"
+
+[[outputs]]
+id = "TZzQHFcsTIKQxrqofsNX_"
+uri = "file://SCHEMA_REVIEW.md"
+type = "text"
+title = "Schema & Code Review Notes"
