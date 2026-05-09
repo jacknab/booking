@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, LogOut, Calendar, Globe, CreditCard, ArrowRight,
   ExternalLink, AlertTriangle, Zap,
-  ChevronRight, LayoutDashboard, Settings, Sparkles, RefreshCw, Radio,
+  ChevronRight, LayoutDashboard, Settings, Sparkles, RefreshCw, Radio, Clock,
 } from "lucide-react";
 
 interface ManageOverview {
@@ -318,6 +318,30 @@ export default function ManageDashboard() {
                     </p>
                   )}
                 </div>
+
+                {/* Pending payment callout */}
+                {launchsite.websites.some((s) => s.status === "pending_payment") && (
+                  <div className="flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-amber-300 text-xs font-semibold leading-snug">
+                        Domain payment pending
+                      </p>
+                      <p className="text-amber-400/70 text-[11px] mt-0.5 leading-snug">
+                        {launchsite.websites.filter((s) => s.status === "pending_payment").length === 1
+                          ? `"${launchsite.websites.find((s) => s.status === "pending_payment")!.business_name}" needs its custom domain payment completed.`
+                          : `${launchsite.websites.filter((s) => s.status === "pending_payment").length} sites are waiting on custom domain payment.`
+                        }
+                      </p>
+                    </div>
+                    <a
+                      href="/launchsite/"
+                      className="flex-shrink-0 text-[11px] font-semibold bg-amber-500 hover:bg-amber-400 text-zinc-950 px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      Complete →
+                    </a>
+                  </div>
+                )}
 
                 {/* Live count summary */}
                 <div className="flex items-center gap-1.5 px-1">
