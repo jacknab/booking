@@ -13,7 +13,9 @@ import { computePermissions, normalizeRole } from "@shared/permissions";
 import { TrialService } from "./services/trial-service";
 
 export function setupAuth(app: Express) {
-  app.set("trust proxy", 1);
+  // Trust all proxy hops — required for Replit (multiple proxy layers) and
+  // VPS setups where Nginx sits in front of Node.
+  app.set("trust proxy", true);
 
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -21,6 +23,19 @@ export function setupAuth(app: Express) {
     createTableIfMissing: true,
     tableName: "sessions",
   });
+
+  // Detect if we are running inside Replit (always HTTPS even in dev mode).
+  const isReplit = !!(process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID);
+
+  // Use secure cookies whenever:
+  //   • We are in production mode (VPS with TLS termination), OR
+  //   • We are inside Replit (proxied HTTPS regardless of NODE_ENV).
+  const secureCookies = process.env.NODE_ENV === "production" || isReplit;
+
+  // Only restrict the cookie domain to *.certxa.com on the real production VPS.
+  // On Replit the domain is the *.replit.dev domain, so leave it undefined there.
+  const cookieDomain =
+    process.env.NODE_ENV === "production" && !isReplit ? ".certxa.com" : undefined;
 
   app.use(
     session({
@@ -31,11 +46,10 @@ export function setupAuth(app: Express) {
       rolling: true, // Refresh cookie expiration on every request — keeps active devices signed in
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: secureCookies,
+        sameSite: secureCookies ? "none" : "lax",
         maxAge: 1000 * 60 * 60 * 24 * 7, // Default: 7 days (overridden to 10 years for kiosk-mode logins)
-        // Share session across all *.certxa.com subdomains (manage., app., etc.)
-        domain: process.env.NODE_ENV === "production" ? ".certxa.com" : undefined,
+        domain: cookieDomain,
       },
     })
   );

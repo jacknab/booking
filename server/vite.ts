@@ -35,14 +35,26 @@ const SSR_ROUTES = new Set([
 
 export async function setupVite(server: Server, app: Express) {
   const replitDomain = process.env.REPLIT_DEV_DOMAIN;
+
+  // When running inside Replit, attach HMR to the existing HTTP server so
+  // the WebSocket upgrade is handled in-process (no separate port needed).
+  // clientPort: 443 tells the browser to connect to the Replit HTTPS proxy port.
   const hmrConfig = replitDomain
-    ? { server, path: "/vite-hmr", clientPort: 443, host: replitDomain, protocol: "wss" as const }
+    ? {
+        server,
+        path: "/vite-hmr",
+        clientPort: 443,
+        host: replitDomain,
+        protocol: "wss" as const,
+        timeout: 30000,
+      }
     : { server, path: "/vite-hmr" };
 
   const serverOptions = {
     middlewareMode: true,
     hmr: hmrConfig,
     allowedHosts: true as const,
+    cors: true,
   };
 
   const vite = await createViteServer({
@@ -50,9 +62,10 @@ export async function setupVite(server: Server, app: Express) {
     configFile: false,
     customLogger: {
       ...viteLogger,
+      // Do NOT call process.exit here — a non-fatal Vite error should not
+      // kill the entire Express server.
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
       },
     },
     server: serverOptions,
