@@ -511,7 +511,7 @@ require 'includes/nav.php';
           <tr class="section-row"><td colspan="4">Website & Branding</td></tr>
           <tr>
             <td>Website builder</td>
-            <td>Basic (3 templates)</td><td class="featured-col ct-text">Premium (15+ templates)</td><td class="ct-text">Premium + white-label</td>
+            <td>Basic (3 templates)</td><td class="featured-col ct-text">Premium (15+ templates)</td><td class="ct-text">Premium (15+ templates)</td>
           </tr>
           <tr>
             <td>Custom domain</td>
