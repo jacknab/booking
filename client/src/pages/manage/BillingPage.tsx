@@ -6,6 +6,7 @@ import {
   Download, ArrowLeft, Loader2, Zap, Shield, LifeBuoy, ChevronRight,
   Calendar, Pause,
   RefreshCw, ExternalLink, Info, BadgeCheck, Sparkles, Code2,
+  MessageSquare, ShoppingCart,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -187,6 +188,18 @@ export default function BillingPage({ salonId }: { salonId: number }) {
     queryFn: () => apiFetch("/api/billing/status"),
   });
 
+  const { data: smsStatus, isLoading: smsLoading } = useQuery<{
+    smsAllowance: number;
+    smsCredits: number;
+    smsCreditsTotalPurchased: number;
+    planMonthlyAllowance: number;
+    planName: string;
+    packages: { id: string; priceCents: number; credits: number; label: string }[];
+  }>({
+    queryKey: ["sms-status", salonId],
+    queryFn: () => apiFetch(`/api/billing/sms-status/${salonId}`),
+  });
+
   const stripeConfigured = stripeStatus?.configured ?? false;
 
   // ── Mutations ────────────────────────────────────────────────────────────────
@@ -254,6 +267,18 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       queryClient.invalidateQueries({ queryKey: ["billing-profile", salonId] });
       toast({ title: "Subscription resumed", description: "Your cancellation has been reversed." });
     },
+    onError: (err: any) =>
+      toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const smsBucketMutation = useMutation({
+    mutationFn: (packageId: string) =>
+      apiFetch("/api/billing/sms-bucket/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ salonId, packageId }),
+      }),
+    onSuccess: ({ url }) => { window.location.href = url; },
     onError: (err: any) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -961,7 +986,133 @@ export default function BillingPage({ salonId }: { salonId: number }) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────
-          SECTION 9 — SUPPORT
+          SECTION 9 — SMS CREDITS
+      ───────────────────────────────────────────────────────────────────────── */}
+      <Card className="bg-zinc-900/70 border-zinc-700/50 overflow-hidden">
+        <CardHeader className="pb-0 pt-5 px-6">
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-violet-400" />
+            SMS Credits
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-5">
+          {smsLoading ? (
+            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading SMS status…
+            </div>
+          ) : (
+            <>
+              {/* Credit buckets */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                {/* Subscription allowance */}
+                <div className="rounded-xl border border-zinc-700/40 bg-zinc-800/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white text-sm font-semibold">Monthly Allowance</p>
+                      <p className="text-zinc-500 text-xs mt-0.5">Included with your plan · resets each cycle</p>
+                    </div>
+                    <span className="text-xs font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">
+                      {smsStatus?.planName ?? "Plan"}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-end justify-between mb-1.5">
+                      <span className="text-2xl font-bold text-white">
+                        {(smsStatus?.smsAllowance ?? 0).toLocaleString()}
+                      </span>
+                      <span className="text-zinc-500 text-xs">
+                        of {(smsStatus?.planMonthlyAllowance ?? 0).toLocaleString()} remaining
+                      </span>
+                    </div>
+                    {(smsStatus?.planMonthlyAllowance ?? 0) > 0 && (
+                      <div className="w-full h-1.5 rounded-full bg-zinc-700/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-violet-400 transition-all"
+                          style={{
+                            width: `${Math.min(100, ((smsStatus?.smsAllowance ?? 0) / (smsStatus?.planMonthlyAllowance ?? 1)) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Purchased credits */}
+                <div className="rounded-xl border border-zinc-700/40 bg-zinc-800/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white text-sm font-semibold">Purchased Credits</p>
+                      <p className="text-zinc-500 text-xs mt-0.5">One-time top-ups · never expire</p>
+                    </div>
+                    <ShoppingCart className="w-4 h-4 text-zinc-500" />
+                  </div>
+                  <div>
+                    <span className="text-2xl font-bold text-white">
+                      {(smsStatus?.smsCredits ?? 0).toLocaleString()}
+                    </span>
+                    {(smsStatus?.smsCreditsTotalPurchased ?? 0) > 0 && (
+                      <p className="text-zinc-600 text-xs mt-1">
+                        {(smsStatus?.smsCreditsTotalPurchased ?? 0).toLocaleString()} total purchased
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* How it works note */}
+              <div className="flex items-start gap-2.5 bg-zinc-800/20 border border-zinc-700/30 rounded-lg p-3">
+                <Info className="w-3.5 h-3.5 text-zinc-500 mt-0.5 flex-shrink-0" />
+                <p className="text-zinc-500 text-xs leading-relaxed">
+                  Monthly allowance is used first. When depleted, purchased credits are drawn from automatically.
+                  Allowance resets every billing cycle; purchased credits never expire.
+                </p>
+              </div>
+
+              {/* Purchase packages */}
+              {stripeConfigured && (
+                <div className="space-y-3">
+                  <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Top Up Credits</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(smsStatus?.packages ?? [
+                      { id: "10", priceCents: 1000, credits: 333, label: "$10 — 333 SMS" },
+                      { id: "25", priceCents: 2500, credits: 833, label: "$25 — 833 SMS" },
+                      { id: "50", priceCents: 5000, credits: 1666, label: "$50 — 1,666 SMS" },
+                    ]).map((pkg) => (
+                      <button
+                        key={pkg.id}
+                        onClick={() => smsBucketMutation.mutate(pkg.id)}
+                        disabled={smsBucketMutation.isPending}
+                        className="flex flex-col items-center gap-1.5 rounded-xl border border-zinc-700/40 bg-zinc-800/30 hover:border-violet-500/40 hover:bg-violet-500/[0.06] p-4 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {smsBucketMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
+                        ) : (
+                          <span className="text-lg font-bold text-white group-hover:text-violet-200 transition-colors">
+                            ${pkg.id}
+                          </span>
+                        )}
+                        <span className="text-zinc-400 text-xs font-medium">
+                          {pkg.credits.toLocaleString()} SMS
+                        </span>
+                        <span className="text-zinc-600 text-[10px]">
+                          ~${(pkg.priceCents / 100 / pkg.credits * 1000).toFixed(1)}¢ / msg
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-zinc-600 text-[11px]">
+                    Credits are added instantly after checkout.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          SECTION 10 — SUPPORT
       ───────────────────────────────────────────────────────────────────────── */}
       <Card className="bg-zinc-900/40 border-zinc-800/50">
         <CardContent className="p-5">

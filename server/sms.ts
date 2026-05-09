@@ -2,6 +2,9 @@ import Twilio from "twilio";
 import { storage } from "./storage";
 import type { SmsSettings, AppointmentWithDetails } from "@shared/schema";
 import { formatInTimeZone } from "date-fns-tz";
+import { db } from "./db";
+import { locations } from "@shared/schema";
+import { eq, and, gt, sql } from "drizzle-orm";
 
 // Global Twilio client using company credentials
 function getGlobalTwilioClient() {
@@ -36,6 +39,49 @@ function interpolateTemplate(
   return result;
 }
 
+// ── Two-bucket atomic credit deduction ────────────────────────────────────────
+// Priority: smsAllowance (subscription) → smsCredits (purchased) → block
+// Each deduction uses a conditional UPDATE WHERE field > 0 to be
+// race-condition safe. No credit ever goes negative.
+
+type DeductResult =
+  | { source: "allowance" | "credits" }
+  | { error: "no_credits" | "store_not_found" };
+
+async function deductOneSmsCredit(storeId: number): Promise<DeductResult> {
+  // Step 1: Try smsAllowance (subscription bucket, resets monthly)
+  const allowanceRows = await db
+    .update(locations)
+    .set({ smsAllowance: sql`sms_allowance - 1` })
+    .where(and(eq(locations.id, storeId), gt(locations.smsAllowance, 0)))
+    .returning({ id: locations.id });
+
+  if (allowanceRows.length > 0) {
+    return { source: "allowance" };
+  }
+
+  // Step 2: Fallback to smsCredits (purchased bucket, never resets)
+  const creditRows = await db
+    .update(locations)
+    .set({ smsCredits: sql`sms_credits - 1` })
+    .where(and(eq(locations.id, storeId), gt(locations.smsCredits, 0)))
+    .returning({ id: locations.id });
+
+  if (creditRows.length > 0) {
+    return { source: "credits" };
+  }
+
+  // Step 3: Both buckets empty — block send
+  const [store] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(eq(locations.id, storeId))
+    .limit(1);
+
+  if (!store) return { error: "store_not_found" };
+  return { error: "no_credits" };
+}
+
 export async function sendSms(
   storeId: number,
   phone: string,
@@ -49,12 +95,11 @@ export async function sendSms(
   if (normalizedPhone.length >= 10) {
     try {
       const { smsOptOuts } = await import("@shared/schema");
-      const { db } = await import("./db");
-      const { eq, and } = await import("drizzle-orm");
+      const { eq: deq, and: dand } = await import("drizzle-orm");
       const [optOut] = await db
         .select({ isOptedOut: smsOptOuts.isOptedOut })
         .from(smsOptOuts)
-        .where(and(eq(smsOptOuts.phone, normalizedPhone), eq(smsOptOuts.isOptedOut, true)))
+        .where(dand(eq(smsOptOuts.phone, normalizedPhone), eq(smsOptOuts.isOptedOut, true)))
         .limit(1);
       if (optOut?.isOptedOut) {
         console.log(`[SMS] Skipping opted-out number ${normalizedPhone}`);
@@ -85,19 +130,31 @@ export async function sendSms(
     return { success: true, skipped: true };
   }
 
-  // Check store has available tokens
-  const store = await storage.getStore(storeId);
-  if (!store) {
-    return { success: false, error: "Store not found" };
+  // ── Two-bucket credit check (atomic, race-condition safe) ──────────────────
+  const deductResult = await deductOneSmsCredit(storeId);
+
+  if ("error" in deductResult) {
+    if (deductResult.error === "store_not_found") {
+      return { success: false, error: "Store not found" };
+    }
+    // Both buckets empty — do NOT insert into sms_log, just return error
+    console.warn(`[SMS] Store ${storeId} has no SMS credits available`);
+    return { success: false, error: "No SMS credits available" };
   }
 
-  if ((store.smsTokens ?? 0) < 1) {
-    return { success: false, error: "Insufficient SMS tokens" };
-  }
-
-  // Get global Twilio credentials
+  // Credit was successfully deducted — get Twilio config and send
   const twilioConfig = getGlobalTwilioClient();
   if (!twilioConfig) {
+    // Credit already deducted but Twilio not configured — refund the credit
+    if (deductResult.source === "allowance") {
+      await db.update(locations)
+        .set({ smsAllowance: sql`sms_allowance + 1` })
+        .where(eq(locations.id, storeId));
+    } else {
+      await db.update(locations)
+        .set({ smsCredits: sql`sms_credits + 1` })
+        .where(eq(locations.id, storeId));
+    }
     return { success: false, error: "SMS service not configured" };
   }
 
@@ -108,11 +165,7 @@ export async function sendSms(
       to: phone,
     });
 
-    // Deduct 1 token from store on successful send
-    await storage.updateStore(storeId, { 
-      smsTokens: Math.max(0, (store.smsTokens ?? 0) - 1)
-    });
-
+    // Credit was already atomically deducted before the send — just log success
     await storage.createSmsLog({
       storeId,
       appointmentId: appointmentId ?? null,
@@ -129,6 +182,18 @@ export async function sendSms(
     return { success: true, sid: message.sid };
   } catch (err: any) {
     const errorMessage = err.message || "Unknown error";
+
+    // Twilio failed after deduction — refund the credit so we don't waste it
+    if (deductResult.source === "allowance") {
+      await db.update(locations)
+        .set({ smsAllowance: sql`sms_allowance + 1` })
+        .where(eq(locations.id, storeId));
+    } else {
+      await db.update(locations)
+        .set({ smsCredits: sql`sms_credits + 1` })
+        .where(eq(locations.id, storeId));
+    }
+
     await storage.createSmsLog({
       storeId,
       appointmentId: appointmentId ?? null,

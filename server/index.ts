@@ -315,6 +315,10 @@ app.use((req, res, next) => {
   const { repairOwnerRoles } = await import("./startup/repairOwnerRoles");
   await repairOwnerRoles();
 
+  // One-time migration: seed sms_allowance from legacy sms_tokens for existing stores
+  const { migrateSmsAllowance } = await import("./startup/migrateSmsAllowance");
+  await migrateSmsAllowance();
+
   // Start the 60-day free trial expiration scheduler (runs every hour)
   const { startTrialExpirationScheduler } = await import("./services/trial-expiration");
   startTrialExpirationScheduler();

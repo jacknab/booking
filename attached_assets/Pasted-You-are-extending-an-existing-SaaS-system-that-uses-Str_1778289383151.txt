@@ -1,0 +1,149 @@
+You are extending an existing SaaS system that uses:
+
+Stripe (billing/subscriptions)
+Twilio (SMS delivery)
+subscription-based SMS allowance system already implemented (sms_allowance)
+
+Now you must implement a secondary SMS credit system called “SMS Bucket”.
+
+CORE CONCEPT
+
+There are now TWO SMS sources:
+
+1. Subscription SMS Allowance (PRIMARY)
+Field: sms_allowance
+Resets monthly based on subscription plan
+Does NOT roll over
+Used first for all outbound SMS
+2. Purchased SMS Bucket (SECONDARY)
+Field: sms_credits
+Purchased via Stripe one-time payments
+Does NOT expire on monthly reset
+Only used when sms_allowance = 0
+USAGE PRIORITY RULE (CRITICAL)
+
+When sending ANY SMS:
+
+Step 1
+
+Check:
+
+If sms_allowance > 0
+
+→ Use sms_allowance
+→ Decrement by 1
+→ Proceed to send SMS
+
+Step 2 (fallback)
+
+If sms_allowance == 0:
+
+Check sms_credits > 0
+
+→ Use sms_credits
+→ Decrement by 1
+→ Proceed to send SMS
+
+Step 3 (block)
+
+If both are 0:
+
+DO NOT send SMS
+DO NOT insert into outbound_sms table
+Return error:
+→ “No SMS credits available”
+RULES (VERY IMPORTANT)
+1. sms_allowance NEVER goes negative
+Hard stop at 0
+2. sms_credits NEVER goes negative
+Hard stop at 0
+3. SMS must ONLY be inserted into outbound_sms IF:
+Either sms_allowance OR sms_credits was successfully deducted
+DATABASE STRUCTURE UPDATE
+
+Add/ensure:
+
+sms_allowance (integer, subscription reset)
+sms_credits (integer, purchased bucket)
+
+Optional but recommended:
+
+sms_credits_total_purchased
+sms_credits_used
+STRIPE INTEGRATION — SMS BUCKET PACKAGES
+
+Create one-time purchase products in Stripe:
+
+Packages:
+$10 → SMS Bucket (approx 333 SMS credits)
+$25 → SMS Bucket (approx 833 SMS credits)
+$50 → SMS Bucket (approx 1666 SMS credits)
+Pricing logic:
+
+Client pays:
+
+$0.03 per SMS
+
+(You may calculate credits as floor(price / 0.03))
+
+STRIPE FLOW
+
+When Stripe payment succeeds:
+
+Identify user account
+Add purchased credits to:
+→ sms_credits += purchased_amount
+DO NOT touch sms_allowance
+MONTHLY RESET LOGIC (IMPORTANT UPDATE)
+
+When subscription renews:
+
+Reset ONLY:
+→ sms_allowance = plan_limit
+DO NOT modify:
+→ sms_credits (must persist across months)
+SMS SENDING LOGIC (FINAL MASTER RULE)
+
+Every SMS send must follow this strict order:
+
+Check sms_allowance
+If 0 → check sms_credits
+If both 0 → block
+Deduct from whichever bucket is used
+Insert into outbound_sms ONLY after successful deduction
+RACE CONDITION SAFETY (MANDATORY)
+
+All deductions must be:
+
+Atomic
+Transaction-safe
+Prevent double spending in concurrent SMS sends
+
+Use conditional update logic like:
+
+“decrement only if value > 0”
+OUTBOUND SMS TABLE RULE
+
+Only insert SMS record if:
+
+A credit source was successfully deducted
+
+Never pre-insert.
+
+ADMIN FEATURES (OPTIONAL BUT RECOMMENDED)
+
+Allow admin to:
+
+add sms_credits manually
+view sms_allowance vs sms_credits separately
+SUMMARY
+
+System now has:
+
+Subscription layer:
+sms_allowance (resets monthly, primary usage)
+Credit layer:
+sms_credits (Stripe purchased, fallback usage)
+Priority:
+
+sms_allowance → sms_credits → block

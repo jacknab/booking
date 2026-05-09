@@ -1,0 +1,156 @@
+FULL REPLIT PROMPT — SMS ACTIVITY LEDGER + BACKEND TRACKING + UI
+
+You are updating an existing SaaS system that already includes:
+
+SMS sending via Twilio
+subscription-based SMS allowance system (sms_allowance)
+SMS bucket credit system (sms_credits)
+outbound SMS queue/table
+
+You must ADD a new SMS Activity Ledger system WITHOUT breaking existing SMS sending logic.
+
+⚠️ CRITICAL CONSTRAINT
+
+Do NOT modify or break existing SMS send/credit deduction logic.
+
+You are ONLY:
+
+extending tracking
+adding metadata
+building analytics UI
+PART 1 — DATABASE UPDATES (SAFE EXTENSION)
+
+Extend outbound_sms table (or create if needed):
+
+Add fields:
+
+location_id (required)
+sms_type (string enum):
+reminder
+confirmation
+review
+marketing
+system
+sms_source (string enum):
+allowance
+credits
+cost_estimate (float, optional, default = 0.01)
+created_at timestamp (if not already present)
+PART 2 — SMS TAGGING RULES (MANDATORY)
+
+Every SMS sent MUST include metadata:
+
+sms_type must be assigned:
+Appointment reminder → reminder
+Booking confirmation → confirmation
+Review request → review
+Bulk marketing → marketing
+System-generated fallback → system
+sms_source must be assigned based on existing logic:
+If deducted from sms_allowance → allowance
+If deducted from sms_credits → credits
+PART 3 — BACKEND SAFETY REQUIREMENTS
+IMPORTANT: DO NOT CHANGE EXISTING CREDIT LOGIC
+
+Only extend SMS send function to ALSO store metadata.
+
+When SMS is sent:
+
+Step order MUST remain:
+Check sms_allowance
+If > 0:
+decrement sms_allowance
+set sms_source = "allowance"
+Else check sms_credits
+decrement sms_credits
+set sms_source = "credits"
+If both 0:
+block SMS (no insert, no send)
+AFTER successful deduction ONLY:
+
+Insert into outbound_sms table with:
+
+recipient
+message
+location_id
+sms_type
+sms_source
+timestamp
+cost_estimate (default 0.01)
+PART 4 — SMS ACTIVITY LEDGER PAGE (NEW UI)
+
+Create new page:
+
+/sms-activity
+
+PAGE PURPOSE
+
+A full transparency log of all SMS activity across the system.
+
+1. SUMMARY CARDS (top of page)
+Total SMS sent
+SMS from allowance
+SMS from credits
+Estimated Twilio cost
+Estimated revenue value ($0.03 per SMS equivalent)
+2. FILTER BAR
+
+Filters:
+
+Date range (7d / 30d / 90d)
+Location (multi-location support)
+SMS type:
+reminder
+confirmation
+review
+marketing
+system
+Source:
+allowance
+credits
+3. MAIN TABLE (CORE FEATURE)
+
+Columns:
+
+| Time | Location | SMS Type | Recipient | Source | Cost |
+
+Rows must be sortable and paginated.
+
+4. LOCATION GROUPING VIEW
+
+Group by location:
+
+Each location shows:
+
+Total SMS
+Allowance usage
+Credit usage
+
+Expandable rows for detail.
+
+PART 5 — DATA CONSISTENCY RULES
+Every SMS MUST have:
+location_id
+sms_type
+sms_source
+No SMS can exist in outbound_sms without these fields
+No null sms_source allowed
+PART 6 — ELITE READ-ONLY ENHANCEMENT (OPTIONAL DISPLAY ONLY)
+
+If user is on Elite plan:
+
+Show additional insights:
+
+SMS burn rate per location
+trend over time (simple line chart optional)
+% breakdown allowance vs credits
+
+Do NOT change backend logic for this.
+
+PART 7 — NON-NEGOTIABLE RULES
+Do NOT break existing SMS sending flow
+Do NOT allow negative sms_allowance or sms_credits
+Do NOT insert SMS record unless successfully deducted
+All tracking is additive only
+No performance regression to SMS send path
+END

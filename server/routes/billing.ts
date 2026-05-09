@@ -621,4 +621,177 @@ router.get("/invoices/unpaid/count", requireAdmin, async (_req: Request, res: Re
   }
 });
 
+// ─── SMS Credits ──────────────────────────────────────────────────────────────
+
+const SMS_PACKAGES = [
+  { id: "10", priceCents: 1000, credits: 333, label: "$10 — 333 SMS" },
+  { id: "25", priceCents: 2500, credits: 833, label: "$25 — 833 SMS" },
+  { id: "50", priceCents: 5000, credits: 1666, label: "$50 — 1,666 SMS" },
+] as const;
+
+// GET /api/billing/sms-status/:salonId
+// Returns the store's current SMS allowance, purchased credits, and plan allocation.
+router.get("/sms-status/:salonId", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const salonId = Number(req.params.salonId);
+    const { locations } = await import("@shared/schema");
+    const { subscriptions, billingPlans } = await import("@shared/schema/billing");
+    const { eq } = await import("drizzle-orm");
+    const localDb = db;
+
+    const [store] = await localDb
+      .select({
+        smsAllowance: locations.smsAllowance,
+        smsCredits: locations.smsCredits,
+        smsCreditsTotalPurchased: locations.smsCreditsTotalPurchased,
+      })
+      .from(locations)
+      .where(eq(locations.id, salonId))
+      .limit(1);
+
+    if (!store) {
+      res.status(404).json({ error: "Store not found" });
+      return;
+    }
+
+    // Look up plan's monthly allocation for display purposes
+    const [subRow] = await localDb
+      .select({ planCode: subscriptions.planCode })
+      .from(subscriptions)
+      .where(eq(subscriptions.storeNumber, salonId))
+      .limit(1);
+
+    let planMonthlyAllowance = 0;
+    let planName = "Free";
+    if (subRow) {
+      const [planRow] = await localDb
+        .select({ smsCredits: billingPlans.smsCredits, name: billingPlans.name })
+        .from(billingPlans)
+        .where(eq(billingPlans.code, subRow.planCode))
+        .limit(1);
+      planMonthlyAllowance = planRow?.smsCredits ? Number(planRow.smsCredits) : 0;
+      planName = planRow?.name ?? "Free";
+    }
+
+    res.json({
+      smsAllowance: store.smsAllowance ?? 0,
+      smsCredits: store.smsCredits ?? 0,
+      smsCreditsTotalPurchased: store.smsCreditsTotalPurchased ?? 0,
+      planMonthlyAllowance,
+      planName,
+      packages: SMS_PACKAGES,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/billing/sms-bucket/checkout
+// Creates a Stripe Checkout Session for a one-time SMS credit purchase.
+router.post("/sms-bucket/checkout", requireAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    if (!stripeAvailable()) {
+      res.status(503).json({ error: "Stripe is not configured on this server." });
+      return;
+    }
+
+    const { salonId, packageId } = req.body;
+    if (!salonId || !packageId) {
+      res.status(400).json({ error: "salonId and packageId are required" });
+      return;
+    }
+
+    const pkg = SMS_PACKAGES.find(p => p.id === String(packageId));
+    if (!pkg) {
+      res.status(400).json({ error: "Invalid SMS package. Choose 10, 25, or 50." });
+      return;
+    }
+
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" });
+
+    // Try to find existing Stripe customer for this store
+    let stripeCustomerId: string | undefined;
+    try {
+      const { stripeCustomers } = await import("@shared/schema/billing");
+      const { eq } = await import("drizzle-orm");
+      const [custRow] = await db
+        .select({ customerId: stripeCustomers.customerId })
+        .from(stripeCustomers)
+        .where(eq(stripeCustomers.storeNumber, Number(salonId)))
+        .limit(1);
+      stripeCustomerId = custRow?.customerId ?? undefined;
+    } catch { /* no customer yet */ }
+
+    const origin = req.headers.origin || `https://${req.hostname}`;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      customer: stripeCustomerId,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: pkg.priceCents,
+            product_data: {
+              name: `Certxa SMS Credits — ${pkg.credits} messages`,
+              description: `One-time purchase of ${pkg.credits} SMS credits. Credits never expire.`,
+            },
+          },
+        },
+      ],
+      metadata: {
+        salon_id: String(salonId),
+        purchase_type: "sms_bucket",
+        sms_credits: String(pkg.credits),
+        package_id: pkg.id,
+      },
+      success_url: `${origin}/manage/billing?status=sms_success&credits=${pkg.credits}`,
+      cancel_url: `${origin}/manage/billing?status=sms_canceled`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/billing/sms-credits/admin-add
+// Admin-only: manually add SMS credits to a store (for support, refunds, promotions).
+router.post("/sms-credits/admin-add", requireAdmin, async (req: any, res: Response): Promise<void> => {
+  try {
+    const { salonId, credits, bucket } = req.body;
+    if (!salonId || !credits || Number(credits) <= 0) {
+      res.status(400).json({ error: "salonId and a positive credits amount are required" });
+      return;
+    }
+
+    const { locations } = await import("@shared/schema");
+    const { eq, sql } = await import("drizzle-orm");
+
+    const targetBucket = bucket === "allowance" ? "allowance" : "credits";
+
+    if (targetBucket === "allowance") {
+      await db
+        .update(locations)
+        .set({ smsAllowance: sql`sms_allowance + ${Number(credits)}` } as any)
+        .where(eq(locations.id, Number(salonId)));
+    } else {
+      await db
+        .update(locations)
+        .set({
+          smsCredits: sql`sms_credits + ${Number(credits)}`,
+          smsCreditsTotalPurchased: sql`sms_credits_total_purchased + ${Number(credits)}`,
+        } as any)
+        .where(eq(locations.id, Number(salonId)));
+    }
+
+    res.json({ added: Number(credits), bucket: targetBucket });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

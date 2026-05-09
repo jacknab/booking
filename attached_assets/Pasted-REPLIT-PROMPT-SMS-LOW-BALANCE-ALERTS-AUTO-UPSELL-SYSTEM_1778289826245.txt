@@ -1,0 +1,135 @@
+REPLIT PROMPT — SMS LOW BALANCE ALERTS + AUTO-UPSELL SYSTEM
+
+You are extending an existing SaaS SMS system that includes:
+
+sms_allowance (monthly subscription credits)
+sms_credits (purchased SMS bucket)
+outbound SMS tracking with sms_source
+SMS Activity Ledger system (already implemented)
+
+You must add a low-balance alert + upsell system without modifying core SMS sending logic.
+
+⚠️ CRITICAL RULE
+
+Do NOT modify SMS sending, deduction, or blocking logic.
+
+This feature is purely monitoring + notifications + UI triggers.
+
+PART 1 — NEW SYSTEM: SMS BALANCE THRESHOLDS
+
+Define thresholds per account:
+
+Trigger conditions:
+1. LOW WARNING
+When total available SMS (allowance + credits) ≤ 20 SMS
+2. CRITICAL WARNING
+When total available SMS ≤ 5 SMS
+3. ZERO BLOCK STATE
+When both reach 0 (already handled by existing system)
+PART 2 — NOTIFICATION SYSTEM
+A. In-app notification (required)
+
+Trigger notifications when thresholds are hit:
+
+LOW WARNING
+
+Message:
+
+“You are running low on SMS credits. Consider purchasing more SMS Bucket credits to avoid disruption.”
+
+CRITICAL WARNING
+
+Message:
+
+“Your SMS credits are almost depleted. Outbound SMS may stop soon.”
+
+B. Dashboard banner (required)
+
+Show persistent banner when:
+
+credits ≤ 20 OR allowance ≤ 20
+
+Banner styles:
+
+Yellow = low warning
+Red = critical warning
+
+Include CTA button:
+
+→ “Buy SMS Credits”
+
+PART 3 — AUTO-UPSELL BEHAVIOUR (IMPORTANT)
+
+When CRITICAL WARNING is reached:
+
+Show upsell modal (once per session):
+
+Include:
+
+Remaining SMS count
+Suggested packages:
+$10 SMS Bucket
+$25 SMS Bucket
+$50 SMS Bucket
+
+CTA:
+→ “Add SMS Credits”
+
+PART 4 — STRIPE INTEGRATION HOOK (REQUIRED)
+
+Create or extend existing Stripe flow:
+
+When user clicks “Buy SMS Credits”:
+
+Redirect to Stripe checkout session
+After successful payment:
+increase sms_credits accordingly
+immediately update UI balance
+PART 5 — REAL-TIME BALANCE CHECK
+
+Add helper function:
+
+getTotalSmsBalance(userId)
+
+Returns:
+
+sms_allowance
+sms_credits
+total_available = allowance + credits
+
+This is used ONLY for:
+
+alerts
+UI display
+not SMS sending logic
+PART 6 — UI CHANGES
+Add to Dashboard header:
+
+Display:
+
+SMS Allowance remaining
+SMS Credits remaining
+Total SMS available
+
+Format example:
+
+“SMS: 12 allowance + 45 credits = 57 total”
+
+Add alerts UI component:
+visible on all dashboard pages
+auto-hide when balance is healthy (> 50 total)
+PART 7 — RULES
+Do NOT modify SMS deduction logic
+Do NOT modify outbound_sms insertion rules
+Do NOT allow SMS sending logic to depend on this feature
+This system is advisory + UI + notifications only
+Must be lightweight (no performance impact on SMS send path)
+PART 8 — GOAL
+
+This system should:
+
+prevent users from unexpectedly running out of SMS
+increase SMS credit purchases
+improve transparency of usage
+reduce support tickets
+END

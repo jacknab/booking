@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import Stripe from "stripe";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "../db";
 import { locations } from "@shared/schema";
 import {
@@ -15,7 +15,6 @@ import {
 } from "@shared/schema/billing";
 import { logBillingActivity, suspendAccount, restoreAccount } from "../services/billing-service";
 import { reactivateExpiredAccount } from "../services/trial-expiration";
-import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -428,6 +427,47 @@ async function handleInvoicePaymentSucceeded(inv: Stripe.Invoice): Promise<void>
     // Restore billing suspension and reactivate any expired trial accounts
     await restoreAccount(salonId);
     await reactivateExpiredAccount(salonId);
+
+    // Reset monthly SMS allowance when subscription renews
+    if (
+      inv.billing_reason === "subscription_cycle" ||
+      inv.billing_reason === "subscription_create"
+    ) {
+      await resetSmsAllowanceForStore(salonId);
+    }
+  }
+}
+
+async function resetSmsAllowanceForStore(salonId: number): Promise<void> {
+  try {
+    // Look up the store's current plan's SMS allowance from billing_plans
+    const { subscriptions: subTable } = await import("@shared/schema/billing");
+    const { billingPlans } = await import("@shared/schema/billing");
+    const [subRow] = await db
+      .select({ planCode: subTable.planCode })
+      .from(subTable)
+      .where(eq(subTable.storeNumber, salonId))
+      .limit(1);
+
+    if (!subRow) return;
+
+    const [planRow] = await db
+      .select({ smsCredits: billingPlans.smsCredits })
+      .from(billingPlans)
+      .where(eq(billingPlans.code, subRow.planCode))
+      .limit(1);
+
+    const allowance = planRow?.smsCredits ? Number(planRow.smsCredits) : 0;
+    if (allowance <= 0) return;
+
+    await db
+      .update(locations)
+      .set({ smsAllowance: allowance, updatedAt: new Date() } as any)
+      .where(eq(locations.id, salonId));
+
+    console.log(`[billing] Reset SMS allowance for store ${salonId} to ${allowance} (plan: ${subRow.planCode})`);
+  } catch (err: any) {
+    console.error(`[billing] Failed to reset SMS allowance for store ${salonId}:`, err.message);
   }
 }
 
@@ -647,6 +687,7 @@ async function handleDisputeClosed(dispute: Stripe.Dispute): Promise<void> {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session): Promise<void> {
   const salonId = session.metadata?.salon_id ? Number(session.metadata.salon_id) : null;
   const planCode = session.metadata?.plan_code ?? null;
+  const purchaseType = session.metadata?.purchase_type ?? null;
 
   if (session.payment_intent && session.payment_status === "paid") {
     const piId = session.payment_intent as string;
@@ -663,6 +704,33 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session):
         status: "completed",
       })
       .onConflictDoNothing();
+  }
+
+  // Handle SMS bucket one-time purchase
+  if (purchaseType === "sms_bucket" && salonId && session.payment_status === "paid") {
+    const creditsToAdd = session.metadata?.sms_credits ? Number(session.metadata.sms_credits) : 0;
+    if (creditsToAdd > 0) {
+      await db
+        .update(locations)
+        .set({
+          smsCredits: sql`sms_credits + ${creditsToAdd}`,
+          smsCreditsTotalPurchased: sql`sms_credits_total_purchased + ${creditsToAdd}`,
+          updatedAt: new Date(),
+        } as any)
+        .where(eq(locations.id, salonId));
+
+      console.log(`[billing] Added ${creditsToAdd} SMS credits to store ${salonId}`);
+
+      await logBillingActivity({
+        salonId,
+        eventType: "sms_credits.purchased",
+        severity: "success",
+        message: `Purchased ${creditsToAdd} SMS credits ($${((session.amount_total ?? 0) / 100).toFixed(2)})`,
+        metadata: { sessionId: session.id, creditsAdded: creditsToAdd },
+        source: "webhook",
+      });
+      return;
+    }
   }
 
   if (salonId) {
