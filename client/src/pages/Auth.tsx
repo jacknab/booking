@@ -160,7 +160,7 @@ export default function Auth() {
 
         {/* ── Right panel — form ── */}
         <div style={{
-          flex: "0 0 480px",
+          flex: "0 0 460px",
           display: "flex", flexDirection: "column",
           background: "#fff",
           overflowY: "auto",
@@ -168,17 +168,17 @@ export default function Auth() {
         }}>
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
-            justifyContent: "center", padding: "48px 56px",
+            justifyContent: "center", padding: "28px 44px",
           }}>
 
             {/* Group badge */}
             {cfg && mode === "register" && (
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "6px 14px", borderRadius: 50,
+                padding: "5px 12px", borderRadius: 50,
                 background: "rgba(91,33,182,0.07)", border: "1px solid rgba(91,33,182,0.18)",
-                color: PLUM_MID, fontSize: ".75rem", fontWeight: 700,
-                marginBottom: 20, width: "fit-content",
+                color: PLUM_MID, fontSize: ".72rem", fontWeight: 700,
+                marginBottom: 14, width: "fit-content",
               }}>
                 {cfg.icon}
                 Starting with {cfg.label}
@@ -188,31 +188,31 @@ export default function Auth() {
             {/* Heading */}
             <h1 style={{
               fontFamily: mode === "register" ? "'Cormorant Garamond', serif" : "'Inter', sans-serif",
-              fontSize: mode === "register" ? "3.1rem" : "2rem",
+              fontSize: mode === "register" ? "2.2rem" : "1.85rem",
               fontWeight: mode === "register" ? 700 : 800,
               letterSpacing: mode === "register" ? "-0.02em" : "-0.03em",
               color: CHARCOAL, lineHeight: 1.1,
-              margin: "0 0 10px",
+              margin: "0 0 8px",
             }}>
               {mode === "login" ? "Welcome back" : "Start your free trial"}
             </h1>
 
             {/* Subtext */}
             {mode === "register" ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "4px 12px", borderRadius: 50,
+                  padding: "3px 10px", borderRadius: 50,
                   background: "rgba(245,158,11,0.1)", color: "#92400e",
-                  fontSize: ".73rem", fontWeight: 700,
+                  fontSize: ".72rem", fontWeight: 700,
                 }}>
-                  <ShieldCheck style={{ width: 12, height: 12 }} />
+                  <ShieldCheck style={{ width: 11, height: 11 }} />
                   60 days free
                 </span>
-                <span style={{ color: "#9ca3af", fontSize: ".8rem" }}>No credit card required</span>
+                <span style={{ color: "#9ca3af", fontSize: ".78rem" }}>No credit card required</span>
               </div>
             ) : (
-              <p style={{ color: "#6b7280", fontSize: ".9rem", marginBottom: 28 }}>
+              <p style={{ color: "#6b7280", fontSize: ".88rem", marginBottom: 20 }}>
                 Sign in to continue to your dashboard.
               </p>
             )}
@@ -222,60 +222,60 @@ export default function Auth() {
               onClick={() => loginWithGoogle({ keepSignedIn })}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-                gap: 10, padding: "13px 20px", borderRadius: 10,
+                gap: 10, padding: "11px 20px", borderRadius: 9,
                 border: "1.5px solid #e5e7eb", background: "#fff",
-                fontSize: ".875rem", fontWeight: 600, color: "#374151",
+                fontSize: ".85rem", fontWeight: 600, color: "#374151",
                 cursor: "pointer", transition: "border-color .15s, background .15s",
-                marginBottom: 20,
+                marginBottom: 14,
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#f9fafb"; (e.currentTarget as HTMLElement).style.borderColor = "#d1d5db"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#fff"; (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb"; }}
             >
-              <FaGoogle style={{ color: "#ea4335", width: 16, height: 16 }} />
+              <FaGoogle style={{ color: "#ea4335", width: 15, height: 15 }} />
               {mode === "login" ? "Sign in with Google" : "Sign up with Google"}
             </button>
 
             {/* Divider */}
-            <div style={{ position: "relative", marginBottom: 20 }}>
+            <div style={{ position: "relative", marginBottom: 14 }}>
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center" }}>
                 <span style={{ width: "100%", borderTop: "1px solid #f3f4f6" }} />
               </div>
               <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
-                <span style={{ background: "#fff", padding: "0 12px", fontSize: ".72rem", color: "#9ca3af", letterSpacing: ".1em", textTransform: "uppercase" }}>or</span>
+                <span style={{ background: "#fff", padding: "0 12px", fontSize: ".7rem", color: "#9ca3af", letterSpacing: ".1em", textTransform: "uppercase" }}>or</span>
               </div>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 11 }}>
               {mode === "register" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div>
-                    <Label htmlFor="firstName" style={{ display: "block", fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>First name</Label>
+                    <Label htmlFor="firstName" style={{ display: "block", fontSize: ".68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>First name</Label>
                     <Input
                       id="firstName"
                       data-testid="input-first-name"
                       value={firstName}
                       onChange={e => setFirstName(e.target.value)}
                       placeholder="Jane"
-                      style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                      style={{ height: 40, borderRadius: 8, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".85rem" }}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="lastName" style={{ display: "block", fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Last name</Label>
+                    <Label htmlFor="lastName" style={{ display: "block", fontSize: ".68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Last name</Label>
                     <Input
                       id="lastName"
                       data-testid="input-last-name"
                       value={lastName}
                       onChange={e => setLastName(e.target.value)}
                       placeholder="Doe"
-                      style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                      style={{ height: 40, borderRadius: 8, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".85rem" }}
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <Label htmlFor="email" style={{ display: "block", fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Email</Label>
+                <Label htmlFor="email" style={{ display: "block", fontSize: ".68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -284,15 +284,15 @@ export default function Auth() {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="you@yourbusiness.com"
                   required
-                  style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                  style={{ height: 40, borderRadius: 8, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".85rem" }}
                 />
               </div>
 
               <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <Label htmlFor="password" style={{ fontSize: ".7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em" }}>Password</Label>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <Label htmlFor="password" style={{ fontSize: ".68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".08em" }}>Password</Label>
                   {mode === "login" && (
-                    <Link to="/forgot-password" style={{ fontSize: ".8rem", fontWeight: 600, color: PLUM_MID, textDecoration: "none" }}>
+                    <Link to="/forgot-password" style={{ fontSize: ".78rem", fontWeight: 600, color: PLUM_MID, textDecoration: "none" }}>
                       Forgot password?
                     </Link>
                   )}
@@ -306,22 +306,22 @@ export default function Auth() {
                   placeholder="At least 6 characters"
                   required
                   minLength={6}
-                  style={{ height: 46, borderRadius: 9, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".875rem" }}
+                  style={{ height: 40, borderRadius: 8, borderColor: "#e5e7eb", background: "#fafafa", fontSize: ".85rem" }}
                 />
               </div>
 
               {/* Keep signed in */}
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={keepSignedIn}
                   onChange={e => setKeepSignedIn(e.target.checked)}
                   data-testid="checkbox-keep-signed-in"
-                  style={{ marginTop: 2, width: 15, height: 15, accentColor: PLUM_MID, cursor: "pointer" }}
+                  style={{ marginTop: 2, width: 14, height: 14, accentColor: PLUM_MID, cursor: "pointer" }}
                 />
                 <span>
-                  <span style={{ display: "block", fontSize: ".8rem", fontWeight: 600, color: "#374151" }}>Keep me signed in on this device</span>
-                  <span style={{ display: "block", fontSize: ".72rem", color: "#9ca3af", marginTop: 2 }}>Use for the front-desk computer — staff won't have to log in.</span>
+                  <span style={{ display: "block", fontSize: ".78rem", fontWeight: 600, color: "#374151" }}>Keep me signed in on this device</span>
+                  <span style={{ display: "block", fontSize: ".7rem", color: "#9ca3af", marginTop: 1 }}>Use for the front-desk computer — staff won't have to log in.</span>
                 </span>
               </label>
 
@@ -332,9 +332,9 @@ export default function Auth() {
                 data-testid="button-submit-auth"
                 style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-                  gap: 8, padding: "15px 20px", borderRadius: 10, border: "none",
+                  gap: 8, padding: "12px 20px", borderRadius: 9, border: "none",
                   fontFamily: "'Inter', sans-serif",
-                  fontSize: ".9rem", fontWeight: 700, color: "#fff",
+                  fontSize: ".875rem", fontWeight: 700, color: "#fff",
                   cursor: isPending ? "not-allowed" : "pointer",
                   opacity: isPending ? 0.65 : 1,
                   background: mode === "register"
@@ -344,44 +344,39 @@ export default function Auth() {
                     ? "0 4px 20px rgba(59,7,100,0.35)"
                     : "0 4px 16px rgba(245,158,11,0.35)",
                   transition: "transform .15s, box-shadow .15s, opacity .15s",
-                  marginTop: 4,
+                  marginTop: 2,
                 }}
                 onMouseEnter={e => { if (!isPending) { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = mode === "register" ? "0 8px 28px rgba(59,7,100,0.45)" : "0 8px 24px rgba(245,158,11,0.45)"; } }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "none"; (e.currentTarget as HTMLElement).style.boxShadow = mode === "register" ? "0 4px 20px rgba(59,7,100,0.35)" : "0 4px 16px rgba(245,158,11,0.35)"; }}
               >
-                {isPending && <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} />}
+                {isPending && <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} />}
                 {mode === "login" ? "Sign in" : "Start my 60-day free trial"}
-                {!isPending && <ArrowRight style={{ width: 16, height: 16 }} />}
+                {!isPending && <ArrowRight style={{ width: 15, height: 15 }} />}
               </button>
 
               {mode === "register" && (
-                <div style={{ margin: "-4px 0 0" }}>
-                  <p style={{ textAlign: "center", fontSize: ".72rem", color: "#9ca3af", marginBottom: 8 }}>
-                    Complete access to all features for 60 days. No credit card required.
+                <div style={{
+                  display: "flex", alignItems: "flex-start", gap: 7,
+                  background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.22)",
+                  borderRadius: 7, padding: "6px 9px",
+                }}>
+                  <span style={{ fontSize: ".78rem", lineHeight: 1, marginTop: 1, flexShrink: 0 }}>📱</span>
+                  <p style={{ fontSize: ".68rem", color: "#b45309", lineHeight: 1.4, margin: 0 }}>
+                    <strong style={{ color: "#92400e" }}>SMS not included in trial.</strong>{" "}
+                    Purchase an SMS package from your dashboard after signing up.
                   </p>
-                  <div style={{
-                    display: "flex", alignItems: "flex-start", gap: 7,
-                    background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.22)",
-                    borderRadius: 8, padding: "7px 10px",
-                  }}>
-                    <span style={{ fontSize: ".8rem", lineHeight: 1, marginTop: 1, flexShrink: 0 }}>📱</span>
-                    <p style={{ fontSize: ".7rem", color: "#b45309", lineHeight: 1.45, margin: 0 }}>
-                      <strong style={{ color: "#92400e" }}>SMS not included in trial.</strong>{" "}
-                      To send SMS reminders and notifications, you'll need to purchase an SMS package from your dashboard after signing up.
-                    </p>
-                  </div>
                 </div>
               )}
             </form>
 
             {/* Switch mode */}
-            <p style={{ textAlign: "center", color: "#9ca3af", fontSize: ".85rem", marginTop: 24 }}>
+            <p style={{ textAlign: "center", color: "#9ca3af", fontSize: ".82rem", marginTop: 16 }}>
               {mode === "login" ? (
                 <>
                   Don't have an account?{" "}
                   <button type="button" onClick={() => setMode("register")}
                     data-testid="link-switch-to-register"
-                    style={{ color: PLUM_MID, fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: ".85rem" }}>
+                    style={{ color: PLUM_MID, fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: ".82rem" }}>
                     Start free trial
                   </button>
                 </>
@@ -390,7 +385,7 @@ export default function Auth() {
                   Already have an account?{" "}
                   <button type="button" onClick={() => setMode("login")}
                     data-testid="link-switch-to-login"
-                    style={{ color: PLUM_MID, fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: ".85rem" }}>
+                    style={{ color: PLUM_MID, fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: ".82rem" }}>
                     Log in
                   </button>
                 </>
@@ -398,7 +393,7 @@ export default function Auth() {
             </p>
 
             {/* Footer links */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 32, paddingTop: 24, borderTop: "1px solid #f3f4f6" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f3f4f6" }}>
               <a href="https://certxa.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#d1d5db", fontSize: ".75rem", textDecoration: "none" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#6b7280"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#d1d5db"; }}>
@@ -473,17 +468,18 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
       <div style={{
         position: "relative", zIndex: 10,
         display: "flex", flexDirection: "column",
-        height: "100%", padding: "52px 56px",
+        justifyContent: "center",
+        height: "100%", padding: "36px 48px",
         animation: "fadeUp .5s ease both",
       }}>
 
-        {/* Logo — identical to PHP nav-logo */}
+        {/* Logo */}
         <a href="/overview.php" style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: "1.55rem", fontWeight: 700,
+          fontSize: "1.45rem", fontWeight: 700,
           letterSpacing: "-0.02em",
           color: "#fff", textDecoration: "none",
-          marginBottom: 48, display: "block",
+          marginBottom: 20, display: "block",
         }}>
           Certxa<span style={{ color: GOLD }}>.</span>
         </a>
@@ -491,61 +487,50 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
         {/* Offer badge */}
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "7px 16px", borderRadius: 50,
+          padding: "5px 14px", borderRadius: 50,
           background: "rgba(245,158,11,0.12)",
           border: "1px solid rgba(245,158,11,0.28)",
-          marginBottom: 24, width: "fit-content",
+          marginBottom: 18, width: "fit-content",
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: GOLD, animation: "spin 2s linear infinite" }} />
-          <span style={{ fontSize: ".75rem", fontWeight: 700, color: "#FCD34D", letterSpacing: ".06em", textTransform: "uppercase" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD }} />
+          <span style={{ fontSize: ".72rem", fontWeight: 700, color: "#FCD34D", letterSpacing: ".06em", textTransform: "uppercase" }}>
             Limited offer — 60 days free
           </span>
         </div>
 
-        {/* Headline — uses Cormorant Garamond like PHP overview hero */}
+        {/* Headline */}
         <h2 style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: "clamp(2.8rem, 4vw, 3.8rem)",
+          fontSize: "clamp(2.2rem, 3.2vw, 3rem)",
           fontWeight: 700, letterSpacing: "-0.03em",
           lineHeight: 1.05, color: "#fff",
-          margin: "0 0 20px",
+          margin: "0 0 14px",
         }}>
           Everything<br />
           <em style={{ color: GOLD, fontStyle: "italic" }}>Certxa</em> offers.<br />
           Free for 60 days.
         </h2>
 
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: ".95rem", lineHeight: 1.65, maxWidth: 380, margin: "0 0 16px" }}>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: ".88rem", lineHeight: 1.55, maxWidth: 360, margin: "0 0 18px" }}>
           No credit card required. Complete access to every feature for 60 days.
         </p>
-        <div style={{
-          display: "flex", alignItems: "flex-start", gap: 8,
-          background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)",
-          borderRadius: 10, padding: "9px 13px", maxWidth: 380, marginBottom: 36,
-        }}>
-          <span style={{ fontSize: ".85rem", lineHeight: 1, marginTop: 2, flexShrink: 0 }}>📱</span>
-          <p style={{ fontSize: ".78rem", color: "rgba(253,211,77,0.8)", lineHeight: 1.5, margin: 0 }}>
-            <strong style={{ color: "#FCD34D" }}>SMS credits not included.</strong>{" "}
-            Purchase an SMS package from your dashboard to activate text reminders and notifications.
-          </p>
-        </div>
 
-        {/* Feature grid */}
-        <div style={{ marginBottom: 32 }}>
-          <p style={{ fontSize: ".65rem", fontWeight: 700, color: "rgba(255,255,255,0.28)", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 14 }}>
-            What's included in your trial
+        {/* Feature grid — first 8 only */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: ".62rem", fontWeight: 700, color: "rgba(255,255,255,0.28)", textTransform: "uppercase", letterSpacing: ".14em", marginBottom: 10 }}>
+            What's included
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px" }}>
-            {TRIAL_FEATURES.map(({ icon: Icon, text }) => (
-              <div key={text} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 20px" }}>
+            {TRIAL_FEATURES.slice(0, 8).map(({ text }) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div style={{
-                  width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                  width: 18, height: 18, borderRadius: 5, flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: "rgba(139,92,246,0.3)",
                 }}>
-                  <Check style={{ width: 12, height: 12, color: "#c4b5fd" }} />
+                  <Check style={{ width: 10, height: 10, color: "#c4b5fd" }} />
                 </div>
-                <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.35 }}>{text}</span>
+                <span style={{ fontSize: ".76rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.3 }}>{text}</span>
               </div>
             ))}
           </div>
@@ -553,11 +538,8 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
 
         {/* Stats */}
         <div style={{
-          display: "flex", gap: 32,
-          paddingTop: 24, paddingBottom: 24,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          marginBottom: 24,
+          display: "flex", gap: 28,
+          paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.08)",
         }}>
           {[
             { num: "50K+", label: "Businesses" },
@@ -565,40 +547,10 @@ function TrialLeftPanel({ cfg }: { cfg: { label: string; tagline: string; icon: 
             { num: "4.9★", label: "Avg rating" },
           ].map(({ num, label }) => (
             <div key={label}>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.6rem", fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{num}</p>
-              <p style={{ fontSize: ".7rem", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".08em", margin: "4px 0 0" }}>{label}</p>
+              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.45rem", fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{num}</p>
+              <p style={{ fontSize: ".65rem", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".08em", margin: "3px 0 0" }}>{label}</p>
             </div>
           ))}
-        </div>
-
-        {/* Testimonial */}
-        <div style={{
-          background: "rgba(255,255,255,0.05)", borderRadius: 16,
-          border: "1px solid rgba(255,255,255,0.08)",
-          padding: "20px 22px",
-        }}>
-          <div style={{ display: "flex", gap: 2, marginBottom: 10 }}>
-            {[...Array(5)].map((_, i) => (
-              <svg key={i} width="14" height="14" viewBox="0 0 20 20" fill={GOLD}>
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-              </svg>
-            ))}
-          </div>
-          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.6, fontStyle: "italic", margin: "0 0 14px" }}>
-            "Setting up took one afternoon. By the next morning we already had 6 new bookings come in overnight."
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: ".7rem", fontWeight: 700, color: "#fff",
-              background: `linear-gradient(135deg, ${PLUM_MID}, ${PLUM})`,
-            }}>JR</div>
-            <div>
-              <p style={{ fontSize: ".82rem", fontWeight: 700, color: "rgba(255,255,255,0.85)", margin: 0, lineHeight: 1 }}>Jasmine R.</p>
-              <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,0.35)", margin: "3px 0 0" }}>Owner, Luxe Hair Studio</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
