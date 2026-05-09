@@ -62,37 +62,52 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showNoLocModal, setShowNoLocModal] = useState(false);
 
-  // Load existing profile on mount — but not if we're about to handle an OAuth callback
-  useEffect(() => {
-    const hasOAuthCode = new URLSearchParams(window.location.search).has("code");
-    if (storeId && !hasOAuthCode) {
-      loadProfile();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId]);
-
-  // Handle OAuth callback code/state in the URL (after Google redirect)
+  // On mount: check for OAuth result params in the URL, or load the existing profile.
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const state = urlParams.get("state");
-    const error = urlParams.get("error");
+    const googleConnected = urlParams.get("google_connected");
+    const googleError     = urlParams.get("google_error");
+    const code            = urlParams.get("code");   // legacy frontend-mediated flow
+    const stateParm       = urlParams.get("state");
 
-    if (error) {
-      setErrorMsg(`Google authorization was denied: ${error}`);
-      setStep("initial");
-      // Clean up URL
+    // Always clean up URL params so a refresh doesn't replay
+    if (googleConnected || googleError || code) {
       window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (googleError) {
+      const messages: Record<string, string> = {
+        access_denied:    "Google access was denied. Please try again and accept the permissions.",
+        csrf_mismatch:    "Security token mismatch. Please start the connection flow again.",
+        missing_store:    "Could not identify which store to connect. Please try again.",
+        quota_exceeded:   "Google Business Profile API quota exceeded. Request a quota increase at https://support.google.com/business/contact/api_default_quota_increase",
+        no_access_token:  "Google did not return an access token. Ensure offline access is enabled.",
+        server_error:     "An unexpected error occurred. Check server logs for details.",
+        missing_params:   "Google redirect was missing required parameters.",
+        invalid_state:    "Invalid OAuth state token. Please try again.",
+      };
+      setErrorMsg(messages[googleError] ?? `Google authorization error: ${googleError}`);
+      setStep("initial");
       return;
     }
 
-    if (code && step === "loading") {
-      // Clean up URL before processing so a refresh doesn't replay the code
-      window.history.replaceState({}, document.title, window.location.pathname);
-      handleAuthCallback(code, state ?? undefined);
+    if (googleConnected === "1" && storeId) {
+      // Server-side callback handled the token exchange.
+      // Pick up the result from the server session.
+      handlePickupConnectionResult();
+      return;
     }
+
+    if (code && step === "loading" && storeId) {
+      // Legacy: frontend-mediated flow where redirect_uri pointed at a frontend page.
+      handleAuthCallback(code, stateParm ?? undefined);
+      return;
+    }
+
+    // No OAuth params — load existing profile normally.
+    if (storeId) loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [storeId]);
 
   const loadProfile = async () => {
     if (!storeId) return;
@@ -111,24 +126,62 @@ export function GoogleBusinessProfileSetup({ storeId: propStoreId }: GoogleBusin
     }
   };
 
-  /** Step 1 — redirect to Google's OAuth consent screen */
-  const handleStartAuth = async () => {
+  /**
+   * Pick up the Google connection result stored in the server session by
+   * the GET /api/google-business/callback redirect handler.
+   * Called when the page loads with ?google_connected=1.
+   */
+  const handlePickupConnectionResult = async () => {
+    if (!storeId) return;
     try {
       setLoading(true);
       setErrorMsg(null);
-      const response = await axios.get("/api/google-business/auth-url");
-      // The server embedded a CSRF state token inside the URL.
-      // Redirecting the browser preserves the session so the server can verify it.
-      window.location.href = response.data.authUrl;
-    } catch (error) {
-      console.error("Failed to get auth URL:", error);
-      setErrorMsg("Failed to start Google authorization. Please try again.");
+      setStep("loading");
+      const response = await axios.get("/api/google-business/connection-result");
+      const { accounts = [], profileId: pid, email } = response.data;
+
+      if (!accounts.length) {
+        setErrorMsg(
+          "Google authentication succeeded but no Business Profile accounts were found. " +
+          "Make sure your Google account has a Business Profile at business.google.com."
+        );
+        setStep("initial");
+        return;
+      }
+
+      setProfileId(pid);
+      setAccounts(accounts);
+      setStep("select-account");
+    } catch (error: any) {
+      console.error("Failed to pick up Google connection result:", error);
+      const msg = error.response?.data?.message ?? "Failed to complete Google sign-in. Please try again.";
+      setErrorMsg(msg);
+      setStep("initial");
     } finally {
       setLoading(false);
     }
   };
 
-  /** Step 2 — exchange OAuth code for tokens */
+  /** Step 1 — redirect to Google's OAuth consent screen */
+  const handleStartAuth = async () => {
+    if (!storeId) return;
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      // Pass storeId so the server can embed it in the OAuth state for the
+      // server-side callback to restore context after the redirect.
+      const response = await axios.get(`/api/google-business/auth-url?storeId=${storeId}`);
+      // Redirect the browser — session cookie travels with it, preserving CSRF state.
+      window.location.href = response.data.authUrl;
+    } catch (error: any) {
+      console.error("Failed to get auth URL:", error);
+      const msg = error.response?.data?.message ?? "Failed to start Google authorization. Please try again.";
+      setErrorMsg(msg);
+      setLoading(false);
+    }
+  };
+
+  /** Step 2 (legacy) — exchange OAuth code for tokens via POST (frontend-mediated flow) */
   const handleAuthCallback = async (code: string, state?: string) => {
     if (!storeId) return;
     try {

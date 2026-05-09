@@ -78,12 +78,20 @@ export default function Reviews() {
   const effectiveStep = !googleLoading && isGoogleConnected ? "done" : gateStep;
 
   async function handleGoogleConnect() {
+    if (!storeId) return;
     setGoogleConnecting(true);
     try {
-      const res = await fetch("/api/google-business/auth-url", { credentials: "include" });
+      // Pass storeId so the server-side OAuth callback knows which store to connect
+      const res = await fetch(`/api/google-business/auth-url?storeId=${storeId}`, { credentials: "include" });
       const data = await res.json();
+      if (!res.ok) {
+        console.error("[Google OAuth] auth-url error:", data.message);
+        setGoogleConnecting(false);
+        return;
+      }
       window.location.href = data.authUrl;
-    } catch {
+    } catch (err) {
+      console.error("[Google OAuth] Failed to get auth URL:", err);
       setGoogleConnecting(false);
     }
   }

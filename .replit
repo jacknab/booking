@@ -90,7 +90,7 @@ ACTIVE_GROUPS = "3"
 APP_URL = "https://certxa.com"
 
 [userenv.development]
-GOOGLE_REDIRECT_URI = "https://04d80595-4e34-4568-a0f2-3042046716cb-00-25h5iy32a265s.janeway.replit.dev/google-business"
+GOOGLE_REDIRECT_URI = "https://04d80595-4e34-4568-a0f2-3042046716cb-00-25h5iy32a265s.janeway.replit.dev/api/google-business/callback"
 
 [userenv.production]
-GOOGLE_REDIRECT_URI = "https://certxa.com/google-business"
+GOOGLE_REDIRECT_URI = "https://certxa.com/api/google-business/callback"
