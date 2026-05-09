@@ -23,7 +23,7 @@ const PLANS = [
     price: 9,
     tagline: "For independent stylists & booth renters",
     highlight: "1 calendar · 1 staff",
-    features: ["1 calendar", "1 staff member", "Online booking page", "Payments & card reader", "200 SMS/mo", "iOS & Android app"],
+    features: ["1 calendar", "1 staff member", "Online booking page", "Payments & card reader", "200 SMS/mo"],
     apiDocs: false,
   },
   {
