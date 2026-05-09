@@ -49,6 +49,7 @@ type NavItem = {
   permission?: string;
   anyOf?: string[];
   hideForStaff?: boolean;
+  eliteOnly?: boolean;
 };
 
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -116,8 +117,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
       { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/team-permissions", label: "Roles & Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
-      { to: "/api-keys", label: "API Keys", icon: Key, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
-      { to: "/multi-location", label: "Multi-Location", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
+      { to: "/api-keys", label: "API Keys", icon: Key, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true, eliteOnly: true },
+      { to: "/multi-location", label: "Multi-Location", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true, eliteOnly: true },
     ],
   },
 ];
@@ -130,6 +131,19 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const { selectedStore } = useSelectedStore();
   const { can, canAny, isStaff } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
+
+  const { data: subscription } = useQuery<any>({
+    queryKey: ["/api/billing/subscription", selectedStore?.id],
+    queryFn: async () => {
+      if (!selectedStore?.id) return null;
+      const res = await fetch(`/api/billing/subscription/${selectedStore.id}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!selectedStore?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isElite = subscription?.planCode === "elite";
 
   const { data: smsConversations } = useQuery<any[]>({
     queryKey: ["/api/sms-inbox/conversations", selectedStore?.id],
@@ -172,6 +186,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                 if (isStaff && item.hideForStaff) return false;
                 if (item.permission && !can(item.permission)) return false;
                 if (item.anyOf && !canAny(...item.anyOf)) return false;
+                if (item.eliteOnly && !isElite) return false;
                 return true;
               });
               if (items.length === 0) return null;
