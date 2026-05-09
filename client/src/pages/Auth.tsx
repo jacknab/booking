@@ -219,6 +219,7 @@ export default function Auth() {
 
             {/* Google */}
             <button
+              type="button"
               onClick={() => loginWithGoogle({ keepSignedIn })}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
