@@ -1,0 +1,101 @@
+The Google Business Profile connection flow is incomplete.
+
+Current behavior:
+
+* OAuth connection succeeds
+* UI says "Connected to Google Business Profile"
+* BUT:
+
+  * no business name is shown
+  * no location is shown
+  * no reviews sync
+  * "Last synced" stays on Never
+  * review counts remain 0
+
+This means the OAuth token is being created successfully, but the backend is NOT correctly fetching and mapping Google Business accounts and locations.
+
+I need the Google Business integration flow completed properly for my booking platform SaaS.
+
+REQUIRED IMPLEMENTATION:
+
+1. After successful Google Business OAuth:
+   Use the access token to fetch Google Business accounts.
+
+Endpoint:
+GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts
+
+2. Parse and store:
+
+* account resource name
+* account display name
+
+Example:
+accounts/123456789
+
+3. Then fetch ALL business locations for that account.
+
+Endpoint:
+GET https://mybusinessbusinessinformation.googleapis.com/v1/{accountId}/locations
+
+4. Parse and store:
+
+* location ID
+* business/location name
+* address
+* metadata needed for reviews
+
+5. Add a UI step after connection:
+   If multiple locations exist, allow the salon owner to choose which location to sync.
+
+Example:
+
+* Certxa Denver
+* Certxa Boulder
+* Certxa Cherry Creek
+
+6. Store the selected Google location ID in the database linked to the tenant/account.
+
+7. Only AFTER location selection:
+   Fetch reviews for that exact location.
+
+8. Update dashboard properly:
+
+* connected business name
+* total reviews
+* average rating
+* response rate
+* awaiting response
+* last synced timestamp
+
+9. Add detailed backend logs for:
+
+* accounts response
+* locations response
+* selected location ID
+* review sync response
+* API errors
+
+10. Never silently fail.
+    If:
+
+* no locations found
+* permissions issue
+* invalid token
+* API failure
+
+Then show the exact issue in logs and admin UI.
+
+11. Add a "Connected Business" section to the UI.
+
+Example:
+Connected Business:
+Certxa – Denver
+Google Location ID: xxxxxxxxx
+
+12. Ensure review syncing runs against the selected Google Business LOCATION resource, not just the Google account.
+
+IMPORTANT:
+Google reviews are location-scoped.
+The current implementation appears to stop after OAuth and never properly maps the business locations.
+
+This must be implemented production-ready for a multi-location salon booking SaaS platform.
