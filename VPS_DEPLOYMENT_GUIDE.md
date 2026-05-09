@@ -4,6 +4,154 @@
 
 ---
 
+## ⚠️ BLANK PAGE / ASSETS RETURNING HTML — READ THIS FIRST
+
+If the app loads a blank white page and the browser console shows errors like:
+
+```
+Refused to apply style from 'https://certxa.com/assets/index-XXXX.css'
+because its MIME type ('text/html') is not a supported stylesheet MIME type
+
+Failed to load resource: the server responded with a status of 404 () [index-XXXX.js]
+```
+
+**This is NOT a Node.js version issue.** This is caused by one of three things:
+
+### Root cause (understand this first)
+
+Inside `server/index.ts`, the entire static file serving block is wrapped in a condition:
+
+```js
+if (process.env.NODE_ENV === "production") {
+  // Only here does Express serve dist/public/assets/*
+  app.use(express.static(distPath, ...))
+}
+```
+
+If `NODE_ENV` is not `"production"`, Express never registers the static file handler. Every request for `/assets/index-XXXX.css` falls through to the SPA catch-all, which returns `index.html` — a HTML file — causing the MIME type error.
+
+### Diagnosis — run these three checks in order
+
+**Check 1: Is the build output there?**
+```bash
+ls /home/deploy/certxa/dist/public/assets/
+```
+If this is empty or the directory doesn't exist → **the build was never run**. Go to Fix A.
+
+**Check 2: Is PM2 running the compiled output or the dev server?**
+```bash
+pm2 info certxa | grep script
+```
+The script must be `./dist/index.cjs`, NOT `npm run dev` or `tsx server/index.ts`.
+If it shows `dev` or `tsx` → **PM2 is running the development server**. Go to Fix B.
+
+**Check 3: Is NODE_ENV set correctly?**
+```bash
+pm2 env certxa | grep NODE_ENV
+```
+Must show `NODE_ENV: production`. If missing or wrong → Go to Fix C.
+
+---
+
+### Fix A — Build was never run
+
+```bash
+cd /home/deploy/certxa
+npm install          # install all dependencies first
+npm run build        # this takes 1-3 minutes — wait for it to finish
+ls dist/public/assets/   # confirm .css and .js files exist
+pm2 restart certxa
+```
+
+### Fix B — PM2 is running the wrong command
+
+Stop whatever is running and restart with the correct command:
+
+```bash
+pm2 delete certxa    # stop and remove current process
+cd /home/deploy/certxa
+npm run build        # must build first if not done
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+```
+
+Open `ecosystem.config.cjs` and confirm it says:
+```js
+script: './dist/index.cjs',   // CORRECT
+// NOT: 'npm run dev'         // WRONG
+// NOT: 'tsx server/index.ts' // WRONG
+```
+
+### Fix C — NODE_ENV not set to production
+
+```bash
+# In ecosystem.config.cjs, confirm env_production block:
+cat ecosystem.config.cjs
+```
+
+It must contain:
+```js
+env_production: {
+  NODE_ENV: 'production',
+  PORT: 8100
+}
+```
+
+Then restart:
+```bash
+pm2 restart certxa --env production
+pm2 env certxa | grep NODE_ENV   # confirm it now shows production
+```
+
+### Final verification after any fix
+
+```bash
+# 1. Check assets are real files, not the index.html fallback
+curl -I https://certxa.com/assets/$(ls dist/public/assets/ | grep '\.css' | head -1)
+# Expected: Content-Type: text/css
+# Wrong:    Content-Type: text/html
+
+# 2. Open the register page — should no longer be blank
+curl -s https://certxa.com/auth?mode=register | head -5
+# Expected: <!DOCTYPE html> with actual page content, not a blank screen
+```
+
+---
+
+## ✅ Pre-Flight Checklist (Run Before Starting the Server)
+
+Before running `pm2 start` for the first time, verify all of these:
+
+```bash
+# 1. Node.js version must be 20.x
+node --version   # must show v20.x.x
+
+# 2. PHP must be installed (required for marketing pages)
+php --version    # must show 8.1+
+
+# 3. Build output must exist
+ls dist/index.cjs              # compiled server
+ls dist/public/index.html      # compiled frontend
+ls dist/public/assets/         # must contain .css and .js files
+ls dist/server/entry-server.cjs  # SSR bundle
+
+# 4. Database must be reachable
+psql $DATABASE_URL -c "SELECT 1"   # must return 1 row
+
+# 5. Schema must be applied
+psql $DATABASE_URL -c "\dt" | grep users   # must show users table
+
+# 6. Required env vars must be set
+grep -E "^(DATABASE_URL|SESSION_SECRET|NODE_ENV|APP_URL)" .env
+
+# 7. PM2 must be running the compiled output
+pm2 info certxa | grep "script path"  # must end in dist/index.cjs
+```
+
+If any check fails, fix it before starting. The most common mistake is starting the server without running the build first.
+
+---
+
 ## 1. What This Codebase Is
 
 **Certxa** is a SaaS "business-in-a-box" for service businesses (salons, barbershops, spas, handymen, etc.). One Node.js/Express server stitches together:
@@ -25,9 +173,9 @@ Internet
     │
     ▼
 Nginx (SSL termination + reverse proxy)
-    │  proxy_pass → localhost:5000
+    │  proxy_pass → localhost:8100
     ▼
-Node.js Express Server (port 5000)
+Node.js Express Server (port 8100)
     ├── /api/*                 → Express route handlers (TypeScript)
     ├── /assets/, /, *.php     → PHP proxy → PHP built-in server (port 8081)
     ├── /launchsite/           → PHP proxy → PHP built-in server (port 8081)
@@ -76,7 +224,7 @@ Create `/home/deploy/certxa/.env` with ALL of these. Do not skip any — missing
 ```env
 # ─── Node ───────────────────────────────────────────────────────────────────
 NODE_ENV=production
-PORT=5000
+PORT=8100
 
 # ─── Database ────────────────────────────────────────────────────────────────
 # Format: postgresql://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=disable
@@ -216,33 +364,46 @@ The PHP server:
 
 ## 9. PM2 Process Configuration
 
-Use the included `ecosystem.config.cjs`:
+The `ecosystem.config.cjs` file in the project root is the PM2 config. Before using it, **edit it to set the correct `cwd`** for your VPS:
 
 ```bash
-cat ecosystem.config.cjs
+nano ecosystem.config.cjs
 ```
 
-It should look like this (verify before using):
+The config should look like this — the critical fields are marked:
+
 ```js
 module.exports = {
   apps: [{
     name: 'certxa',
-    script: './dist/index.cjs',
-    instances: 1,           // increase to 'max' for multi-core only after testing
-    exec_mode: 'fork',      // NOT cluster — the app manages its own PHP subprocess
-    env_production: {
-      NODE_ENV: 'production',
-      PORT: 5000
-    }
+    script: './dist/index.cjs',      // ← MUST point to the compiled output, NOT npm run dev
+    cwd: '/apps/booking',            // ← SET THIS to wherever the project lives on your VPS
+    instances: 1,
+    exec_mode: 'fork',               // ← MUST be fork — NOT cluster (app spawns PHP child process)
+    env: {
+      NODE_ENV: 'production',        // ← MUST be production — static file serving depends on this
+      PORT: 8100,                    // ← MUST match the port Nginx proxies to
+      // Everything else (DATABASE_URL, SESSION_SECRET, API keys) comes from .env automatically
+    },
+    error_file: './logs/pm2-error.log',
+    out_file:   './logs/pm2-out.log',
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G'
   }]
 }
 ```
 
-**IMPORTANT:** Do NOT use `exec_mode: 'cluster'` — the app spawns a child PHP process and cluster mode would spawn multiple competing PHP servers.
+**Common mistakes to avoid:**
+- `script` must be `'./dist/index.cjs'` — never `'npm run dev'` or `'tsx server/index.ts'`
+- `PORT` must match what Nginx uses in `proxy_pass http://127.0.0.1:PORT` — if these differ, you get 502 errors
+- `NODE_ENV: 'production'` must be present — without it the static file handler is skipped entirely and all assets return blank HTML (causing the MIME type errors)
+- Do NOT hardcode `DATABASE_URL` or `SESSION_SECRET` in this file — they are loaded from `.env` automatically
 
-Start the app:
+**Create the logs directory first, then start:**
 ```bash
-pm2 start ecosystem.config.cjs --env production
+mkdir -p logs
+pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup    # follow the printed command to make it survive reboots
 ```
@@ -284,7 +445,7 @@ server {
 
     # ── Proxy everything to the Node app ──────────────────────────────────
     location / {
-        proxy_pass         http://127.0.0.1:5000;
+        proxy_pass         http://127.0.0.1:8100;
         proxy_http_version 1.1;
 
         # WebSocket support (used by Vite HMR in dev and internal WS connections)
@@ -307,7 +468,7 @@ server {
     # ── Rate-limit auth endpoints ──────────────────────────────────────────
     location /api/auth/ {
         limit_req zone=auth burst=5 nodelay;
-        proxy_pass         http://127.0.0.1:5000;
+        proxy_pass         http://127.0.0.1:8100;
         proxy_http_version 1.1;
         proxy_set_header Host              $host;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -318,7 +479,7 @@ server {
 
     # ── Cache static assets aggressively ──────────────────────────────────
     location /assets/ {
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:8100;
         proxy_cache_valid 200 365d;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
@@ -404,11 +565,11 @@ The `server/middleware/subdomain.ts` middleware inspects the `Host` header on ev
 |---|---|---|
 | `80` | Nginx (HTTP → redirect) | Yes |
 | `443` | Nginx (HTTPS) | Yes |
-| `5000` | Node.js Express app | **No — localhost only** |
+| `8100` | Node.js Express app | **No — localhost only** |
 | `8081` | PHP built-in server | **No — localhost only** |
 | `5432` | PostgreSQL | **No — localhost only** |
 
-Never expose port 5000 or 8081 directly to the internet.
+Never expose port 8100 or 8081 directly to the internet.
 
 ---
 
@@ -416,9 +577,9 @@ Never expose port 5000 or 8081 directly to the internet.
 
 **Start:**
 1. `pm2 start ecosystem.config.cjs --env production`
-2. Node starts on port 5000
+2. Node starts on port 8100
 3. Node automatically spawns PHP on port 8081
-4. App is ready once you see: `serving on port 5000` in PM2 logs
+4. App is ready once you see: `serving on port 8100` in PM2 logs
 
 **Stop:**
 ```bash
@@ -562,7 +723,7 @@ certxa/
 | Variable | Required | What it does |
 |---|---|---|
 | `NODE_ENV` | Yes | `production` or `development` |
-| `PORT` | Yes | Port Node listens on (default `5000`) |
+| `PORT` | Yes | Port Node listens on (`8100`) |
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `SESSION_SECRET` | Yes | Signs session cookies — must be long & random |
 | `APP_URL` | Yes | Base URL e.g. `https://certxa.com` — used in password reset emails |

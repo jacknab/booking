@@ -3,23 +3,21 @@ module.exports = {
     {
       name: 'certxa',
       script: './dist/index.cjs',
-      cwd: '/apps/booking',
+      // cwd: Set this to the absolute path of your project root on the VPS,
+      //      e.g. '/apps/booking' or '/home/deploy/certxa'
+      //      If you start PM2 from inside the project directory, you can remove this line.
       instances: 1,
-      exec_mode: 'fork',
+      exec_mode: 'fork',   // MUST be fork — the app spawns a child PHP process
       env: {
         NODE_ENV: 'production',
-        PORT: 5081,
-        DATABASE_URL: 'postgresql://certxa_user:booking_secure_pass_2024@127.0.0.1/certxabooking_data5?sslmode=disable',
-        SESSION_SECRET: 'nTe38f9ZNUrkWDELaO/tEOuSEs+LUU7wGXllFIZGNQVmqB9nnA8G3B5zEn1GLWopQQbDEIgbI2Ss1HhQxEtYhQ==',
-        CORS_ALLOW_ALL: 'false',
-        CORS_ORIGINS: 'https://certxa.com,https://www.certxa.com',
-        TRIAL_PERIOD_DAYS: '60',
-        APP_URL: 'https://certxa.com',
-        GOOGLE_REDIRECT_URI: 'https://certxa.com/google-business',
-        GOOGLE_AUTH_CALLBACK_URL: 'https://certxa.com/api/auth/google/callback'
+        PORT: 8100,
+        // All other secrets and config (DATABASE_URL, SESSION_SECRET, API keys, etc.)
+        // are loaded from the .env file in the project root via 'import "dotenv/config"'
+        // at the top of server/index.ts.
+        // DO NOT hardcode DATABASE_URL or SESSION_SECRET here — use .env instead.
       },
-      error_file: '/apps/booking/logs/pm2-error.log',
-      out_file: '/apps/booking/logs/pm2-out.log',
+      error_file: './logs/pm2-error.log',
+      out_file: './logs/pm2-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       autorestart: true,
