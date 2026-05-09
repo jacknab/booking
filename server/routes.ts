@@ -4518,6 +4518,84 @@ If you have any questions, please contact your administrator.
   });
 
   /**
+   * AI-powered reply suggestions for a Google review
+   */
+  app.post("/api/google-business/suggest-reply/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+    const { reviewText, rating, customerName } = req.body;
+
+    try {
+      // Fetch the store name so replies feel personalised
+      const [store] = await db
+        .select({ name: locations.name })
+        .from(locations)
+        .where(eq(locations.id, storeId))
+        .limit(1);
+
+      const businessName = store?.name ?? "our business";
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const ratingLabel =
+        rating >= 5 ? "5-star (excellent)" :
+        rating === 4 ? "4-star (positive)" :
+        rating === 3 ? "3-star (neutral / mixed)" :
+        rating === 2 ? "2-star (disappointed)" :
+        "1-star (very unhappy)";
+
+      const prompt = [
+        `You are a professional customer service manager for "${businessName}", a service business.`,
+        `Write 3 distinct reply options to the following Google review.`,
+        ``,
+        `Customer name: ${customerName || "a customer"}`,
+        `Star rating: ${ratingLabel}`,
+        `Review text: ${reviewText ? `"${reviewText}"` : "(no written text — rating only)"}`,
+        ``,
+        `Requirements for each reply:`,
+        `- Address the customer by first name if available`,
+        `- Be warm, professional, and authentic — no corporate stiffness`,
+        `- Keep each reply between 40-120 words`,
+        `- For 4-5 star reviews: thank them genuinely and invite them back`,
+        `- For 3-star reviews: acknowledge their feedback and show commitment to improvement`,
+        `- For 1-2 star reviews: apologise sincerely, take ownership, and offer to resolve it`,
+        `- Never be defensive or dismissive`,
+        `- Sign off naturally without "Sincerely" or generic closings`,
+        `- Do NOT include a subject line or label like "Option 1:"`,
+        ``,
+        `Return a JSON object with this exact shape:`,
+        `{ "suggestions": ["reply one text", "reply two text", "reply three text"] }`,
+      ].join("\n");
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 1024,
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      let parsed: { suggestions?: string[] } = {};
+      try { parsed = JSON.parse(raw); } catch { /* fall through */ }
+
+      const suggestions: string[] = Array.isArray(parsed.suggestions)
+        ? parsed.suggestions.slice(0, 3)
+        : [];
+
+      res.json({ suggestions });
+    } catch (error) {
+      console.error("Error generating reply suggestions:", error);
+      res.status(500).json({ message: "Failed to generate suggestions" });
+    }
+  });
+
+  /**
    * Get reviews for a store
    */
   app.get("/api/google-business/reviews/:storeId", async (req, res) => {

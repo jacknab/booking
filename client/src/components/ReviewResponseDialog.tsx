@@ -1,16 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Send, Loader2, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Star,
+  Send,
+  Loader2,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import axios from "axios";
 import { GoogleReview, GoogleReviewResponse } from "@shared/schema";
 
@@ -32,7 +41,12 @@ export function ReviewResponseDialog({
   const [loadingResponses, setLoadingResponses] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
+
+  // AI suggestions state
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
 
   useEffect(() => {
     loadResponses();
@@ -50,6 +64,48 @@ export function ReviewResponseDialog({
     } finally {
       setLoadingResponses(false);
     }
+  };
+
+  const handleSuggestReplies = async () => {
+    if (loadingSuggestions) return;
+
+    // Toggle closed if already open with results
+    if (suggestionsOpen && suggestions.length > 0) {
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    try {
+      setLoadingSuggestions(true);
+      setSuggestionsError(null);
+      setSuggestionsOpen(true);
+      setSuggestions([]);
+
+      const response = await axios.post(
+        `/api/google-business/suggest-reply/${storeId}`,
+        {
+          reviewText: review.reviewText,
+          rating: review.rating,
+          customerName: review.customerName,
+        }
+      );
+
+      setSuggestions(response.data.suggestions ?? []);
+    } catch (error) {
+      console.error("Failed to fetch suggestions:", error);
+      setSuggestionsError("Couldn't generate suggestions. Please try again.");
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleUseSuggestion = (text: string) => {
+    setResponseText(text);
+    setSuggestionsOpen(false);
+    // Scroll/focus textarea
+    setTimeout(() => {
+      document.getElementById("review-response-textarea")?.focus();
+    }, 100);
   };
 
   const handleSubmitResponse = async () => {
@@ -105,20 +161,22 @@ export function ReviewResponseDialog({
     }
   };
 
-  const renderStarRating = (rating: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            size={16}
-            className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
-          />
-        ))}
-        <span className="ml-2 text-sm font-medium">{rating}/5</span>
-      </div>
-    );
-  };
+  const renderStarRating = (rating: number) => (
+    <div className="flex items-center gap-1">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          size={16}
+          className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+        />
+      ))}
+      <span className="ml-2 text-sm font-medium">{rating}/5</span>
+    </div>
+  );
+
+  const showResponseForm =
+    review.responseStatus === "not_responded" ||
+    !responses.some((r) => r.responseStatus === "approved");
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -247,13 +305,77 @@ export function ReviewResponseDialog({
             </div>
           )}
 
-          {/* New Response Form — show when no published response exists locally */}
-          {(review.responseStatus === "not_responded" ||
-            !responses.some((r) => r.responseStatus === "approved")) && (
+          {/* New Response Form */}
+          {showResponseForm && (
             <div className="space-y-3 border-t pt-4">
-              <h5 className="font-medium">Add a Response</h5>
+              <div className="flex items-center justify-between">
+                <h5 className="font-medium">Add a Response</h5>
+
+                {/* AI Suggest Replies button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSuggestReplies}
+                  disabled={loadingSuggestions}
+                  className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                >
+                  {loadingSuggestions ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      Generating…
+                    </>
+                  ) : suggestionsOpen && suggestions.length > 0 ? (
+                    <>
+                      <ChevronUp size={13} />
+                      Hide suggestions
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} />
+                      Suggest replies
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* AI Suggestions Panel */}
+              {suggestionsOpen && (
+                <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-3 space-y-2">
+                  <p className="text-xs font-medium text-violet-700 flex items-center gap-1">
+                    <Sparkles size={12} />
+                    AI-generated suggestions — review before using
+                  </p>
+
+                  {loadingSuggestions && suggestions.length === 0 && (
+                    <div className="flex items-center gap-2 py-3 text-sm text-violet-600">
+                      <Loader2 size={14} className="animate-spin" />
+                      Writing suggestions based on this review…
+                    </div>
+                  )}
+
+                  {suggestionsError && (
+                    <p className="text-sm text-red-600">{suggestionsError}</p>
+                  )}
+
+                  {suggestions.map((suggestion, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleUseSuggestion(suggestion)}
+                      className="w-full text-left rounded-md border border-violet-200 bg-white px-3 py-2.5 text-sm text-gray-700 hover:border-violet-400 hover:bg-violet-50 transition-colors group relative"
+                    >
+                      <p className="pr-16 leading-relaxed">{suggestion}</p>
+                      <span className="absolute right-2.5 top-2.5 text-xs font-medium text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity bg-violet-100 rounded px-1.5 py-0.5">
+                        Use this
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <Textarea
-                placeholder="Write your response to this review..."
+                id="review-response-textarea"
+                placeholder="Write your response to this review…"
                 value={responseText}
                 onChange={(e) => setResponseText(e.target.value)}
                 maxLength={5000}
@@ -271,7 +393,7 @@ export function ReviewResponseDialog({
                   {submitting ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
-                      Saving...
+                      Saving…
                     </>
                   ) : (
                     "Save as Draft"
