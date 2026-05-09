@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle, Zap, Building2, Users, BarChart3, MessageSquare, Shield, Star, ChevronRight, Sparkles } from "lucide-react";
 
-const ELITE_PRICE = 79;
+const ELITE_PRICE = 49;
 
 const setupSteps = [
   {

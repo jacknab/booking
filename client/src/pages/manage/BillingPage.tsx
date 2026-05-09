@@ -39,7 +39,7 @@ const PLANS = [
   {
     code: "elite",
     name: "Elite",
-    price: 79,
+    price: 49,
     tagline: "Full API access for custom integrations",
     highlight: "Unlimited API · 50K SMS · Webhooks",
     features: ["Everything in Professional", "Unlimited API keys", "50,000 SMS credits/mo", "Chatbot & Dialer API", "Webhooks & real-time events", "1,000 API requests/min", "99.9% uptime SLA", "Priority support (4 h)"],

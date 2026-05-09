@@ -314,12 +314,12 @@ require 'includes/nav.php';
         [
           'name'        => 'Elite',
           'tagline'     => 'For multi-location businesses and high-volume salon groups.',
-          'monthly'     => '79',
-          'annual'      => '63',
+          'monthly'     => '49',
+          'annual'      => '39',
           'old_monthly' => null,
           'old_annual'  => null,
           'period'      => '/month',
-          'billing'     => 'Billed monthly — or $63/mo billed annually',
+          'billing'     => 'Billed monthly — or $39/mo billed annually',
           'fee'         => '1.2%',
           'featured'    => false,
           'cta_label'   => 'See Details',
@@ -331,11 +331,8 @@ require 'includes/nav.php';
             [true,  'Multi-location dashboard'],
             [true,  'Cross-location reporting'],
             [true,  'API access for integrations'],
-            [true,  'Dedicated account manager'],
             [true,  'Priority phone support'],
             [true,  'Staff commission tracking'],
-            [true,  'Custom onboarding session'],
-            [true,  'Custom contract available'],
           ],
         ],
       ];
@@ -421,7 +418,7 @@ require 'includes/nav.php';
             <th style="width:34%;"></th>
             <th><div class="plan-header">Solo</div><div class="plan-header-price">From $7/mo</div></th>
             <th><div class="plan-header featured-col">Professional</div><div class="plan-header-price" style="color:var(--plum-mid);">From $18/mo ⭐</div></th>
-            <th><div class="plan-header">Elite</div><div class="plan-header-price">From $63/mo</div></th>
+            <th><div class="plan-header">Elite</div><div class="plan-header-price">From $39/mo</div></th>
           </tr>
         </thead>
         <tbody>
@@ -723,7 +720,7 @@ function setBilling(type) {
   const notes = {
     solo:         isAnnual ? 'Billed annually as $84/year — save $24' : 'Billed monthly, cancel any time',
     professional: isAnnual ? 'Billed annually as $216/year — save $48' : 'Billed monthly, cancel any time',
-    elite:        isAnnual ? 'Billed annually as $756/year — save $192' : 'Billed monthly, cancel any time',
+    elite:        isAnnual ? 'Billed annually as $468/year — save $120' : 'Billed monthly, cancel any time',
   };
   Object.keys(notes).forEach(k => {
     const el = document.getElementById('note-' + k);
