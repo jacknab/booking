@@ -22,6 +22,7 @@ import { GoogleReview } from "@shared/schema";
 import { ReviewResponseDialog } from "@/components/ReviewResponseDialog";
 import { BulkDraftModal } from "@/components/BulkDraftModal";
 import { ReviewSentimentDashboard } from "@/components/ReviewSentimentDashboard";
+import { InlineReplyDrafter } from "@/components/InlineReplyDrafter";
 
 interface ReviewStats {
   totalReviews: number;
@@ -80,6 +81,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selectedReview, setSelectedReview] = useState<GoogleReview | null>(null);
   const [showBulkDraft, setShowBulkDraft] = useState(false);
+  const [activeInlineDraft, setActiveInlineDraft] = useState<number | null>(null);
 
   useEffect(() => {
     if (storeId) {
@@ -436,66 +438,128 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
       ) : (
         <div className="space-y-4">
           {reviews.map((review) => (
-            <Card
-              key={review.id}
-              className="cursor-pointer hover:bg-gray-50 transition"
-              onClick={() => setSelectedReview(review)}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      {renderStarRating(review.rating)}
-                      <Badge
-                        variant={review.responseStatus === "responded" ? "default" : "outline"}
-                        className="ml-auto"
-                      >
-                        {review.responseStatus === "responded" ? (
-                          <>
-                            <CheckCircle2 size={14} className="mr-1" />
-                            Responded
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle size={14} className="mr-1" />
-                            No Response
-                          </>
-                        )}
-                      </Badge>
+            <div key={review.id}>
+              <Card
+                className="hover:bg-gray-50 transition cursor-pointer"
+                onClick={(e) => {
+                  // Don't open dialog when clicking inside the inline drafter
+                  if ((e.target as HTMLElement).closest("[data-inline-drafter]")) return;
+                  setSelectedReview(review);
+                }}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        {renderStarRating(review.rating)}
+                        <Badge
+                          variant={review.responseStatus === "responded" ? "default" : "outline"}
+                          className="ml-auto"
+                        >
+                          {review.responseStatus === "responded" ? (
+                            <>
+                              <CheckCircle2 size={14} className="mr-1" />
+                              Responded
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle size={14} className="mr-1" />
+                              No Response
+                            </>
+                          )}
+                        </Badge>
+                      </div>
+                      <CardTitle className="text-lg">{review.customerName}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {review.reviewCreateTime
+                          ? new Date(review.reviewCreateTime).toLocaleDateString()
+                          : "Date unknown"}
+                      </CardDescription>
                     </div>
-                    <CardTitle className="text-lg">{review.customerName}</CardTitle>
-                    <CardDescription className="text-sm">
-                      {review.reviewCreateTime
-                        ? new Date(review.reviewCreateTime).toLocaleDateString()
-                        : "Date unknown"}
-                    </CardDescription>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-gray-700">{review.reviewText || <span className="text-muted-foreground italic">No written review</span>}</p>
-                {review.reviewImageUrls && (
-                  <div className="flex gap-2 flex-wrap">
-                    {(() => {
-                      try {
-                        const urls = JSON.parse(review.reviewImageUrls);
-                        return urls.map((url: string, i: number) => (
-                          <img
-                            key={i}
-                            src={url}
-                            alt="Review"
-                            className="w-20 h-20 object-cover rounded"
-                          />
-                        ));
-                      } catch {
-                        return null;
-                      }
-                    })()}
+                </CardHeader>
+
+                <CardContent className="space-y-3">
+                  <p className="text-gray-700">
+                    {review.reviewText || (
+                      <span className="text-muted-foreground italic">No written review</span>
+                    )}
+                  </p>
+
+                  {review.reviewImageUrls && (
+                    <div className="flex gap-2 flex-wrap">
+                      {(() => {
+                        try {
+                          const urls = JSON.parse(review.reviewImageUrls);
+                          return urls.map((url: string, i: number) => (
+                            <img
+                              key={i}
+                              src={url}
+                              alt="Review"
+                              className="w-20 h-20 object-cover rounded"
+                            />
+                          ));
+                        } catch {
+                          return null;
+                        }
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Action row */}
+                  <div
+                    className="flex items-center justify-between gap-2 pt-1"
+                    data-inline-drafter
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      Click card to view full details
+                    </p>
+
+                    {review.responseStatus !== "responded" && storeId && (
+                      activeInlineDraft === review.id ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setActiveInlineDraft(null)}
+                          className="gap-1.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                        >
+                          Hide drafter
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setActiveInlineDraft(review.id)}
+                          className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 shrink-0"
+                        >
+                          <Sparkles size={13} />
+                          Draft Reply
+                        </Button>
+                      )
+                    )}
                   </div>
-                )}
-                <p className="text-xs text-muted-foreground">Click to view details and manage your response</p>
-              </CardContent>
-            </Card>
+
+                  {/* Inline drafter panel */}
+                  {activeInlineDraft === review.id && storeId && (
+                    <div data-inline-drafter onClick={(e) => e.stopPropagation()}>
+                      <InlineReplyDrafter
+                        storeId={storeId}
+                        googleReviewId={review.id}
+                        reviewText={review.reviewText}
+                        rating={review.rating}
+                        customerName={review.customerName}
+                        onDraftSaved={() => {
+                          loadReviews();
+                          loadStats();
+                        }}
+                        onClose={() => setActiveInlineDraft(null)}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
       )}
