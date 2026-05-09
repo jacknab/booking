@@ -13,6 +13,8 @@ import {
   BarChart2,
   MessageSquare,
   TrendingUp,
+  Clock,
+  CalendarClock,
 } from "lucide-react";
 import axios from "axios";
 import { GoogleReview } from "@shared/schema";
@@ -30,10 +32,36 @@ interface ReviewStats {
     2: number;
     1: number;
   };
+  lastSyncedAt: string | null;
+  nextSyncAt: string | null;
 }
 
 interface GoogleReviewsManagerProps {
   storeId?: number | null;
+}
+
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  return `${diffDays}d ago`;
+}
+
+function formatAbsoluteTime(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsManagerProps = {}) {
@@ -44,6 +72,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selectedReview, setSelectedReview] = useState<GoogleReview | null>(null);
@@ -91,9 +120,11 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
     if (!storeId) return;
     try {
       setSyncing(true);
+      setSyncSuccess(false);
       await axios.post(`/api/google-business/sync-reviews/${storeId}`);
-      await loadReviews();
-      await loadStats();
+      await Promise.all([loadReviews(), loadStats()]);
+      setSyncSuccess(true);
+      setTimeout(() => setSyncSuccess(false), 4000);
     } catch (error) {
       console.error("Failed to sync reviews:", error);
     } finally {
@@ -147,6 +178,78 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
   return (
     <div className="space-y-6">
+
+      {/* Sync Status Bar */}
+      <Card className="border-blue-100 bg-blue-50/50">
+        <CardContent className="py-3 px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            {/* Last sync info */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-sm text-blue-800">
+                <Clock size={14} className="shrink-0" />
+                <span className="font-medium">Last synced:</span>
+                <span
+                  className="text-blue-700"
+                  title={stats?.lastSyncedAt ? formatAbsoluteTime(stats.lastSyncedAt) : undefined}
+                >
+                  {stats ? formatRelativeTime(stats.lastSyncedAt) : "—"}
+                </span>
+                {stats?.lastSyncedAt && (
+                  <span className="text-blue-500 text-xs hidden sm:inline">
+                    ({formatAbsoluteTime(stats.lastSyncedAt)})
+                  </span>
+                )}
+              </div>
+
+              {stats?.nextSyncAt && (
+                <div className="flex items-center gap-1.5 text-sm text-blue-700">
+                  <CalendarClock size={14} className="shrink-0" />
+                  <span className="font-medium">Next auto-sync:</span>
+                  <span className="text-blue-600 text-xs hidden sm:inline">
+                    {formatAbsoluteTime(stats.nextSyncAt)}
+                  </span>
+                  <span className="text-blue-600 text-xs sm:hidden">
+                    {formatRelativeTime(stats.nextSyncAt)}
+                  </span>
+                </div>
+              )}
+
+              {!stats?.lastSyncedAt && stats !== null && (
+                <span className="text-sm text-blue-600">Auto-syncs every 6 hours — click Sync Now to pull reviews immediately.</span>
+              )}
+            </div>
+
+            {/* Sync Now button + success indicator */}
+            <div className="flex items-center gap-2 shrink-0">
+              {syncSuccess && (
+                <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                  <CheckCircle2 size={14} />
+                  Synced!
+                </span>
+              )}
+              <Button
+                onClick={handleSyncReviews}
+                disabled={syncing}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-blue-300 bg-white text-blue-800 hover:bg-blue-50"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Syncing…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={14} />
+                    Sync Now
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary stat cards */}
       {stats && (
@@ -258,24 +361,6 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
-        <Button
-          onClick={handleSyncReviews}
-          disabled={syncing}
-          className="gap-2"
-        >
-          {syncing ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Syncing from Google...
-            </>
-          ) : (
-            <>
-              <RefreshCw size={16} />
-              Sync Reviews from Google
-            </>
-          )}
-        </Button>
-
         <div className="flex gap-2 ml-auto">
           <select
             value={filterStatus || ""}
@@ -324,7 +409,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
             <p className="text-sm text-muted-foreground">
               {filterRating || filterStatus
                 ? "Try adjusting your filters to see more reviews."
-                : "Sync with Google to pull in your latest reviews."}
+                : "Use the Sync Now button above to pull in your latest reviews."}
             </p>
           </CardContent>
         </Card>

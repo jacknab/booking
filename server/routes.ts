@@ -4764,10 +4764,19 @@ If you have any questions, please contact your administrator.
     const storeId = Number(req.params.storeId);
 
     try {
-      const allReviews = await db
-        .select()
-        .from(googleReviews)
-        .where(eq(googleReviews.storeId, storeId));
+      const [allReviews, profileRows] = await Promise.all([
+        db
+          .select()
+          .from(googleReviews)
+          .where(eq(googleReviews.storeId, storeId)),
+        db
+          .select({ lastSyncedAt: googleBusinessProfiles.lastSyncedAt })
+          .from(googleBusinessProfiles)
+          .where(eq(googleBusinessProfiles.storeId, storeId))
+          .limit(1),
+      ]);
+
+      const lastSyncedAt = profileRows[0]?.lastSyncedAt ?? null;
 
       const stats = {
         totalReviews: allReviews.length,
@@ -4784,6 +4793,10 @@ If you have any questions, please contact your administrator.
           2: allReviews.filter((r) => r.rating === 2).length,
           1: allReviews.filter((r) => r.rating === 1).length,
         },
+        lastSyncedAt,
+        nextSyncAt: lastSyncedAt
+          ? new Date(new Date(lastSyncedAt).getTime() + 6 * 60 * 60 * 1000)
+          : null,
       };
 
       res.json(stats);
