@@ -6,7 +6,6 @@ const SEO_PAGE_ROUTES: Record<string, string> = {
   "/barbers":           "barbers.html",
   "/hair-salons":       "hair-salons.html",
   "/haircuts":          "hair-salons.html",
-  "/spa":               "spa.html",
   "/nails":             "nails.html",
   "/tattoo":            "tattoo.html",
   "/estheticians":      "estheticians.html",

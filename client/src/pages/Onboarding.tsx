@@ -905,10 +905,11 @@ function BusinessTypeCard({
         <video
           ref={videoRef}
           src={type.videoUrl}
+          autoPlay
           loop
           muted
           playsInline
-          preload="metadata"
+          preload="auto"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />

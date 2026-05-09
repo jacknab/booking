@@ -85,6 +85,8 @@ import SchedulePage from "@/pages/pro-dashboard/SchedulePage";
 import MapPage from "@/pages/pro-dashboard/MapPage";
 import ProFeaturesSetup from "@/pages/ProFeaturesSetup";
 import TeamPermissions from "@/pages/TeamPermissions";
+import SpaLandingPage from "@/pages/SpaLandingPage";
+import TattooStudioLandingPage from "@/pages/TattooStudioLandingPage";
 import AcceptInvite from "@/pages/AcceptInvite";
 import TrainingAdmin from "@/pages/TrainingAdmin";
 import TrainingSettings from "@/pages/TrainingSettings";
@@ -203,6 +205,10 @@ function AppRoutes() {
       {/* Public queue */}
       <Route path="/q/:slug" element={<PublicCheckIn />} />
       <Route path="/q/:slug/display" element={<QueueDisplay />} />
+
+      {/* Industry landing pages */}
+      <Route path="/spa" element={<SpaLandingPage />} />
+      <Route path="/tattoo-studio" element={<TattooStudioLandingPage />} />
 
       {/* Admin */}
       <Route path="/isadmin/*" element={<AdminDashboard />} />

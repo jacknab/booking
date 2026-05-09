@@ -61,6 +61,8 @@ const NAV_ITEMS: NavItem[] = [
           { label: "Hair Salons",          href: "/hair-salon-software.php" },
           { label: "Nail Studios",         href: "/nail-salon-software.php" },
           { label: "Barbershops",          href: "/barbershop-software.php" },
+          { label: "Spas & Wellness",      href: "/spa" },
+          { label: "Tattoo Studios",       href: "/tattoo-studio" },
         ],
       },
       {

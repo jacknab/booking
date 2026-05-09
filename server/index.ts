@@ -75,7 +75,6 @@ const SSR_ROUTES = new Set([
   "/pressure-washing",
   "/window-cleaning",
   "/barbers",
-  "/spa",
   "/nails",
   "/tattoo",
   "/haircuts",
