@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelectedStore } from "@/hooks/use-store";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,10 +17,14 @@ import {
   Search,
   Copy,
   CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Review } from "@shared/schema";
 import { GoogleConnectGate } from "@/components/GoogleConnectGate";
+import { GoogleBusinessProfileSetup } from "@/components/GoogleBusinessProfileSetup";
 import { YelpConnectGate } from "@/components/YelpConnectGate";
 import { YelpAliasForm } from "@/components/YelpAliasForm";
 import { FacebookConnectGate } from "@/components/FacebookConnectGate";
@@ -30,6 +34,17 @@ type ReviewStats = {
   total: number;
   avg: number;
   distribution: Record<number, number>;
+};
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  access_denied:   "Google access was denied. Please try again and accept the permissions.",
+  csrf_mismatch:   "Security token mismatch. Please start the connection flow again.",
+  missing_store:   "Could not identify which store to connect. Please try again.",
+  quota_exceeded:  "Google Business Profile API quota exceeded. Contact Google to request a quota increase.",
+  no_access_token: "Google did not return an access token. Please try again.",
+  server_error:    "An unexpected server error occurred during Google sign-in. Please try again.",
+  missing_params:  "Google redirect was missing required parameters. Please try again.",
+  invalid_state:   "Invalid OAuth state token. Please start the connection flow again.",
 };
 
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
@@ -53,15 +68,38 @@ export default function Reviews() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
-  // gateStep controls which screen is shown before the reviews table
-  // "google" → Google connect gate
-  // "yelp"   → Yelp connect gate
-  // "yelp-form" → Yelp alias input form
-  // "done"   → show reviews normally
-  const [gateStep, setGateStep] = useState<"google" | "yelp" | "yelp-form" | "facebook" | "facebook-form" | "done">("google");
+  const [gateStep, setGateStep] = useState<"google" | "google-setup" | "yelp" | "yelp-form" | "facebook" | "facebook-form" | "done">("google");
   const [googleConnecting, setGoogleConnecting] = useState(false);
 
-  const { data: googleProfile, isLoading: googleLoading } = useQuery({
+  // Detect OAuth redirect params on mount (?google_connected=1 or ?google_error=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const googleConnected = params.get("google_connected");
+    const googleError     = params.get("google_error");
+
+    if (googleConnected || googleError) {
+      // Clean up URL immediately so a browser refresh doesn't replay
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (googleConnected === "1") {
+      // Server completed the token exchange — show account/location picker
+      setGateStep("google-setup");
+      return;
+    }
+
+    if (googleError) {
+      const message = GOOGLE_ERROR_MESSAGES[googleError] ?? `Google authorization error: ${googleError}`;
+      toast({
+        title: "Google connection failed",
+        description: message,
+        variant: "destructive",
+      });
+      // Stay on google gate so user can retry
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { data: googleProfile, isLoading: googleLoading, refetch: refetchGoogleProfile } = useQuery({
     queryKey: ["/api/google-business/profile", storeId],
     queryFn: async () => {
       if (!storeId) return null;
@@ -74,24 +112,39 @@ export default function Reviews() {
   });
 
   const isGoogleConnected = !!googleProfile?.isConnected;
-  // If Google is already connected, skip straight to reviews
-  const effectiveStep = !googleLoading && isGoogleConnected ? "done" : gateStep;
+
+  // Token expiry: is the stored OAuth token expired?
+  const isTokenExpired = googleProfile?.tokenExpiresAt
+    ? new Date(googleProfile.tokenExpiresAt) < new Date()
+    : false;
+
+  // If Google is already fully connected, skip the gate and jump to reviews
+  const effectiveStep = !googleLoading && isGoogleConnected && gateStep === "google"
+    ? "done"
+    : gateStep;
+
+  // When GoogleBusinessProfileSetup finishes (location connected), advance the gate
+  useEffect(() => {
+    if (isGoogleConnected && gateStep === "google-setup") {
+      setGateStep("yelp");
+    }
+  }, [isGoogleConnected, gateStep]);
 
   async function handleGoogleConnect() {
     if (!storeId) return;
     setGoogleConnecting(true);
     try {
-      // Pass storeId so the server-side OAuth callback knows which store to connect
       const res = await fetch(`/api/google-business/auth-url?storeId=${storeId}`, { credentials: "include" });
       const data = await res.json();
       if (!res.ok) {
-        console.error("[Google OAuth] auth-url error:", data.message);
+        toast({ title: "Could not start Google sign-in", description: data.message, variant: "destructive" });
         setGoogleConnecting(false);
         return;
       }
       window.location.href = data.authUrl;
     } catch (err) {
       console.error("[Google OAuth] Failed to get auth URL:", err);
+      toast({ title: "Could not start Google sign-in", description: "Please try again.", variant: "destructive" });
       setGoogleConnecting(false);
     }
   }
@@ -165,6 +218,8 @@ export default function Reviews() {
     return Math.round(((stats.distribution[star] || 0) / stats.total) * 100);
   };
 
+  // ── Gate screens ────────────────────────────────────────────────────────────
+
   if (effectiveStep === "google") {
     return (
       <AppLayout>
@@ -173,6 +228,23 @@ export default function Reviews() {
           onSkip={() => setGateStep("yelp")}
           loading={googleConnecting}
         />
+      </AppLayout>
+    );
+  }
+
+  // Account + location picker after OAuth redirect
+  if (effectiveStep === "google-setup") {
+    return (
+      <AppLayout>
+        <div className="max-w-xl mx-auto py-8">
+          <div className="mb-6">
+            <h1 className="text-xl font-bold">Finish connecting Google</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Select the business account and location to link with your store.
+            </p>
+          </div>
+          <GoogleBusinessProfileSetup storeId={storeId} />
+        </div>
       </AppLayout>
     );
   }
@@ -223,15 +295,56 @@ export default function Reviews() {
     );
   }
 
+  // ── Main reviews view ────────────────────────────────────────────────────────
+
   return (
     <AppLayout>
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Client Reviews</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Collect and manage feedback from your clients
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Client Reviews</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Collect and manage feedback from your clients
+          </p>
+        </div>
+
+        {/* Reconnect Google button — shown when token expired or profile not fully linked */}
+        {googleProfile && (isTokenExpired || !googleProfile.isConnected) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGoogleConnect}
+            disabled={googleConnecting}
+            className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+          >
+            {googleConnecting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Reconnect Google
+          </Button>
+        )}
       </div>
+
+      {/* Token expired warning banner */}
+      {isTokenExpired && googleProfile && (
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-medium">Google connection needs renewal.</span>{" "}
+            Your Google Business Profile access token has expired. Click{" "}
+            <button
+              className="underline font-medium"
+              onClick={handleGoogleConnect}
+              disabled={googleConnecting}
+            >
+              Reconnect Google
+            </button>{" "}
+            to restore review syncing.
+          </div>
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
