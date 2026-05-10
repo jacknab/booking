@@ -63,9 +63,9 @@ import { buildRegionSlug, ALL_CITIES, BOOKING_BUSINESS_TYPES } from "./seo-citie
 import {
   GoogleBusinessAPIManager,
   createApiManagerFromProfile,
-  syncGoogleReviews,
   publishReviewResponse,
 } from "./google-business-api";
+import { syncReviewsForStore, startGoogleReviewSyncScheduler } from "./google-review-sync";
 import { TrialService } from "./services/trial-service";
 import { requireActiveTrial } from "./middleware/trial-middleware";
 import { setupNotificationServer, broadcastNotification } from "./notifications";
@@ -4623,8 +4623,8 @@ If you have any questions, please contact your administrator.
       setImmediate(async () => {
         try {
           console.log(`[GBP] connect-location — auto-syncing reviews for storeId=${connectedProfile.storeId}…`);
-          const result = await syncGoogleReviews(connectedProfile.storeId);
-          console.log(`[GBP] connect-location — auto-sync complete: ${result.synced} review(s) synced`);
+          const result = await syncReviewsForStore(connectedProfile.storeId);
+          console.log(`[GBP] connect-location — auto-sync complete: ${result.synced} review(s) synced (source=${result.source} ${result.durationMs}ms)`);
         } catch (syncErr: any) {
           console.error(`[GBP] connect-location — auto-sync FAILED for storeId=${connectedProfile.storeId}: ${syncErr?.message ?? syncErr}`);
         }
@@ -4737,13 +4737,23 @@ If you have any questions, please contact your administrator.
     console.log(`[GBP] Manual sync-reviews triggered for storeId=${storeId}`);
 
     try {
-      const result = await syncGoogleReviews(storeId);
-      console.log(`[GBP] sync-reviews complete — synced=${result.synced}  location="${result.locationResourceName}"  business="${result.businessName ?? "(none)"}"`);
+      const result = await syncReviewsForStore(storeId);
+      console.log(
+        `[GBP] sync-reviews complete — synced=${result.synced}` +
+        `  inserted=${result.inserted}  updated=${result.updated}` +
+        `  location="${result.locationResourceName}"  business="${result.businessName ?? "(none)"}"` +
+        `  source=${result.source}  ${result.durationMs}ms`,
+      );
       res.json({
         message: "Reviews synced successfully",
-        synced: result.synced,
+        synced:               result.synced,
+        inserted:             result.inserted,
+        updated:              result.updated,
         locationResourceName: result.locationResourceName,
-        businessName: result.businessName,
+        businessName:         result.businessName,
+        durationMs:           result.durationMs,
+        source:               result.source,
+        syncLogId:            result.syncLogId,
       });
     } catch (error: any) {
       const errMsg = error?.message ?? String(error);
@@ -7343,32 +7353,8 @@ If you have any questions, please contact your administrator.
   const { startTrialReminderScheduler } = await import("./services/trial-reminders.js");
   startTrialReminderScheduler();
 
-  // Start Google Reviews auto-sync (every 6 hours for all connected stores)
-  (async function startGoogleReviewsAutoSync() {
-    const syncAll = async () => {
-      try {
-        const { googleBusinessProfiles } = await import("@shared/schema");
-        const connectedProfiles = await db
-          .select({ storeId: googleBusinessProfiles.storeId })
-          .from(googleBusinessProfiles)
-          .where(isNotNull(googleBusinessProfiles.accessToken));
-        let synced = 0;
-        for (const { storeId } of connectedProfiles) {
-          if (!storeId) continue;
-          try {
-            await syncGoogleReviews(storeId);
-            synced++;
-          } catch {}
-        }
-        if (synced > 0) console.log(`[GoogleReviews] Auto-synced ${synced} store(s)`);
-      } catch (err) {
-        console.error("[GoogleReviews] Auto-sync error:", err);
-      }
-    };
-    setTimeout(syncAll, 30_000); // first run 30s after boot
-    setInterval(syncAll, 6 * 60 * 60 * 1000); // every 6 hours
-    console.log("[GoogleReviews] Auto-sync scheduler started (6-hour interval)");
-  })();
+  // Start Google Reviews auto-sync (every 6 hours — new engine, new schema + legacy fallback)
+  startGoogleReviewSyncScheduler();
 
   return httpServer;
 }
