@@ -1,0 +1,466 @@
+10|certxa  | 2026-05-10 11:03:15 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   code: '42P01',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   position: '24',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   line: '1392',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   routine: 'parserOpenTable'
+10|certxa  | 2026-05-10 11:03:15 +00:00: }
+10|certxa  | 2026-05-10 11:03:15 +00:00: [ReviewSync] Scheduler — 0 store(s) to sync (0 new schema, 0 legacy)
+10|certxa  | 2026-05-10 11:03:15 +00:00: [ReviewSync] Scheduler — sweep complete in 6ms  success=0  failed=0
+10|certxa  | 2026-05-10 11:03:19 +00:00: 11:03:19 AM [express] GET /api/sms-inbox/conversations 304 in 25ms :: []
+10|certxa  | 2026-05-10 11:03:40 +00:00: 11:03:40 AM [express] GET /api/stores 304 in 38ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:03:40 +00:00: 11:03:40 AM [express] GET /api/billing/sms-status/1 304 in 40ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:03:40 +00:00: 11:03:40 AM [express] GET /api/training/notifications 304 in 50ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:03:40 +00:00: 11:03:40 AM [express] GET /api/billing/account-status 304 in 53ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:03:40 +00:00: 11:03:40 AM [express] GET /api/sms-inbox/conversations 304 in 52ms :: []
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth] Generating auth URL
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth]   client_id    : 384071838764…
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth]   client_secret: (set)
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth]   redirect_uri : https://certxa.com/api/google-business/callback
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth]   storeId      : 1
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth]   csrf         : 2000ed79e1fe9092351a68371a078044
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth] getAuthUrl — scopes: https://www.googleapis.com/auth/business.manage
+10|certxa  | 2026-05-10 11:03:43 +00:00: [Google Business OAuth] Auth URL generated successfully — scope: business.manage only
+10|certxa  | 2026-05-10 11:03:43 +00:00: 11:03:43 AM [express] GET /api/google-business/auth-url 200 in 13ms :: {"authUrl":"https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage&prompt=consent&include_granted_scopes=false&state=eyJjc3JmIjoiMjAwMGVkNzllMWZlOTA5MjM1MWE2ODM3MWEwNzgwNDQiLCJzdG9yZUlkIjoxfQ&response_type=code&client_id=384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fcertxa.com%2Fapi%2Fgoogle-business%2Fcallback"}
+10|certxa  | 2026-05-10 11:03:45 +00:00: 11:03:45 AM [express] GET /api/training/notifications 200 in 10ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:03:45 +00:00: 11:03:45 AM [express] GET /api/billing/sms-status/3 200 in 14ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:03:49 +00:00: 11:03:49 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] ── Callback received ──────────────────────────────
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   code  : 4/0AeoWuM91_N_5zW7ay… (73 chars)
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   state : eyJjc3JmIjoiMjAwMGVkNzllMWZlOT…
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   error : (none)
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   decoded storeId: 1   csrf: 2000ed79e1fe9092351a68371a078044
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   session csrf    : 2000ed79e1fe9092351a68371a078044
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   session storeId : 1
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] Token exchange — redirect_uri: https://certxa.com/api/google-business/callback
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getTokensFromCode — exchanging authorization code…
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getTokensFromCode — access_token: (obtained)
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getTokensFromCode — refresh_token: (obtained)
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getTokensFromCode — scope: https://www.googleapis.com/auth/business.manage
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getTokensFromCode — expiry: 2026-05-10T12:03:50.235Z
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] Attempting to fetch Google account email (may be skipped with business.manage-only scope)…
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getGoogleUserInfo — skipped (status 401). This is expected with business.manage-only tokens. googleAccountEmail will be stored as null.
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth]   email: (not available — expected with business.manage-only scope)
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] Fetching Business Profile accounts…
+10|certxa  | 2026-05-10 11:03:51 +00:00: [Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:384071838764'.
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:384071838764'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:3840718387
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] Failed to fetch accounts — status: 429
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] Error detail: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:384071838764'.
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] Upserting profile in DB for storeId: 1
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] Profile updated — id: 4
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] ── Callback complete ──────────────────────────────
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth]   email     : (not available)
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth]   accounts  : 0
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth]   locations : 0
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth]   profileId : 4
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth]   → redirecting to /google-business?google_connected=1
+10|certxa  | 2026-05-10 11:03:53 +00:00: [Google Business OAuth] No accounts returned — skipping googleBusinessAccounts upsert
+10|certxa  | 2026-05-10 11:03:53 +00:00: 11:03:53 AM [express] GET /api/google-business/callback 302 in 2421ms
+10|certxa  | 2026-05-10 11:03:53 +00:00: ValidationError: The Express 'trust proxy' setting is true, which allows anyone to trivially bypass IP-based rate limiting. See https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/ for more information.
+10|certxa  | 2026-05-10 11:03:53 +00:00:     at Object.trustProxy (/apps/certxa/node_modules/express-rate-limit/dist/index.cjs:363:13)
+10|certxa  | 2026-05-10 11:03:53 +00:00:     at wrappedValidations.<computed> [as trustProxy] (/apps/certxa/node_modules/express-rate-limit/dist/index.cjs:704:22)
+10|certxa  | 2026-05-10 11:03:53 +00:00:     at Object.keyGenerator (/apps/certxa/node_modules/express-rate-limit/dist/index.cjs:810:20)
+10|certxa  | 2026-05-10 11:03:53 +00:00:     at /apps/certxa/node_modules/express-rate-limit/dist/index.cjs:893:32
+10|certxa  | 2026-05-10 11:03:53 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+10|certxa  | 2026-05-10 11:03:53 +00:00:     at async /apps/certxa/node_modules/express-rate-limit/dist/index.cjs:854:5 {
+10|certxa  | 2026-05-10 11:03:53 +00:00:   code: 'ERR_ERL_PERMISSIVE_TRUST_PROXY',
+10|certxa  | 2026-05-10 11:03:53 +00:00:   help: 'https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/'
+10|certxa  | 2026-05-10 11:03:53 +00:00: }
+10|certxa  | 2026-05-10 11:03:53 +00:00: 11:03:53 AM [express] GET /api/auth/user 304 in 7ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:03:53 +00:00: 11:03:53 AM [express] GET /api/billing/account-status 304 in 13ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/training/notifications 304 in 9ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/stores 304 in 11ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/training/state 304 in 9ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/trial/status 304 in 9ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/trial/status 304 in 12ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/billing/subscription/1 304 in 11ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/billing/sms-status/1 304 in 27ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/sms-inbox/conversations 304 in 26ms :: []
+10|certxa  | 2026-05-10 11:03:54 +00:00: [Google Business OAuth] connection-result picked up by frontend for storeId: 1
+10|certxa  | 2026-05-10 11:03:54 +00:00: 11:03:54 AM [express] GET /api/google-business/connection-result 304 in 7ms :: {"email":null,"storeId":1,"success":true,"accounts":[],"profileId":4,"businesses":[]}
+10|certxa  | 2026-05-10 11:03:58 +00:00: Error fetching reviews: error: column "gb_location_id" does not exist
+10|certxa  | 2026-05-10 11:03:58 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 11:03:58 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 11:03:58 +00:00:   length: 114,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   code: '42703',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   position: '68',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   line: '3665',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   routine: 'errorMissingColumn'
+10|certxa  | 2026-05-10 11:03:58 +00:00: }
+10|certxa  | 2026-05-10 11:03:58 +00:00: 11:03:58 AM [express] GET /api/google-business/reviews/1 500 in 9ms :: {"message":"Failed to fetch reviews"}
+10|certxa  | 2026-05-10 11:03:58 +00:00: Error getting review stats: error: column "gb_location_id" does not exist
+10|certxa  | 2026-05-10 11:03:58 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 11:03:58 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 11:03:58 +00:00:   length: 114,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   code: '42703',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   position: '68',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:03:58 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   line: '3665',
+10|certxa  | 2026-05-10 11:03:58 +00:00:   routine: 'errorMissingColumn'
+10|certxa  | 2026-05-10 11:03:58 +00:00: }
+10|certxa  | 2026-05-10 11:03:58 +00:00: 11:03:58 AM [express] GET /api/google-business/reviews-stats/1 500 in 13ms :: {"message":"Failed to get review stats"}
+10|certxa  | 2026-05-10 11:03:58 +00:00: 11:03:58 AM [express] GET /api/google-business/profile/1 200 in 32ms :: {"profile":{"id":4,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T12:03:50.235Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T10:14:04.847Z","updatedAt":"2026-05-10T11:03:53.492Z"}}
+10|certxa  | 2026-05-10 11:03:58 +00:00: [GBP] sync-logs FAILED for storeId=1: relation "google_business_sync_logs" does not exist
+10|certxa  | 2026-05-10 11:03:58 +00:00: 11:03:58 AM [express] GET /api/google-business/sync-logs/1 500 in 34ms :: {"message":"Failed to fetch sync logs"}
+10|certxa  | 2026-05-10 11:04:00 +00:00: [GBP] Manual sync-reviews triggered for storeId=1
+10|certxa  | 2026-05-10 11:04:00 +00:00: [ReviewSync] ── START storeId=1 ──────────────────────────────────
+10|certxa  | 2026-05-10 11:04:00 +00:00: [GBP] sync-reviews FAILED for storeId=1 — status=42P01  message=relation "google_business_locations" does not exist
+10|certxa  | 2026-05-10 11:04:00 +00:00: 11:04:00 AM [express] POST /api/google-business/sync-reviews/1 500 in 7ms :: {"message":"Failed to sync reviews: relation \"google_business_locations\" does not exist"}
+10|certxa  | 2026-05-10 11:04:00 +00:00: [GBP] sync-logs FAILED for storeId=1: relation "google_business_sync_logs" does not exist
+10|certxa  | 2026-05-10 11:04:00 +00:00: 11:04:00 AM [express] GET /api/google-business/sync-logs/1 500 in 8ms :: {"message":"Failed to fetch sync logs"}
+10|certxa  | 2026-05-10 11:04:01 +00:00: 11:04:01 AM [express] GET /api/google-business/profile/1 304 in 24ms :: {"profile":{"id":4,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T12:03:50.235Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T10:14:04.847Z","updatedAt":"2026-05-10T11:03:53.492Z"}}
+10|certxa  | 2026-05-10 11:04:03 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:04:03 +00:00: 11:04:03 AM [express] GET /api/google-business/stored-accounts/1 500 in 7ms :: {"message":"Failed to fetch stored accounts"}
+10|certxa  | 2026-05-10 11:04:05 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:04:05 +00:00: 11:04:05 AM [express] GET /api/google-business/stored-accounts/1 500 in 21ms :: {"message":"Failed to fetch stored accounts"}
+10|certxa  | 2026-05-10 11:04:07 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:04:07 +00:00: 11:04:07 AM [express] GET /api/google-business/stored-accounts/1 500 in 26ms :: {"message":"Failed to fetch stored accounts"}
+10|certxa  | 2026-05-10 11:04:19 +00:00: 11:04:19 AM [express] GET /api/sms-inbox/conversations 304 in 33ms :: []
+10|certxa  | 2026-05-10 11:04:24 +00:00: 11:04:24 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:04:38 +00:00: 11:04:38 AM [express] GET /api/training/state 304 in 21ms :: {"enrolled":true,"profile":{"userId":"182ce8e8-f4e5-45af-84ad-7e00dc89937a","enrolledAt":"2026-05-10T09:49:56.565Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 11:04:45 +00:00: 11:04:45 AM [express] GET /api/training/notifications 304 in 7ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:04:45 +00:00: 11:04:45 AM [express] GET /api/billing/sms-status/3 304 in 22ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:04:49 +00:00: 11:04:49 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+root@dev-server:/apps/certxa# pm2 logs certxa
+[TAILING] Tailing last 15 lines for [certxa] process (change the value with --lines option)
+/apps/certxa/logs/pm2-error.log last 15 lines:
+10|certxa  | 2026-05-10 11:00:12 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:00:12 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:00:12 +00:00:   line: '816',
+10|certxa  | 2026-05-10 11:00:12 +00:00:   routine: 'scanRTEForColumn'
+10|certxa  | 2026-05-10 11:00:12 +00:00: }
+10|certxa  | 2026-05-10 11:00:19 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:02:36 +00:00: [PHP] [Sun May 10 11:02:36 2026] 127.0.0.1:51842 Accepted
+10|certxa  | 2026-05-10 11:02:36 +00:00: [PHP] [Sun May 10 11:02:36 2026] 127.0.0.1:51842 Closing
+10|certxa  | 2026-05-10 11:02:36 +00:00: [PHP] [Sun May 10 11:02:36 2026] 127.0.0.1:51850 Accepted
+10|certxa  | 2026-05-10 11:02:36 +00:00: [PHP] [Sun May 10 11:02:36 2026] 127.0.0.1:51850 Closing
+10|certxa  | 2026-05-10 11:02:45 +00:00: [PHP] [Sun May 10 11:02:45 2026] 127.0.0.1:48940 Closed without sending a request; it was probably just an unused speculative preconnection
+10|certxa  | 2026-05-10 11:02:45 +00:00: [Sun May 10 11:02:45 2026] 127.0.0.1:48940 Closing
+10|certxa  | 2026-05-10 11:02:45 +00:00: [SSR] Failed to load SSR bundle, falling back to SPA-only: TypeError: Mie is not a function
+10|certxa  | 2026-05-10 11:02:45 +00:00:     at /apps/certxa/dist/index.cjs:592:6820
+10|certxa  | 2026-05-10 11:02:45 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+/apps/certxa/logs/pm2-out.log last 15 lines:
+10|certxa  | 2026-05-10 11:02:44 +00:00: [PHP] Starting on port 8104
+10|certxa  | 2026-05-10 11:02:44 +00:00: [Crew] Overtime detector started
+10|certxa  | 2026-05-10 11:02:45 +00:00: [Dunning] Billing dunning scheduler started (checks every hour, locks after 30 days)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [Training] Graduation scheduler started (hourly grad sweep, 6h digest, daily sandbox reset)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [Queue SMS] Smart travel-alert scheduler started (checks every 2 minutes)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [TrialReminder] Scheduler started — checks for 30/7/1 day reminders every hour
+10|certxa  | 2026-05-10 11:02:45 +00:00: [GoogleReviews] Auto-sync scheduler started (6-hour interval)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [PHP] Server is ready
+10|certxa  | 2026-05-10 11:02:45 +00:00: [TrialExpiration] Scheduler started — runs every hour
+10|certxa  | 2026-05-10 11:02:45 +00:00: [Birthday] Scheduler started (runs daily at 9am store time, checks every hour)
+10|certxa  | 2026-05-10 11:02:45 +00:00: [LapsedClient] Scheduler started (runs daily at 10am, checks every hour)
+10|certxa  | 2026-05-10 11:02:45 +00:00: 11:02:45 AM [express] serving on port 8100
+10|certxa  | 2026-05-10 11:02:48 +00:00: 11:02:48 AM [express] GET /api/sms-inbox/conversations 304 in 37ms :: []
+
+10|certxa  | 2026-05-10 11:03:15 +00:00: [ReviewSync] Scheduler — starting sync sweep…
+10|certxa  | 2026-05-10 11:03:15 +00:00: [ReviewSync] Scheduler — could not query googleBusinessLocations: error: relation "google_business_locations" does not exist
+10|certxa  | 2026-05-10 11:03:15 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 11:03:15 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 11:03:15 +00:00:   length: 124,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   code: '42P01',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:03:15 +00:00:   position: '24',
+10|certxa  | 2026-05-10 11:03:15 +00:00:   internalPosition: undefine10|certxa  | 2026-05-10 11:04:54 +00:00: 11:04:54 AM [express] GET /api/training/notifications 304 in 5ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:04:54 +00:00: 11:04:54 AM [express] GET /api/billing/sms-status/1 304 in 7ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:04:54 +00:00: 11:04:54 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:05:04 +00:00: 11:05:04 AM [express] GET /api/billing/account-status 304 in 21ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:05:19 +00:00: 11:05:19 AM [express] GET /api/sms-inbox/conversations 304 in 21ms :: []
+10|certxa  | 2026-05-10 11:05:45 +00:00: 11:05:45 AM [express] GET /api/training/notifications 304 in 39ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:05:45 +00:00: 11:05:45 AM [express] GET /api/billing/sms-status/3 304 in 26ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:05:49 +00:00: 11:05:49 AM [express] GET /api/sms-inbox/conversations 304 in 8ms :: []
+10|certxa  | 2026-05-10 11:06:04 +00:00: [PHP] [Sun May 10 11:06:04 2026] 127.0.0.1:53852 Accepted
+10|certxa  | 2026-05-10 11:06:04 +00:00: [PHP] [Sun May 10 11:06:04 2026] 127.0.0.1:53852 Closing
+10|certxa  | 2026-05-10 11:06:08 +00:00: 11:06:08 AM [express] GET /api/stores 304 in 32ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:06:08 +00:00: 11:06:08 AM [express] GET /api/training/notifications 304 in 30ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:06:08 +00:00: 11:06:08 AM [express] GET /api/sms-inbox/conversations 304 in 31ms :: []
+10|certxa  | 2026-05-10 11:06:08 +00:00: 11:06:08 AM [express] GET /api/billing/account-status 304 in 48ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:06:08 +00:00: 11:06:08 AM [express] GET /api/billing/sms-status/1 304 in 46ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:06:12 +00:00: 11:06:12 AM [express] GET /api/billing/account-status 304 in 7ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:06:19 +00:00: 11:06:19 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:06:37 +00:00: 11:06:37 AM [express] GET /api/billing/account-status 304 in 19ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:06:45 +00:00: 11:06:45 AM [express] GET /api/training/notifications 304 in 6ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:06:45 +00:00: 11:06:45 AM [express] GET /api/billing/sms-status/3 304 in 20ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:06:48 +00:00: 11:06:48 AM [express] GET /api/billing/account-status 304 in 5ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:06:50 +00:00: 11:06:50 AM [express] GET /api/sms-inbox/conversations 304 in 6ms :: []
+10|certxa  | 2026-05-10 11:07:03 +00:00: 11:07:03 AM [express] GET /api/billing/account-status 304 in 19ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:07:14 +00:00: 11:07:14 AM [express] GET /api/stores 304 in 34ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:07:14 +00:00: 11:07:14 AM [express] GET /api/billing/account-status 304 in 39ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:07:14 +00:00: 11:07:14 AM [express] GET /api/training/notifications 304 in 53ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:07:14 +00:00: 11:07:14 AM [express] GET /api/sms-inbox/conversations 304 in 51ms :: []
+10|certxa  | 2026-05-10 11:07:14 +00:00: 11:07:14 AM [express] GET /api/billing/sms-status/1 304 in 55ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:07:20 +00:00: 11:07:20 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:07:45 +00:00: 11:07:45 AM [express] GET /api/billing/sms-status/3 304 in 8ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:07:45 +00:00: 11:07:45 AM [express] GET /api/training/notifications 304 in 35ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:07:50 +00:00: 11:07:50 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:08:06 +00:00: 11:08:06 AM [express] GET /api/billing/account-status 304 in 18ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:08:20 +00:00: 11:08:20 AM [express] GET /api/sms-inbox/conversations 304 in 20ms :: []
+10|certxa  | 2026-05-10 11:08:40 +00:00: 11:08:40 AM [express] GET /api/stores 304 in 60ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:08:40 +00:00: 11:08:40 AM [express] GET /api/billing/sms-status/1 304 in 56ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:08:40 +00:00: 11:08:40 AM [express] GET /api/sms-inbox/conversations 304 in 59ms :: []
+10|certxa  | 2026-05-10 11:08:40 +00:00: 11:08:40 AM [express] GET /api/training/notifications 304 in 94ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:08:40 +00:00: 11:08:40 AM [express] GET /api/billing/account-status 304 in 97ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:08:45 +00:00: 11:08:45 AM [express] GET /api/training/notifications 304 in 6ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:08:45 +00:00: 11:08:45 AM [express] GET /api/billing/sms-status/3 304 in 9ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:08:50 +00:00: 11:08:50 AM [express] GET /api/sms-inbox/conversations 304 in 6ms :: []
+10|certxa  | 2026-05-10 11:08:54 +00:00: 11:08:54 AM [express] GET /api/training/state 304 in 9ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 11:08:56 +00:00: [PHP] [Sun May 10 11:08:56 2026] 127.0.0.1:60954 Accepted
+10|certxa  | 2026-05-10 11:08:56 +00:00: [PHP] [Sun May 10 11:08:56 2026] 127.0.0.1:60954 Closing
+10|certxa  | 2026-05-10 11:09:01 +00:00: 11:09:01 AM [express] GET /api/auth/user 304 in 7ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:09:01 +00:00: 11:09:01 AM [express] GET /api/billing/subscription/1 304 in 10ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 11:09:01 +00:00: 11:09:01 AM [express] GET /api/billing/account-status 304 in 30ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:09:14 +00:00: 11:09:14 AM [express] GET /api/billing/account-status 304 in 22ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:09:19 +00:00: [Google Login OAuth] Configuring passport strategy
+10|certxa  | 2026-05-10 11:09:19 +00:00: [Google Login OAuth]   client_id   : 384071838764…
+10|certxa  | 2026-05-10 11:09:19 +00:00: [Google Login OAuth]   callback_url: https://certxa.com/api/auth/google/callback
+10|certxa  | 2026-05-10 11:09:19 +00:00: [Google Login OAuth]   scopes      : openid, email, profile
+10|certxa  | 2026-05-10 11:09:21 +00:00: [PHP] Starting on port 8104
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Crew] Overtime detector started
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Dunning] Billing dunning scheduler started (checks every hour, locks after 30 days)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Training] Graduation scheduler started (hourly grad sweep, 6h digest, daily sandbox reset)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Queue SMS] Smart travel-alert scheduler started (checks every 2 minutes)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [TrialReminder] Scheduler started — checks for 30/7/1 day reminders every hour
+10|certxa  | 2026-05-10 11:09:21 +00:00: [GoogleReviews] Auto-sync scheduler started (6-hour interval)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [PHP] Server is ready
+10|certxa  | 2026-05-10 11:09:21 +00:00: [PHP] [Sun May 10 11:09:21 2026] 127.0.0.1:47114 Closed without sending a request; it was probably just an unused speculative preconnection
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Sun May 10 11:09:21 2026] 127.0.0.1:47114 Closing
+10|certxa  | 2026-05-10 11:09:21 +00:00: [TrialExpiration] Scheduler started — runs every hour
+10|certxa  | 2026-05-10 11:09:21 +00:00: [Birthday] Scheduler started (runs daily at 9am store time, checks every hour)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [LapsedClient] Scheduler started (runs daily at 10am, checks every hour)
+10|certxa  | 2026-05-10 11:09:21 +00:00: [SSR] Failed to load SSR bundle, falling back to SPA-only: TypeError: Mie is not a function
+10|certxa  | 2026-05-10 11:09:21 +00:00:     at /apps/certxa/dist/index.cjs:592:6820
+10|certxa  | 2026-05-10 11:09:21 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+10|certxa  | 2026-05-10 11:09:21 +00:00: 11:09:21 AM [express] serving on port 8100
+10|certxa  | 2026-05-10 11:09:24 +00:00: 11:09:24 AM [express] GET /api/billing/account-status 304 in 46ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:09:38 +00:00: 11:09:38 AM [express] GET /api/billing/account-status 304 in 29ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:09:38 +00:00: 11:09:38 AM [express] GET /api/training/state 304 in 12ms :: {"enrolled":true,"profile":{"userId":"182ce8e8-f4e5-45af-84ad-7e00dc89937a","enrolledAt":"2026-05-10T09:49:56.565Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 11:09:45 +00:00: 11:09:45 AM [express] GET /api/training/notifications 304 in 13ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:09:45 +00:00: 11:09:45 AM [express] GET /api/billing/sms-status/3 304 in 25ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:09:50 +00:00: 11:09:50 AM [express] GET /api/sms-inbox/conversations 200 in 10ms :: []
+10|certxa  | 2026-05-10 11:09:51 +00:00: [ReviewSync] Scheduler — starting sync sweep…
+10|certxa  | 2026-05-10 11:09:51 +00:00: [ReviewSync] Scheduler — could not query googleBusinessLocations: error: relation "google_business_locations" does not exist
+10|certxa  | 2026-05-10 11:09:51 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 11:09:51 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 11:09:51 +00:00:   length: 124,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:09:51 +00:00:   code: '42P01',
+10|certxa  | 2026-05-10 11:09:51 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   position: '24',
+10|certxa  | 2026-05-10 11:09:51 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:09:51 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:09:51 +00:00:   line: '1392',
+10|certxa  | 2026-05-10 11:09:51 +00:00:   routine: 'parserOpenTable'
+10|certxa  | 2026-05-10 11:09:51 +00:00: }
+10|certxa  | 2026-05-10 11:09:51 +00:00: [ReviewSync] Scheduler — 0 store(s) to sync (0 new schema, 0 legacy)
+10|certxa  | 2026-05-10 11:09:51 +00:00: [ReviewSync] Scheduler — sweep complete in 6ms  success=0  failed=0
+10|certxa  | 2026-05-10 11:09:58 +00:00: 11:09:58 AM [express] GET /api/billing/account-status 304 in 22ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:09:58 +00:00: 11:09:58 AM [express] GET /api/billing/sms-status/1 304 in 20ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:09:58 +00:00: 11:09:58 AM [express] GET /api/training/notifications 304 in 38ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:09:58 +00:00: 11:09:58 AM [express] GET /api/stores 304 in 47ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:09:58 +00:00: 11:09:58 AM [express] GET /api/sms-inbox/conversations 304 in 33ms :: []
+10|certxa  | 2026-05-10 11:10:05 +00:00: 11:10:05 AM [express] GET /api/billing/account-status 304 in 9ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:10:20 +00:00: 11:10:20 AM [express] GET /api/sms-inbox/conversations 304 in 21ms :: []
+10|certxa  | 2026-05-10 11:10:34 +00:00: 11:10:34 AM [express] GET /api/billing/account-status 304 in 21ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:10:39 +00:00: 11:10:39 AM [express] GET /api/billing/account-status 304 in 6ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:10:45 +00:00: 11:10:45 AM [express] GET /api/training/notifications 304 in 6ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:10:45 +00:00: 11:10:45 AM [express] GET /api/billing/sms-status/3 304 in 7ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:10:50 +00:00: 11:10:50 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:11:20 +00:00: 11:11:20 AM [express] GET /api/sms-inbox/conversations 304 in 21ms :: []
+10|certxa  | 2026-05-10 11:11:45 +00:00: 11:11:45 AM [express] GET /api/training/notifications 304 in 22ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:11:45 +00:00: 11:11:45 AM [express] GET /api/billing/sms-status/3 304 in 7ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:11:50 +00:00: 11:11:50 AM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 11:12:20 +00:00: 11:12:20 AM [express] GET /api/sms-inbox/conversations 304 in 20ms :: []
+10|certxa  | 2026-05-10 11:12:45 +00:00: 11:12:45 AM [express] GET /api/training/notifications 304 in 19ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:12:45 +00:00: 11:12:45 AM [express] GET /api/billing/sms-status/3 304 in 21ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:12:50 +00:00: 11:12:50 AM [express] GET /api/sms-inbox/conversations 304 in 6ms :: []
+10|certxa  | 2026-05-10 11:12:53 +00:00: [PHP] [Sun May 10 11:12:53 2026] 127.0.0.1:35866 Accepted
+10|certxa  | 2026-05-10 11:12:53 +00:00: [PHP] [Sun May 10 11:12:53 2026] 127.0.0.1:35866 Closing
+10|certxa  | 2026-05-10 11:12:53 +00:00: [PHP] [Sun May 10 11:12:53 2026] 127.0.0.1:35874 Accepted
+10|certxa  | 2026-05-10 11:12:53 +00:00: [PHP] [Sun May 10 11:12:53 2026] 127.0.0.1:35874 Closing
+10|certxa  | 2026-05-10 11:13:54 +00:00: 11:13:54 AM [express] GET /api/training/state 304 in 23ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 11:14:17 +00:00: ValidationError: The Express 'trust proxy' setting is true, which allows anyone to trivially bypass IP-based rate limiting. See https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/ for more information.
+10|certxa  | 2026-05-10 11:14:17 +00:00:     at Object.trustProxy (/apps/certxa/node_modules/express-rate-limit/dist/index.cjs:363:13)
+10|certxa  | 2026-05-10 11:14:17 +00:00:     at wrappedValidations.<computed> [as trustProxy] (/apps/certxa/node_modules/express-rate-limit/dist/index.cjs:704:22)
+10|certxa  | 2026-05-10 11:14:17 +00:00:     at Object.keyGenerator (/apps/certxa/node_modules/express-rate-limit/dist/index.cjs:810:20)
+10|certxa  | 2026-05-10 11:14:17 +00:00:     at /apps/certxa/node_modules/express-rate-limit/dist/index.cjs:893:32
+10|certxa  | 2026-05-10 11:14:17 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+10|certxa  | 2026-05-10 11:14:17 +00:00:     at async /apps/certxa/node_modules/express-rate-limit/dist/index.cjs:854:5 {
+10|certxa  | 2026-05-10 11:14:17 +00:00:   code: 'ERR_ERL_PERMISSIVE_TRUST_PROXY',
+10|certxa  | 2026-05-10 11:14:17 +00:00:   help: 'https://express-rate-limit.github.io/ERR_ERL_PERMISSIVE_TRUST_PROXY/'
+10|certxa  | 2026-05-10 11:14:17 +00:00: }
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/auth/user 304 in 38ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/stores 304 in 44ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/billing/account-status 304 in 46ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/billing/sms-status/1 304 in 48ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/sms-inbox/conversations 304 in 46ms :: []
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/training/notifications 304 in 62ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:14:17 +00:00: 11:14:17 AM [express] GET /api/billing/subscription/1 304 in 63ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 11:14:19 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:14:19 +00:00: 11:14:19 AM [express] GET /api/google-business/stored-accounts/1 500 in 7ms :: {"message":"Failed to fetch stored accounts"}
+10|certxa  | 2026-05-10 11:14:20 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:14:20 +00:00: 11:14:20 AM [express] GET /api/google-business/stored-accounts/1 500 in 7ms :: {"message":"Failed to fetch stored accounts"}
+10|certxa  | 2026-05-10 11:14:21 +00:00: 11:14:21 AM [express] GET /api/google-business/profile/1 304 in 7ms :: {"profile":{"id":4,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T12:03:50.235Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T10:14:04.847Z","updatedAt":"2026-05-10T11:03:53.492Z"}}
+10|certxa  | 2026-05-10 11:14:26 +00:00: [Google Business OAuth] Token revoked at Google
+10|certxa  | 2026-05-10 11:14:26 +00:00: Google Business Profile disconnected for store 1
+10|certxa  | 2026-05-10 11:14:26 +00:00: 11:14:26 AM [express] DELETE /api/google-business/profile/1 200 in 177ms :: {"message":"Google Business Profile disconnected and all data removed"}
+10|certxa  | 2026-05-10 11:14:29 +00:00: 11:14:29 AM [express] GET /api/trial/status 304 in 4ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:29 +00:00: 11:14:29 AM [express] GET /api/trial/status 304 in 6ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:29 +00:00: 11:14:29 AM [express] GET /api/staff 304 in 6ms :: [{"id":10,"name":"Lang","email":"","phone":"","role":"Technician","bio":null,"color":"#3b82f6","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":2,"name":"Thảo","email":"","phone":"","role":"Technician","bio":"","color":"#a78bfa","avatarUrl":"","commissionEnabled":true,"commissionRate":"40.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":4,"name":"Ngọc","email":"","phone":"","role":"Technician","bio":"","color":"#34d399","avatarUrl":"","commissionEnabled":true,"commissionRate":"40.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":3,"name":"Trúc","email":"","phone":"","role":"Technician","bio":"","color":"#60a5fa","avatarUrl":"","commissionEnabled":true,"commissionRate":"40.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":1,"name":"Xuân","email":"","phone":"","role":"Manager","bio":"","color":"#f472b6","avatarUrl":"","commissionEnabled":true,"commissionRate":"40.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":12,"name":"Hiền Hòa","email":"toby@me.com","phone":"","role":"Technician","bio":"","color":"#3b82f6","avatarUrl":"","commissionEnabled":true,"commissionRate":"40.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":11,"name":"Hồng","email":"","phone":"","role":"Technician","bio":"","color":"#3b82f6","avatarUrl":"","commissionEnabled":true,"commissionRate":"40.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":13,"name":"Minh","email":"","phone":"","role":"Technician","bio":null,"color":"#3b82f6","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":14,"name":"Sue","email":"","phone":"","role":"Technician","bio":null,"color":"#3b82f6","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},{"id":15,"name":"Sam","email":"","phone":"","role":"Artist","bio":null,"color":"#3b82f6","avatarUrl":null,"commissionEnabled":false,"commissionRate":"0.00","storeId":1,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null}]
+10|certxa  | 2026-05-10 11:14:29 +00:00: 11:14:29 AM [express] GET /api/appointments 304 in 31ms :: [{"id":1,"date":"2026-05-10T09:00:00.000Z","duration":30,"status":"pending","notes":null,"cancellationReason":null,"paymentMethod":null,"tipAmount":null,"discountAmount":null,"totalPaid":null,"startedAt":null,"completedAt":null,"serviceId":9,"staffId":14,"customerId":null,"storeId":1,"recurrenceRule":null,"recurrenceParentId":null,"depositRequired":false,"depositAmount":null,"depositPaid":false,"giftCardId":null,"giftCardAmount":null,"loyaltyPointsEarned":0,"loyaltyPointsRedeemed":0,"service":{"id":9,"name":"Hot Towel Shave","description":"Traditional straight razor shave with hot towel","duration":30,"price":35,"category":"Beard & Shave","categoryId":2,"imageUrl":null,"storeId":1,"depositRequired":false,"depositAmount":null},"staff":{"id":14,"name":"Sue","email":"","phone":"","role":"Technician","bio":null,"color":"#3b82f6","avatarUrl":null,"commissionEnabled":false,"commissionRate":0,"storeId":1,"password":null,"permissions":null,"status":"active","employmentType":"stylist","inviteToken":null,"inviteExpiresAt":null,"invitedAt":null,"joinedAt":null,"removedAt":null,"invitedByUserId":null},"customer":null,"store":{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null},"appointmentAddons":[]}]
+10|certxa  | 2026-05-10 11:14:29 +00:00: 11:14:29 AM [express] GET /api/trial/status 304 in 6ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:33 +00:00: 11:14:33 AM [express] GET /api/trial/status 304 in 5ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:33 +00:00: 11:14:33 AM [express] GET /api/google-business/profile/1 200 in 8ms :: {"profile":null}
+10|certxa  | 2026-05-10 11:14:33 +00:00: 11:14:33 AM [express] GET /api/trial/status 304 in 6ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth] Generating auth URL
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth]   client_id    : 384071838764…
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth]   client_secret: (set)
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth]   redirect_uri : https://certxa.com/api/google-business/callback
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth]   storeId      : 1
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth]   csrf         : 97c5628efb5898644bd3166881ed85f4
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth] getAuthUrl — scopes: https://www.googleapis.com/auth/business.manage
+10|certxa  | 2026-05-10 11:14:36 +00:00: [Google Business OAuth] Auth URL generated successfully — scope: business.manage only
+10|certxa  | 2026-05-10 11:14:36 +00:00: 11:14:36 AM [express] GET /api/google-business/auth-url 200 in 9ms :: {"authUrl":"https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage&prompt=consent&include_granted_scopes=false&state=eyJjc3JmIjoiOTdjNTYyOGVmYjU4OTg2NDRiZDMxNjY4ODFlZDg1ZjQiLCJzdG9yZUlkIjoxfQ&response_type=code&client_id=384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fcertxa.com%2Fapi%2Fgoogle-business%2Fcallback"}
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] ── Callback received ──────────────────────────────
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth]   code  : 4/0AeoWuM_qm3AawjeTC… (73 chars)
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth]   state : eyJjc3JmIjoiOTdjNTYyOGVmYjU4OT…
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth]   error : (none)
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth]   decoded storeId: 1   csrf: 97c5628efb5898644bd3166881ed85f4
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth]   session csrf    : 97c5628efb5898644bd3166881ed85f4
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth]   session storeId : 1
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] Token exchange — redirect_uri: https://certxa.com/api/google-business/callback
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] getTokensFromCode — exchanging authorization code…
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] getTokensFromCode — access_token: (obtained)
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] getTokensFromCode — refresh_token: (obtained)
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] getTokensFromCode — scope: https://www.googleapis.com/auth/business.manage
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] getTokensFromCode — expiry: 2026-05-10T12:14:42.974Z
+10|certxa  | 2026-05-10 11:14:43 +00:00: [Google Business OAuth] Attempting to fetch Google account email (may be skipped with business.manage-only scope)…
+10|certxa  | 2026-05-10 11:14:44 +00:00: [Google Business OAuth] getGoogleUserInfo — skipped (status 401). This is expected with business.manage-only tokens. googleAccountEmail will be stored as null.
+10|certxa  | 2026-05-10 11:14:44 +00:00: [Google Business OAuth]   email: (not available — expected with business.manage-only scope)
+10|certxa  | 2026-05-10 11:14:44 +00:00: [Google Business OAuth] Fetching Business Profile accounts…
+10|certxa  | 2026-05-10 11:14:44 +00:00: [Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:384071838764'.
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:384071838764'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:3840718387
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] Failed to fetch accounts — status: 429
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] Error detail: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:384071838764'.
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] Upserting profile in DB for storeId: 1
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] Profile inserted — id: 5
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] ── Callback complete ──────────────────────────────
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth]   email     : (not available)
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth]   accounts  : 0
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth]   locations : 0
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth]   profileId : 5
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth]   → redirecting to /google-business?google_connected=1
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] No accounts returned — skipping googleBusinessAccounts upsert
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/google-business/callback 302 in 2352ms
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/billing/account-status 304 in 7ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/auth/user 304 in 17ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/trial/status 304 in 7ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/training/notifications 304 in 11ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/stores 304 in 27ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/training/state 304 in 30ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/trial/status 304 in 5ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/billing/sms-status/1 304 in 12ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/billing/subscription/1 304 in 11ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/sms-inbox/conversations 304 in 10ms :: []
+10|certxa  | 2026-05-10 11:14:46 +00:00: [Google Business OAuth] connection-result picked up by frontend for storeId: 1
+10|certxa  | 2026-05-10 11:14:46 +00:00: 11:14:46 AM [express] GET /api/google-business/connection-result 200 in 8ms :: {"email":null,"storeId":1,"success":true,"accounts":[],"profileId":5,"businesses":[]}
+10|certxa  | 2026-05-10 11:14:50 +00:00: Error getting review stats: error: column "gb_location_id" does not exist
+10|certxa  | 2026-05-10 11:14:50 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 11:14:50 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 11:14:50 +00:00:   length: 114,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   code: '42703',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   position: '68',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   line: '3665',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   routine: 'errorMissingColumn'
+10|certxa  | 2026-05-10 11:14:50 +00:00: }
+10|certxa  | 2026-05-10 11:14:50 +00:00: Error fetching reviews: error: column "gb_location_id" does not exist
+10|certxa  | 2026-05-10 11:14:50 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 11:14:50 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 11:14:50 +00:00:   length: 114,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   code: '42703',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   position: '68',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 11:14:50 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   line: '3665',
+10|certxa  | 2026-05-10 11:14:50 +00:00:   routine: 'errorMissingColumn'
+10|certxa  | 2026-05-10 11:14:50 +00:00: }
+10|certxa  | 2026-05-10 11:14:50 +00:00: 11:14:50 AM [express] GET /api/google-business/reviews-stats/1 500 in 14ms :: {"message":"Failed to get review stats"}
+10|certxa  | 2026-05-10 11:14:50 +00:00: 11:14:50 AM [express] GET /api/google-business/reviews/1 500 in 16ms :: {"message":"Failed to fetch reviews"}
+10|certxa  | 2026-05-10 11:14:50 +00:00: 11:14:50 AM [express] GET /api/google-business/profile/1 200 in 13ms :: {"profile":{"id":5,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T12:14:42.974Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T11:14:46.239Z","updatedAt":"2026-05-10T11:14:46.239Z"}}
+10|certxa  | 2026-05-10 11:14:50 +00:00: [GBP] sync-logs FAILED for storeId=1: relation "google_business_sync_logs" does not exist
+10|certxa  | 2026-05-10 11:14:50 +00:00: 11:14:50 AM [express] GET /api/google-business/sync-logs/1 500 in 21ms :: {"message":"Failed to fetch sync logs"}
+10|certxa  | 2026-05-10 11:14:53 +00:00: 11:14:53 AM [express] GET /api/google-business/profile/1 304 in 21ms :: {"profile":{"id":5,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T12:14:42.974Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T11:14:46.239Z","updatedAt":"2026-05-10T11:14:46.239Z"}}
+10|certxa  | 2026-05-10 11:14:55 +00:00: [GBP] stored-accounts ERROR: relation "google_business_accounts" does not exist
+10|certxa  | 2026-05-10 11:14:55 +00:00: 11:14:55 AM [express] GET /api/google-business/stored-accounts/1 500 in 7ms :: {"message":"Failed to fetch stored accounts"}
