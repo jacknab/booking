@@ -5,6 +5,11 @@ import "dotenv/config";
 // a misconfigured deployment fails immediately with a clear message instead
 // of silently serving a broken app.
 (function validateEnv() {
+  // In Replit dev, APP_URL can be derived from REPLIT_DEV_DOMAIN automatically
+  if (!process.env.APP_URL && process.env.REPLIT_DEV_DOMAIN) {
+    process.env.APP_URL = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
+
   const REQUIRED: Record<string, string> = {
     DATABASE_URL:   "PostgreSQL connection string (postgresql://user:pass@host/db)",
     SESSION_SECRET: "Session cookie signing secret — generate with: openssl rand -hex 64",
