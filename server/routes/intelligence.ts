@@ -1155,6 +1155,97 @@ router.post("/campaigns/send", async (req, res) => {
   }
 });
 
+// GET /api/intelligence/unsubscribe
+// One-click unsubscribe from weekly digest — called directly from email link
+router.get("/unsubscribe", async (req, res) => {
+  const storeId = parseInt(String(req.query.storeId || ""));
+  const token = String(req.query.token || "");
+
+  if (!storeId || !token) {
+    return res.status(400).send(unsubscribePage("Invalid link", "This unsubscribe link is missing required information.", false));
+  }
+
+  const { verifyUnsubscribeToken } = await import("../intelligence/weekly-digest-email");
+  if (!verifyUnsubscribeToken(storeId, token)) {
+    return res.status(403).send(unsubscribePage("Invalid link", "This unsubscribe link is invalid or has been tampered with.", false));
+  }
+
+  try {
+    const { locations } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.update(locations).set({ weeklyDigestOptOut: true }).where(eq(locations.id, storeId));
+    return res.send(unsubscribePage("You're unsubscribed", "You'll no longer receive weekly revenue digest emails. You can re-enable them anytime from your Revenue Intelligence dashboard.", true));
+  } catch (err) {
+    console.error("[intelligence] unsubscribe error:", err);
+    return res.status(500).send(unsubscribePage("Something went wrong", "We couldn't process your request. Please try again or contact support.", false));
+  }
+});
+
+function unsubscribePage(heading: string, body: string, success: boolean): string {
+  const appUrl = process.env.APP_URL || "https://app.certxa.com";
+  const color = success ? "#10b981" : "#ef4444";
+  const icon = success ? "✓" : "✕";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${heading} — Certxa</title></head>
+<body style="margin:0;padding:40px 16px;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:16px;padding:40px 32px;max-width:480px;width:100%;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="width:56px;height:56px;border-radius:50%;background:${color}20;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;">
+      <span style="font-size:24px;color:${color};">${icon}</span>
+    </div>
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;">${heading}</h1>
+    <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">${body}</p>
+    <a href="${appUrl}/intelligence" style="display:inline-block;background:#18103a;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:10px;text-decoration:none;">
+      Back to Revenue Intelligence
+    </a>
+    <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">Certxa · Revenue Intelligence</p>
+  </div>
+</body>
+</html>`;
+}
+
+// GET /api/intelligence/digest-preferences
+// Returns the current opt-out status for the weekly digest
+router.get("/digest-preferences", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const { locations } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    const [store] = await db
+      .select({ optOut: locations.weeklyDigestOptOut })
+      .from(locations)
+      .where(eq(locations.id, storeId))
+      .limit(1);
+
+    res.json({ optOut: store?.optOut ?? false });
+  } catch (err) {
+    console.error("[intelligence] digest-preferences error:", err);
+    res.status(500).json({ error: "Failed to fetch preferences" });
+  }
+});
+
+// POST /api/intelligence/digest-preferences
+// Toggle weekly digest opt-out for a store
+router.post("/digest-preferences", async (req, res) => {
+  const { storeId, optOut } = req.body;
+  if (!storeId || typeof optOut !== "boolean") {
+    return res.status(400).json({ error: "storeId and optOut (boolean) required" });
+  }
+
+  try {
+    const { locations } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.update(locations).set({ weeklyDigestOptOut: optOut }).where(eq(locations.id, storeId));
+    res.json({ success: true, optOut });
+  } catch (err) {
+    console.error("[intelligence] digest-preferences update error:", err);
+    res.status(500).json({ error: "Failed to update preferences" });
+  }
+});
+
 // POST /api/intelligence/send-weekly-digest
 // Manually triggers the weekly revenue digest email for a store (owner only)
 router.post("/send-weekly-digest", async (req, res) => {

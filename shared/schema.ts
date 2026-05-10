@@ -131,6 +131,7 @@ export const locations = pgTable("locations", {
   // (SMS, email, Stripe, webhooks) short-circuit when storeId points here.
   isTrainingSandbox: boolean("is_training_sandbox").notNull().default(false),
   sandboxParentStoreId: integer("sandbox_parent_store_id"),
+  weeklyDigestOptOut: boolean("weekly_digest_opt_out").notNull().default(false),
 });
 
 export const businessHours = pgTable("business_hours", {

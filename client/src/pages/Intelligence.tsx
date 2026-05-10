@@ -8,7 +8,7 @@ import {
   Calendar, Zap, RefreshCw, Send, ChevronRight, BarChart3,
   Clock, Target, Activity, CheckCircle2, XCircle, ArrowUpRight,
   ArrowDownRight, Minus, Brain, LineChart, Download, Sparkles,
-  Trophy, AlertCircle, Mail
+  Trophy, AlertCircle, Mail, BellOff
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -302,6 +302,40 @@ export default function Intelligence() {
     onError: () => toast({ title: "Failed to send digest", variant: "destructive" }),
   });
 
+  const { data: digestPrefs } = useQuery<{ optOut: boolean }>({
+    queryKey: ["/api/intelligence/digest-preferences", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/digest-preferences?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return { optOut: false };
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 60 * 1000,
+  });
+
+  const digestPrefMutation = useMutation({
+    mutationFn: async (optOut: boolean) => {
+      const res = await fetch("/api/intelligence/digest-preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ storeId, optOut }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/intelligence/digest-preferences", storeId], { optOut: data.optOut });
+      toast({
+        title: data.optOut ? "Weekly digest paused" : "Weekly digest re-enabled",
+        description: data.optOut
+          ? "You won't receive Monday emails until you turn it back on."
+          : "You'll receive the digest every Monday at 9am.",
+      });
+    },
+    onError: () => toast({ title: "Failed to update preference", variant: "destructive" }),
+  });
+
   const winbackMutation = useMutation({
     mutationFn: async (customerId: number) => {
       const res = await fetch("/api/intelligence/winback", {
@@ -449,7 +483,7 @@ export default function Intelligence() {
                     variant="outline"
                     size="sm"
                     onClick={() => sendDigestMutation.mutate()}
-                    disabled={sendDigestMutation.isPending}
+                    disabled={sendDigestMutation.isPending || digestPrefs?.optOut}
                     className="gap-2"
                   >
                     {sendDigestMutation.isPending ? (
@@ -465,7 +499,36 @@ export default function Intelligence() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
-                  <p className="text-xs">Send yourself a preview of the weekly email digest right now — same report that goes out every Monday at 9am.</p>
+                  <p className="text-xs">
+                    {digestPrefs?.optOut
+                      ? "Weekly digest is paused. Re-enable it to send test emails."
+                      : "Send yourself a preview of the weekly email digest right now — same report that goes out every Monday at 9am."}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={digestPrefs?.optOut ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => digestPrefMutation.mutate(!digestPrefs?.optOut)}
+                    disabled={digestPrefMutation.isPending}
+                    className="gap-2"
+                  >
+                    <BellOff className={`h-4 w-4 ${digestPrefs?.optOut ? "text-amber-500" : "text-muted-foreground"}`} />
+                    <span className="hidden sm:inline text-xs">
+                      {digestPrefs?.optOut ? "Paused" : "Weekly on"}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-xs">
+                    {digestPrefs?.optOut
+                      ? "Weekly digest is paused — click to re-enable Monday emails."
+                      : "Click to pause your Monday 9am digest emails. You can re-enable anytime."}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

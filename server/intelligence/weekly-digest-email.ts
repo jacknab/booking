@@ -1,9 +1,25 @@
+import { createHmac } from "crypto";
 import { db } from "../db";
 import { sendEmail } from "../mail";
 import { users, locations } from "@shared/schema";
 import { clientIntelligence, growthScoreSnapshots } from "@shared/schema/intelligence";
 import { eq, sql, desc } from "drizzle-orm";
 import { isSandboxStore } from "../training/sandbox";
+
+function getSecret(): string {
+  return process.env.SESSION_SECRET || "fallback-secret-change-me";
+}
+
+export function generateUnsubscribeToken(storeId: number): string {
+  return createHmac("sha256", getSecret())
+    .update(`digest-unsub:${storeId}`)
+    .digest("hex");
+}
+
+export function verifyUnsubscribeToken(storeId: number, token: string): boolean {
+  const expected = generateUnsubscribeToken(storeId);
+  return token === expected;
+}
 
 // Track which stores already received a digest this week (key: `${storeId}-${isoWeek}`)
 const sentThisWeek = new Set<string>();
@@ -45,7 +61,7 @@ export async function sendWeeklyDigest(storeId: number): Promise<{ sent: boolean
     return { sent: false, skipped: "already sent this week" };
   }
 
-  // Load store + owner email
+  // Load store + owner email + opt-out status
   const [store] = await db
     .select({
       id: locations.id,
@@ -53,6 +69,7 @@ export async function sendWeeklyDigest(storeId: number): Promise<{ sent: boolean
       timezone: locations.timezone,
       ownerEmail: users.email,
       ownerFirstName: users.firstName,
+      optOut: locations.weeklyDigestOptOut,
     })
     .from(locations)
     .leftJoin(users, eq(users.id, locations.userId))
@@ -61,6 +78,10 @@ export async function sendWeeklyDigest(storeId: number): Promise<{ sent: boolean
 
   if (!store?.ownerEmail) {
     return { sent: false, skipped: "no owner email" };
+  }
+
+  if (store.optOut) {
+    return { sent: false, skipped: "owner opted out of weekly digest" };
   }
 
   const appUrl = process.env.APP_URL || "https://app.certxa.com";
@@ -321,7 +342,9 @@ export async function sendWeeklyDigest(storeId: number): Promise<{ sent: boolean
         </a>
         <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;">
           You're receiving this because you own a store on Certxa.<br>
-          This email is sent every Monday at 9am.
+          This digest is sent every Monday at 9am. ·
+          <a href="${appUrl}/api/intelligence/unsubscribe?storeId=${storeId}&token=${generateUnsubscribeToken(storeId)}"
+             style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
         </p>
       </td></tr>
 
