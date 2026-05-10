@@ -884,6 +884,25 @@ export async function registerRoutes(
   });
 
   // === APPOINTMENT AVAILABLE TIME ===
+  // POST /api/appointments/:id/send-review-request
+  // Manually triggers a review request SMS for a completed appointment
+  app.post("/api/appointments/:id/send-review-request", async (req, res) => {
+    const appointmentId = Number(req.params.id);
+    const appointment = await storage.getAppointment(appointmentId);
+    if (!appointment) return res.status(404).json({ error: "Appointment not found" });
+    if (appointment.status !== "completed") {
+      return res.status(400).json({ error: "Review requests can only be sent for completed appointments" });
+    }
+    try {
+      const { sendReviewRequest } = await import("./sms");
+      await sendReviewRequest(appointment as any);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[review-request] error:", err);
+      res.status(500).json({ error: err.message || "Failed to send review request" });
+    }
+  });
+
   app.get("/api/appointments/:id/available-time", async (req, res) => {
     const appointmentId = Number(req.params.id);
     const appointment = await storage.getAppointment(appointmentId);
@@ -1649,6 +1668,35 @@ If you have any questions, please contact your administrator.
             storeId: appointment.storeId,
             customerName,
             serviceName,
+          });
+
+          // Auto-trigger cancellation recovery: find fill candidates and SMS top match
+          setImmediate(async () => {
+            try {
+              const { getCancellationRecoveryCandidates, sendCancellationRecoverySms } = await import("./intelligence/cancellation-recovery");
+              const candidates = await getCancellationRecoveryCandidates(appointment.storeId!, appointment.id);
+              const topCandidate = candidates.find((c) => c.customerPhone && c.priority === "high") || candidates[0];
+              if (topCandidate?.customerPhone) {
+                await sendCancellationRecoverySms(appointment.storeId!, topCandidate.customerId, topCandidate.suggestedMessage, appointment.id);
+                console.log(`[intelligence] Auto-fill SMS sent to customer ${topCandidate.customerId} for cancelled appt ${appointment.id}`);
+              }
+            } catch (err: any) {
+              console.error("[intelligence] Auto-fill trigger error:", err.message);
+            }
+          });
+        } else if (input.status === "no-show" || input.status === "no_show") {
+          // Auto-trigger no-show win-back
+          setImmediate(async () => {
+            try {
+              const { sendNoShowWinback } = await import("./intelligence/no-show-winback");
+              const customerId = full?.customerId ?? (full as any)?.customer?.id;
+              if (customerId) {
+                await sendNoShowWinback(appointment.storeId!, customerId, appointment.id);
+                console.log(`[intelligence] No-show win-back triggered for customer ${customerId}`);
+              }
+            } catch (err: any) {
+              console.error("[intelligence] No-show win-back error:", err.message);
+            }
           });
         }
       }

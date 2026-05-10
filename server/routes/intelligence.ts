@@ -7,7 +7,7 @@ import {
   growthScoreSnapshots,
   intelligenceInterventions,
 } from "../../shared/schema/intelligence";
-import { eq, and, desc, gte, sql, inArray, lte } from "drizzle-orm";
+import { eq, and, desc, gte, sql, inArray, lte, isNotNull } from "drizzle-orm";
 import { runIntelligenceForStore } from "../intelligence/orchestrator";
 import { computeDeadSeats } from "../intelligence/dead-seats";
 import { computeNoShowRisks, getNoShowStats } from "../intelligence/no-show";
@@ -366,6 +366,711 @@ router.post("/fill-slot", async (req, res) => {
   }
 });
 
+// GET /api/intelligence/forecast
+router.get("/forecast", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const [clientStats] = await db
+      .select({
+        drifting: sql<number>`COALESCE(SUM(CASE WHEN is_drifting THEN 1 ELSE 0 END), 0)`,
+        avgLtv: sql<string>`COALESCE(AVG(CAST(ltv_12_month AS DECIMAL(10,2))), 0)`,
+      })
+      .from(clientIntelligence)
+      .where(eq(clientIntelligence.storeId, storeId));
+
+    const { computeRevenueForecast } = await import("../intelligence/revenue-forecast");
+    const forecast = await computeRevenueForecast(
+      storeId,
+      Number(clientStats?.drifting || 0),
+      parseFloat(clientStats?.avgLtv || "0")
+    );
+
+    res.json(forecast);
+  } catch (err: any) {
+    console.error("[intelligence] forecast error:", err);
+    res.status(500).json({ error: "Failed to compute revenue forecast" });
+  }
+});
+
+// GET /api/intelligence/client/:customerId
+// Returns intelligence data for a single client
+router.get("/client/:customerId", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  const customerId = parseInt(req.params.customerId);
+  if (!customerId || isNaN(customerId)) {
+    return res.status(400).json({ error: "Invalid customerId" });
+  }
+
+  try {
+    const [intel] = await db
+      .select({
+        avgVisitCadenceDays: clientIntelligence.avgVisitCadenceDays,
+        lastVisitDate: clientIntelligence.lastVisitDate,
+        nextExpectedVisitDate: clientIntelligence.nextExpectedVisitDate,
+        daysSinceLastVisit: clientIntelligence.daysSinceLastVisit,
+        daysOverduePct: clientIntelligence.daysOverduePct,
+        totalVisits: clientIntelligence.totalVisits,
+        totalRevenue: clientIntelligence.totalRevenue,
+        avgTicketValue: clientIntelligence.avgTicketValue,
+        ltv12Month: clientIntelligence.ltv12Month,
+        ltvAllTime: clientIntelligence.ltvAllTime,
+        ltvScore: clientIntelligence.ltvScore,
+        churnRiskScore: clientIntelligence.churnRiskScore,
+        churnRiskLabel: clientIntelligence.churnRiskLabel,
+        noShowRate: clientIntelligence.noShowRate,
+        rebookingRate: clientIntelligence.rebookingRate,
+        isDrifting: clientIntelligence.isDrifting,
+        isAtRisk: clientIntelligence.isAtRisk,
+        lastWinbackSentAt: clientIntelligence.lastWinbackSentAt,
+        winbackSentCount: clientIntelligence.winbackSentCount,
+        computedAt: clientIntelligence.computedAt,
+      })
+      .from(clientIntelligence)
+      .where(
+        and(
+          eq(clientIntelligence.storeId, storeId),
+          eq(clientIntelligence.customerId, customerId)
+        )
+      )
+      .limit(1);
+
+    // Get recent interventions for this client
+    const recentInterventions = await db
+      .select({
+        id: intelligenceInterventions.id,
+        type: intelligenceInterventions.interventionType,
+        channel: intelligenceInterventions.channel,
+        status: intelligenceInterventions.status,
+        triggeredBy: intelligenceInterventions.triggeredBy,
+        sentAt: intelligenceInterventions.sentAt,
+      })
+      .from(intelligenceInterventions)
+      .where(
+        and(
+          eq(intelligenceInterventions.storeId, storeId),
+          eq(intelligenceInterventions.customerId, customerId)
+        )
+      )
+      .orderBy(desc(intelligenceInterventions.sentAt))
+      .limit(5);
+
+    res.json({ intel: intel || null, interventions: recentInterventions });
+  } catch (err: any) {
+    console.error("[intelligence] client error:", err);
+    res.status(500).json({ error: "Failed to fetch client intelligence" });
+  }
+});
+
+// GET /api/intelligence/staff-performance
+// Returns enriched staff performance combining rebooking rates + appointment stats
+router.get("/staff-performance", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    const rows = await db.execute(
+      sql`SELECT
+            s.id AS staff_id,
+            s.name AS staff_name,
+            s.role AS staff_role,
+            COUNT(a.id) FILTER (WHERE a.status IN ('completed','started')) AS completed_count,
+            COUNT(a.id) FILTER (WHERE a.status = 'no_show') AS no_show_count,
+            COUNT(a.id) FILTER (WHERE a.status = 'cancelled') AS cancelled_count,
+            COUNT(DISTINCT a.customer_id) FILTER (WHERE a.status IN ('completed','started')) AS unique_clients,
+            COALESCE(SUM(CAST(a.total_paid AS DECIMAL(10,2))) FILTER (WHERE a.status = 'completed'), 0)::float AS total_revenue,
+            COALESCE(AVG(CAST(a.total_paid AS DECIMAL(10,2))) FILTER (WHERE a.status = 'completed'), 0)::float AS avg_ticket
+          FROM staff s
+          LEFT JOIN appointments a ON a.staff_id = s.id
+            AND a.store_id = ${storeId}
+            AND a.date >= ${ninetyDaysAgo.toISOString()}
+          WHERE s.store_id = ${storeId}
+            AND s.active = true
+          GROUP BY s.id, s.name, s.role
+          ORDER BY total_revenue DESC`
+    );
+
+    const staffList = (rows.rows as any[]).map((r) => ({
+      staffId: r.staff_id,
+      staffName: r.staff_name,
+      staffRole: r.staff_role,
+      completedCount: parseInt(r.completed_count || "0"),
+      noShowCount: parseInt(r.no_show_count || "0"),
+      cancelledCount: parseInt(r.cancelled_count || "0"),
+      uniqueClients: parseInt(r.unique_clients || "0"),
+      totalRevenue: parseFloat(r.total_revenue || "0"),
+      avgTicket: parseFloat(r.avg_ticket || "0"),
+    }));
+
+    // Merge rebooking rates from staffIntelligence table
+    const rebookingRows = await db
+      .select({
+        staffId: staffIntelligence.staffId,
+        rebookingRatePct: staffIntelligence.rebookingRatePct,
+        trend: staffIntelligence.trend,
+      })
+      .from(staffIntelligence)
+      .where(eq(staffIntelligence.storeId, storeId));
+
+    const rebookingMap = new Map(rebookingRows.map((r) => [r.staffId, r]));
+
+    const enriched = staffList.map((s) => {
+      const rb = rebookingMap.get(s.staffId);
+      const noShowRate = s.completedCount > 0 ? Math.round((s.noShowCount / (s.completedCount + s.noShowCount)) * 100) : 0;
+      return {
+        ...s,
+        rebookingRatePct: rb?.rebookingRatePct ?? 0,
+        trend: rb?.trend ?? "flat",
+        noShowRate,
+        revenueRank: 0,
+      };
+    });
+
+    // Assign revenue rank
+    enriched.forEach((s, i) => { s.revenueRank = i + 1; });
+
+    res.json(enriched);
+  } catch (err: any) {
+    console.error("[intelligence] staff-performance error:", err);
+    res.status(500).json({ error: "Failed to fetch staff performance" });
+  }
+});
+
+// GET /api/intelligence/service-suggestion/:customerId
+// Returns the most-booked service for a returning client
+router.get("/service-suggestion/:customerId", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  const customerId = parseInt(req.params.customerId);
+  if (!customerId) return res.status(400).json({ error: "Invalid customerId" });
+
+  try {
+    const rows = await db.execute(
+      sql`SELECT
+            a.service_id,
+            s.name AS service_name,
+            s.price AS service_price,
+            s.duration AS service_duration,
+            COUNT(*) AS visit_count,
+            MAX(a.date) AS last_booked_at
+          FROM appointments a
+          JOIN services s ON s.id = a.service_id
+          WHERE a.store_id = ${storeId}
+            AND a.customer_id = ${customerId}
+            AND a.status IN ('completed', 'started', 'confirmed')
+          GROUP BY a.service_id, s.name, s.price, s.duration
+          ORDER BY visit_count DESC
+          LIMIT 3`
+    );
+
+    const suggestions = (rows.rows as any[]).map((r) => ({
+      serviceId: r.service_id,
+      serviceName: r.service_name,
+      servicePrice: parseFloat(r.service_price || "0"),
+      serviceDuration: parseInt(r.service_duration || "0"),
+      visitCount: parseInt(r.visit_count || "0"),
+      lastBookedAt: r.last_booked_at,
+    }));
+
+    res.json(suggestions);
+  } catch (err: any) {
+    console.error("[intelligence] service-suggestion error:", err);
+    res.status(500).json({ error: "Failed to fetch service suggestion" });
+  }
+});
+
+// GET /api/intelligence/daily-digest
+// Returns today's most important actions in priority order
+router.get("/daily-digest", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const actions: Array<{ type: string; priority: number; label: string; detail: string; count?: number }> = [];
+
+    // 1. No-show risk appointments today
+    const [noShowRiskToday] = await db.execute(
+      sql`SELECT COUNT(*)::int AS cnt
+          FROM appointments a
+          JOIN client_intelligence ci ON ci.customer_id = a.customer_id AND ci.store_id = a.store_id
+          WHERE a.store_id = ${storeId}
+            AND a.date >= ${todayStart.toISOString()}
+            AND a.date <= ${todayEnd.toISOString()}
+            AND a.status IN ('pending', 'confirmed')
+            AND ci.no_show_risk = 'high'`
+    );
+    const noShowRisk = parseInt((noShowRiskToday as any)?.cnt || "0");
+    if (noShowRisk > 0) {
+      actions.push({
+        type: "no_show_risk",
+        priority: 1,
+        label: `${noShowRisk} high-risk appointment${noShowRisk > 1 ? "s" : ""} today`,
+        detail: "Clients with a history of no-shows — consider sending a confirmation",
+        count: noShowRisk,
+      });
+    }
+
+    // 2. Critical churn-risk clients not contacted in 7 days
+    const [criticalChurnRow] = await db.execute(
+      sql`SELECT COUNT(*)::int AS cnt
+          FROM client_intelligence ci
+          WHERE ci.store_id = ${storeId}
+            AND ci.churn_risk_label = 'critical'
+            AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
+    );
+    const criticalChurn = parseInt((criticalChurnRow as any)?.cnt || "0");
+    if (criticalChurn > 0) {
+      actions.push({
+        type: "critical_churn",
+        priority: 2,
+        label: `${criticalChurn} critical-risk client${criticalChurn > 1 ? "s" : ""} need outreach`,
+        detail: "High-LTV clients who haven't visited in a long time — act now before they're gone",
+        count: criticalChurn,
+      });
+    }
+
+    // 3. Revenue leakage from cancellations with open seats
+    const [cancellationRow] = await db.execute(
+      sql`SELECT COUNT(*)::int AS cnt
+          FROM appointments a
+          WHERE a.store_id = ${storeId}
+            AND a.date >= ${todayStart.toISOString()}
+            AND a.date <= ${todayEnd.toISOString()}
+            AND a.status = 'cancelled'`
+    );
+    const cancelledToday = parseInt((cancellationRow as any)?.cnt || "0");
+    if (cancelledToday > 0) {
+      actions.push({
+        type: "cancellation_recovery",
+        priority: 3,
+        label: `${cancelledToday} cancellation${cancelledToday > 1 ? "s" : ""} — open slots today`,
+        detail: "Fill these slots by messaging waitlisted or lapsed clients",
+        count: cancelledToday,
+      });
+    }
+
+    // 4. Drifting high-LTV clients
+    const [driftingHighLtv] = await db.execute(
+      sql`SELECT COUNT(*)::int AS cnt
+          FROM client_intelligence ci
+          WHERE ci.store_id = ${storeId}
+            AND ci.is_drifting = true
+            AND ci.ltv_12_month::numeric >= 200
+            AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
+    );
+    const driftingHighLtvCount = parseInt((driftingHighLtv as any)?.cnt || "0");
+    if (driftingHighLtvCount > 0) {
+      actions.push({
+        type: "high_ltv_drifting",
+        priority: 4,
+        label: `${driftingHighLtvCount} high-value client${driftingHighLtvCount > 1 ? "s" : ""} drifting`,
+        detail: "Top spenders whose visit frequency is slipping — ideal for rebooking campaign",
+        count: driftingHighLtvCount,
+      });
+    }
+
+    // 5. Rebooking nudge opportunities (next expected visit in 1-3 days)
+    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const [nudgeRow] = await db.execute(
+      sql`SELECT COUNT(*)::int AS cnt
+          FROM client_intelligence ci
+          WHERE ci.store_id = ${storeId}
+            AND ci.next_expected_visit_date IS NOT NULL
+            AND ci.next_expected_visit_date >= ${now.toISOString()}
+            AND ci.next_expected_visit_date <= ${in3Days.toISOString()}
+            AND NOT EXISTS (
+              SELECT 1 FROM appointments a
+              WHERE a.store_id = ${storeId}
+                AND a.customer_id = ci.customer_id
+                AND a.status IN ('pending','confirmed')
+                AND a.date >= ${now.toISOString()}
+            )`
+    );
+    const nudgeCount = parseInt((nudgeRow as any)?.cnt || "0");
+    if (nudgeCount > 0) {
+      actions.push({
+        type: "rebooking_nudge",
+        priority: 5,
+        label: `${nudgeCount} client${nudgeCount > 1 ? "s" : ""} due for a visit soon`,
+        detail: "Their next expected visit is in 1-3 days but nothing is booked",
+        count: nudgeCount,
+      });
+    }
+
+    // Revenue today (completed + started)
+    const [todayRevenueRow] = await db.execute(
+      sql`SELECT COALESCE(SUM(CAST(total_paid AS DECIMAL(10,2))), 0)::float AS rev
+          FROM appointments
+          WHERE store_id = ${storeId}
+            AND date >= ${todayStart.toISOString()}
+            AND date <= ${todayEnd.toISOString()}
+            AND status IN ('completed', 'started')`
+    );
+    const todayRevenue = parseFloat((todayRevenueRow as any)?.rev || "0");
+
+    // Sort by priority
+    actions.sort((a, b) => a.priority - b.priority);
+
+    res.json({
+      actions: actions.slice(0, 5),
+      todayRevenue,
+      totalActions: actions.length,
+    });
+  } catch (err: any) {
+    console.error("[intelligence] daily-digest error:", err);
+    res.status(500).json({ error: "Failed to fetch daily digest" });
+  }
+});
+
+// GET /api/intelligence/service-performance
+// Analyzes services by revenue, no-show rate, avg ticket
+router.get("/service-performance", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    const rows = await db.execute(
+      sql`SELECT
+        s.id AS service_id,
+        s.name AS service_name,
+        s.price AS service_price,
+        s.duration AS service_duration,
+        COUNT(a.id) AS total_bookings,
+        SUM(CASE WHEN a.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
+        SUM(CASE WHEN a.status = 'no_show' THEN 1 ELSE 0 END) AS no_show_count,
+        SUM(CASE WHEN a.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
+        COALESCE(SUM(CASE WHEN a.status = 'completed' THEN CAST(a.total_paid AS DECIMAL(10,2)) ELSE 0 END), 0) AS total_revenue,
+        COALESCE(AVG(CASE WHEN a.status = 'completed' THEN CAST(a.total_paid AS DECIMAL(10,2)) END), 0) AS avg_ticket
+      FROM services s
+      LEFT JOIN appointments a ON a.service_id = s.id
+        AND a.store_id = ${storeId}
+        AND a.date >= ${ninetyDaysAgo}
+      WHERE s.store_id = ${storeId} AND s.active = true
+      GROUP BY s.id, s.name, s.price, s.duration
+      ORDER BY total_revenue DESC
+      LIMIT 30`
+    );
+
+    const services = rows.rows.map((r: any) => {
+      const totalBookings = Number(r.total_bookings);
+      const noShowCount = Number(r.no_show_count);
+      const completedCount = Number(r.completed_count);
+      const noShowRate = totalBookings > 0 ? Math.round((noShowCount / totalBookings) * 100) : 0;
+      const completionRate = totalBookings > 0 ? Math.round((completedCount / totalBookings) * 100) : 0;
+      const duration = Number(r.service_duration) || 60;
+      const avgTicket = parseFloat(r.avg_ticket) || 0;
+      const revenuePerMin = duration > 0 ? (avgTicket / duration) : 0;
+
+      return {
+        serviceId: r.service_id,
+        serviceName: r.service_name,
+        servicePrice: parseFloat(r.service_price) || 0,
+        duration,
+        totalBookings,
+        completedCount,
+        noShowCount,
+        cancelledCount: Number(r.cancelled_count),
+        totalRevenue: parseFloat(r.total_revenue) || 0,
+        avgTicket,
+        noShowRate,
+        completionRate,
+        revenuePerMin: Math.round(revenuePerMin * 100) / 100,
+      };
+    });
+
+    // Generate insights
+    const insights: string[] = [];
+    const highNoShow = services.filter(s => s.noShowRate > 20 && s.totalBookings >= 5);
+    if (highNoShow.length > 0) {
+      insights.push(`"${highNoShow[0].serviceName}" has a ${highNoShow[0].noShowRate}% no-show rate — consider requiring a deposit for this service.`);
+    }
+    const topRevMin = services.filter(s => s.revenuePerMin > 0).sort((a, b) => b.revenuePerMin - a.revenuePerMin)[0];
+    if (topRevMin) {
+      insights.push(`"${topRevMin.serviceName}" generates $${topRevMin.revenuePerMin.toFixed(2)}/min — your most efficient service.`);
+    }
+
+    res.json({ services, insights });
+  } catch (err: any) {
+    console.error("[intelligence] service-performance error:", err);
+    res.status(500).json({ error: "Failed to fetch service performance" });
+  }
+});
+
+// GET /api/intelligence/upcoming-birthdays
+// Returns clients with birthdays in the next 14 days
+router.get("/upcoming-birthdays", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const rows = await db
+      .select({ id: customers.id, name: customers.name, phone: customers.phone, birthday: customers.birthday })
+      .from(customers)
+      .where(and(eq(customers.storeId, storeId), isNotNull(customers.birthday)));
+
+    const now = new Date();
+    const upcoming = rows
+      .map(c => {
+        if (!c.birthday) return null;
+        const bday = new Date(c.birthday);
+        const thisYear = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
+        if (thisYear < now) thisYear.setFullYear(now.getFullYear() + 1);
+        const daysUntil = Math.round((thisYear.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        if (daysUntil > 14) return null;
+        return { id: c.id, name: c.name, phone: c.phone, birthday: c.birthday, daysUntil };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.daysUntil - b.daysUntil)
+      .slice(0, 10);
+
+    res.json({ birthdays: upcoming });
+  } catch (err: any) {
+    console.error("[intelligence] upcoming-birthdays error:", err);
+    res.status(500).json({ error: "Failed to fetch birthdays" });
+  }
+});
+
+// GET /api/intelligence/campaigns/segments
+// Returns segment counts for campaign targeting
+router.get("/campaigns/segments", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const [atRisk] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(clientIntelligence)
+      .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+      .where(
+        and(
+          eq(clientIntelligence.storeId, storeId),
+          sql`churn_risk_label IN ('high','critical')`,
+          isNotNull(customers.phone),
+          sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+        )
+      );
+
+    const [drifting] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(clientIntelligence)
+      .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+      .where(
+        and(
+          eq(clientIntelligence.storeId, storeId),
+          eq(clientIntelligence.isDrifting, true),
+          isNotNull(customers.phone),
+          sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+        )
+      );
+
+    const [highLtv] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(clientIntelligence)
+      .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+      .where(
+        and(
+          eq(clientIntelligence.storeId, storeId),
+          sql`CAST(ltv_12_month AS DECIMAL) > 200`,
+          isNotNull(customers.phone),
+          sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+        )
+      );
+
+    // Upcoming birthdays this month
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const [birthdays] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.storeId, storeId),
+          isNotNull(customers.phone),
+          isNotNull(customers.birthday),
+          sql`EXTRACT(MONTH FROM CAST(birthday AS DATE)) = ${month}`
+        )
+      );
+
+    res.json({
+      segments: [
+        { id: "at_risk", label: "At-Risk Clients", description: "High or critical churn risk", count: Number(atRisk?.count || 0), color: "red" },
+        { id: "drifting", label: "Drifting Clients", description: "Visit frequency declining", count: Number(drifting?.count || 0), color: "amber" },
+        { id: "high_ltv", label: "High-Value Clients", description: "LTV > $200 in last 12 months", count: Number(highLtv?.count || 0), color: "violet" },
+        { id: "birthday_month", label: "Birthday This Month", description: `Birthdays in ${now.toLocaleString("default", { month: "long" })}`, count: Number(birthdays?.count || 0), color: "pink" },
+      ],
+    });
+  } catch (err: any) {
+    console.error("[intelligence] campaigns/segments error:", err);
+    res.status(500).json({ error: "Failed to fetch segments" });
+  }
+});
+
+// GET /api/intelligence/campaigns/export
+// Export a client segment as CSV
+router.get("/campaigns/export", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+  const segment = req.query.segment as string;
+  if (!segment) return res.status(400).json({ error: "segment required" });
+
+  try {
+    let rows: { name: string; phone: string | null; email: string | null }[] = [];
+
+    if (segment === "at_risk" || segment === "drifting" || segment === "high_ltv") {
+      const condition = segment === "at_risk"
+        ? sql`churn_risk_label IN ('high','critical')`
+        : segment === "drifting"
+        ? eq(clientIntelligence.isDrifting, true)
+        : sql`CAST(ltv_12_month AS DECIMAL) > 200`;
+
+      const data = await db
+        .select({ name: customers.name, phone: customers.phone, email: customers.email })
+        .from(clientIntelligence)
+        .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+        .where(and(eq(clientIntelligence.storeId, storeId), condition));
+      rows = data.map(r => ({ name: r.name!, phone: r.phone, email: r.email }));
+    } else if (segment === "birthday_month") {
+      const month = new Date().getMonth() + 1;
+      rows = await db
+        .select({ name: customers.name, phone: customers.phone, email: customers.email })
+        .from(customers)
+        .where(and(
+          eq(customers.storeId, storeId),
+          isNotNull(customers.birthday),
+          sql`EXTRACT(MONTH FROM CAST(birthday AS DATE)) = ${month}`
+        ));
+    }
+
+    const csv = ["Name,Phone,Email", ...rows.map(r =>
+      `"${(r.name || "").replace(/"/g, '""')}","${r.phone || ""}","${r.email || ""}"`
+    )].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="segment-${segment}.csv"`);
+    res.send(csv);
+  } catch (err: any) {
+    console.error("[intelligence] campaigns/export error:", err);
+    res.status(500).json({ error: "Export failed" });
+  }
+});
+
+// POST /api/intelligence/campaigns/send
+// Sends a bulk SMS campaign to a segment
+router.post("/campaigns/send", async (req, res) => {
+  const { storeId, segment, message, dryRun } = req.body;
+  if (!storeId || !segment || !message) {
+    return res.status(400).json({ error: "storeId, segment, and message required" });
+  }
+
+  try {
+    let customerRows: { id: number; phone: string | null; name: string }[] = [];
+
+    if (segment === "at_risk") {
+      const rows = await db
+        .select({ id: customers.id, phone: customers.phone, name: customers.name })
+        .from(clientIntelligence)
+        .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+        .where(
+          and(
+            eq(clientIntelligence.storeId, storeId),
+            sql`churn_risk_label IN ('high','critical')`,
+            isNotNull(customers.phone),
+            sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+          )
+        );
+      customerRows = rows.map(r => ({ id: r.id!, phone: r.phone, name: r.name! }));
+    } else if (segment === "drifting") {
+      const rows = await db
+        .select({ id: customers.id, phone: customers.phone, name: customers.name })
+        .from(clientIntelligence)
+        .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+        .where(
+          and(
+            eq(clientIntelligence.storeId, storeId),
+            eq(clientIntelligence.isDrifting, true),
+            isNotNull(customers.phone),
+            sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+          )
+        );
+      customerRows = rows.map(r => ({ id: r.id!, phone: r.phone, name: r.name! }));
+    } else if (segment === "high_ltv") {
+      const rows = await db
+        .select({ id: customers.id, phone: customers.phone, name: customers.name })
+        .from(clientIntelligence)
+        .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
+        .where(
+          and(
+            eq(clientIntelligence.storeId, storeId),
+            sql`CAST(ltv_12_month AS DECIMAL) > 200`,
+            isNotNull(customers.phone),
+            sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+          )
+        );
+      customerRows = rows.map(r => ({ id: r.id!, phone: r.phone, name: r.name! }));
+    } else if (segment === "birthday_month") {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      customerRows = await db
+        .select({ id: customers.id, phone: customers.phone, name: customers.name })
+        .from(customers)
+        .where(
+          and(
+            eq(customers.storeId, storeId),
+            isNotNull(customers.phone),
+            isNotNull(customers.birthday),
+            sql`EXTRACT(MONTH FROM CAST(birthday AS DATE)) = ${month}`,
+            sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
+          )
+        );
+    } else {
+      return res.status(400).json({ error: "Unknown segment" });
+    }
+
+    const eligible = customerRows.filter(c => c.phone);
+
+    if (dryRun) {
+      return res.json({ dryRun: true, wouldSend: eligible.length, segment });
+    }
+
+    let sent = 0;
+    let failed = 0;
+    for (const c of eligible) {
+      if (!c.phone) continue;
+      // Personalise with first name
+      const firstName = c.name.split(" ")[0];
+      const personalised = message.replace(/\{name\}/gi, firstName);
+      try {
+        await sendSms(storeId, c.phone, personalised, "campaign", undefined, c.id);
+        sent++;
+      } catch {
+        failed++;
+      }
+      // Small delay to avoid rate limits
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    res.json({ sent, failed, total: eligible.length, segment });
+  } catch (err: any) {
+    console.error("[intelligence] campaigns/send error:", err);
+    res.status(500).json({ error: "Failed to send campaign" });
+  }
+});
+
 // POST /api/intelligence/refresh
 // Triggers a manual re-computation of intelligence for a store
 router.post("/refresh", async (req, res) => {
@@ -379,6 +1084,161 @@ router.post("/refresh", async (req, res) => {
   } catch (err: any) {
     console.error("[intelligence] refresh error:", err);
     res.status(500).json({ error: "Failed to start refresh" });
+  }
+});
+
+// GET /api/intelligence/price-optimization
+// Suggests price adjustments based on demand and margin
+router.get("/price-optimization", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const rows = await db.execute(
+      sql`SELECT
+        s.id AS service_id,
+        s.name AS service_name,
+        CAST(s.price AS DECIMAL(10,2)) AS service_price,
+        s.duration AS service_duration,
+        COUNT(a.id) AS total_bookings,
+        SUM(CASE WHEN a.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
+        SUM(CASE WHEN a.status = 'no_show' THEN 1 ELSE 0 END) AS no_show_count,
+        COALESCE(AVG(CASE WHEN a.status = 'completed' THEN CAST(a.total_paid AS DECIMAL(10,2)) END), 0) AS avg_ticket
+      FROM services s
+      LEFT JOIN appointments a ON a.service_id = s.id
+        AND a.store_id = ${storeId}
+        AND a.date >= ${ninetyDaysAgo}
+      WHERE s.store_id = ${storeId} AND s.active = true
+      GROUP BY s.id, s.name, s.price, s.duration
+      HAVING COUNT(a.id) >= 3
+      ORDER BY total_bookings DESC`
+    );
+
+    const suggestions: any[] = [];
+    for (const r of rows.rows) {
+      const totalBookings = Number(r.total_bookings);
+      const completedCount = Number(r.completed_count);
+      const noShowCount = Number(r.no_show_count);
+      const listPrice = parseFloat(r.service_price) || 0;
+      const avgTicket = parseFloat(r.avg_ticket) || 0;
+      const noShowRate = totalBookings > 0 ? noShowCount / totalBookings : 0;
+      const completionRate = totalBookings > 0 ? completedCount / totalBookings : 1;
+
+      let recommendation: string | null = null;
+      let recommendedPrice: number | null = null;
+      let reasoning: string | null = null;
+      let priority: "high" | "medium" | "low" = "low";
+
+      // High demand (10+ bookings, >80% completion) — room to raise price
+      if (totalBookings >= 10 && completionRate >= 0.8 && listPrice > 0) {
+        const suggestedIncrease = Math.round(listPrice * 0.1 / 5) * 5; // Round to nearest $5
+        recommendedPrice = listPrice + suggestedIncrease;
+        recommendation = "Consider a price increase";
+        reasoning = `Strong demand with ${completionRate * 100}% completion rate — clients are price-insensitive.`;
+        priority = "medium";
+      }
+
+      // High no-show rate (>25%) — suggest deposit requirement
+      if (noShowRate >= 0.25 && totalBookings >= 5) {
+        recommendation = "Require deposit";
+        recommendedPrice = Math.round(listPrice * 0.25 / 5) * 5; // 25% deposit
+        reasoning = `${Math.round(noShowRate * 100)}% no-show rate costs you ~$${(noShowCount * avgTicket).toFixed(0)} over 90 days.`;
+        priority = "high";
+      }
+
+      // Low demand (< 5 bookings) — consider a promotional price
+      if (totalBookings < 5 && listPrice > 0 && completedCount > 0) {
+        const suggestedDiscount = Math.round(listPrice * 0.15 / 5) * 5;
+        recommendedPrice = Math.max(listPrice - suggestedDiscount, 1);
+        recommendation = "Promotional pricing";
+        reasoning = `Only ${totalBookings} bookings in 90 days. A limited-time discount could drive awareness.`;
+        priority = "low";
+      }
+
+      if (recommendation) {
+        suggestions.push({
+          serviceId: r.service_id,
+          serviceName: r.service_name,
+          currentPrice: listPrice,
+          recommendedPrice,
+          recommendation,
+          reasoning,
+          priority,
+          totalBookings,
+          noShowRate: Math.round(noShowRate * 100),
+        });
+      }
+    }
+
+    // Sort by priority
+    const order = { high: 0, medium: 1, low: 2 };
+    suggestions.sort((a, b) => order[a.priority as keyof typeof order] - order[b.priority as keyof typeof order]);
+
+    res.json({ suggestions });
+  } catch (err: any) {
+    console.error("[intelligence] price-optimization error:", err);
+    res.status(500).json({ error: "Failed to compute price optimization" });
+  }
+});
+
+// GET /api/intelligence/booking-heatmap
+// Returns a day-of-week x hour-of-day heatmap of appointment volume
+router.get("/booking-heatmap", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const rows = await db.execute(
+      sql`SELECT
+        EXTRACT(DOW FROM date)::int AS dow,
+        EXTRACT(HOUR FROM date)::int AS hour,
+        COUNT(*) AS booking_count,
+        SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) AS no_show_count
+      FROM appointments
+      WHERE store_id = ${storeId}
+        AND date >= ${ninetyDaysAgo}
+        AND status NOT IN ('cancelled')
+      GROUP BY dow, hour
+      ORDER BY dow, hour`
+    );
+
+    // Build matrix: [dow 0-6][hour 0-23]
+    const matrix: { dow: number; hour: number; count: number; noShowCount: number }[] = [];
+    let maxCount = 0;
+
+    for (const r of rows.rows) {
+      const count = Number(r.booking_count);
+      if (count > maxCount) maxCount = count;
+      matrix.push({
+        dow: Number(r.dow),
+        hour: Number(r.hour),
+        count,
+        noShowCount: Number(r.no_show_count),
+      });
+    }
+
+    const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // Find peak and dead slots
+    const peakSlot = matrix.reduce((best, cur) => cur.count > best.count ? cur : best, { dow: 0, hour: 0, count: 0, noShowCount: 0 });
+    const deadSlots = matrix.filter(m => m.count === 0 || m.count < maxCount * 0.2);
+
+    res.json({
+      matrix,
+      maxCount,
+      dayLabels,
+      peakSlot: peakSlot.count > 0 ? {
+        day: dayLabels[peakSlot.dow],
+        hour: peakSlot.hour,
+        count: peakSlot.count,
+      } : null,
+      deadSlotCount: deadSlots.length,
+    });
+  } catch (err: any) {
+    console.error("[intelligence] booking-heatmap error:", err);
+    res.status(500).json({ error: "Failed to compute booking heatmap" });
   }
 });
 

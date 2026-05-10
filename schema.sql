@@ -1399,3 +1399,114 @@ CREATE TABLE IF NOT EXISTS subscription_plan_changes (
 );
 CREATE INDEX IF NOT EXISTS idx_sub_plan_changes_salon_id ON subscription_plan_changes(salon_id);
 CREATE INDEX IF NOT EXISTS idx_sub_plan_changes_stripe_sub_id ON subscription_plan_changes(stripe_subscription_id);
+
+-- ── Revenue Intelligence Engine ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS client_intelligence (
+  id SERIAL PRIMARY KEY,
+  store_id INTEGER REFERENCES locations(id) ON DELETE CASCADE NOT NULL,
+  customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
+  avg_visit_cadence_days DECIMAL(6,1),
+  last_visit_date TIMESTAMP,
+  next_expected_visit_date TIMESTAMP,
+  days_since_last_visit INTEGER,
+  days_overdue_pct DECIMAL(6,1),
+  total_visits INTEGER DEFAULT 0,
+  total_revenue DECIMAL(10,2) DEFAULT 0.00,
+  avg_ticket_value DECIMAL(10,2) DEFAULT 0.00,
+  ltv_12_month DECIMAL(10,2) DEFAULT 0.00,
+  ltv_all_time DECIMAL(10,2) DEFAULT 0.00,
+  ltv_score INTEGER DEFAULT 0,
+  churn_risk_score INTEGER DEFAULT 0,
+  churn_risk_label TEXT DEFAULT 'low',
+  no_show_count INTEGER DEFAULT 0,
+  no_show_rate DECIMAL(5,2) DEFAULT 0.00,
+  rebooking_rate DECIMAL(5,2) DEFAULT 0.00,
+  preferred_staff_id INTEGER REFERENCES staff(id) ON DELETE SET NULL,
+  preferred_day_of_week INTEGER,
+  preferred_time_of_day TEXT,
+  last_winback_sent_at TIMESTAMP,
+  winback_sent_count INTEGER DEFAULT 0,
+  is_drifting BOOLEAN DEFAULT false,
+  is_at_risk BOOLEAN DEFAULT false,
+  computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ci_store_customer_uidx UNIQUE (store_id, customer_id)
+);
+CREATE INDEX IF NOT EXISTS ci_store_id_idx ON client_intelligence(store_id);
+CREATE INDEX IF NOT EXISTS ci_customer_id_idx ON client_intelligence(customer_id);
+CREATE INDEX IF NOT EXISTS ci_churn_risk_idx ON client_intelligence(churn_risk_score);
+CREATE INDEX IF NOT EXISTS ci_is_drifting_idx ON client_intelligence(is_drifting);
+CREATE INDEX IF NOT EXISTS ci_is_at_risk_idx ON client_intelligence(is_at_risk);
+
+CREATE TABLE IF NOT EXISTS staff_intelligence (
+  id SERIAL PRIMARY KEY,
+  store_id INTEGER REFERENCES locations(id) ON DELETE CASCADE NOT NULL,
+  staff_id INTEGER REFERENCES staff(id) ON DELETE CASCADE NOT NULL,
+  total_appointments INTEGER DEFAULT 0,
+  completed_appointments INTEGER DEFAULT 0,
+  no_show_count INTEGER DEFAULT 0,
+  cancellation_count INTEGER DEFAULT 0,
+  rebooked_count INTEGER DEFAULT 0,
+  rebooking_rate_pct DECIMAL(5,2) DEFAULT 0.00,
+  avg_ticket_value DECIMAL(10,2) DEFAULT 0.00,
+  total_revenue DECIMAL(10,2) DEFAULT 0.00,
+  unique_clients_served INTEGER DEFAULT 0,
+  client_retention_rate DECIMAL(5,2) DEFAULT 0.00,
+  computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT si_store_staff_uidx UNIQUE (store_id, staff_id)
+);
+CREATE INDEX IF NOT EXISTS si_store_id_idx ON staff_intelligence(store_id);
+CREATE INDEX IF NOT EXISTS si_staff_id_idx ON staff_intelligence(staff_id);
+
+CREATE TABLE IF NOT EXISTS intelligence_interventions (
+  id SERIAL PRIMARY KEY,
+  store_id INTEGER REFERENCES locations(id) ON DELETE CASCADE NOT NULL,
+  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+  intervention_type TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'sms',
+  message_body TEXT,
+  status TEXT NOT NULL DEFAULT 'sent',
+  triggered_by TEXT NOT NULL DEFAULT 'auto',
+  metadata JSONB,
+  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  responded_at TIMESTAMP,
+  converted_at TIMESTAMP,
+  appointment_id INTEGER
+);
+CREATE INDEX IF NOT EXISTS ii_store_id_idx ON intelligence_interventions(store_id);
+CREATE INDEX IF NOT EXISTS ii_customer_id_idx ON intelligence_interventions(customer_id);
+CREATE INDEX IF NOT EXISTS ii_type_idx ON intelligence_interventions(intervention_type);
+CREATE INDEX IF NOT EXISTS ii_sent_at_idx ON intelligence_interventions(sent_at);
+
+CREATE TABLE IF NOT EXISTS growth_score_snapshots (
+  id SERIAL PRIMARY KEY,
+  store_id INTEGER REFERENCES locations(id) ON DELETE CASCADE NOT NULL,
+  overall_score INTEGER NOT NULL,
+  retention_score INTEGER NOT NULL,
+  rebooking_score INTEGER NOT NULL,
+  utilization_score INTEGER NOT NULL,
+  revenue_score INTEGER NOT NULL,
+  new_client_score INTEGER NOT NULL,
+  active_clients INTEGER DEFAULT 0,
+  drifting_clients INTEGER DEFAULT 0,
+  at_risk_clients INTEGER DEFAULT 0,
+  avg_rebooking_rate DECIMAL(5,2),
+  seat_utilization_pct DECIMAL(5,2),
+  monthly_revenue DECIMAL(10,2),
+  snapshot_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS gss_store_id_idx ON growth_score_snapshots(store_id);
+CREATE INDEX IF NOT EXISTS gss_snapshot_date_idx ON growth_score_snapshots(snapshot_date);
+
+CREATE TABLE IF NOT EXISTS dead_seat_patterns (
+  id SERIAL PRIMARY KEY,
+  store_id INTEGER REFERENCES locations(id) ON DELETE CASCADE NOT NULL,
+  day_of_week INTEGER NOT NULL,
+  hour_start INTEGER NOT NULL,
+  avg_utilization_pct DECIMAL(5,2) DEFAULT 0.00,
+  total_slots_analyzed INTEGER DEFAULT 0,
+  booked_slots INTEGER DEFAULT 0,
+  estimated_lost_revenue DECIMAL(10,2) DEFAULT 0.00,
+  computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT dsp_store_slot_uidx UNIQUE (store_id, day_of_week, hour_start)
+);
+CREATE INDEX IF NOT EXISTS dsp_store_id_idx ON dead_seat_patterns(store_id);

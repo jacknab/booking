@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAppointments } from "@/hooks/use-appointments";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +22,357 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2 } from "lucide-react";
+
+function GradeColorClass(grade: string) {
+  if (grade === "A") return "text-emerald-400";
+  if (grade === "B") return "text-blue-400";
+  if (grade === "C") return "text-amber-400";
+  if (grade === "D") return "text-orange-400";
+  return "text-red-400";
+}
+
+function GrowthScoreWidget({ storeId }: { storeId: number }) {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/intelligence/growth-score", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/growth-score?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: dashData } = useQuery<any>({
+    queryKey: ["/api/intelligence/dashboard", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/dashboard?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const score = data?.live;
+  const summary = dashData?.summary;
+
+  const size = 88;
+  const r = 34;
+  const circ = 2 * Math.PI * r;
+  const dash = score ? (score.overallScore / 100) * circ : 0;
+
+  const strokeColor =
+    !score ? "#6366f1" :
+    score.overallScore >= 85 ? "#10b981" :
+    score.overallScore >= 70 ? "#3b82f6" :
+    score.overallScore >= 55 ? "#f59e0b" :
+    score.overallScore >= 40 ? "#f97316" :
+    "#ef4444";
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl p-6 bg-card border border-border shadow-sm flex items-center justify-center h-36">
+        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <Link to="/intelligence" className="block group">
+      <div className="rounded-2xl p-5 bg-[#18103a] text-white shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-[1.01]">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-violet-300" />
+            <p className="text-sm text-white/70 font-medium">Business Health</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-white/30 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all" />
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Score ring */}
+          <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+            <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={7} />
+              <circle
+                cx={size / 2} cy={size / 2} r={r}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={7}
+                strokeDasharray={`${dash} ${circ - dash}`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {score ? (
+                <>
+                  <span className={`text-2xl font-bold leading-none ${GradeColorClass(score.grade)}`}>{score.grade}</span>
+                  <span className="text-[10px] text-white/50 mt-0.5">{score.overallScore}/100</span>
+                </>
+              ) : (
+                <span className="text-white/40 text-xs text-center px-1">No data</span>
+              )}
+            </div>
+          </div>
+
+          {/* Breakdown */}
+          <div className="flex-1 min-w-0">
+            {score ? (
+              <div className="space-y-1.5">
+                {Object.entries(score.components).map(([key, comp]: [string, any]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <div className="w-16 flex-shrink-0">
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${comp.score}%`,
+                            backgroundColor: comp.score >= 75 ? "#10b981" : comp.score >= 50 ? "#f59e0b" : "#ef4444"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-white/50 capitalize truncate">{key}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {["retention","rebooking","utilization","revenue","new clients"].map((k) => (
+                  <div key={k} className="flex items-center gap-2">
+                    <div className="w-16 h-1.5 bg-white/10 rounded-full" />
+                    <span className="text-[11px] text-white/30 capitalize">{k}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Alert strip */}
+        {summary && (summary.driftingClients > 0 || summary.atRiskClients > 0) && (
+          <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+            <p className="text-xs text-white/60">
+              {summary.driftingClients > 0 && (
+                <span className="text-amber-400 font-medium">{summary.driftingClients} drifting</span>
+              )}
+              {summary.driftingClients > 0 && summary.atRiskClients > 0 && " · "}
+              {summary.atRiskClients > 0 && (
+                <span className="text-orange-400 font-medium">{summary.atRiskClients} at risk</span>
+              )}
+              <span> — tap to act</span>
+            </p>
+          </div>
+        )}
+
+        {(!summary || (summary.driftingClients === 0 && summary.atRiskClients === 0)) && score && (
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <p className="text-xs text-white/40">
+              {score.insights?.[0] || "All client metrics look healthy"}
+            </p>
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+const digestIcons: Record<string, React.ReactNode> = {
+  no_show_risk: <UserX className="h-4 w-4 text-red-500" />,
+  critical_churn: <AlertCircle className="h-4 w-4 text-orange-500" />,
+  cancellation_recovery: <CalendarX className="h-4 w-4 text-amber-500" />,
+  high_ltv_drifting: <Users className="h-4 w-4 text-violet-500" />,
+  rebooking_nudge: <Clock className="h-4 w-4 text-blue-500" />,
+};
+
+const digestColors: Record<string, string> = {
+  no_show_risk: "border-l-red-400",
+  critical_churn: "border-l-orange-400",
+  cancellation_recovery: "border-l-amber-400",
+  high_ltv_drifting: "border-l-violet-400",
+  rebooking_nudge: "border-l-blue-400",
+};
+
+function RevenueGoalTracker({ currentRevenue, storageKey }: { currentRevenue: number; storageKey: string }) {
+  const [goal, setGoal] = useState<number>(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved ? parseInt(saved) : 0;
+  });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const progress = goal > 0 ? Math.min(100, Math.round((currentRevenue / goal) * 100)) : 0;
+  const remaining = goal > 0 ? Math.max(0, goal - currentRevenue) : 0;
+  const isHit = goal > 0 && currentRevenue >= goal;
+
+  const handleSave = () => {
+    const val = parseInt(draft.replace(/[^0-9]/g, ""));
+    if (!isNaN(val) && val > 0) {
+      setGoal(val);
+      localStorage.setItem(storageKey, String(val));
+    }
+    setEditing(false);
+  };
+
+  if (goal === 0 && !editing) {
+    return (
+      <button
+        onClick={() => { setDraft(""); setEditing(true); }}
+        className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors"
+      >
+        <Target className="h-3.5 w-3.5" />
+        Set a monthly goal
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <Target className={`h-3.5 w-3.5 flex-shrink-0 ${isHit ? "text-emerald-400" : "text-amber-400"}`} />
+          {editing ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                type="number"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+                placeholder="e.g. 5000"
+                className="w-24 text-xs border border-white/20 rounded px-2 py-0.5 bg-white/10 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
+              />
+              <button onClick={handleSave} className="text-emerald-400 hover:text-emerald-300 text-xs font-medium">Save</button>
+              <button onClick={() => setEditing(false)} className="text-white/40 hover:text-white/70 text-xs">×</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs text-white/50 truncate">
+                Goal: <span className="text-white/80 font-semibold">${goal.toLocaleString()}</span>
+              </span>
+              <button onClick={() => { setDraft(String(goal)); setEditing(true); }} className="text-white/30 hover:text-white/60 flex-shrink-0">
+                <Edit2 className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </div>
+        {!editing && (
+          <span className={`text-xs font-bold flex-shrink-0 ${isHit ? "text-emerald-400" : "text-amber-400"}`}>
+            {isHit ? "🎯" : `${progress}%`}
+          </span>
+        )}
+      </div>
+      {!editing && goal > 0 && (
+        <>
+          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-700 ${isHit ? "bg-emerald-400" : "bg-amber-400"}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          {!isHit && remaining > 0 && (
+            <p className="text-[10px] text-white/40 mt-1">
+              ${remaining.toLocaleString()} to go
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function UpcomingBirthdaysWidget({ storeId }: { storeId: number }) {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/intelligence/upcoming-birthdays", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/upcoming-birthdays?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 60 * 60 * 1000,
+  });
+
+  if (isLoading || !data?.birthdays?.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-pink-200 bg-pink-50/60 shadow-sm p-5 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base">🎂</span>
+        <span className="text-sm font-bold text-pink-800">Upcoming Birthdays</span>
+        <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-200 text-pink-700 text-[10px] font-bold">
+          {data.birthdays.length}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {data.birthdays.slice(0, 4).map((b: any) => (
+          <div key={b.id} className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 text-xs font-bold flex-shrink-0">
+                {b.name[0].toUpperCase()}
+              </div>
+              <span className="text-sm font-medium text-pink-900 truncate">{b.name}</span>
+            </div>
+            <span className={`text-xs font-semibold flex-shrink-0 ${b.daysUntil === 0 ? "text-pink-600" : b.daysUntil <= 3 ? "text-pink-500" : "text-pink-400"}`}>
+              {b.daysUntil === 0 ? "Today! 🎉" : b.daysUntil === 1 ? "Tomorrow" : `In ${b.daysUntil}d`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SmartDigestWidget({ storeId }: { storeId: number }) {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/intelligence/daily-digest", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/daily-digest?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) return null;
+  if (!data || data.actions?.length === 0) return null;
+
+  return (
+    <Link to="/intelligence" className="block group">
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-bold text-foreground">Today's Smart Actions</span>
+            <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
+              {data.actions.length}
+            </span>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+        </div>
+        <div className="space-y-2">
+          {data.actions.map((action: any, i: number) => (
+            <div
+              key={i}
+              className={`flex items-start gap-3 pl-3 border-l-2 ${digestColors[action.type] || "border-l-muted"}`}
+            >
+              <div className="flex-shrink-0 mt-0.5">{digestIcons[action.type]}</div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground leading-tight">{action.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{action.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -153,48 +505,71 @@ export default function Dashboard() {
         <NotificationBell />
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Revenue this month — dark card */}
-        <div className="rounded-2xl p-6 bg-[#18103a] text-white shadow-lg">
-          <p className="text-sm text-white/60 mb-4 font-medium">Revenue this month</p>
-          <p className="text-3xl font-bold font-display mb-2">
+      {/* Stat Cards — 4-column on md+, 2×2 on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Revenue this month */}
+        <div className="rounded-2xl p-5 bg-[#18103a] text-white shadow-lg col-span-2 md:col-span-1">
+          <p className="text-xs text-white/60 mb-3 font-medium">Revenue this month</p>
+          <p className="text-2xl font-bold font-display mb-1.5">
             ${thisMonthRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </p>
           {lastMonthRevenue > 0 ? (
-            <p className={`text-sm font-medium ${monthRevenueChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {monthRevenueChange >= 0 ? "↑" : "↓"} {Math.abs(monthRevenueChange)}% vs last month
+            <p className={`text-xs font-medium flex items-center gap-1 ${monthRevenueChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              {monthRevenueChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {Math.abs(monthRevenueChange)}% vs last month
             </p>
           ) : (
-            <p className="text-sm text-white/40">First month of data</p>
+            <p className="text-xs text-white/40">First month</p>
           )}
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <RevenueGoalTracker
+              currentRevenue={thisMonthRevenue}
+              storageKey={`revenue-goal-${selectedStore?.id || "default"}`}
+            />
+          </div>
         </div>
 
         {/* Bookings today */}
-        <div className="rounded-2xl p-6 bg-card border border-border shadow-sm">
-          <p className="text-sm text-muted-foreground mb-4 font-medium">Bookings today</p>
-          <p className="text-3xl font-bold font-display mb-2 text-foreground">{todayCount}</p>
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
+          <p className="text-xs text-muted-foreground mb-3 font-medium">Bookings today</p>
+          <p className="text-2xl font-bold font-display mb-1.5 text-foreground">{todayCount}</p>
           {yesterdayCount > 0 ? (
-            <p className={`text-sm font-medium ${bookingDiff >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}`}>
-              {bookingDiff >= 0 ? "↑" : "↓"} {Math.abs(bookingDiff)} {bookingDiff === 1 ? "more" : bookingDiff === -1 ? "less" : "more"} than yesterday
+            <p className={`text-xs font-medium ${bookingDiff >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}`}>
+              {bookingDiff >= 0 ? "↑" : "↓"} {Math.abs(bookingDiff)} vs yesterday
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">No data from yesterday</p>
+            <p className="text-xs text-muted-foreground">No data yesterday</p>
           )}
         </div>
 
         {/* Fill rate */}
-        <div className="rounded-2xl p-6 bg-card border border-border shadow-sm">
-          <p className="text-sm text-muted-foreground mb-4 font-medium">Fill rate</p>
-          <p className="text-3xl font-bold font-display mb-3 text-foreground">{fillRate}%</p>
-          <div className="w-full bg-muted rounded-full h-2">
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
+          <p className="text-xs text-muted-foreground mb-3 font-medium">Fill rate</p>
+          <p className="text-2xl font-bold font-display mb-2 text-foreground">{fillRate}%</p>
+          <div className="w-full bg-muted rounded-full h-1.5">
             <div
-              className="h-2 rounded-full bg-amber-500 transition-all duration-500"
+              className="h-1.5 rounded-full bg-amber-500 transition-all duration-500"
               style={{ width: `${fillRate}%` }}
             />
           </div>
         </div>
+
+        {/* Growth Score widget — 4th card */}
+        {selectedStore?.id ? (
+          <GrowthScoreWidget storeId={selectedStore.id} />
+        ) : (
+          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
+            <p className="text-xs text-muted-foreground mb-3 font-medium">Business Health</p>
+            <p className="text-2xl font-bold font-display text-muted-foreground/40">—</p>
+          </div>
+        )}
       </div>
+
+      {/* Upcoming Birthdays */}
+      {selectedStore?.id && <UpcomingBirthdaysWidget storeId={selectedStore.id} />}
+
+      {/* Smart Daily Digest */}
+      {selectedStore?.id && <SmartDigestWidget storeId={selectedStore.id} />}
 
       {/* Revenue Chart */}
       <div className="rounded-2xl border border-border bg-card shadow-sm p-6 mb-6">

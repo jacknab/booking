@@ -1598,6 +1598,47 @@ function AppointmentDetailsPanel({
     staleTime: 30 * 1000,
   });
 
+  const { selectedStore: detailStore } = useSelectedStore();
+  const { data: clientIntel } = useQuery<any>({
+    queryKey: ["/api/intelligence/client", appointment.customerId, detailStore?.id],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/intelligence/client/${appointment.customerId}?storeId=${detailStore?.id}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!appointment.customerId && !!detailStore?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const intel = clientIntel?.intel;
+
+  const { toast: detailToast } = useToast();
+  const [reviewSent, setReviewSent] = useState(false);
+  const [reviewSending, setReviewSending] = useState(false);
+
+  const handleSendReview = async () => {
+    setReviewSending(true);
+    try {
+      const res = await fetch(`/api/appointments/${appointment.id}/send-review-request`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReviewSent(true);
+        detailToast({ title: "Review request sent!", description: "Your client will receive a text shortly." });
+      } else {
+        detailToast({ title: "Could not send", description: data.error || "Review requests require SMS enabled with a Google review URL.", variant: "destructive" });
+      }
+    } catch {
+      detailToast({ title: "Failed to send", variant: "destructive" });
+    } finally {
+      setReviewSending(false);
+    }
+  };
+
   const statusMap: Record<string, { label: string; variant: "destructive" | "secondary"; color: string }> = {
     pending: { label: "Booked", variant: "secondary", color: "#3b82f6" },
     confirmed: { label: "Booked", variant: "secondary", color: "#3b82f6" },
@@ -1753,6 +1794,70 @@ function AppointmentDetailsPanel({
             <p className="text-xs text-muted-foreground">{appointment.notes}</p>
           </div>
         )}
+
+        {/* ── Client Intelligence strip ── */}
+        {intel && appointment.customerId && (
+          <div className="pt-2 border-t space-y-2">
+            {/* No-show / churn risk */}
+            {(intel.noShowRisk === "high" || intel.churnRisk === "high" || intel.churnRisk === "critical") && (
+              <div className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs font-medium ${
+                intel.churnRisk === "critical" || intel.noShowRisk === "high"
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-amber-50 border-amber-200 text-amber-700"
+              }`}>
+                <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>
+                  {intel.churnRisk === "critical"
+                    ? "At-risk client — hasn't visited in a while"
+                    : intel.noShowRisk === "high"
+                    ? "High no-show risk — consider confirming"
+                    : "Drifting — cadence slipping"}
+                </span>
+              </div>
+            )}
+
+            {/* LTV + visit cadence */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              {intel.lifetimeValue > 0 && (
+                <span className="flex items-center gap-1">
+                  <span className="font-medium text-foreground">${Math.round(intel.lifetimeValue).toLocaleString()}</span>
+                  LTV
+                </span>
+              )}
+              {intel.avgVisitCadenceDays > 0 && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="flex items-center gap-1">
+                    every <span className="font-medium text-foreground">{intel.avgVisitCadenceDays}d</span>
+                  </span>
+                </>
+              )}
+              {intel.totalVisits > 0 && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span><span className="font-medium text-foreground">{intel.totalVisits}</span> visits</span>
+                </>
+              )}
+              {/* Predicted next visit */}
+              {intel.avgVisitCadenceDays > 0 && intel.lastVisitDate && (() => {
+                const last = new Date(intel.lastVisitDate);
+                const predicted = new Date(last.getTime() + intel.avgVisitCadenceDays * 24 * 60 * 60 * 1000);
+                const daysUntil = Math.round((predicted.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+                if (daysUntil < -14 || daysUntil > 60) return null;
+                const label = daysUntil < 0 ? `${Math.abs(daysUntil)}d overdue` : daysUntil === 0 ? "due today" : `due in ${daysUntil}d`;
+                return (
+                  <>
+                    <span className="text-muted-foreground/30">·</span>
+                    <span className={`flex items-center gap-1 ${daysUntil < 0 ? "text-amber-600 font-medium" : ""}`}>
+                      <CalendarDays className="h-3 w-3" />
+                      {label}
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
@@ -1769,6 +1874,36 @@ function AppointmentDetailsPanel({
                 ${grandTotal.toFixed(2)}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Review Request — shown for completed appointments with a phone number */}
+        {appointment.status === "completed" && appointment.customer?.phone && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className={`flex-1 gap-2 font-semibold transition-colors ${reviewSent ? "border-emerald-500 text-emerald-700 hover:bg-emerald-50" : "border-violet-400 text-violet-700 hover:bg-violet-50"}`}
+              onClick={handleSendReview}
+              disabled={reviewSending || reviewSent}
+              data-testid="button-send-review-request"
+            >
+              <Star className="h-4 w-4" />
+              {reviewSent ? "Review Request Sent ✓" : reviewSending ? "Sending…" : "Request a Review"}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2 font-semibold border-emerald-400 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (appointment.customerId) params.set("customerId", String(appointment.customerId));
+                if (appointment.staffId) params.set("staffId", String(appointment.staffId));
+                if (appointment.serviceId) params.set("serviceId", String(appointment.serviceId));
+                window.location.href = `/booking/new?${params.toString()}`;
+              }}
+            >
+              <CalendarPlus className="h-4 w-4" />
+              Rebook
+            </Button>
           </div>
         )}
 

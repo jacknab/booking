@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +8,46 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { formatInTz } from "@/lib/timezone";
-import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy, AlertTriangle, Brain, TrendingUp, Zap, Send, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Customer, AppointmentWithDetails, Review } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
-type ProfileSection = "overview" | "next" | "past" | "deposits" | "notes" | "purchases" | "reviews";
+type ProfileSection = "overview" | "next" | "past" | "deposits" | "notes" | "purchases" | "reviews" | "intelligence";
+
+function ChurnBadge({ label }: { label: string }) {
+  const styles: Record<string, string> = {
+    low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    high: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+    critical: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+  };
+  return (
+    <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize", styles[label] || styles.low)}>
+      {label}
+    </span>
+  );
+}
+
+function RiskMeter({ score }: { score: number }) {
+  const color =
+    score >= 75 ? "#ef4444" :
+    score >= 50 ? "#f97316" :
+    score >= 25 ? "#f59e0b" :
+    "#10b981";
+  return (
+    <div className="space-y-1">
+      <div className="w-full bg-muted rounded-full h-2">
+        <div
+          className="h-2 rounded-full transition-all duration-500"
+          style={{ width: `${score}%`, backgroundColor: color }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground text-right">{score}/100</p>
+    </div>
+  );
+}
 
 export default function ClientProfile() {
   const navigate = useNavigate();
@@ -20,6 +55,8 @@ export default function ClientProfile() {
   const clientId = Number(params.id);
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
 
@@ -44,6 +81,35 @@ export default function ClientProfile() {
       return all.filter(r => r.customerId === clientId);
     },
     enabled: !!storeId && !!clientId,
+  });
+
+  const { data: intelligenceData, isLoading: intelLoading } = useQuery<any>({
+    queryKey: ["/api/intelligence/client", clientId, storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/client/${clientId}?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!clientId && !!storeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const winbackMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/intelligence/winback", { storeId, customerId: clientId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({ title: "Win-back SMS sent!", description: "The client will receive a message shortly." });
+        queryClient.invalidateQueries({ queryKey: ["/api/intelligence/client", clientId, storeId] });
+      } else {
+        toast({ title: "Couldn't send SMS", description: data.error || "Unknown error", variant: "destructive" });
+      }
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to send win-back SMS", variant: "destructive" });
+    },
   });
 
   const now = new Date();
@@ -85,7 +151,10 @@ export default function ClientProfile() {
     return allAppointments.filter(a => a.status === "cancelled").length;
   }, [allAppointments]);
 
-  const sections: { id: ProfileSection; label: string; count?: number; icon: typeof Calendar }[] = [
+  const intel = intelligenceData?.intel;
+  const interventions = intelligenceData?.interventions || [];
+
+  const sections: { id: ProfileSection; label: string; count?: number; icon: typeof Calendar; dot?: boolean }[] = [
     { id: "overview", label: "Overview", icon: FileText },
     { id: "next", label: "Next Appointments", count: nextAppointments.length, icon: Calendar },
     { id: "past", label: "Past Appointments", count: pastAppointments.length, icon: Clock },
@@ -93,6 +162,7 @@ export default function ClientProfile() {
     { id: "notes", label: "Notes", count: client?.notes ? 1 : 0, icon: FileText },
     { id: "purchases", label: "Purchases", count: 0, icon: ShoppingBag },
     { id: "reviews", label: "Reviews", count: clientReviews.length, icon: Star },
+    { id: "intelligence", label: "Revenue Intelligence", icon: Brain, dot: intel?.isAtRisk || intel?.isDrifting },
   ];
 
   const initials = client?.name
@@ -151,6 +221,231 @@ export default function ClientProfile() {
           <span className="font-bold" data-testid={`appointment-total-${apt.id}`}>$ {aptTotal.toFixed(2)}</span>
         </div>
       </Card>
+    );
+  };
+
+  const renderIntelligenceSection = () => {
+    if (intelLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (!intel) {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Brain className="h-5 w-5 text-violet-500" />
+            Revenue Intelligence
+          </h2>
+          <Card className="p-6 text-center">
+            <p className="text-muted-foreground text-sm mb-2">No intelligence data yet for this client.</p>
+            <p className="text-xs text-muted-foreground">Data is computed automatically every 6 hours. Make sure the client has at least one completed appointment.</p>
+          </Card>
+        </div>
+      );
+    }
+
+    const cadenceDays = intel.avgVisitCadenceDays ? Math.round(parseFloat(intel.avgVisitCadenceDays)) : null;
+    const lastVisit = intel.lastVisitDate ? new Date(intel.lastVisitDate) : null;
+    const nextExpected = intel.nextExpectedVisitDate ? new Date(intel.nextExpectedVisitDate) : null;
+    const ltv12 = parseFloat(intel.ltv12Month || "0");
+    const ltvAll = parseFloat(intel.ltvAllTime || "0");
+    const avgTicket = parseFloat(intel.avgTicketValue || "0");
+    const churnScore = intel.churnRiskScore || 0;
+    const noShowRate = parseFloat(intel.noShowRate || "0");
+    const rebookingRate = parseFloat(intel.rebookingRate || "0");
+
+    const daysSinceLast = intel.daysSinceLastVisit;
+    const isOverdue = daysSinceLast !== null && nextExpected && new Date() > nextExpected;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Brain className="h-5 w-5 text-violet-500" />
+            Revenue Intelligence
+          </h2>
+          {(intel.isDrifting || intel.isAtRisk) && (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {intel.isAtRisk ? "At Risk" : "Drifting"}
+            </div>
+          )}
+        </div>
+
+        {/* Alert banner */}
+        {(intel.isDrifting || intel.isAtRisk) && (
+          <div className={cn(
+            "rounded-xl px-4 py-3 flex items-start gap-3",
+            intel.isAtRisk
+              ? "bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800"
+              : "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+          )}>
+            <AlertTriangle className={cn("h-4 w-4 mt-0.5 flex-shrink-0", intel.isAtRisk ? "text-orange-500" : "text-amber-500")} />
+            <div className="flex-1">
+              <p className={cn("text-sm font-semibold", intel.isAtRisk ? "text-orange-700 dark:text-orange-400" : "text-amber-700 dark:text-amber-400")}>
+                {intel.isAtRisk ? "Client at risk of churning" : "Client is drifting"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {daysSinceLast !== null
+                  ? `Last visit ${daysSinceLast} days ago${cadenceDays ? ` — normally visits every ${cadenceDays} days` : ""}.`
+                  : "Visit pattern suggests this client may be slipping away."}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-shrink-0 gap-1.5 h-8 text-xs"
+              onClick={() => winbackMutation.mutate()}
+              disabled={winbackMutation.isPending}
+            >
+              {winbackMutation.isPending ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Send className="h-3 w-3" />
+              )}
+              Send Win-back
+            </Button>
+          </div>
+        )}
+
+        {/* KPI Row */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">LTV (12mo)</p>
+            <p className="text-xl font-bold text-foreground">${ltv12.toFixed(0)}</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Avg Ticket</p>
+            <p className="text-xl font-bold text-foreground">${avgTicket.toFixed(0)}</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">All-time LTV</p>
+            <p className="text-xl font-bold text-foreground">${ltvAll.toFixed(0)}</p>
+          </Card>
+        </div>
+
+        {/* Churn Risk */}
+        <Card className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Churn Risk</p>
+            <ChurnBadge label={intel.churnRiskLabel || "low"} />
+          </div>
+          <RiskMeter score={churnScore} />
+        </Card>
+
+        {/* Visit Cadence */}
+        <Card className="p-5 space-y-3">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            Visit Cadence
+          </p>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Avg. visits every</p>
+              <p className="font-semibold">{cadenceDays ? `${cadenceDays} days` : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Days since last visit</p>
+              <p className={cn("font-semibold", isOverdue ? "text-orange-600 dark:text-orange-400" : "text-foreground")}>
+                {daysSinceLast !== null ? `${daysSinceLast} days` : "—"}
+                {isOverdue && " ⚠️"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Last visit</p>
+              <p className="font-semibold">{lastVisit ? lastVisit.toLocaleDateString() : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Next expected</p>
+              <p className={cn("font-semibold", isOverdue ? "text-orange-600 dark:text-orange-400" : "text-foreground")}>
+                {nextExpected ? nextExpected.toLocaleDateString() : "—"}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Behavior Metrics */}
+        <Card className="p-5 space-y-3">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            Behavior Metrics
+          </p>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Rebooking rate</p>
+              <p className="font-semibold">{(rebookingRate * 100).toFixed(0)}%</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">No-show rate</p>
+              <p className={cn("font-semibold", noShowRate > 0.25 ? "text-red-600 dark:text-red-400" : "text-foreground")}>
+                {(noShowRate * 100).toFixed(0)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Total visits</p>
+              <p className="font-semibold">{intel.totalVisits || 0}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Win-backs sent</p>
+              <p className="font-semibold">{intel.winbackSentCount || 0}</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Recent Interventions */}
+        {interventions.length > 0 && (
+          <Card className="p-5">
+            <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-muted-foreground" />
+              Recent Outreach
+            </p>
+            <div className="space-y-2">
+              {interventions.map((iv: any) => (
+                <div key={iv.id} className="flex items-center justify-between text-sm">
+                  <div>
+                    <span className="font-medium capitalize">{iv.type.replace(/_/g, " ")}</span>
+                    <span className="text-xs text-muted-foreground ml-2">via {iv.channel}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {iv.sentAt ? new Date(iv.sentAt).toLocaleDateString() : ""}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] capitalize">{iv.triggeredBy}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Manual Win-back */}
+        {!intel.isDrifting && !intel.isAtRisk && (
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => winbackMutation.mutate()}
+              disabled={winbackMutation.isPending}
+            >
+              {winbackMutation.isPending ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+              Send Manual Win-back SMS
+            </Button>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Last computed: {intel.computedAt ? new Date(intel.computedAt).toLocaleString() : "Never"}
+        </p>
+      </div>
     );
   };
 
@@ -316,6 +611,9 @@ export default function ClientProfile() {
           </div>
         );
 
+      case "intelligence":
+        return renderIntelligenceSection();
+
       default:
         return null;
     }
@@ -398,7 +696,12 @@ export default function ClientProfile() {
               )}
               data-testid={`section-${section.id}`}
             >
-              <span>{section.label}</span>
+              <div className="flex items-center gap-2">
+                <span>{section.label}</span>
+                {section.dot && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </div>
               <div className="flex items-center gap-1.5">
                 {section.count !== undefined && (
                   <Badge variant="secondary" className="no-default-active-elevate text-xs min-w-[24px] justify-center">

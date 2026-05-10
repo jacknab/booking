@@ -1,13 +1,14 @@
 import { db } from "../db";
-import { customers } from "@shared/schema";
-import { clientIntelligence, staffIntelligence, growthScoreSnapshots, deadSeatPatterns } from "../../shared/schema/intelligence";
+import { customers, appointments, smsSettings } from "@shared/schema";
+import { clientIntelligence, staffIntelligence, growthScoreSnapshots, deadSeatPatterns, intelligenceInterventions } from "../../shared/schema/intelligence";
 import { computeClientCadence } from "./cadence";
 import { computeClientLtv } from "./ltv";
 import { computeChurnRisk } from "./churn";
 import { computeDeadSeats } from "./dead-seats";
 import { computeRebookingRates } from "./rebooking-rates";
 import { computeGrowthScore } from "./growth-score";
-import { eq, and, sql } from "drizzle-orm";
+import { sendSms } from "../sms";
+import { eq, and, sql, gte, lte, isNotNull, inArray } from "drizzle-orm";
 
 export async function runIntelligenceForStore(storeId: number): Promise<void> {
   try {
@@ -207,6 +208,106 @@ export async function runIntelligenceForStore(storeId: number): Promise<void> {
   }
 }
 
+async function runRebookingNudges(storeId: number): Promise<void> {
+  try {
+    const now = new Date();
+    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const APP_URL = process.env.APP_URL || "https://certxa.com";
+
+    const [locationRow] = await db.execute(
+      sql`SELECT name, slug FROM locations WHERE id = ${storeId} LIMIT 1`
+    );
+    const storeName = (locationRow as any)?.name || "us";
+    const bookingSlug = (locationRow as any)?.slug || null;
+    const bookingLink = bookingSlug ? `${APP_URL}/book/${bookingSlug}` : APP_URL;
+
+    // Find clients whose next expected visit is in 3-7 days and haven't received a nudge in 14 days
+    const dueClients = await db
+      .select({
+        customerId: clientIntelligence.customerId,
+        avgCadenceDays: clientIntelligence.avgVisitCadenceDays,
+        nextExpectedVisitDate: clientIntelligence.nextExpectedVisitDate,
+      })
+      .from(clientIntelligence)
+      .where(
+        and(
+          eq(clientIntelligence.storeId, storeId),
+          isNotNull(clientIntelligence.nextExpectedVisitDate),
+          sql`next_expected_visit_date >= ${in3Days.toISOString()}`,
+          sql`next_expected_visit_date <= ${in7Days.toISOString()}`
+        )
+      )
+      .limit(30);
+
+    for (const client of dueClients) {
+      try {
+        // Check if already received a nudge recently
+        const recentNudge = await db
+          .select({ id: intelligenceInterventions.id })
+          .from(intelligenceInterventions)
+          .where(
+            and(
+              eq(intelligenceInterventions.storeId, storeId),
+              eq(intelligenceInterventions.customerId, client.customerId),
+              eq(intelligenceInterventions.interventionType, "rebooking_nudge"),
+              sql`sent_at >= ${fourteenDaysAgo.toISOString()}`
+            )
+          )
+          .limit(1);
+
+        if (recentNudge.length > 0) continue;
+
+        // Check if they already have an upcoming appointment
+        const upcoming = await db
+          .select({ id: appointments.id })
+          .from(appointments)
+          .where(
+            and(
+              eq(appointments.storeId, storeId),
+              eq(appointments.customerId, client.customerId),
+              inArray(appointments.status, ["confirmed", "pending"]),
+              sql`date >= ${now.toISOString()}`
+            )
+          )
+          .limit(1);
+
+        if (upcoming.length > 0) continue;
+
+        const [customer] = await db
+          .select({ name: customers.name, phone: customers.phone, marketingOptIn: customers.marketingOptIn })
+          .from(customers)
+          .where(eq(customers.id, client.customerId));
+
+        if (!customer?.phone || !customer.marketingOptIn) continue;
+
+        const firstName = customer.name.split(" ")[0];
+        const message = `Hi ${firstName}! It's almost time for your next visit at ${storeName}. Ready to book? ${bookingLink}\n\nReply STOP to opt out.`;
+
+        await sendSms(storeId, customer.phone, message, "rebooking_nudge", undefined, client.customerId);
+
+        await db.insert(intelligenceInterventions).values({
+          storeId,
+          customerId: client.customerId,
+          interventionType: "rebooking_nudge",
+          channel: "sms",
+          messageBody: message,
+          status: "sent",
+          triggeredBy: "auto",
+        });
+
+        console.log(`[intelligence] Rebooking nudge sent to customer ${client.customerId}`);
+      } catch (err) {
+        console.error(`[intelligence] Rebooking nudge error for customer ${client.customerId}:`, err);
+      }
+    }
+  } catch (err) {
+    console.error(`[intelligence] Rebooking nudges error for store ${storeId}:`, err);
+  }
+}
+
 export async function runIntelligenceForAllStores(): Promise<void> {
   try {
     const stores = await db.execute(sql`SELECT DISTINCT id FROM locations`);
@@ -214,6 +315,8 @@ export async function runIntelligenceForAllStores(): Promise<void> {
     console.log(`[intelligence] Running for ${storeIds.length} stores`);
     for (const storeId of storeIds) {
       await runIntelligenceForStore(storeId);
+      // After intelligence is fresh, run rebooking nudges
+      await runRebookingNudges(storeId);
     }
   } catch (err) {
     console.error(`[intelligence] Fatal error running all stores:`, err);
