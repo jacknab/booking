@@ -208,8 +208,9 @@ export default function Onboarding() {
   const { user, isLoading } = useAuth();
 
   // ── All hooks must be declared before any conditional return ──
-  const totalSteps = 4;
+  const totalSteps = 5;
   const [step, setStep] = useState(1);
+  const [teamSize, setTeamSize] = useState<"myself" | "team" | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -419,8 +420,9 @@ export default function Onboarding() {
   };
 
   const canProceed = (s: number) => {
-    if (s === 1) return !!selectedType;
-    if (s === 2) {
+    if (s === 1) return teamSize !== null;
+    if (s === 2) return !!selectedType;
+    if (s === 3) {
       const hasName = businessName.trim().length > 0;
       const validEmail = !email.trim() || validateEmail(email);
       const validPhone = !phone.trim() || validatePhone(phone);
@@ -438,14 +440,14 @@ export default function Onboarding() {
         !addressError
       );
     }
-    if (s === 3) return true;
-    if (s === 4) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
+    if (s === 4) return true;
+    if (s === 5) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
     return false;
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050C18] text-white p-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div className={`w-full transition-all duration-300 ${step === 1 ? "max-w-2xl" : "max-w-xl"}`}>
+      <div className={`w-full transition-all duration-300 ${step === 2 ? "max-w-2xl" : "max-w-xl"}`}>
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-lg shadow" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
           <span className="font-extrabold text-2xl tracking-tight text-white">Certxa</span>
@@ -468,15 +470,43 @@ export default function Onboarding() {
         </div>
 
         {step === 1 && (
-          <Step1BusinessType
-            selectedType={selectedType}
-            setSelectedType={setSelectedType}
-            onNext={() => setStep(2)}
-            canProceed={canProceed(1)}
-          />
+          <div className="bg-white rounded-2xl shadow-xl p-10 text-center">
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <img src="/web-app.png" alt="Certxa" className="w-8 h-8 rounded-lg" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              <span className="font-extrabold text-2xl tracking-tight text-[#050C18]">Certxa</span>
+            </div>
+            <h2 className="text-2xl font-bold text-[#00AACC] mb-3" data-testid="text-step1-title">Tell us a little about yourself</h2>
+            <p className="text-gray-500 text-sm mb-6">Let's tailor Certxa to you! Just a few quick questions</p>
+            <p className="text-gray-800 font-semibold mb-5">Who do you need Certxa for?</p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => { setTeamSize("myself"); setStep(2); }}
+                className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "myself" ? "border-[#00AACC] bg-[#00AACC]/10 text-[#00AACC]" : "border-[#00AACC] text-[#00AACC] hover:bg-[#00AACC]/5"}`}
+              >
+                Myself
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTeamSize("team"); setStep(2); }}
+                className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "team" ? "border-[#00AACC] bg-[#00AACC]/10 text-[#00AACC]" : "border-[#00AACC] text-[#00AACC] hover:bg-[#00AACC]/5"}`}
+              >
+                Me and my team
+              </button>
+            </div>
+          </div>
         )}
 
         {step === 2 && (
+          <Step1BusinessType
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
+            onNext={() => setStep(3)}
+            canProceed={canProceed(2)}
+          />
+        )}
+
+        {step === 3 && (
           <div>
             <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step2-title">Tell us about your business</h2>
             <p className="text-sm text-white/45 text-center mb-6">This info helps set up your store profile</p>
@@ -601,11 +631,11 @@ export default function Onboarding() {
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(1)} data-testid="button-back-step"
+              <button onClick={() => setStep(2)} data-testid="button-back-step"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
-              <button onClick={() => setStep(3)} disabled={!canProceed(2)} data-testid="button-next-step"
+              <button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step"
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
                 Next <ArrowRight className="w-4 h-4" />
               </button>
@@ -613,7 +643,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 3 && (() => {
+        {step === 4 && (() => {
           const openDayIndices = hours.filter(h => !h.isClosed).map(h => h.dayOfWeek);
           const allDaysSet = openDayIndices.length === 7;
 
@@ -744,11 +774,11 @@ export default function Onboarding() {
               </div>
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <button onClick={() => setStep(2)} data-testid="button-back-step"
+                <button onClick={() => setStep(3)} data-testid="button-back-step"
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step"
+                <button onClick={() => setStep(5)} disabled={!canProceed(4)} data-testid="button-next-step"
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
                   Next <ArrowRight className="w-4 h-4" />
                 </button>
@@ -757,7 +787,7 @@ export default function Onboarding() {
           );
         })()}
 
-        {step === 4 && (
+        {step === 5 && (
           <div>
             <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step4-title">Add your team</h2>
             <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
@@ -830,13 +860,13 @@ export default function Onboarding() {
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(3)} data-testid="button-back-step"
+              <button onClick={() => setStep(4)} data-testid="button-back-step"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <button
                 onClick={handleComplete}
-                disabled={!canProceed(4) || onboardMutation.isPending}
+                disabled={!canProceed(5) || onboardMutation.isPending}
                 data-testid="button-complete-setup"
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40"
               >
