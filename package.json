@@ -8,18 +8,18 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "NODE_ENV=development npx tsx server/index.ts",
-    "build": "npx tsx script/build.ts",
-    "build:verify": "npx tsx scripts/verify-build.ts",
-    "build:check": "npx tsx script/build.ts && npx tsx scripts/verify-build.ts",
+    "dev": "NODE_ENV=development node_modules/.bin/tsx server/index.ts",
+    "build": "node_modules/.bin/tsx script/build.ts",
+    "build:verify": "node_modules/.bin/tsx scripts/verify-build.ts",
+    "build:check": "node_modules/.bin/tsx script/build.ts && node_modules/.bin/tsx scripts/verify-build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "lint": "eslint client/src",
-    "db:push": "npx tsx scripts/db-push.ts",
-    "db:seed": "npx tsx scripts/seed.ts",
-    "db:seed:billing": "npx tsx scripts/seed-billing-plans.ts",
-    "db:reset": "npx tsx scripts/reset.ts",
-    "db:check": "npx tsx scripts/check-db.ts"
+    "db:push": "node_modules/.bin/tsx scripts/db-push.ts",
+    "db:seed": "node_modules/.bin/tsx scripts/seed.ts",
+    "db:seed:billing": "node_modules/.bin/tsx scripts/seed-billing-plans.ts",
+    "db:reset": "node_modules/.bin/tsx scripts/reset.ts",
+    "db:check": "node_modules/.bin/tsx scripts/check-db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
