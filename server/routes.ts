@@ -4242,6 +4242,7 @@ If you have any questions, please contact your administrator.
       // ── Fetch Business Profile accounts ─────────────────────────────────────
       console.log("[Google Business OAuth] Fetching Business Profile accounts…");
       let accounts: any[] = [];
+      let accountsFetchQuotaError = false;
       try {
         const accountsData = await apiManager.getBusinessAccounts();
         accounts = (accountsData.accounts ?? []) as any[];
@@ -4253,6 +4254,10 @@ If you have any questions, please contact your administrator.
         const status = acctErr?.code ?? acctErr?.response?.status ?? acctErr?.status;
         console.error("[Google Business OAuth] Failed to fetch accounts — status:", status);
         console.error("[Google Business OAuth] Error detail:", acctErr?.message ?? acctErr);
+        if (status === 429) {
+          accountsFetchQuotaError = true;
+          console.warn("[Google Business OAuth] 429: Quota exceeded fetching accounts — tokens saved, user can retry without re-auth");
+        }
         if (status === 403) {
           console.error("[Google Business OAuth] 403: Ensure 'My Business Account Management API' is enabled in Google Cloud Console and business.manage scope is approved on the consent screen.");
         }
@@ -4382,6 +4387,7 @@ If you have any questions, please contact your administrator.
         businesses: allLocations,
         profileId:  profileRow.id,
         storeId,
+        quotaError: accountsFetchQuotaError || undefined,
       };
 
       console.log("[Google Business OAuth] ── Callback complete ──────────────────────────────");
@@ -4431,6 +4437,120 @@ If you have any questions, please contact your administrator.
    */
   app.get("/google-business", (_req, _res, next) => next());
 
+  /**
+   * POST /api/google-business/retry-fetch-accounts
+   *
+   * Retries fetching Google Business accounts + locations using already-stored
+   * OAuth tokens. Called when the initial callback succeeded (tokens saved) but
+   * getBusinessAccounts() hit a 429 quota limit, leaving accounts: [] in the session.
+   * No re-auth required — uses the refresh_token from google_business_profiles.
+   *
+   * Body: { storeId: number }
+   * Returns: { accounts, businesses, profileId }
+   */
+  app.post("/api/google-business/retry-fetch-accounts", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { storeId } = req.body;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+
+    console.log(`[GBP] retry-fetch-accounts — storeId=${storeId}`);
+
+    try {
+      const profiles = await db
+        .select()
+        .from(googleBusinessProfiles)
+        .where(eq(googleBusinessProfiles.storeId, Number(storeId)))
+        .limit(1);
+
+      if (!profiles.length) {
+        return res.status(404).json({ message: "No Google profile found for this store. Please reconnect." });
+      }
+
+      const profileRow = profiles[0];
+      if (!profileRow.accessToken && !profileRow.refreshToken) {
+        return res.status(400).json({ message: "No stored tokens found. Please reconnect your Google account." });
+      }
+
+      const apiManager = createApiManagerFromProfile(profileRow);
+
+      let accounts: any[] = [];
+      try {
+        const accountsData = await apiManager.getBusinessAccounts();
+        accounts = (accountsData.accounts ?? []) as any[];
+        console.log(`[GBP] retry-fetch-accounts — accounts found: ${accounts.length}`);
+      } catch (err: any) {
+        const status = err?.code ?? err?.response?.status ?? err?.status;
+        console.error(`[GBP] retry-fetch-accounts — getBusinessAccounts failed — status: ${status}  message: ${err?.message}`);
+        if (status === 429) {
+          return res.status(429).json({ message: "Google API quota is still exceeded. Please wait 1–2 minutes and try again." });
+        }
+        if (status === 403) {
+          return res.status(403).json({ message: "Google denied access. Ensure the Business Profile API is enabled in Google Cloud Console." });
+        }
+        throw err;
+      }
+
+      if (!accounts.length) {
+        return res.status(404).json({
+          message: "No Google Business accounts found on this Google account. Make sure you have a Business Profile at business.google.com.",
+        });
+      }
+
+      // Fetch locations for each account
+      const allLocations: any[] = [];
+      for (const account of accounts) {
+        try {
+          const locData = await apiManager.getLocations(account.name);
+          const locs = locData.locations ?? [];
+          allLocations.push(...locs.map((l: any) => ({ ...l, _accountName: account.name })));
+          console.log(`[GBP] retry-fetch-accounts — fetched ${locs.length} location(s) for ${account.name}`);
+        } catch (locErr: any) {
+          console.error(`[GBP] retry-fetch-accounts — failed to fetch locations for ${account.name}:`, locErr?.message ?? locErr);
+        }
+      }
+
+      // Upsert accounts into googleBusinessAccounts so future stored-accounts lookups work
+      for (const acct of accounts) {
+        try {
+          const existing = await db
+            .select({ id: googleBusinessAccounts.id })
+            .from(googleBusinessAccounts)
+            .where(eq(googleBusinessAccounts.googleAccountId, acct.name))
+            .limit(1);
+
+          if (existing.length) {
+            await db
+              .update(googleBusinessAccounts)
+              .set({ accountName: acct.accountName ?? acct.displayName ?? null, updatedAt: new Date() })
+              .where(eq(googleBusinessAccounts.id, existing[0].id));
+            console.log(`[GBP] retry-fetch-accounts — updated account id=${existing[0].id}  googleAccountId="${acct.name}"`);
+          } else {
+            await db.insert(googleBusinessAccounts).values({
+              storeId:         Number(storeId),
+              userId,
+              googleAccountId: acct.name,
+              accountName:     acct.accountName ?? acct.displayName ?? null,
+              accessToken:     profileRow.accessToken,
+              refreshToken:    profileRow.refreshToken,
+              tokenExpiry:     profileRow.tokenExpiresAt,
+              scopes:          null,
+            });
+            console.log(`[GBP] retry-fetch-accounts — inserted account googleAccountId="${acct.name}"`);
+          }
+        } catch (acctErr: any) {
+          console.warn(`[GBP] retry-fetch-accounts — could not upsert account "${acct.name}":`, acctErr?.message ?? acctErr);
+        }
+      }
+
+      console.log(`[GBP] retry-fetch-accounts — done: ${accounts.length} account(s), ${allLocations.length} location(s)`);
+      res.json({ accounts, businesses: allLocations, profileId: profileRow.id });
+    } catch (err: any) {
+      console.error("[GBP] retry-fetch-accounts FAILED:", err?.message ?? err);
+      res.status(500).json({ message: "Failed to fetch accounts: " + (err?.message ?? "unknown error") });
+    }
+  });
 
   /**
    * POST /api/google-business/exchange-code

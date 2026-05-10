@@ -67,6 +67,7 @@ interface SyncStats {
 type SetupStep =
   | "loading"
   | "initial"
+  | "quota-retry"
   | "select-account"
   | "select-location"
   | "syncing"
@@ -337,9 +338,22 @@ export function GoogleBusinessProfileSetup({
 
       const res = await axios.get("/api/google-business/connection-result");
       // `businesses` = all locations already fetched during the OAuth callback
-      const { accounts: accts = [], businesses: prefetchedLocs = [], profileId: pid } = res.data;
+      const { accounts: accts = [], businesses: prefetchedLocs = [], profileId: pid, quotaError } = res.data;
 
       if (!accts.length) {
+        // If we hit quota during the callback the tokens ARE saved — offer retry
+        if (pid && quotaError) {
+          setProfileId(pid);
+          setStep("quota-retry");
+          return;
+        }
+        // If we have a profileId but no quotaError flag, still let them retry
+        // (handles old session results that didn't include the quotaError field)
+        if (pid) {
+          setProfileId(pid);
+          setStep("quota-retry");
+          return;
+        }
         setErrorMsg(
           "Google authentication succeeded but no Business Profile accounts were found. " +
           "Make sure your Google account has a Business Profile at business.google.com."
@@ -432,6 +446,64 @@ export function GoogleBusinessProfileSetup({
     } catch (err: any) {
       setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
       setStep("initial");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Retry fetching Business accounts using already-stored tokens.
+   * Called from the quota-retry step — no re-auth needed.
+   */
+  const handleRetryFetchAccounts = async () => {
+    if (!storeId) return;
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      setStep("loading");
+
+      const res = await axios.post("/api/google-business/retry-fetch-accounts", { storeId });
+      const accts: Account[]       = res.data.accounts   ?? [];
+      const prefetchedLocs: Location[] = res.data.businesses ?? [];
+      const pid                    = res.data.profileId;
+
+      setProfileId(pid);
+      setAccounts(accts);
+      setAllPrefetchedLocations(prefetchedLocs);
+
+      if (!accts.length) {
+        setErrorMsg("Still no accounts found. Check that your Google account has a Business Profile at business.google.com.");
+        setStep("quota-retry");
+        return;
+      }
+
+      if (accts.length === 1) {
+        const accountLocs = prefetchedLocs.filter(
+          (l: any) => l._accountName === accts[0].name || !l._accountName
+        );
+        if (accountLocs.length > 0) {
+          setLocations(accountLocs);
+          setSelectedAccount(accts[0].name);
+          if (accountLocs.length === 1) {
+            await connectLocation(accountLocs[0], pid);
+          } else {
+            setStep("select-location");
+          }
+        } else {
+          await fetchLocationsForAccount(accts[0].name, pid);
+        }
+      } else {
+        setSelectedAccount(accts[0].name);
+        setStep("select-account");
+      }
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 429) {
+        setErrorMsg("Google API quota is still exceeded. Please wait 1–2 minutes and try again.");
+      } else {
+        setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
+      }
+      setStep("quota-retry");
     } finally {
       setLoading(false);
     }
@@ -640,6 +712,81 @@ export function GoogleBusinessProfileSetup({
           </CardDescription>
         </CardHeader>
       </Card>
+    );
+  }
+
+  // ── QUOTA RETRY ────────────────────────────────────────────────────────────
+
+  if (step === "quota-retry") {
+    return (
+      <div className="space-y-4 max-w-lg mx-auto">
+        <Card className="border-amber-200 bg-amber-50/40">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="text-amber-600" size={20} />
+              <CardTitle className="text-base text-amber-900">Almost there — one more step</CardTitle>
+            </div>
+            <CardDescription className="text-amber-700">
+              Your Google account was connected and your credentials are saved. Google's API was
+              temporarily busy fetching your business locations — just wait a moment and try again.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {errorMsg && (
+              <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span>{errorMsg}</span>
+                  <button
+                    className="block mt-1 text-red-500 underline text-xs"
+                    onClick={() => setErrorMsg(null)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-lg bg-white border border-amber-200 p-4 text-sm text-amber-800 space-y-1.5">
+              <p className="font-semibold">What happened?</p>
+              <p>
+                Google limits how often apps can request business account data. Your connection is
+                saved — click <strong>Try Again</strong> below and it should work.
+              </p>
+              <p className="text-xs text-amber-600 mt-1">
+                If it keeps failing, wait 2–3 minutes before retrying. No need to sign in with Google again.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={handleRetryFetchAccounts}
+                disabled={loading}
+                className="w-full gap-2"
+              >
+                {loading ? (
+                  <><Loader2 size={15} className="animate-spin" /> Loading your locations…</>
+                ) : (
+                  <><RefreshCw size={15} /> Try Again</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleStartAuth}
+                disabled={loading}
+                className="w-full gap-2"
+              >
+                <RotateCcw size={14} />
+                Reconnect with Google Instead
+              </Button>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Your Google credentials are securely saved. Retrying will not require you to sign in again.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
