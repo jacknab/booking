@@ -275,9 +275,14 @@ export async function registerRoutes(
 
   // === STORES ===
   app.get(api.stores.list.path, async (req, res) => {
-    const userId = (req.session as any)?.userId;
-    const stores = await storage.getStores(userId);
-    res.json(stores);
+    try {
+      const userId = (req.session as any)?.userId;
+      const stores = await storage.getStores(userId);
+      res.json(stores);
+    } catch (err: any) {
+      console.error("[stores] list failed:", err.message, err.stack);
+      res.status(500).json({ message: "Failed to load stores", detail: err.message });
+    }
   });
 
   app.get(api.stores.get.path, async (req, res) => {

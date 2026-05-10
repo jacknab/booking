@@ -17,7 +17,7 @@
     "lint": "eslint client/src",
     "migrate": "node_modules/.bin/tsx scripts/migrate.ts",
     "migrate:dry": "node_modules/.bin/tsx scripts/migrate.ts --dry-run",
-    "db:push": "node_modules/.bin/tsx scripts/db-push.ts",
+    "db:push": "node scripts/db-push.mjs",
     "db:seed": "node_modules/.bin/tsx scripts/seed.ts",
     "db:seed:billing": "node_modules/.bin/tsx scripts/seed-billing-plans.ts",
     "db:reset": "node_modules/.bin/tsx scripts/reset.ts",

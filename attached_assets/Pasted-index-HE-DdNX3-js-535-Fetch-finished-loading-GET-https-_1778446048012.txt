@@ -1,0 +1,153 @@
+index-HE-DdNX3.js:535 Fetch finished loading: GET "https://certxa.com/api/billing/account-status".
+queryFn @ index-HE-DdNX3.js:535
+i @ index-HE-DdNX3.js:8
+j @ index-HE-DdNX3.js:8
+start @ index-HE-DdNX3.js:8
+fetch @ index-HE-DdNX3.js:8
+#h @ index-HE-DdNX3.js:8
+onSubscribe @ index-HE-DdNX3.js:8
+subscribe @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+iR @ index-HE-DdNX3.js:6
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+tD @ index-HE-DdNX3.js:8
+C @ index-HE-DdNX3.js:1
+z @ index-HE-DdNX3.js:1
+postMessage
+X @ index-HE-DdNX3.js:1
+Z @ index-HE-DdNX3.js:1
+t.unstable_scheduleCallback @ index-HE-DdNX3.js:1
+dD @ index-HE-DdNX3.js:8
+Ca @ index-HE-DdNX3.js:8
+gl @ index-HE-DdNX3.js:8
+nj @ index-HE-DdNX3.js:8
+rj.render.y_.render @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:535
+index-HE-DdNX3.js:318 Fetch finished loading: GET "https://certxa.com/api/team/stats".
+queryFn @ index-HE-DdNX3.js:318
+i @ index-HE-DdNX3.js:8
+j @ index-HE-DdNX3.js:8
+start @ index-HE-DdNX3.js:8
+fetch @ index-HE-DdNX3.js:8
+#h @ index-HE-DdNX3.js:8
+onSubscribe @ index-HE-DdNX3.js:8
+subscribe @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+iR @ index-HE-DdNX3.js:6
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+(anonymous) @ index-HE-DdNX3.js:8
+setTimeout
+Hie @ index-HE-DdNX3.js:8
+o @ index-HE-DdNX3.js:8
+batch @ index-HE-DdNX3.js:8
+#l @ index-HE-DdNX3.js:8
+setData @ index-HE-DdNX3.js:8
+fetch @ index-HE-DdNX3.js:8
+await in fetch
+#h @ index-HE-DdNX3.js:8
+onSubscribe @ index-HE-DdNX3.js:8
+subscribe @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+iR @ index-HE-DdNX3.js:6
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+tD @ index-HE-DdNX3.js:8
+C @ index-HE-DdNX3.js:1
+z @ index-HE-DdNX3.js:1
+postMessage
+X @ index-HE-DdNX3.js:1
+Z @ index-HE-DdNX3.js:1
+t.unstable_scheduleCallback @ index-HE-DdNX3.js:1
+dD @ index-HE-DdNX3.js:8
+Ca @ index-HE-DdNX3.js:8
+gl @ index-HE-DdNX3.js:8
+nj @ index-HE-DdNX3.js:8
+rj.render.y_.render @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:535
+index-HE-DdNX3.js:68 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-HE-DdNX3.js:68
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+(anonymous) @ index-HE-DdNX3.js:8
+index-HE-DdNX3.js:68 `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+(anonymous) @ index-HE-DdNX3.js:68
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+(anonymous) @ index-HE-DdNX3.js:8
+index-HE-DdNX3.js:68 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-HE-DdNX3.js:68
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+(anonymous) @ index-HE-DdNX3.js:8
+index-HE-DdNX3.js:68 `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+(anonymous) @ index-HE-DdNX3.js:68
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+(anonymous) @ index-HE-DdNX3.js:8
+index-HE-DdNX3.js:68 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ index-HE-DdNX3.js:68
+Vb @ index-HE-DdNX3.js:8
+ip @ index-HE-DdNX3.js:8
+Lse @ index-HE-DdNX3.js:8
+Xm @ index-HE-DdNX3.js:8
+nD @ index-HE-DdNX3.js:8
+Eu @ index-HE-DdNX3.js:6
+(anonymous) @ index-HE-DdNX3.js:8
+index-HE-DdNX3.js:535 Fetch finished loading: GET "https://certxa.com/api/billing/account-status".
+queryFn @ index-HE-DdNX3.js:535
+i @ index-HE-DdNX3.js:8
+j @ index-HE-DdNX3.js:8
+start @ index-HE-DdNX3.js:8
+fetch @ index-HE-DdNX3.js:8
+#h @ index-HE-DdNX3.js:8
+fetch @ index-HE-DdNX3.js:8
+refetch @ index-HE-DdNX3.js:8
+onFocus @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+batch @ index-HE-DdNX3.js:8
+onFocus @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+await in (anonymous)
+(anonymous) @ index-HE-DdNX3.js:8
+onFocus @ index-HE-DdNX3.js:8
+(anonymous) @ index-HE-DdNX3.js:8
+n @ index-HE-DdNX3.js:8
