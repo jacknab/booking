@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronRight,
   CreditCard,
+  CircleUser,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -112,6 +113,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Settings",
     items: [
+      { to: "/account", label: "My Account", icon: CircleUser, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
       { to: "/online-booking", label: "Online Booking", icon: Globe, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/mail-settings", label: "Email Notifications", icon: Mail, permission: PERMISSIONS.STORE_SETTINGS },

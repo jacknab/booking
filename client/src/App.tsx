@@ -94,6 +94,7 @@ import TrainingSettings from "@/pages/TrainingSettings";
 import ManageDashboard from "@/pages/manage/ManageDashboard";
 import BillingPage from "@/pages/manage/BillingPage";
 import DashboardBilling from "@/pages/DashboardBilling";
+import AccountOverview from "@/pages/AccountOverview";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
 import { AccountStatusGate } from "@/components/AccountStatusGate";
@@ -138,6 +139,7 @@ const authenticatedPaths = [
   "/pro-setup",
   "/dashboard/queue",
   "/billing",
+  "/account",
   // Staff portal — needs StoreProvider for hooks (useAppointments, useStaffList, etc.)
   "/staff-calendar",
   "/staff-dashboard",
@@ -268,6 +270,7 @@ function AppRoutes() {
       <Route path="/multi-location" element={<MultiLocationDashboard />} />
       <Route path="/cash-drawer" element={<CashDrawer />} />
       <Route path="/billing" element={<DashboardBilling />} />
+      <Route path="/account" element={<AccountOverview />} />
       <Route path="/marketing" element={<Navigate to="/campaigns" replace />} />
 
       {/* Training */}
