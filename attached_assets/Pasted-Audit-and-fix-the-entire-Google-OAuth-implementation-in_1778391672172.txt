@@ -1,0 +1,118 @@
+Audit and fix the entire Google OAuth implementation in this codebase to ensure it is correctly wired and strictly separated.
+
+There are TWO independent OAuth systems that must never overlap:
+
+──────────────────────────────
+
+1. GOOGLE LOGIN (AUTH SYSTEM)
+   ──────────────────────────────
+   Purpose:
+
+* user login/signup only
+
+Scopes:
+
+* openid
+* email
+* profile
+
+Callback:
+https://certxa.com/api/auth/google/callback
+
+Requirements:
+
+* Must create/login user only
+* Must create session or JWT
+* Must persist login across refresh
+* Must NOT request or store any Google Business scopes
+* Must NOT call any Business Profile APIs
+
+──────────────────────────────
+2. GOOGLE BUSINESS PROFILE CONNECTION
+──────────────────────────────
+Purpose:
+
+* connect salon/business accounts
+* fetch locations
+* fetch reviews
+
+Scope:
+https://www.googleapis.com/auth/business.manage
+
+Callback:
+https://certxa.com/api/google-business/callback
+
+Requirements:
+
+* Must be a separate OAuth flow from login
+* Must only run after user is logged in
+* Must fetch:
+
+  1. Google Business accounts
+  2. Locations under account
+  3. Store selected location in DB
+* Must use ONLY business OAuth token for API calls
+
+──────────────────────────────
+3. CRITICAL SEPARATION RULES
+──────────────────────────────
+
+* Login tokens and Business tokens must NEVER be shared
+* Login flow must NOT include business scopes
+* Business flow must NOT handle authentication/session login
+* No shared OAuth handlers between the two systems
+
+──────────────────────────────
+4. REDIRECT URI HANDLING
+──────────────────────────────
+Ensure OAuth request builder uses exact values:
+
+Login:
+https://certxa.com/api/auth/google/callback
+
+Business:
+https://certxa.com/api/google-business/callback
+
+No dynamic or mismatched redirect generation allowed.
+
+──────────────────────────────
+5. DEBUG REQUIREMENTS
+──────────────────────────────
+Add logging for both flows:
+
+LOGIN:
+
+* OAuth URL generated
+* callback hit
+* user info returned
+* session created
+
+BUSINESS:
+
+* OAuth URL generated
+* callback hit
+* accounts response
+* locations response
+* selected location stored
+* review API response
+
+──────────────────────────────
+6. FAILURE HANDLING
+──────────────────────────────
+If anything fails:
+
+* do NOT silently fail
+* log full Google error response
+* show meaningful UI error message
+
+──────────────────────────────
+GOAL:
+After this fix:
+
+* Google login works independently and reliably
+* Business profile connection works only after login
+* Reviews + locations sync correctly per selected business
+* No redirect mismatches
+* No scope contamination between systems
+
+This must be production-grade and fully separated architecture.
