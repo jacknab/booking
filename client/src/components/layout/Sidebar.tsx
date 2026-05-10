@@ -61,7 +61,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, hideForStaff: true },
       { to: "/analytics", label: "Analytics", icon: TrendingUp, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
+    ],
+  },
+  {
+    label: "Calendar",
+    items: [
       { to: "/calendar", label: "Calendar", icon: Calendar, anyOf: [PERMISSIONS.APPOINTMENTS_VIEW_ALL, PERMISSIONS.APPOINTMENTS_VIEW_OWN] },
+      { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
     ],
   },
   {
@@ -118,7 +124,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/mail-settings", label: "Email Notifications", icon: Mail, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
-      { to: "/calendar-settings", label: "Calendar Settings", icon: Settings, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/team-permissions", label: "Roles & Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/api-keys", label: "API Keys", icon: Key, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true, eliteOnly: true },
       { to: "/multi-location", label: "Multi-Location", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true, eliteOnly: true },
