@@ -81,10 +81,9 @@ echo ""
 
 # ── 1. System packages ────────────────────────────────────────────────────────
 info "Step 1/10 — System packages"
-apt-get update -qq
+apt-get update -qq 2>&1 | grep -v "^W:" || true
 apt-get install -y -qq \
-  curl git build-essential lsof unzip gnupg ca-certificates \
-  php8.3-cli php8.3-common php8.3-mbstring php8.3-curl 2>&1 | tail -3
+  curl git build-essential lsof unzip gnupg ca-certificates 2>&1 | tail -3
 success "System packages ready"
 
 # ── 2. Node.js 20 ─────────────────────────────────────────────────────────────
