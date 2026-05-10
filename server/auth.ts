@@ -11,6 +11,7 @@ import { sendEmail } from "./mail";
 import passport from "./passport";
 import { computePermissions, normalizeRole } from "@shared/permissions";
 import { TrialService } from "./services/trial-service";
+import { checkGoogleLoginRateLimit } from "./rate-limits";
 
 export function setupAuth(app: Express) {
   // Trust all proxy hops — required for Replit (multiple proxy layers) and
@@ -65,12 +66,6 @@ export function setupAuth(app: Express) {
   // Registered immediately after session middleware so the session is
   // guaranteed to be populated before the OAuth callback handler runs.
 
-  // Per-IP rate limit for Google login initiation: 5 attempts per 10 minutes.
-  // Uses IP because there is no userId yet at this point in the flow.
-  const _googleLoginAttempts = new Map<string, { count: number; windowStart: number }>();
-  const GOOGLE_LOGIN_WINDOW_MS    = 10 * 60 * 1000;
-  const GOOGLE_LOGIN_MAX_ATTEMPTS = 5;
-
   app.get("/api/auth/google", (req: Request, res: Response, next: NextFunction) => {
     // Uses GOOGLE_LOGIN_CLIENT_ID / GOOGLE_LOGIN_CLIENT_SECRET (login-only OAuth).
     // Falls back to legacy GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET if new vars are not set.
@@ -80,19 +75,13 @@ export function setupAuth(app: Express) {
       return res.status(500).send("Google login is not configured on the server. Set GOOGLE_LOGIN_CLIENT_ID and GOOGLE_LOGIN_CLIENT_SECRET.");
     }
 
-    // Rate-limit by IP
+    // Per-IP rate limit: 5 attempts per 10 minutes (state lives in server/rate-limits.ts)
     const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() ?? req.socket.remoteAddress ?? "unknown";
-    const now = Date.now();
-    const entry = _googleLoginAttempts.get(ip);
-    if (entry && now - entry.windowStart < GOOGLE_LOGIN_WINDOW_MS) {
-      if (entry.count >= GOOGLE_LOGIN_MAX_ATTEMPTS) {
-        const retryMins = Math.ceil((GOOGLE_LOGIN_WINDOW_MS - (now - entry.windowStart)) / 60000);
-        console.warn(`[Google Login OAuth] Rate limit hit for IP ${ip}`);
-        return res.status(429).send(`Too many sign-in attempts. Please wait ${retryMins} minute${retryMins !== 1 ? "s" : ""} and try again.`);
-      }
-      entry.count++;
-    } else {
-      _googleLoginAttempts.set(ip, { count: 1, windowStart: now });
+    const { allowed, retryAfterSecs } = checkGoogleLoginRateLimit(ip);
+    if (!allowed) {
+      const retryMins = Math.ceil(retryAfterSecs / 60);
+      console.warn(`[Google Login OAuth] Rate limit hit for IP ${ip}`);
+      return res.status(429).send(`Too many sign-in attempts. Please wait ${retryMins} minute${retryMins !== 1 ? "s" : ""} and try again.`);
     }
     console.log("[Google Login OAuth] OAuth URL generated — initiating authentication flow");
     // Stash kiosk-mode flag (from query string) into the session so the callback can apply it

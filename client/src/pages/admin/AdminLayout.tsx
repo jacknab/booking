@@ -1,9 +1,10 @@
 import React from 'react';
 
 const NAV_ITEMS = [
-  { label: "Dashboard",    href: "/admin",          icon: "⊞" },
-  { label: "Accounts",     href: "/admin/accounts", icon: "👥" },
-  { label: "SEO Pages",    href: "/admin/seo-regions", icon: "🔍" },
+  { label: "Dashboard",    href: "/admin",                icon: "⊞" },
+  { label: "Accounts",     href: "/admin/accounts",       icon: "👥" },
+  { label: "SEO Pages",    href: "/admin/seo-regions",    icon: "🔍" },
+  { label: "Rate Limits",  href: "/admin/rate-limits",    icon: "🔒" },
 ];
 
 interface AdminLayoutProps {

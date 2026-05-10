@@ -69,6 +69,7 @@ import { syncReviewsForStore, startGoogleReviewSyncScheduler } from "./google-re
 import { TrialService } from "./services/trial-service";
 import { requireActiveTrial } from "./middleware/trial-middleware";
 import { setupNotificationServer, broadcastNotification } from "./notifications";
+import { checkOAuthRateLimit, syncCooldowns, SYNC_COOLDOWN_MS, getRateLimitSnapshot, clearRateLimitEntry, clearAllRateLimits, type RateLimitCategory } from "./rate-limits";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -3941,26 +3942,6 @@ If you have any questions, please contact your administrator.
    * Separate from /api/auth/google which handles user login exclusively.
    */
 
-  // Per-user rate limit for OAuth connect attempts: max 5 per 15 minutes
-  const _oauthConnectAttempts = new Map<number, { count: number; windowStart: number }>();
-  const OAUTH_WINDOW_MS  = 15 * 60 * 1000; // 15 minutes
-  const OAUTH_MAX_ATTEMPTS = 5;
-
-  function checkOAuthRateLimit(userId: number): { allowed: boolean; retryAfterSecs: number } {
-    const now = Date.now();
-    const entry = _oauthConnectAttempts.get(userId);
-    if (!entry || now - entry.windowStart > OAUTH_WINDOW_MS) {
-      _oauthConnectAttempts.set(userId, { count: 1, windowStart: now });
-      return { allowed: true, retryAfterSecs: 0 };
-    }
-    if (entry.count >= OAUTH_MAX_ATTEMPTS) {
-      const retryAfterSecs = Math.ceil((OAUTH_WINDOW_MS - (now - entry.windowStart)) / 1000);
-      return { allowed: false, retryAfterSecs };
-    }
-    entry.count++;
-    return { allowed: true, retryAfterSecs: 0 };
-  }
-
   app.get("/api/google-business/connect", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) {
@@ -4764,18 +4745,14 @@ If you have any questions, please contact your administrator.
   /**
    * Sync reviews from Google.
    */
-  // Per-store rate limit: 1 manual sync per 5 minutes
-  const _syncCooldowns = new Map<number, number>();
-  const SYNC_COOLDOWN_MS = 5 * 60 * 1000;
-
   app.post("/api/google-business/sync-reviews/:storeId", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const storeId = Number(req.params.storeId);
 
-    // Server-side rate limit — prevents bypass of the frontend cooldown timer
-    const lastSync = _syncCooldowns.get(storeId);
+    // Server-side rate limit — prevents bypass of the frontend cooldown timer (state in server/rate-limits.ts)
+    const lastSync = syncCooldowns.get(storeId);
     if (lastSync && Date.now() - lastSync < SYNC_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SYNC_COOLDOWN_MS - (Date.now() - lastSync)) / 1000);
       const mins = Math.floor(secsLeft / 60);
@@ -4783,7 +4760,7 @@ If you have any questions, please contact your administrator.
       const label = mins > 0 ? `${mins}m ${secs.toString().padStart(2, "0")}s` : `${secsLeft}s`;
       return res.status(429).json({ message: `Sync rate limit — please wait ${label} before syncing again.` });
     }
-    _syncCooldowns.set(storeId, Date.now());
+    syncCooldowns.set(storeId, Date.now());
 
     console.log(`[GBP] Manual sync-reviews triggered for storeId=${storeId}`);
 
@@ -5647,6 +5624,39 @@ If you have any questions, please contact your administrator.
    */
 
   // GET dashboard statistics
+  // ── Rate-limit admin endpoints ───────────────────────────────────────────
+  app.get("/api/admin/rate-limits", (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    res.json(getRateLimitSnapshot());
+  });
+
+  app.delete("/api/admin/rate-limits/clear-all", (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    clearAllRateLimits();
+    console.log(`[Admin] All rate-limit counters cleared by userId=${userId}`);
+    res.json({ ok: true });
+  });
+
+  app.delete("/api/admin/rate-limits/clear-all/:category", (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const category = req.params.category as RateLimitCategory;
+    clearAllRateLimits(category);
+    console.log(`[Admin] Rate-limit counters cleared for category=${category} by userId=${userId}`);
+    res.json({ ok: true });
+  });
+
+  app.delete("/api/admin/rate-limits/:category/:key", (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const { category, key } = req.params;
+    const removed = clearRateLimitEntry(category as RateLimitCategory, key);
+    console.log(`[Admin] Rate-limit entry ${category}/${key} ${removed ? "cleared" : "not found"} by userId=${userId}`);
+    res.json({ ok: true, removed });
+  });
+
   app.get("/api/admin/dashboard/stats", async (req, res) => {
     try {
       // Get total stores count using raw SQL via pool

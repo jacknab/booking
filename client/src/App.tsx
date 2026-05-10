@@ -57,6 +57,7 @@ import MultiLocationDashboard from "@/pages/MultiLocationDashboard";
 import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import SeoRegionsAdmin from "@/pages/admin/SeoRegionsAdmin";
 import AccountsAdmin from "@/pages/admin/AccountsAdmin";
+import RateLimitsPage from "@/pages/admin/RateLimitsPage";
 import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -214,6 +215,7 @@ function AppRoutes() {
       <Route path="/isadmin/*" element={<AdminDashboard />} />
       <Route path="/admin/seo-regions" element={<SeoRegionsAdmin />} />
       <Route path="/admin/accounts" element={<AccountsAdmin />} />
+      <Route path="/admin/rate-limits" element={<RateLimitsPage />} />
 
       {/* Onboarding */}
       <Route path="/onboarding" element={<Onboarding />} />
