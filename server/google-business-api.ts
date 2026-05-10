@@ -1,7 +1,14 @@
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { db } from "./db";
-import { googleBusinessProfiles, googleReviews, googleReviewResponses } from "@shared/schema";
+import {
+  googleBusinessProfiles,
+  googleBusinessAccounts,
+  googleBusinessLocations,
+  googleBusinessSyncLogs,
+  googleReviews,
+  googleReviewResponses,
+} from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export interface GoogleAuthConfig {
@@ -424,9 +431,44 @@ export async function syncGoogleReviews(
 
   const apiManager = createApiManagerFromProfile(googleProfile);
 
+  // ── Resolve the proper googleBusinessLocations row (for FK tagging + sync log) ──────────
+  // This row exists if the user connected via the new flow. Null is safe for legacy profiles.
+  let gbLocationRow: { id: number; locationId: string } | null = null;
+  try {
+    const locRows = await db
+      .select({ id: googleBusinessLocations.id, locationId: googleBusinessLocations.locationId })
+      .from(googleBusinessLocations)
+      .where(eq(googleBusinessLocations.locationResourceName, googleProfile.locationResourceName!))
+      .limit(1);
+    if (locRows.length) {
+      gbLocationRow = locRows[0];
+      console.log(`[Google Business OAuth] syncGoogleReviews — matched googleBusinessLocations id=${gbLocationRow.id}`);
+    } else {
+      console.log(`[Google Business OAuth] syncGoogleReviews — no googleBusinessLocations row yet for "${googleProfile.locationResourceName}" (legacy profile — will sync without FK tag)`);
+    }
+  } catch (e) {
+    console.warn("[Google Business OAuth] syncGoogleReviews — could not resolve googleBusinessLocations:", e);
+  }
+
   console.log(`[Google Business OAuth] syncGoogleReviews — calling getReviews for: ${googleProfile.locationResourceName}`);
-  const reviews = await apiManager.getReviews(googleProfile.locationResourceName);
-  console.log(`[Google Business OAuth] syncGoogleReviews — getReviews returned ${reviews.length} review(s)`);
+  let reviews: Awaited<ReturnType<typeof apiManager.getReviews>> = [];
+  let syncError: string | null = null;
+
+  try {
+    reviews = await apiManager.getReviews(googleProfile.locationResourceName!);
+    console.log(`[Google Business OAuth] syncGoogleReviews — getReviews returned ${reviews.length} review(s)`);
+  } catch (err: any) {
+    syncError = err?.message ?? String(err);
+    // Write failure sync log before re-throwing
+    await db.insert(googleBusinessSyncLogs).values({
+      storeId,
+      locationId: gbLocationRow?.id ?? null,
+      syncType:   "reviews",
+      status:     "failed",
+      errorMessage: syncError,
+    }).catch(() => {});
+    throw err;
+  }
 
   let insertedCount = 0;
   let updatedCount = 0;
@@ -455,6 +497,7 @@ export async function syncGoogleReviews(
         storeId,
         googleReviewId,
         googleLocationId:     googleProfile.locationId,
+        gbLocationId:         gbLocationRow?.id ?? null,  // proper FK to googleBusinessLocations
         customerName:         review.reviewer?.displayName ?? "Anonymous",
         rating,
         reviewText,
@@ -466,23 +509,35 @@ export async function syncGoogleReviews(
       });
       insertedCount++;
     } else {
+      // Update existing review — also set gbLocationId if it wasn't set before
       await db
         .update(googleReviews)
         .set({
           reviewText,
-          responseStatus:  hasReply ? "responded" : "not_responded",
+          responseStatus:   hasReply ? "responded" : "not_responded",
           reviewUpdateTime: review.updateTime ? new Date(review.updateTime) : null,
-          updatedAt:       new Date(),
+          gbLocationId:     existing[0].gbLocationId ?? gbLocationRow?.id ?? null,
+          updatedAt:        new Date(),
         })
         .where(eq(googleReviews.googleReviewId, googleReviewId));
       updatedCount++;
     }
   }
 
+  // ── Mark last synced in profile ──────────────────────────────────────────────
   await db
     .update(googleBusinessProfiles)
     .set({ lastSyncedAt: new Date() })
     .where(eq(googleBusinessProfiles.id, googleProfile.id));
+
+  // ── Write success sync log ───────────────────────────────────────────────────
+  await db.insert(googleBusinessSyncLogs).values({
+    storeId,
+    locationId:    gbLocationRow?.id ?? null,
+    syncType:      "reviews",
+    status:        "success",
+    reviewsSynced: reviews.length,
+  }).catch((e) => console.warn("[Google Business OAuth] syncGoogleReviews — could not write sync log:", e));
 
   console.log(
     `[Google Business OAuth] ── syncGoogleReviews DONE — storeId=${storeId}:` +
@@ -491,7 +546,7 @@ export async function syncGoogleReviews(
 
   return {
     synced:               reviews.length,
-    locationResourceName: googleProfile.locationResourceName,
+    locationResourceName: googleProfile.locationResourceName!,
     businessName:         googleProfile.businessName,
   };
 }

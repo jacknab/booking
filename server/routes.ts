@@ -31,6 +31,9 @@ import {
   insertCashDrawerSessionSchema,
   insertCalendarSettingsSchema,
   googleBusinessProfiles,
+  googleBusinessAccounts,
+  googleBusinessLocations,
+  googleBusinessSyncLogs,
   googleReviews,
   googleReviewResponses,
   insertGoogleReviewResponseSchema,
@@ -4212,6 +4215,58 @@ If you have any questions, please contact your administrator.
         console.log("[Google Business OAuth] Profile inserted — id:", profileRow.id);
       }
 
+      // ── Upsert googleBusinessAccounts rows (one per account returned) ────────
+      // Each account gets its own row with the OAuth tokens so tokens are stored
+      // at account level (per the schema design), not just on the legacy profile row.
+      const sessionUserId: string | null = (req.session as any)?.userId ?? null;
+      if (sessionUserId && accounts.length) {
+        console.log(`[Google Business OAuth] Upserting ${accounts.length} account(s) into googleBusinessAccounts…`);
+        for (const acct of accounts) {
+          try {
+            const existingAcct = await db
+              .select({ id: googleBusinessAccounts.id })
+              .from(googleBusinessAccounts)
+              .where(eq(googleBusinessAccounts.googleAccountId, acct.name))
+              .limit(1);
+
+            if (existingAcct.length) {
+              await db
+                .update(googleBusinessAccounts)
+                .set({
+                  accountName:  acct.accountName ?? acct.displayName ?? null,
+                  accessToken:  tokens.access_token,
+                  refreshToken: tokens.refresh_token ?? undefined,
+                  tokenExpiry:  tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+                  scopes:       tokens.scope ?? null,
+                  updatedAt:    new Date(),
+                })
+                .where(eq(googleBusinessAccounts.id, existingAcct[0].id));
+              console.log(`[Google Business OAuth]   account updated — id=${existingAcct[0].id}  googleAccountId="${acct.name}"`);
+            } else {
+              const inserted = await db
+                .insert(googleBusinessAccounts)
+                .values({
+                  storeId,
+                  userId:          sessionUserId,
+                  googleAccountId: acct.name,
+                  accountName:     acct.accountName ?? acct.displayName ?? null,
+                  accessToken:     tokens.access_token,
+                  refreshToken:    tokens.refresh_token ?? null,
+                  tokenExpiry:     tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+                  scopes:          tokens.scope ?? null,
+                })
+                .returning({ id: googleBusinessAccounts.id });
+              console.log(`[Google Business OAuth]   account inserted — id=${inserted[0].id}  googleAccountId="${acct.name}"`);
+            }
+          } catch (acctWriteErr: any) {
+            console.warn(`[Google Business OAuth]   could not upsert account "${acct.name}":`, acctWriteErr?.message ?? acctWriteErr);
+          }
+        }
+      } else {
+        if (!sessionUserId) console.warn("[Google Business OAuth] No userId in session — skipping googleBusinessAccounts upsert");
+        if (!accounts.length)  console.warn("[Google Business OAuth] No accounts returned — skipping googleBusinessAccounts upsert");
+      }
+
       // ── Store result in session for frontend pickup ──────────────────────────
       (req.session as any).googleConnectionResult = {
         success:    true,
@@ -4498,6 +4553,69 @@ If you have any questions, please contact your administrator.
 
       const connectedProfile = updated[0];
       console.log(`[GBP] connect-location — DB updated. storeId=${connectedProfile.storeId}  locationResourceName="${connectedProfile.locationResourceName}"`);
+
+      // ── Write to googleBusinessLocations (proper location table) ──────────────
+      // 1. Find the googleBusinessAccounts row for this store
+      // 2. Unset isSelected on ALL existing locations for this storeId
+      // 3. Upsert the newly-selected location with isSelected=true
+      try {
+        const acctRows = await db
+          .select({ id: googleBusinessAccounts.id })
+          .from(googleBusinessAccounts)
+          .where(eq(googleBusinessAccounts.storeId, connectedProfile.storeId))
+          .limit(1);
+
+        const acctId = acctRows[0]?.id ?? null;
+
+        if (acctId) {
+          // Unselect all existing locations for this store (enforce single selection)
+          await db
+            .update(googleBusinessLocations)
+            .set({ isSelected: false, updatedAt: new Date() })
+            .where(eq(googleBusinessLocations.storeId, connectedProfile.storeId));
+
+          // Upsert the selected location
+          const leafId = locationId ?? locationName.split("/locations/")[1] ?? locationName;
+          const existingLoc = await db
+            .select({ id: googleBusinessLocations.id })
+            .from(googleBusinessLocations)
+            .where(eq(googleBusinessLocations.locationResourceName, locationName))
+            .limit(1);
+
+          if (existingLoc.length) {
+            await db
+              .update(googleBusinessLocations)
+              .set({
+                locationName: businessName ?? null,
+                address:      locationAddress ?? null,
+                isSelected:   true,
+                updatedAt:    new Date(),
+              })
+              .where(eq(googleBusinessLocations.id, existingLoc[0].id));
+            console.log(`[GBP] connect-location — googleBusinessLocations updated id=${existingLoc[0].id}`);
+          } else {
+            const inserted = await db
+              .insert(googleBusinessLocations)
+              .values({
+                storeId:             connectedProfile.storeId,
+                userId:              userId as string,
+                businessAccountId:   acctId,
+                locationResourceName: locationName,
+                locationId:          leafId,
+                locationName:        businessName ?? null,
+                address:             locationAddress ?? null,
+                isSelected:          true,
+              })
+              .returning({ id: googleBusinessLocations.id });
+            console.log(`[GBP] connect-location — googleBusinessLocations inserted id=${inserted[0].id}`);
+          }
+        } else {
+          console.warn(`[GBP] connect-location — no googleBusinessAccounts row found for storeId=${connectedProfile.storeId}. Location not written to new table (legacy flow — will be populated on next OAuth reconnect).`);
+        }
+      } catch (locWriteErr: any) {
+        // Non-fatal — the legacy google_business_profiles row is already updated.
+        console.warn("[GBP] connect-location — could not write to googleBusinessLocations:", locWriteErr?.message ?? locWriteErr);
+      }
 
       // ── Auto-trigger review sync immediately after location is connected ──
       // Fire-and-forget: don't let a sync failure block the connect response.

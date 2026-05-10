@@ -1,0 +1,155 @@
+Build a streamlined Google Business Profile onboarding flow for salon owners inside the Certxa platform.
+
+The goal is to allow a user to:
+
+* connect Google Business Profile
+* select a location
+* start review syncing
+  ALL in under 60 seconds with minimal friction.
+
+──────────────────────────────
+GOAL USER FLOW
+──────────────────────────────
+Step 1 → Click “Connect Google Business”
+Step 2 → Google OAuth consent screen
+Step 3 → Return to app with business accounts + locations
+Step 4 → Select correct salon location
+Step 5 → Auto-start review syncing
+
+No extra steps. No confusion. No manual configuration required.
+
+──────────────────────────────
+
+1. ENTRY POINT (UI)
+   ──────────────────────────────
+   Add a primary CTA button:
+
+“Connect Google Business Profile”
+
+On click:
+
+* Start OAuth flow using business client:
+  GOOGLE_BUSINESS_CLIENT_ID
+* Redirect to:
+  https://certxa.com/api/google-business/callback
+
+Must request scope:
+
+* https://www.googleapis.com/auth/business.manage
+
+──────────────────────────────
+2. OAUTH CALLBACK HANDLING
+──────────────────────────────
+After Google returns:
+
+Backend must:
+
+* exchange code for access_token + refresh_token
+* fetch business accounts
+* fetch all locations per account
+* store in database
+
+Then redirect user to:
+
+/dashboard/google-business/setup
+
+──────────────────────────────
+3. LOCATION SELECTION SCREEN (CRITICAL STEP)
+──────────────────────────────
+Show user:
+
+* List of all Google Business locations:
+
+  * business name
+  * address
+  * phone (if available)
+
+Each location should have:
+
+* “Select This Location” button
+
+If only ONE location:
+
+* auto-select it
+* skip selection screen
+
+──────────────────────────────
+4. AUTO-SELECTION BEHAVIOR
+──────────────────────────────
+When user selects a location:
+
+Backend must:
+
+* set is_selected = true for that location
+* set all other locations to false
+* immediately trigger first sync
+
+──────────────────────────────
+5. AUTO SYNC TRIGGER (IMPORTANT)
+──────────────────────────────
+After selection:
+
+Automatically call:
+POST /api/google-business/sync-reviews
+
+Do NOT require user to click sync button initially.
+
+Show:
+
+* "Syncing your Google reviews..."
+
+Then:
+
+* redirect to dashboard once complete
+
+──────────────────────────────
+6. SUCCESS STATE
+──────────────────────────────
+Show success screen:
+
+* “Google Business Connected”
+* Location name + address
+* Total reviews synced
+* Average rating
+* Last sync time
+
+CTA:
+
+* “Go to Dashboard”
+
+──────────────────────────────
+7. ERROR HANDLING
+──────────────────────────────
+If any step fails:
+
+* show human-readable error
+* offer “Reconnect Google Business”
+* do NOT expose raw API errors
+
+Examples:
+
+* “Unable to fetch your locations. Please try reconnecting.”
+* “Google access expired. Please reconnect your account.”
+
+──────────────────────────────
+8. PERFORMANCE REQUIREMENTS
+──────────────────────────────
+
+* OAuth → setup → sync must complete in < 60 seconds
+* No unnecessary pages or manual config
+* No technical terms shown to users
+* Everything should feel like a guided wizard
+
+──────────────────────────────
+9. FINAL RESULT
+──────────────────────────────
+After implementation:
+
+A salon owner should be able to:
+
+1. Click “Connect Google Business”
+2. Sign into Google
+3. Select salon location
+4. Land in dashboard with reviews already syncing
+
+No confusion. No extra setup steps. Fully automated onboarding.

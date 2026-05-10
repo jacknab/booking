@@ -477,11 +477,84 @@ export const googleBusinessProfiles = pgTable("google_business_profiles", {
   storeIdUnique: uniqueIndex("google_business_profiles_store_id_uidx").on(table.storeId),
 }));
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE BUSINESS ACCOUNTS
+// One row per connected Google Business account per store.
+// Owns all OAuth tokens. NEVER mixed with the Google Login system.
+// ─────────────────────────────────────────────────────────────────────────────
+export const googleBusinessAccounts = pgTable("google_business_accounts", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  googleAccountId: text("google_account_id").notNull(), // resource name e.g. "accounts/123456789"
+  accountName: text("account_name"),                    // human-readable name from Google API
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiry: timestamp("token_expiry"),
+  scopes: text("scopes"),                               // space-separated granted scopes
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  gbaStoreIdIdx:          index("gba_store_id_idx").on(table.storeId),
+  gbaUserIdIdx:           index("gba_user_id_idx").on(table.userId),
+  gbaGoogleAccountIdIdx:  index("gba_google_account_id_idx").on(table.googleAccountId),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE BUSINESS LOCATIONS
+// Individual physical locations per Google Business account.
+// Reviews MUST always be tied to a location, never to an account.
+// ─────────────────────────────────────────────────────────────────────────────
+export const googleBusinessLocations = pgTable("google_business_locations", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  businessAccountId: integer("business_account_id").references(() => googleBusinessAccounts.id).notNull(),
+  locationResourceName: text("location_resource_name").notNull(), // full resource e.g. "accounts/123/locations/456"
+  locationId: text("location_id").notNull(),                       // extracted leaf ID "456"
+  locationName: text("location_name"),                             // human-readable business name
+  address: text("address"),
+  phone: text("phone"),
+  isSelected: boolean("is_selected").default(false),               // only ONE active per storeId
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  gblStoreIdIdx:              index("gbl_store_id_idx").on(table.storeId),
+  gblUserIdIdx:               index("gbl_user_id_idx").on(table.userId),
+  gblBusinessAccountIdIdx:    index("gbl_business_account_id_idx").on(table.businessAccountId),
+  gblLocationResourceNameUdx: uniqueIndex("gbl_location_resource_name_uidx").on(table.locationResourceName),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE BUSINESS SYNC LOGS
+// Tracks every review-sync + location-fetch operation for debugging.
+// status: "success" | "failed"   syncType: "reviews" | "locations"
+// ─────────────────────────────────────────────────────────────────────────────
+export const googleBusinessSyncLogs = pgTable("google_business_sync_logs", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => locations.id),
+  userId: varchar("user_id").references(() => users.id),
+  locationId: integer("location_id").references(() => googleBusinessLocations.id),
+  syncType: text("sync_type").notNull(),   // "reviews" | "locations"
+  status: text("status").notNull(),         // "success" | "failed"
+  errorMessage: text("error_message"),
+  reviewsSynced: integer("reviews_synced"),
+  syncedAt: timestamp("synced_at").defaultNow(),
+}, (table) => ({
+  gbslStoreIdIdx:   index("gbsl_store_id_idx").on(table.storeId),
+  gbslLocationIdx:  index("gbsl_location_id_idx").on(table.locationId),
+  gbslSyncedAtIdx:  index("gbsl_synced_at_idx").on(table.syncedAt),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE REVIEWS  (now with proper FK to googleBusinessLocations)
+// ─────────────────────────────────────────────────────────────────────────────
 export const googleReviews = pgTable("google_reviews", {
   id: serial("id").primaryKey(),
   storeId: integer("store_id").references(() => locations.id).notNull(),
   googleReviewId: text("google_review_id").unique().notNull(),
-  googleLocationId: text("google_location_id"),
+  googleLocationId: text("google_location_id"),       // legacy plain-text location ID (kept for compat)
+  gbLocationId: integer("gb_location_id").references(() => googleBusinessLocations.id), // proper FK
   customerName: text("customer_name"),
   customerPhoneNumber: text("customer_phone_number"),
   rating: integer("rating").notNull(),
@@ -836,8 +909,36 @@ export const googleBusinessProfilesRelations = relations(googleBusinessProfiles,
   reviews: many(googleReviews),
 }));
 
+export const googleBusinessAccountsRelations = relations(googleBusinessAccounts, ({ one, many }) => ({
+  store: one(locations, { fields: [googleBusinessAccounts.storeId], references: [locations.id] }),
+  locations: many(googleBusinessLocations),
+  syncLogs: many(googleBusinessSyncLogs),
+}));
+
+export const googleBusinessLocationsRelations = relations(googleBusinessLocations, ({ one, many }) => ({
+  store: one(locations, { fields: [googleBusinessLocations.storeId], references: [locations.id] }),
+  businessAccount: one(googleBusinessAccounts, {
+    fields: [googleBusinessLocations.businessAccountId],
+    references: [googleBusinessAccounts.id],
+  }),
+  reviews: many(googleReviews),
+  syncLogs: many(googleBusinessSyncLogs),
+}));
+
+export const googleBusinessSyncLogsRelations = relations(googleBusinessSyncLogs, ({ one }) => ({
+  store: one(locations, { fields: [googleBusinessSyncLogs.storeId], references: [locations.id] }),
+  location: one(googleBusinessLocations, {
+    fields: [googleBusinessSyncLogs.locationId],
+    references: [googleBusinessLocations.id],
+  }),
+}));
+
 export const googleReviewsRelations = relations(googleReviews, ({ one, many }) => ({
   store: one(locations, { fields: [googleReviews.storeId], references: [locations.id] }),
+  gbLocation: one(googleBusinessLocations, {
+    fields: [googleReviews.gbLocationId],
+    references: [googleBusinessLocations.id],
+  }),
   appointment: one(appointments, {
     fields: [googleReviews.appointmentId],
     references: [appointments.id],
@@ -885,6 +986,9 @@ export const insertStaffSettingsSchema = createInsertSchema(staffSettings).omit(
 export const insertStoreSettingsSchema = createInsertSchema(storeSettings).omit({ id: true });
 
 export const insertGoogleBusinessProfileSchema = createInsertSchema(googleBusinessProfiles).omit({ id: true });
+export const insertGoogleBusinessAccountSchema = createInsertSchema(googleBusinessAccounts).omit({ id: true });
+export const insertGoogleBusinessLocationSchema = createInsertSchema(googleBusinessLocations).omit({ id: true });
+export const insertGoogleBusinessSyncLogSchema = createInsertSchema(googleBusinessSyncLogs).omit({ id: true });
 export const insertGoogleReviewSchema = createInsertSchema(googleReviews).omit({ id: true });
 export const insertGoogleReviewResponseSchema = createInsertSchema(googleReviewResponses).omit({ id: true });
 
@@ -979,6 +1083,15 @@ export type InsertStoreSettings = z.infer<typeof insertStoreSettingsSchema>;
 
 export type GoogleBusinessProfile = typeof googleBusinessProfiles.$inferSelect;
 export type InsertGoogleBusinessProfile = z.infer<typeof insertGoogleBusinessProfileSchema>;
+
+export type GoogleBusinessAccount = typeof googleBusinessAccounts.$inferSelect;
+export type InsertGoogleBusinessAccount = z.infer<typeof insertGoogleBusinessAccountSchema>;
+
+export type GoogleBusinessLocation = typeof googleBusinessLocations.$inferSelect;
+export type InsertGoogleBusinessLocation = z.infer<typeof insertGoogleBusinessLocationSchema>;
+
+export type GoogleBusinessSyncLog = typeof googleBusinessSyncLogs.$inferSelect;
+export type InsertGoogleBusinessSyncLog = z.infer<typeof insertGoogleBusinessSyncLogSchema>;
 
 export type GoogleReview = typeof googleReviews.$inferSelect;
 export type InsertGoogleReview = z.infer<typeof insertGoogleReviewSchema>;
