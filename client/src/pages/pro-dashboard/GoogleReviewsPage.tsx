@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { StoreContext } from "@/hooks/use-store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoogleBusinessProfileSetup } from "@/components/GoogleBusinessProfileSetup";
@@ -9,6 +9,7 @@ export default function GoogleReviewsPage() {
   const ctx = useContext(StoreContext);
   const store = ctx?.selectedStore;
   const storeId = store?.id ?? null;
+  const [activeTab, setActiveTab] = useState<string>("setup");
 
   return (
     <div className="p-6 max-w-5xl">
@@ -24,7 +25,7 @@ export default function GoogleReviewsPage() {
           No store found. Complete onboarding to connect your Google Business Profile.
         </div>
       ) : (
-        <Tabs defaultValue="setup">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6 bg-white/5 border border-white/10">
             <TabsTrigger value="setup" className="gap-2 data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">
               <Building2 size={14} />
@@ -37,7 +38,10 @@ export default function GoogleReviewsPage() {
           </TabsList>
 
           <TabsContent value="setup">
-            <GoogleBusinessProfileSetup storeId={storeId} />
+            <GoogleBusinessProfileSetup
+              storeId={storeId}
+              onConnectSuccess={() => setActiveTab("reviews")}
+            />
           </TabsContent>
 
           <TabsContent value="reviews">

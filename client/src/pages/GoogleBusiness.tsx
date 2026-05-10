@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoogleBusinessProfileSetup } from "@/components/GoogleBusinessProfileSetup";
@@ -9,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 export default function GoogleBusiness() {
   const { selectedStore, isLoading } = useSelectedStore();
   const storeId = selectedStore?.id ?? null;
+  const [activeTab, setActiveTab] = useState<string>("setup");
 
   return (
     <AppLayout>
@@ -34,7 +36,7 @@ export default function GoogleBusiness() {
             </CardHeader>
           </Card>
         ) : (
-          <Tabs defaultValue="setup">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="setup" className="gap-2">
                 <Building2 size={15} />
@@ -47,7 +49,10 @@ export default function GoogleBusiness() {
             </TabsList>
 
             <TabsContent value="setup">
-              <GoogleBusinessProfileSetup storeId={storeId} />
+              <GoogleBusinessProfileSetup
+                storeId={storeId}
+                onConnectSuccess={() => setActiveTab("reviews")}
+              />
             </TabsContent>
 
             <TabsContent value="reviews">
