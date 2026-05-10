@@ -208,10 +208,11 @@ export default function Onboarding() {
   const { user, isLoading } = useAuth();
 
   // ── All hooks must be declared before any conditional return ──
-  const totalSteps = 6;
+  const totalSteps = 5;
   const [step, setStep] = useState(1);
   const [teamSize, setTeamSize] = useState<"myself" | "team" | null>(null);
   const [goals, setGoals] = useState<string[]>([]);
+  const [showBusinessTypePanel, setShowBusinessTypePanel] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -423,33 +424,15 @@ export default function Onboarding() {
   const canProceed = (s: number) => {
     if (s === 1) return teamSize !== null;
     if (s === 2) return true;
-    if (s === 3) return !!selectedType;
-    if (s === 4) {
-      const hasName = businessName.trim().length > 0;
-      const validEmail = !email.trim() || validateEmail(email);
-      const validPhone = !phone.trim() || validatePhone(phone);
-      const validPostcode = !postcode.trim() || validatePostcode(postcode);
-      const validAddress = !address.trim() || validateAddress(address);
-      return (
-        hasName &&
-        validEmail &&
-        validPhone &&
-        validPostcode &&
-        validAddress &&
-        !emailError &&
-        !phoneError &&
-        !postcodeError &&
-        !addressError
-      );
-    }
-    if (s === 5) return true;
-    if (s === 6) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
+    if (s === 3) return businessName.trim().length > 0 && !!selectedType && (!phone.trim() || !phoneError);
+    if (s === 4) return true;
+    if (s === 5) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
     return false;
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050C18] text-white p-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div className={`w-full transition-all duration-300 ${step === 3 ? "max-w-2xl" : "max-w-xl"}`}>
+      <div className="w-full max-w-xl transition-all duration-300">
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-lg shadow" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
           <span className="font-extrabold text-2xl tracking-tight text-white">Certxa</span>
@@ -554,153 +537,129 @@ export default function Onboarding() {
           );
         })()}
 
-        {step === 3 && (
-          <Step1BusinessType
-            selectedType={selectedType}
-            setSelectedType={setSelectedType}
-            onNext={() => setStep(4)}
-            canProceed={canProceed(3)}
-          />
-        )}
-
-        {step === 4 && (
-          <div>
-            <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step2-title">Tell us about your business</h2>
-            <p className="text-sm text-white/45 text-center mb-6">This info helps set up your store profile</p>
-
-            <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-6 space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="businessName" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Business name *</Label>
-                  <Input
-                    id="businessName"
-                    data-testid="input-business-name"
+        {step === 3 && (() => {
+          const allBusinessTypes = [
+            "Barbershop", "Beauty Salon", "Esthetician", "Hair Removal",
+            "Hair Salon", "Massage Therapist", "Nail Salon", "Pet Groomer",
+            "Spa", "Tattoo Studio", "Other",
+          ];
+          return showBusinessTypePanel ? (
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                <button type="button" onClick={() => setShowBusinessTypePanel(false)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <span className="font-semibold text-gray-800 text-sm">Select Business Type</span>
+              </div>
+              <div className="overflow-y-auto max-h-[420px]">
+                {allBusinessTypes.map((bt) => (
+                  <button
+                    key={bt}
+                    type="button"
+                    onClick={() => { setSelectedType(bt); setShowBusinessTypePanel(false); }}
+                    className="w-full text-left px-5 py-4 text-sm text-gray-700 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                  >
+                    {bt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="px-6 pt-6 pb-2 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="e.g. Bella's Hair Studio"
+                    placeholder="Enter Business Name"
+                    data-testid="input-business-name"
                     autoFocus
-                    className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#4B5FD6] text-sm"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Business Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    data-testid="input-email"
-                    value={email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="e.g. info@bellashair.com"
-                    className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${emailError ? "border-red-500/50" : ""}`}
-                  />
-                  {emailError && <p className="text-xs text-red-400 mt-1">{emailError}</p>}
-                  <p className="text-xs text-white/30">Used for booking confirmations and customer contact</p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="address" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Address</Label>
-                  <Input
-                    id="address"
-                    data-testid="input-address"
-                    value={address}
-                    onChange={(e) => handleAddressChange(e.target.value)}
-                    placeholder="e.g. 123 Main St"
-                    className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${addressError ? "border-red-500/50" : ""}`}
-                  />
-                  {addressError && <p className="text-xs text-red-400 mt-1">{addressError}</p>}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="city" className="text-white/60 text-xs font-semibold uppercase tracking-wider">City</Label>
-                    <Input
-                      id="city"
-                      data-testid="input-city"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="New York"
-                      className="bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="state" className="text-white/60 text-xs font-semibold uppercase tracking-wider">State</Label>
-                    <Select value={state} onValueChange={setState}>
-                      <SelectTrigger data-testid="select-state" className="bg-white/6 border-white/15 text-white h-11 rounded-xl">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
-                        {usStates.map((usState) => (
-                          <SelectItem key={usState.value} value={usState.value} className="text-white focus:bg-white/10 focus:text-white">
-                            {usState.value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="postcode" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Zip</Label>
-                    <Input
-                      id="postcode"
-                      data-testid="input-postcode"
-                      value={postcode}
-                      onChange={(e) => handlePostcodeChange(e.target.value)}
-                      placeholder="10001"
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Telephone Number <span className="text-red-500">*</span></label>
+                  <div className="flex items-center h-12 rounded-xl border border-gray-200 overflow-hidden focus-within:border-[#4B5FD6] transition-colors">
+                    <span className="flex items-center gap-1 px-3 text-sm text-gray-600 border-r border-gray-200 h-full bg-gray-50 shrink-0">
+                      🇺🇸 <ChevronRight className="w-3 h-3 text-gray-400" />
+                    </span>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      placeholder="Enter Business Telephone Number"
+                      data-testid="input-phone"
                       inputMode="numeric"
-                      maxLength={5}
-                      className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${postcodeError ? "border-red-500/50" : ""}`}
+                      maxLength={10}
+                      className="flex-1 px-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none h-full"
                     />
-                    {postcodeError && <p className="text-xs text-red-400 mt-1">{postcodeError}</p>}
+                  </div>
+                  {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Choose Business Type <span className="text-red-500">*</span></label>
+                  <button
+                    type="button"
+                    onClick={() => setShowBusinessTypePanel(true)}
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-left flex items-center justify-between hover:border-[#4B5FD6] transition-colors"
+                  >
+                    <span className={selectedType ? "text-sm text-gray-800" : "text-sm text-gray-400"}>
+                      {selectedType || "Select Business Type"}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country <span className="text-red-500">*</span></label>
+                  <div className="w-full h-12 px-4 rounded-xl border border-gray-200 flex items-center justify-between bg-gray-50">
+                    <span className="text-sm text-gray-700">United States</span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    data-testid="input-phone"
-                    value={phone}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    placeholder="(555) 123-4567"
-                    inputMode="numeric"
-                    maxLength={10}
-                    className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${phoneError ? "border-red-500/50" : ""}`}
-                  />
-                  {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="timezone" className="text-white/60 text-xs font-semibold uppercase tracking-wider">Timezone</Label>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Set Timezone <span className="text-red-500">*</span></label>
                   <Select value={timezone} onValueChange={setTimezone}>
-                    <SelectTrigger data-testid="select-timezone" className="bg-white/6 border-white/15 text-white h-11 rounded-xl">
+                    <SelectTrigger data-testid="select-timezone" className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-gray-800 bg-white focus:border-[#4B5FD6]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#0D1F35] border-white/15 text-white">
+                    <SelectContent>
                       {timezones.map((tz) => (
-                        <SelectItem key={tz.value} value={tz.value} data-testid={`option-tz-${tz.value}`} className="text-white focus:bg-white/10 focus:text-white">
+                        <SelectItem key={tz.value} value={tz.value} data-testid={`option-tz-${tz.value}`}>
                           {tz.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-white/30">Auto-detected from your browser</p>
                 </div>
-            </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(3)} data-testid="button-back-step"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              <button onClick={() => setStep(5)} disabled={!canProceed(4)} data-testid="button-next-step"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
-                Next <ArrowRight className="w-4 h-4" />
-              </button>
+                <p className="text-xs text-[#4B5FD6] text-center pb-2">All fields are required <span className="text-red-500">*</span></p>
+              </div>
+              <div className="flex border-t border-gray-100">
+                <button
+                  onClick={() => setStep(2)}
+                  className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors border-r border-gray-100"
+                >
+                  back
+                </button>
+                <button
+                  onClick={() => setStep(4)}
+                  disabled={!canProceed(3)}
+                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#4B5FD6] hover:bg-[#3d4fb8] transition-colors disabled:opacity-50"
+                >
+                  Continue
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
-        {step === 5 && (() => {
+        {step === 4 && (() => {
           const openDayIndices = hours.filter(h => !h.isClosed).map(h => h.dayOfWeek);
           const allDaysSet = openDayIndices.length === 7;
 
@@ -831,11 +790,11 @@ export default function Onboarding() {
               </div>
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <button onClick={() => setStep(4)} data-testid="button-back-step"
+                <button onClick={() => setStep(3)} data-testid="button-back-step"
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setStep(6)} disabled={!canProceed(5)} data-testid="button-next-step"
+                <button onClick={() => setStep(5)} disabled={!canProceed(4)} data-testid="button-next-step"
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
                   Next <ArrowRight className="w-4 h-4" />
                 </button>
@@ -844,7 +803,7 @@ export default function Onboarding() {
           );
         })()}
 
-        {step === 6 && (
+        {step === 5 && (
           <div>
             <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step4-title">Add your team</h2>
             <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
@@ -917,13 +876,13 @@ export default function Onboarding() {
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(5)} data-testid="button-back-step"
+              <button onClick={() => setStep(4)} data-testid="button-back-step"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <button
                 onClick={handleComplete}
-                disabled={!canProceed(6) || onboardMutation.isPending}
+                disabled={!canProceed(5) || onboardMutation.isPending}
                 data-testid="button-complete-setup"
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40"
               >
