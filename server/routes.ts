@@ -4246,6 +4246,8 @@ If you have any questions, please contact your administrator.
       console.log("[Google Business OAuth] Fetching Business Profile accounts…");
       let accounts: any[] = [];
       let accountsFetchQuotaError = false;
+      let accountsFetchErrorStatus: number | null = null;
+      let accountsFetchErrorMessage: string | null = null;
       try {
         const accountsData = await apiManager.getBusinessAccounts();
         accounts = (accountsData.accounts ?? []) as any[];
@@ -4255,8 +4257,11 @@ If you have any questions, please contact your administrator.
         });
       } catch (acctErr: any) {
         const status = acctErr?.code ?? acctErr?.response?.status ?? acctErr?.status;
+        const errMsg = acctErr?.response?.data?.error?.message ?? acctErr?.message ?? "unknown error";
+        accountsFetchErrorStatus  = status ?? null;
+        accountsFetchErrorMessage = errMsg;
         console.error("[Google Business OAuth] Failed to fetch accounts — status:", status);
-        console.error("[Google Business OAuth] Error detail:", acctErr?.message ?? acctErr);
+        console.error("[Google Business OAuth] Error detail:", errMsg);
         if (status === 429) {
           accountsFetchQuotaError = true;
           console.warn("[Google Business OAuth] 429: Quota exceeded fetching accounts — tokens saved, user can retry without re-auth");
@@ -4384,13 +4389,15 @@ If you have any questions, please contact your administrator.
 
       // ── Store result in session for frontend pickup ──────────────────────────
       (req.session as any).googleConnectionResult = {
-        success:    true,
-        email:      userInfo?.email ?? null,
+        success:              true,
+        email:                userInfo?.email ?? null,
         accounts,
-        businesses: allLocations,
-        profileId:  profileRow.id,
+        businesses:           allLocations,
+        profileId:            profileRow.id,
         storeId,
-        quotaError: accountsFetchQuotaError || undefined,
+        quotaError:           accountsFetchQuotaError || undefined,
+        accountsFetchStatus:  accountsFetchErrorStatus  ?? undefined,
+        accountsFetchMessage: accountsFetchErrorMessage ?? undefined,
       };
 
       console.log("[Google Business OAuth] ── Callback complete ──────────────────────────────");

@@ -90,16 +90,21 @@ function formatAddress(addr?: StorefrontAddress): string {
   return parts.filter(Boolean).join(", ");
 }
 
-function mapErrorToHuman(raw: string): string {
+function mapErrorToHuman(raw: string, httpStatus?: number): string {
   if (!raw) return "An unexpected error occurred. Please try again.";
   if (raw.includes("access_denied") || raw.includes("access was denied"))
     return "Google access was denied. Please try again and accept the requested permissions.";
   if (raw.includes("token") || raw.includes("credential") || raw.includes("invalid_grant") || raw.includes("expired"))
     return "Your Google access has expired. Please reconnect your account.";
-  if (raw.includes("quota") || raw.includes("429"))
+  // Check 403/PERMISSION_DENIED BEFORE checking for "quota" — Google 403 error bodies
+  // sometimes include the word "quota" (e.g. "PERMISSION_DENIED: quota not available"),
+  // so checking status/permission first prevents misclassification.
+  if (httpStatus === 403 || raw.includes("403") || raw.includes("PERMISSION_DENIED") || raw.includes("denied access"))
+    return "Google denied access (403). Make sure the 'My Business Account Management API' and 'Business Profile API' are enabled in your Google Cloud Console. If your OAuth app is in Testing mode, ensure your account is listed as a test user.";
+  if (httpStatus === 429 || raw.includes("429") || raw.toLowerCase().includes("quota cooldown"))
+    return "Google API daily quota reached. Your quota resets at midnight UTC — the system won't retry until then to avoid wasting quota.";
+  if (raw.includes("quota"))
     return "Google API quota limit reached. Please wait a few minutes and try again.";
-  if (raw.includes("403") || raw.includes("PERMISSION_DENIED") || raw.includes("denied access"))
-    return "Google denied access to your Business Profile. Ensure the Business Profile API is enabled in Google Cloud Console.";
   if (raw.includes("404") || raw.includes("not found"))
     return "Your connected location was not found on Google. Please reconnect and reselect your location.";
   if (raw.includes("No Business Profile") || raw.includes("no Business Profile"))
@@ -347,22 +352,45 @@ export function GoogleBusinessProfileSetup({
 
       const res = await axios.get("/api/google-business/connection-result");
       // `businesses` = all locations already fetched during the OAuth callback
-      const { accounts: accts = [], businesses: prefetchedLocs = [], profileId: pid, quotaError } = res.data;
+      const {
+        accounts: accts = [],
+        businesses: prefetchedLocs = [],
+        profileId: pid,
+        quotaError,
+        accountsFetchStatus,
+        accountsFetchMessage,
+      } = res.data;
 
       if (!accts.length) {
-        // If we hit quota during the callback the tokens ARE saved — offer retry
+        // 429 — genuine quota exhaustion: tokens are saved, user can retry without re-auth
         if (pid && quotaError) {
           setProfileId(pid);
           setStep("quota-retry");
           return;
         }
-        // If we have a profileId but no quotaError flag, still let them retry
-        // (handles old session results that didn't include the quotaError field)
-        if (pid) {
+
+        // 403 — API not enabled or OAuth app not verified: show a clear, actionable error
+        if (accountsFetchStatus === 403 || (accountsFetchMessage ?? "").includes("PERMISSION_DENIED")) {
+          setErrorMsg(
+            mapErrorToHuman(accountsFetchMessage ?? "403", 403)
+          );
+          setStep("initial");
+          return;
+        }
+
+        // Any other error with a saved profileId — give a generic retry option
+        if (pid && accountsFetchStatus) {
+          setErrorMsg(
+            mapErrorToHuman(
+              accountsFetchMessage ?? `Google API error (status ${accountsFetchStatus})`,
+              accountsFetchStatus
+            )
+          );
           setProfileId(pid);
           setStep("quota-retry");
           return;
         }
+
         setErrorMsg(
           "Google authentication succeeded but no Business Profile accounts were found. " +
           "Make sure your Google account has a Business Profile at business.google.com."
@@ -453,7 +481,8 @@ export function GoogleBusinessProfileSetup({
         setStep("select-account");
       }
     } catch (err: any) {
-      setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
+      const status = err?.response?.status ?? err?.status ?? err?.code;
+      setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? "", status));
       setStep("initial");
     } finally {
       setLoading(false);
@@ -522,15 +551,19 @@ export function GoogleBusinessProfileSetup({
         setStep("select-account");
       }
     } catch (err: any) {
-      const status = err?.response?.status;
+      const status = err?.response?.status ?? err?.status ?? err?.code;
       if (status === 429) {
         const retryAfterSecs: number = err?.response?.data?.retryAfterSecs ?? 120;
-        setErrorMsg(`Google API quota exceeded — please wait for the countdown before retrying.`);
+        setErrorMsg("Google API daily quota reached. Your quota resets at midnight UTC — the system won't retry until then to avoid wasting quota.");
         startQuotaCooldown(retryAfterSecs);
+        setStep("quota-retry");
+      } else if (status === 403) {
+        setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? "403", 403));
+        setStep("initial");
       } else {
-        setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
+        setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? "", status));
+        setStep("quota-retry");
       }
-      setStep("quota-retry");
     } finally {
       setLoading(false);
     }

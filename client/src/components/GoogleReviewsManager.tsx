@@ -286,18 +286,21 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
       clearTimeout(phaseTimer);
       clearTimeout(phaseTimer2);
 
+      const httpStatus = err?.response?.status ?? err?.status ?? err?.code ?? 0;
       const raw = err?.response?.data?.message ?? err?.message ?? "Failed to sync reviews.";
 
-      // Translate technical errors into user-friendly messages
+      // Translate technical errors into specific, actionable messages.
+      // Order matters: check HTTP status codes FIRST (most reliable), then raw text.
       let friendly = raw;
-      if (raw.includes("No active location") || raw.includes("No location connected")) {
+      if (httpStatus === 403 || raw.includes("PERMISSION_DENIED") || raw.includes("API") && raw.includes("enabled")) {
+        friendly = "Google denied access (403). The 'My Business Account Management API' or 'Business Profile API' may not be enabled in your Google Cloud Console — or your OAuth app isn't verified yet.";
+      } else if (httpStatus === 429 || raw.toLowerCase().includes("quota cooldown")) {
+        // True quota exhaustion — the server's quota guard detected a real 429
+        friendly = "Google API daily quota reached. Your quota resets at midnight UTC. The system will not retry until then to avoid wasting quota.";
+      } else if (raw.includes("No active location") || raw.includes("No location connected")) {
         friendly = "No active Google Business location is selected. Go to the Connection tab and select a location.";
       } else if (raw.includes("token") || raw.includes("credential") || raw.includes("auth")) {
         friendly = "Unable to authenticate with Google. Please reconnect your Google Business Profile.";
-      } else if (raw.includes("quota") || raw.includes("429")) {
-        friendly = "Google API rate limit reached. The system will retry automatically — try again in a few minutes.";
-      } else if (raw.includes("403") || raw.includes("PERMISSION_DENIED")) {
-        friendly = "Google denied access to reviews. Ensure the Business Profile API is enabled in Google Cloud Console.";
       } else if (raw.includes("404") || raw.includes("not found")) {
         friendly = "Your connected location was not found on Google. Please reconnect and reselect your location.";
       }
