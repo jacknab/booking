@@ -138,6 +138,7 @@ export async function runIntelligenceForStore(storeId: number): Promise<void> {
             avgTicketValue: s.avgTicket.toFixed(2),
             totalRevenue: s.totalRevenue.toFixed(2),
             uniqueClientsServed: s.uniqueClients,
+            trend: s.trend,
             computedAt: new Date(),
           })
           .onConflictDoUpdate({
@@ -151,6 +152,7 @@ export async function runIntelligenceForStore(storeId: number): Promise<void> {
               avgTicketValue: s.avgTicket.toFixed(2),
               totalRevenue: s.totalRevenue.toFixed(2),
               uniqueClientsServed: s.uniqueClients,
+              trend: s.trend,
               computedAt: new Date(),
             },
           });

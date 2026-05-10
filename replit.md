@@ -61,6 +61,57 @@ Certxa is a full-stack booking and business management application for service p
 - **Google Business Profile Integration**: Connect, sync, and respond to Google reviews directly from the dashboard.
 - **Additional Features**: Analytics, Waitlist, Gift Cards, Client Intake Forms, Loyalty Program.
 
+## Revenue Intelligence System
+
+A full revenue co-pilot layer built on top of the booking data. All logic lives in `server/intelligence/` and the schema in `shared/schema/intelligence.ts`. The orchestrator runs every 6 hours automatically.
+
+**Backend modules (`server/intelligence/`):**
+- `cadence.ts` — Computes each client's average visit cadence (e.g. every 5 weeks) and flags when they've drifted 20%+ past it
+- `ltv.ts` — 12-month and all-time LTV, avg ticket, visit count, LTV score
+- `churn.ts` — Multi-factor churn risk score (0–100) and label (low/medium/high/critical) based on cadence overdue %, visit history, no-show rate
+- `dead-seats.ts` — Finds chronically underbooked day/hour slots and estimates lost revenue potential
+- `no-show.ts` — Scores each upcoming appointment for no-show risk using client history, time of day, and booking lead time
+- `rebooking-rates.ts` — Per-stylist rebooking rate with trend (up/down/stable) vs prior 90-day period
+- `cancellation-recovery.ts` — When a cancellation hits, finds top candidates from waitlist + lapsed clients who've taken that service
+- `growth-score.ts` — Single 0–100 business health score composed of retention, rebooking, utilization, revenue, new client components
+- `revenue-leakage.ts` — Monthly report: lapsed clients, estimated lost revenue, recovery potential
+- `revenue-forecast.ts` — Forward-looking revenue estimate based on drift rates and LTV
+- `drift-recovery.ts` — Automated winback SMS campaign for drifting clients (rate-limited to 1 message/30 days)
+- `orchestrator.ts` — Runs all of the above for all stores every 6 hours; also sends rebooking nudge SMSes
+
+**DB tables (`shared/schema/intelligence.ts`):**
+- `client_intelligence` — Per-client computed row: cadence, LTV, churn risk, drift status, winback tracking
+- `staff_intelligence` — Per-stylist: rebooking rate, trend, revenue, no-show count
+- `intelligence_interventions` — Log of every automated SMS sent (winback, nudge, cancellation recovery)
+- `growth_score_snapshots` — Historical daily growth score for trend charting
+- `dead_seat_patterns` — Detected underbooked time slots with utilization %
+
+**API routes (`/api/intelligence/`):**
+- `GET /dashboard` — Summary KPIs, at-risk clients, score history, recent interventions
+- `GET /growth-score` — Full breakdown + 30-day history
+- `GET /revenue-leakage` — Monthly lapsed client report with recoverable amounts
+- `GET /dead-seats` — Underbooked slot analysis with fill campaign candidates
+- `GET /no-show-risks` — Tomorrow's appointments ranked by no-show probability
+- `GET /rebooking-rates` — Live + cached per-stylist rebooking stats
+- `GET /at-risk-clients` — Clients with churn score ≥ 25, sorted by LTV
+- `GET /staff-performance` — Enriched staff table: rebooking, revenue, trend, no-show rate
+- `GET /service-performance` — Services ranked by revenue, no-show rate, revenue/min
+- `GET /price-optimization` — Suggestions to raise, discount, or require deposit per service
+- `GET /booking-heatmap` — Day×hour heatmap of appointment volume (90d)
+- `GET /daily-digest` — Top 5 prioritized action items for today
+- `GET /forecast` — Revenue forecast based on drift/LTV data
+- `GET /client/:customerId` — Single-client intelligence + intervention history
+- `GET /campaigns/segments` — Audience counts for at-risk, drifting, high-LTV, birthday segments
+- `GET /campaigns/export` — CSV export of any segment
+- `GET /cancellation-recovery/:appointmentId` — Top 3 candidates to fill a cancelled slot
+- `POST /winback` — Send a manual winback SMS to one client
+- `POST /winback-campaign` — Run the full automated drift recovery for a store
+- `POST /fill-slot` — Send a cancellation recovery SMS to one candidate
+- `POST /campaigns/send` — Bulk SMS campaign to a segment (personalized with {name})
+- `POST /refresh` — Trigger an on-demand intelligence recompute for a store
+
+**Frontend:** `client/src/pages/Intelligence.tsx` — Full Revenue Intelligence dashboard with 10 tabs: Overview, At-Risk Clients, Revenue Leakage, Dead Seats, No-Show Risks, Rebooking Rates, Staff, Forecast, Campaigns, Services.
+
 ## User preferences
 
 Preferred communication style: Simple, everyday language.

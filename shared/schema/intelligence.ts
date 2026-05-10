@@ -55,6 +55,7 @@ export const staffIntelligence = pgTable("staff_intelligence", {
   totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).default("0.00"),
   uniqueClientsServed: integer("unique_clients_served").default(0),
   clientRetentionRate: decimal("client_retention_rate", { precision: 5, scale: 2 }).default("0.00"),
+  trend: text("trend").default("stable"),
   computedAt: timestamp("computed_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
   storeIdIdx: index("si_store_id_idx").on(table.storeId),

@@ -610,7 +610,7 @@ router.get("/daily-digest", async (req, res) => {
             AND a.date >= ${todayStart.toISOString()}
             AND a.date <= ${todayEnd.toISOString()}
             AND a.status IN ('pending', 'confirmed')
-            AND ci.no_show_risk = 'high'`
+            AND CAST(ci.no_show_rate AS DECIMAL) >= 40`
     );
     const noShowRisk = parseInt((noShowRiskToday as any)?.cnt || "0");
     if (noShowRisk > 0) {
