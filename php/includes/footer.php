@@ -49,7 +49,7 @@
       <div>
         <p class="footer-col-title">SalonOS</p>
         <ul class="footer-col-links">
-          <li><a href="/salonos.php" style="font-weight:600;color:var(--plum);">SalonOS Overview</a></li>
+          <li><a href="/salonos.php">SalonOS Overview</a></li>
           <li><a href="/salonos.php#booking">Online Booking</a></li>
           <li><a href="/salonos.php#pos">Built-in POS</a></li>
           <li><a href="/salonos.php#loyalty">Loyalty Rewards</a></li>

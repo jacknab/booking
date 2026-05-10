@@ -26,7 +26,7 @@
             <div class="dropdown-section" style="margin-top:10px;">Build Your Brand</div>
             <a href="/reserve-with-google.php"><span class="nav-dot"></span>Reserve With Google</a>
             <a href="/client-reviews.php"><span class="nav-dot"></span>Client Reviews</a>
-            <a href="/launchsite.php"><span class="nav-dot"></span>LaunchSite Builder</a>
+            <a href="/launchsite.php"><span class="nav-dot"></span>Launchit! Builder</a>
           </div>
         </li>
 
@@ -41,7 +41,7 @@
             <a href="/booth-renters.php"><span class="nav-dot"></span>Booth Renters</a>
             <a href="/solo-professionals.php"><span class="nav-dot"></span>Solo Professionals</a>
             <div class="dropdown-section" style="margin-top:10px;">Website Builder</div>
-            <a href="/launchsite.php" style="font-weight:600;color:#6366f1;"><span class="nav-dot"></span>LaunchSite</a>
+            <a href="/launchsite.php"><span class="nav-dot"></span>Launchit!</a>
             <div class="dropdown-section" style="margin-top:10px;">Compare</div>
             <a href="/vs-glossgenius.php"><span class="nav-dot"></span>Certxa vs GlossGenius</a>
             <a href="/vs-vagaro.php"><span class="nav-dot"></span>Certxa vs Vagaro</a>
