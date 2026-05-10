@@ -91,7 +91,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/dashboard/training", label: "Staff Training", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/dashboard/training/settings", label: "Training Settings", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
       { to: "/products", label: "Products", icon: ShoppingBag, permission: PERMISSIONS.PRODUCTS_MANAGE },
-      { to: "/gift-cards", label: "Gift Cards", icon: Gift },
       { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList, permission: PERMISSIONS.SERVICES_MANAGE },
     ],
   },
@@ -99,6 +98,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Finance",
     items: [
       { to: "/reports", label: "Reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
+      { to: "/gift-cards", label: "Gift Cards", icon: Gift },
       { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote, permission: PERMISSIONS.CASH_DRAWER_VIEW },
       {
         to: "/commission-report",
