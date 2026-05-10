@@ -27,9 +27,10 @@
             <div class="footer-col">
                 <h4>Company</h4>
                 <ul>
-                    <li><a href="https://certxa.com/about">About</a></li>
-                    <li><a href="https://certxa.com/contact">Contact</a></li>
-                    <li><a href="https://certxa.com/privacy">Privacy Policy</a></li>
+                    <li><a href="/about">About</a></li>
+                    <li><a href="/contact.php">Contact</a></li>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
                 </ul>
             </div>
         </div>

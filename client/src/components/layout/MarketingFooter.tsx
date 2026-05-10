@@ -244,8 +244,13 @@ export default function MarketingFooter() {
             © {year} Certxa. All rights reserved.
           </p>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            {["Privacy Policy", "Terms of Service", "Cookies", "Accessibility"].map(label => (
-              <a key={label} href="#" style={{
+            {[
+              { label: "Privacy Policy",  href: "/privacy" },
+              { label: "Terms of Service", href: "/terms" },
+              { label: "About Us",         href: "/about" },
+              { label: "Contact",          href: "/contact.php" },
+            ].map(({ label, href }) => (
+              <a key={label} href={href} style={{
                 fontSize: ".78rem", color: "#475569", textDecoration: "none", transition: "color .15s",
               }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#e2e8f0"; }}

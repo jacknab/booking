@@ -123,6 +123,17 @@ const PHP_EXACT_PATHS = new Set([
   "/sitemap.xml",
   "/robots.txt",
   "/favicon.svg",
+  // Legal & marketing clean-URL pages (router.php maps these → *.php)
+  "/privacy",
+  "/terms",
+  "/about",
+  "/contact",
+  "/pricing",
+  "/overview",
+  "/salonos",
+  "/launchsite",
+  "/blog",
+  "/careers",
 ]);
 
 // Path prefixes that belong to PHP (main site + launchsite catalog)

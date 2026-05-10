@@ -92,7 +92,7 @@
           <li><a href="/case-studies.php">Success Stories</a></li>
           <li><a href="/blog.php">Blog</a></li>
           <li><a href="/pricing.php">Pricing</a></li>
-          <li><a href="#">About Us</a></li>
+          <li><a href="/about">About Us</a></li>
           <li><a href="#">Careers</a></li>
           <li><a href="#">Help Centre</a></li>
           <li><a href="/contact.php">Contact Us</a></li>
@@ -102,10 +102,10 @@
     <div class="footer-bottom">
       <div class="footer-bottom-left">&copy; <?= date('Y') ?> <?= BRAND_NAME ?>. All rights reserved.</div>
       <div class="footer-bottom-right">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Cookies</a>
-        <a href="#">Accessibility</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/about">About Us</a>
+        <a href="/contact.php">Contact</a>
       </div>
     </div>
   </div>
