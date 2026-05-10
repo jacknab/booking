@@ -28,6 +28,7 @@ import {
   GraduationCap,
   LayoutTemplate,
   Palette,
+  Rocket,
   ChevronDown,
   ChevronRight,
   CreditCard,
@@ -262,14 +263,23 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                       hasActiveChild && !isExpanded && "text-primary"
                     )}
                   >
-                    <span className={cn(
-                      "text-xs font-semibold uppercase tracking-wider transition-colors duration-150",
-                      hasActiveChild && !isExpanded
-                        ? "text-primary"
-                        : "text-muted-foreground group-hover:text-foreground"
-                    )}>
-                      {group.label}
-                    </span>
+                    {group.label === "Launchit!" ? (
+                      <span className="flex items-center gap-1.5">
+                        <Rocket className="h-3 w-3 text-violet-500" />
+                        <span className="text-xs font-semibold tracking-wider bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">
+                          Launchit!
+                        </span>
+                      </span>
+                    ) : (
+                      <span className={cn(
+                        "text-xs font-semibold uppercase tracking-wider transition-colors duration-150",
+                        hasActiveChild && !isExpanded
+                          ? "text-primary"
+                          : "text-muted-foreground group-hover:text-foreground"
+                      )}>
+                        {group.label}
+                      </span>
+                    )}
                     <span className={cn(
                       "transition-colors duration-150",
                       hasActiveChild && !isExpanded ? "text-primary" : "text-muted-foreground/50 group-hover:text-muted-foreground"
