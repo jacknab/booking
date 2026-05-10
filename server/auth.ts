@@ -65,9 +65,14 @@ export function setupAuth(app: Express) {
   // Registered immediately after session middleware so the session is
   // guaranteed to be populated before the OAuth callback handler runs.
   app.get("/api/auth/google", (req: Request, res: Response, next: NextFunction) => {
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-      return res.status(500).send("Google OAuth is not configured on the server. Please check environment variables.");
+    // Uses GOOGLE_LOGIN_CLIENT_ID / GOOGLE_LOGIN_CLIENT_SECRET (login-only OAuth).
+    // Falls back to legacy GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET if new vars are not set.
+    const loginClientId     = process.env.GOOGLE_LOGIN_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID;
+    const loginClientSecret = process.env.GOOGLE_LOGIN_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+    if (!loginClientId || !loginClientSecret) {
+      return res.status(500).send("Google login is not configured on the server. Set GOOGLE_LOGIN_CLIENT_ID and GOOGLE_LOGIN_CLIENT_SECRET.");
     }
+    console.log("[Google Login OAuth] OAuth URL generated — initiating authentication flow");
     // Stash kiosk-mode flag (from query string) into the session so the callback can apply it
     if (req.query.keepSignedIn === "1") {
       (req.session as any).pendingKiosk = true;

@@ -59,9 +59,9 @@ export class GoogleBusinessAPIManager {
    */
   getAuthUrl(
     scopes: string[] = [
+      // Business-only scope — NEVER include login scopes (userinfo.email / userinfo.profile)
+      // here. Those belong exclusively to the Google Login OAuth system (/api/auth/google).
       "https://www.googleapis.com/auth/business.manage",
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile",
     ],
     state?: string
   ): string {
@@ -305,10 +305,12 @@ export function createApiManagerFromProfile(profile: {
   refreshToken: string | null;
   tokenExpiresAt: Date | null;
 }): GoogleBusinessAPIManager {
+  // Uses GOOGLE_BUSINESS_* vars exclusively — NEVER shares credentials with the login system.
+  // Falls back to legacy GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI.
   const manager = new GoogleBusinessAPIManager({
-    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-    redirectUri: process.env.GOOGLE_REDIRECT_URI ?? "",
+    clientId:     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
+    clientSecret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
+    redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
   });
   manager.setCredentials({
     access_token: profile.accessToken,

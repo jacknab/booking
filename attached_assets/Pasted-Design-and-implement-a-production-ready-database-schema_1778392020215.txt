@@ -1,0 +1,112 @@
+Design and implement a production-ready database schema for Google Login + Google Business Profile integration.
+
+This schema must fix all current issues with unreliable review syncing, missing locations, and token confusion.
+
+──────────────────────────────
+GOAL
+──────────────────────────────
+Create a relational structure that correctly supports:
+
+* Google user login
+* Google Business account connection
+* Multiple business locations per account
+* Review syncing per location
+* Sync tracking + debugging
+
+──────────────────────────────
+
+1. USERS TABLE
+   ──────────────────────────────
+   Store platform users:
+
+* id (UUID, primary key)
+* email (unique)
+* name
+* google_id (unique)
+* created_at
+
+──────────────────────────────
+2. GOOGLE BUSINESS ACCOUNTS TABLE
+──────────────────────────────
+Each user can connect one or more Google Business accounts:
+
+* id (UUID, primary key)
+* user_id (FK → users.id)
+* google_account_id (string from Google API)
+* account_name
+* access_token
+* refresh_token
+* token_expiry
+* scopes (text)
+* created_at
+* updated_at
+
+──────────────────────────────
+3. GOOGLE BUSINESS LOCATIONS TABLE
+──────────────────────────────
+Each business account can have multiple locations:
+
+* id (UUID, primary key)
+* user_id (FK → users.id)
+* business_account_id (FK → google_business_accounts.id)
+* location_id (Google location resource ID)
+* location_name
+* address
+* phone
+* is_selected (boolean, default false)
+* created_at
+* updated_at
+
+IMPORTANT:
+Reviews MUST always be tied to location_id, NOT account_id.
+
+──────────────────────────────
+4. GOOGLE REVIEWS TABLE
+──────────────────────────────
+Store synced reviews per location:
+
+* id (UUID, primary key)
+* user_id (FK → users.id)
+* location_id (FK → google_business_locations.id)
+* review_id (unique Google review ID)
+* rating (integer)
+* comment (text)
+* reviewer_name
+* created_at_google (timestamp from Google)
+* created_at (local timestamp)
+* last_synced_at
+
+──────────────────────────────
+5. SYNC LOGS TABLE
+──────────────────────────────
+Track all API sync operations for debugging:
+
+* id (UUID, primary key)
+* user_id
+* location_id
+* sync_type (reviews | locations)
+* status (success | failed)
+* error_message (text)
+* synced_at
+
+──────────────────────────────
+CRITICAL BUSINESS RULES
+──────────────────────────────
+
+* NEVER store reviews at account level
+* ALWAYS fetch reviews using location_id
+* NEVER mix login tokens with business tokens
+* EACH business account must store its own refresh_token
+* ONLY ONE active selected location per account (is_selected flag)
+
+──────────────────────────────
+GOAL OUTCOME
+──────────────────────────────
+After implementation:
+
+* Google login works independently
+* Business accounts connect cleanly
+* Locations are correctly mapped
+* Reviews sync reliably per location
+* Debugging sync issues becomes traceable via logs
+* No token or scope contamination between systems

@@ -1,0 +1,156 @@
+Build and wire the frontend dashboard UI for the Google Business Profile Reviews system.
+
+This must connect cleanly to the backend sync engine and display real-time, accurate review data per selected location.
+
+──────────────────────────────
+GOAL
+──────────────────────────────
+Create a dashboard that:
+
+* Shows connected Google Business status
+* Displays selected business location
+* Shows review stats (rating, count, responses)
+* Allows manual sync (“Sync Now” button)
+* Shows last sync time and status
+* Displays errors clearly if sync fails
+
+──────────────────────────────
+
+1. CONNECTION STATUS SECTION
+   ──────────────────────────────
+   Display:
+
+* Connected / Not Connected state
+* Business account name
+* Selected location name + address
+* Connection health indicator
+
+If no location selected:
+
+* Show: “No active Google Business location selected”
+
+──────────────────────────────
+2. REVIEW SUMMARY CARDS
+──────────────────────────────
+Show real-time stats:
+
+* Total Reviews
+* Average Rating
+* Response Rate (if available)
+* Last Sync Timestamp
+
+If no data:
+
+* Show "No reviews found. Click Sync Now."
+
+──────────────────────────────
+3. SYNC BUTTON (CRITICAL)
+──────────────────────────────
+Add a "Sync Now" button that:
+
+On click:
+
+* Calls backend endpoint:
+  POST /api/google-business/sync-reviews
+
+UI behavior:
+
+* Show loading spinner during sync
+* Disable button while syncing
+* Show success message on completion
+* Show error message if failed
+
+After sync:
+
+* Automatically refresh review data on screen
+
+──────────────────────────────
+4. LIVE SYNC FEEDBACK
+──────────────────────────────
+Display sync status messages:
+
+* "Syncing reviews..."
+* "Fetching from Google..."
+* "Processing data..."
+* "Sync completed successfully"
+* "Sync failed: {error_message}"
+
+──────────────────────────────
+5. REVIEWS LIST
+──────────────────────────────
+Render reviews from backend:
+
+Each review must show:
+
+* Reviewer name
+* Star rating
+* Comment
+* Date (from Google)
+* Reply status (if applicable)
+
+Sort:
+
+* newest first
+
+──────────────────────────────
+6. ERROR HANDLING UI
+──────────────────────────────
+If backend returns error:
+
+* Show readable error message
+* Do NOT show raw API errors
+* Example:
+  "Unable to sync reviews. Please reconnect Google Business Profile."
+
+──────────────────────────────
+7. AUTO REFRESH BEHAVIOR
+──────────────────────────────
+After successful sync:
+
+* Refresh dashboard data automatically
+* Re-fetch:
+
+  * reviews
+  * rating
+  * counts
+  * sync logs
+
+No manual page refresh should be required.
+
+──────────────────────────────
+8. SYNC LOG VIEW (OPTIONAL BUT RECOMMENDED)
+──────────────────────────────
+Add expandable section:
+
+* Last 5 sync attempts
+* Status (success/failed)
+* Timestamp
+* Error message if failed
+
+──────────────────────────────
+9. API CONTRACT ASSUMPTION
+──────────────────────────────
+Frontend should expect:
+
+GET:
+
+* /api/google-business/reviews?location_id=xxx
+
+POST:
+
+* /api/google-business/sync-reviews
+
+GET:
+
+* /api/google-business/sync-status
+
+──────────────────────────────
+FINAL GOAL
+──────────────────────────────
+After implementation:
+
+* User can click “Sync Now” and instantly see real Google reviews appear
+* Dashboard always reflects latest synced data
+* Sync status is visible and understandable
+* No confusion about whether Google is connected or not
+* Everything feels real-time and production-grade

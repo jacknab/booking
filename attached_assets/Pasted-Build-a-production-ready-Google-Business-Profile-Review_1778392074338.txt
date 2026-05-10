@@ -1,0 +1,136 @@
+Build a production-ready Google Business Profile Reviews Sync Engine for this codebase.
+
+This system must reliably fetch and store Google reviews per selected business location using the existing database schema.
+
+──────────────────────────────
+GOAL
+──────────────────────────────
+Create a deterministic sync system that:
+
+* Fetches Google reviews from the correct LOCATION
+* Uses stored OAuth business tokens (NOT login tokens)
+* Stores reviews in database without duplication
+* Updates reviews on re-sync
+* Tracks sync status and errors
+* Supports manual + scheduled sync
+
+──────────────────────────────
+CRITICAL RULES
+──────────────────────────────
+
+1. ALWAYS use location_id (never account_id) to fetch reviews
+2. NEVER use Google login OAuth token for API calls
+3. ONLY use Google Business OAuth token stored per business account
+4. NEVER overwrite reviews blindly — use upsert logic
+5. NEVER lose existing reviews if API fails
+
+──────────────────────────────
+SYNC FLOW (STEP-BY-STEP)
+──────────────────────────────
+
+STEP 1 — Get active location
+
+* Query google_business_locations where is_selected = true
+* If none selected, return error: "No active location selected"
+
+STEP 2 — Get business account
+
+* Find google_business_accounts using user_id + location.business_account_id
+* Retrieve:
+
+  * access_token
+  * refresh_token
+
+STEP 3 — Fetch reviews from Google API
+Use endpoint:
+https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews
+
+OR correct Business Profile API equivalent.
+
+Must include:
+
+* Authorization: Bearer {access_token}
+
+If token expired:
+
+* refresh using refresh_token automatically
+
+──────────────────────────────
+STEP 4 — STORE REVIEWS (UPSERT LOGIC)
+──────────────────────────────
+For each review:
+
+* If review_id exists → UPDATE
+* If not exists → INSERT
+
+Fields:
+
+* review_id
+* rating
+* comment
+* reviewer_name
+* created_at_google
+* location_id
+* user_id
+
+DO NOT create duplicates.
+
+──────────────────────────────
+STEP 5 — SYNC LOGGING
+──────────────────────────────
+Insert sync record into google_sync_logs:
+
+* user_id
+* location_id
+* sync_type = "reviews"
+* status = success / failed
+* error_message (if any)
+* synced_at timestamp
+
+──────────────────────────────
+STEP 6 — ERROR HANDLING
+──────────────────────────────
+Handle and log:
+
+* expired token → refresh + retry once
+* invalid credentials → mark sync failed
+* rate limit → retry with exponential backoff
+* no reviews found → treat as success (not error)
+
+──────────────────────────────
+STEP 7 — MANUAL + AUTO SYNC
+──────────────────────────────
+Implement two triggers:
+
+1. Manual:
+
+   * "Sync Now" button calls sync engine directly
+
+2. Auto:
+
+   * runs every 6 hours per active location
+
+──────────────────────────────
+STEP 8 — DEBUG LOGGING (IMPORTANT)
+──────────────────────────────
+Log:
+
+* selected location_id
+* business_account_id
+* API request URL
+* token status (valid/refreshed)
+* number of reviews fetched
+* number inserted/updated
+* sync duration
+
+──────────────────────────────
+FINAL GOAL
+──────────────────────────────
+After implementation:
+
+* Clicking "Sync Now" reliably pulls real Google reviews
+* Reviews are always tied to correct location
+* No duplicates ever occur
+* Token refresh is automatic and invisible
+* Sync history is traceable and debuggable
+* System works consistently in production

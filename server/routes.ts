@@ -3916,10 +3916,79 @@ If you have any questions, please contact your administrator.
     }
   });
 
-  // === GOOGLE BUSINESS PROFILE INTEGRATION ===
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GOOGLE BUSINESS PROFILE INTEGRATION
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEPARATION RULES (enforced by design):
+  //   • All routes here use GOOGLE_BUSINESS_* credentials ONLY.
+  //   • NEVER share tokens with the Google Login system (/api/auth/google).
+  //   • NEVER use login tokens to call Business Profile APIs.
+  //   • NEVER use business tokens to authenticate a user session.
+  //   • All routes below require an active user session (login first).
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Get Google OAuth authorization URL.
+   * GET /api/google-business/connect
+   *
+   * Browser-redirect entry point for the Business Profile OAuth flow.
+   * Requires: active user session + storeId query param.
+   * Generates a CSRF-protected state, then redirects the browser directly
+   * to Google's consent page (business.manage scope only — no login scopes).
+   *
+   * Separate from /api/auth/google which handles user login exclusively.
+   */
+  app.get("/api/google-business/connect", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      console.warn("[Google Business OAuth] /connect — unauthenticated request rejected");
+      return res.redirect("/auth?reason=login_required");
+    }
+
+    const storeId = req.query.storeId ? Number(req.query.storeId) : null;
+    if (!storeId) {
+      return res.status(400).json({ message: "storeId query param is required" });
+    }
+
+    try {
+      const csrf         = crypto.randomBytes(16).toString("hex");
+      const statePayload = Buffer.from(JSON.stringify({ csrf, storeId })).toString("base64url");
+      (req.session as any).googleOAuthState   = csrf;
+      (req.session as any).googleOAuthStoreId = storeId;
+
+      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "";
+      const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
+      const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
+
+      console.log("[Google Business OAuth] /connect — generating redirect URL");
+      console.log("[Google Business OAuth]   client_id   :", clientId ? `${clientId.slice(0, 12)}…` : "(NOT SET)");
+      console.log("[Google Business OAuth]   redirect_uri:", redirectUri || "(NOT SET)");
+      console.log("[Google Business OAuth]   storeId     :", storeId);
+      console.log("[Google Business OAuth]   scopes      : business.manage");
+
+      if (!clientId || !clientSecret || !redirectUri) {
+        console.error("[Google Business OAuth] Missing GOOGLE_BUSINESS_CLIENT_ID, GOOGLE_BUSINESS_CLIENT_SECRET, or GOOGLE_BUSINESS_CALLBACK_URL");
+        return res.status(500).json({
+          message: "Google Business OAuth is not configured. Set GOOGLE_BUSINESS_CLIENT_ID, GOOGLE_BUSINESS_CLIENT_SECRET, and GOOGLE_BUSINESS_CALLBACK_URL.",
+        });
+      }
+
+      const apiManager = new GoogleBusinessAPIManager({ clientId, clientSecret, redirectUri });
+      // Only business.manage scope — never openid/profile/email (those belong to login)
+      const authUrl = apiManager.getAuthUrl(
+        ["https://www.googleapis.com/auth/business.manage"],
+        statePayload
+      );
+
+      console.log("[Google Business OAuth] /connect — redirecting browser to Google consent page");
+      req.session.save(() => res.redirect(authUrl));
+    } catch (error) {
+      console.error("[Google Business OAuth] /connect — error generating auth URL:", error);
+      res.status(500).json({ message: "Failed to initiate Google Business connection" });
+    }
+  });
+
+  /**
+   * Get Google OAuth authorization URL (JSON response variant for frontend-mediated flow).
    * Embeds storeId + a CSRF token inside the OAuth state parameter (base64url-encoded JSON)
    * so the server-side callback can restore context without relying on post-redirect data.
    */
@@ -3940,21 +4009,22 @@ If you have any questions, please contact your administrator.
       (req.session as any).googleOAuthState = csrf;
       (req.session as any).googleOAuthStoreId = storeId; // belt-and-suspenders fallback
 
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? "";
-      const clientId   = process.env.GOOGLE_CLIENT_ID    ?? "";
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
+      // BUSINESS integration credentials — NEVER shared with the login system
+      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "";
+      const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
+      const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
-      console.log("[Google OAuth] Generating auth URL");
-      console.log("[Google OAuth]   client_id    :", clientId ? `${clientId.slice(0, 12)}…` : "(NOT SET)");
-      console.log("[Google OAuth]   client_secret:", clientSecret ? "(set)" : "(NOT SET — will fail)");
-      console.log("[Google OAuth]   redirect_uri :", redirectUri || "(NOT SET)");
-      console.log("[Google OAuth]   storeId      :", storeId);
-      console.log("[Google OAuth]   csrf         :", csrf);
+      console.log("[Google Business OAuth] Generating auth URL");
+      console.log("[Google Business OAuth]   client_id    :", clientId ? `${clientId.slice(0, 12)}…` : "(NOT SET)");
+      console.log("[Google Business OAuth]   client_secret:", clientSecret ? "(set)" : "(NOT SET — will fail)");
+      console.log("[Google Business OAuth]   redirect_uri :", redirectUri || "(NOT SET)");
+      console.log("[Google Business OAuth]   storeId      :", storeId);
+      console.log("[Google Business OAuth]   csrf         :", csrf);
 
       if (!clientId || !clientSecret || !redirectUri) {
-        console.error("[Google OAuth] Missing required env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REDIRECT_URI");
+        console.error("[Google Business OAuth] Missing required env vars: GOOGLE_BUSINESS_CLIENT_ID, GOOGLE_BUSINESS_CLIENT_SECRET, or GOOGLE_BUSINESS_CALLBACK_URL");
         return res.status(500).json({
-          message: "Google OAuth is not fully configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI in environment variables.",
+          message: "Google Business OAuth is not fully configured. Set GOOGLE_BUSINESS_CLIENT_ID, GOOGLE_BUSINESS_CLIENT_SECRET, and GOOGLE_BUSINESS_CALLBACK_URL in environment variables.",
         });
       }
 
@@ -4042,12 +4112,13 @@ If you have any questions, please contact your administrator.
 
     // ── Exchange code for tokens ─────────────────────────────────────────────
     try {
-      const redirectUri   = process.env.GOOGLE_REDIRECT_URI   ?? "";
-      const clientId      = process.env.GOOGLE_CLIENT_ID      ?? "";
-      const clientSecret  = process.env.GOOGLE_CLIENT_SECRET  ?? "";
+      // BUSINESS integration credentials — NEVER shared with the login system
+      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "";
+      const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
+      const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
-      console.log("[Google OAuth] Exchanging authorization code for tokens…");
-      console.log("[Google OAuth]   redirect_uri:", redirectUri);
+      console.log("[Google Business OAuth] Exchanging authorization code for tokens…");
+      console.log("[Google Business OAuth]   redirect_uri:", redirectUri);
 
       const apiManager = new GoogleBusinessAPIManager({ clientId, clientSecret, redirectUri });
       const tokens = await apiManager.getTokensFromCode(code);
@@ -4190,7 +4261,7 @@ If you have any questions, please contact your administrator.
         console.error("[Google OAuth] 403: API access denied. Check that:");
         console.error("[Google OAuth]   - 'My Business Account Management API' is enabled in Google Cloud Console");
         console.error("[Google OAuth]   - OAuth consent screen has business.manage scope approved");
-        console.error("[Google OAuth]   - redirect_uri matches exactly:", process.env.GOOGLE_REDIRECT_URI);
+        console.error("[Google Business OAuth]   - redirect_uri matches exactly:", process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? process.env.GOOGLE_REDIRECT_URI);
         return res.redirect("/reviews?google_error=access_denied");
       }
       return res.redirect("/reviews?google_error=server_error");
@@ -4247,10 +4318,11 @@ If you have any questions, please contact your administrator.
     try {
       console.log("[Google OAuth] POST callback — exchanging code for tokens (storeId:", storeId, ")");
 
+      // BUSINESS integration credentials — NEVER shared with the login system
       const apiManager = new GoogleBusinessAPIManager({
-        clientId:     process.env.GOOGLE_CLIENT_ID    ?? "",
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-        redirectUri:  process.env.GOOGLE_REDIRECT_URI  ?? "",
+        clientId:     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
+        clientSecret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
+        redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
       });
 
       const tokens = await apiManager.getTokensFromCode(code);

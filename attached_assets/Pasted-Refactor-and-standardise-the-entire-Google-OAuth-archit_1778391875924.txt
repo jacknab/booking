@@ -1,0 +1,143 @@
+Refactor and standardise the entire Google OAuth architecture in this codebase.
+
+The system currently has mixed authentication and business integrations causing instability. Fix by enforcing a strict separation of TWO independent OAuth systems.
+
+──────────────────────────────
+
+1. GOOGLE LOGIN (AUTH SYSTEM)
+   ──────────────────────────────
+   Purpose:
+
+* user login/signup only
+* session handling
+* authentication
+
+Must use:
+
+* GOOGLE_LOGIN_CLIENT_ID
+* GOOGLE_LOGIN_CLIENT_SECRET
+* GOOGLE_LOGIN_CALLBACK_URL
+
+Callback:
+https://certxa.com/api/auth/google/callback
+
+Scopes:
+
+* openid
+* email
+* profile
+
+Requirements:
+
+* creates or finds user in DB
+* creates session or JWT
+* persists login across refresh
+* NEVER touches Google Business APIs
+* NEVER uses business scopes
+
+──────────────────────────────
+2. GOOGLE BUSINESS PROFILE (INTEGRATION SYSTEM)
+──────────────────────────────
+Purpose:
+
+* connect salon/business Google accounts
+* fetch locations
+* fetch reviews
+
+Must use:
+
+* GOOGLE_BUSINESS_CLIENT_ID
+* GOOGLE_BUSINESS_CLIENT_SECRET
+* GOOGLE_BUSINESS_CALLBACK_URL
+
+Callback:
+https://certxa.com/api/google-business/callback
+
+Scopes:
+
+* https://www.googleapis.com/auth/business.manage
+
+Requirements:
+
+* ONLY accessible AFTER user login
+* fetch Google Business accounts
+* fetch locations
+* allow user to select location
+* store business + location in DB
+* sync reviews using ONLY this token
+
+──────────────────────────────
+3. CRITICAL SEPARATION RULES
+──────────────────────────────
+
+* NEVER share tokens between login and business systems
+* NEVER reuse OAuth handlers
+* NEVER mix scopes between flows
+* NEVER use login token for business APIs
+* NEVER use business token for login
+
+──────────────────────────────
+4. ROUTING REQUIREMENTS
+──────────────────────────────
+Ensure these are completely separate:
+
+LOGIN ROUTE:
+
+* /api/auth/google
+* /api/auth/google/callback
+
+BUSINESS ROUTE:
+
+* /api/google-business/connect
+* /api/google-business/callback
+
+──────────────────────────────
+5. TOKEN STORAGE
+──────────────────────────────
+Store separately in DB:
+
+User login:
+
+* google_id
+* email
+* session/JWT
+
+Business integration:
+
+* business_access_token
+* business_refresh_token
+* account_id
+* location_id
+* scopes granted
+
+──────────────────────────────
+6. DEBUGGING REQUIREMENTS
+──────────────────────────────
+Add logs for both systems:
+
+LOGIN:
+
+* OAuth URL generated
+* callback hit
+* user profile returned
+* session created
+
+BUSINESS:
+
+* OAuth URL generated
+* callback hit
+* accounts response
+* locations response
+* reviews API response
+* selected location stored
+
+──────────────────────────────
+GOAL:
+After this refactor:
+
+* Google login works independently and reliably
+* Business connection works only after login
+* Reviews sync correctly per selected location
+* No redirect errors
+* No scope conflicts
+* No token mixing

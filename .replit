@@ -81,10 +81,15 @@ TWILIO_PHONE_NUMBER = "+18888147623"
 ACTIVE_GROUPS = "3"
 APP_URL = "https://certxa.com"
 GOOGLE_AUTH_CALLBACK_URL = "https://certxa.com/api/auth/google/callback"
+GOOGLE_LOGIN_CLIENT_ID = "384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com"
+GOOGLE_LOGIN_CALLBACK_URL = "https://certxa.com/api/auth/google/callback"
+GOOGLE_BUSINESS_CLIENT_ID = "384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com"
 
 [userenv.development]
 GOOGLE_REDIRECT_URI = "https://04d80595-4e34-4568-a0f2-3042046716cb-00-25h5iy32a265s.janeway.replit.dev/api/google-business/callback"
+GOOGLE_BUSINESS_CALLBACK_URL = "https://04d80595-4e34-4568-a0f2-3042046716cb-00-25h5iy32a265s.janeway.replit.dev/api/google-business/callback"
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://certxa.com/api/google-business/callback"
 COOKIE_DOMAIN = ".certxa.com"
+GOOGLE_BUSINESS_CALLBACK_URL = "https://certxa.com/api/google-business/callback"
