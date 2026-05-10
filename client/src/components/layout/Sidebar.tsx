@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -14,8 +15,6 @@ import {
   Globe,
   MessageSquare,
   Mail,
-  Moon,
-  Sun,
   Megaphone,
   Key,
   TrendingUp,
@@ -23,13 +22,14 @@ import {
   Gift,
   ClipboardList,
   Star,
-  ThumbsUp,
   MapPin,
   FileText,
   ListOrdered,
   GraduationCap,
   LayoutTemplate,
   Palette,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/waitlist", label: "Waitlist", icon: Clock, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
       { to: "/loyalty", label: "Loyalty Program", icon: Star, permission: PERMISSIONS.CUSTOMERS_VIEW },
-      // { to: "/reviews", label: "Reviews", icon: ThumbsUp },
       { to: "/sms-inbox", label: "SMS Inbox", icon: MessageSquare, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/sms-activity", label: "SMS Activity", icon: MessageSquare, permission: PERMISSIONS.REPORTS_VIEW },
       { to: "/campaigns", label: "Campaigns", icon: Megaphone, permission: PERMISSIONS.CUSTOMERS_VIEW },
@@ -123,11 +122,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
 ];
 
+const STORAGE_KEY = "sidebar_expanded_groups";
+
 export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logoutAsync, user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { selectedStore } = useSelectedStore();
   const { can, canAny, isStaff } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
@@ -157,6 +157,58 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
     refetchInterval: 30000,
   });
   const smsUnreadCount = smsConversations?.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0) || 0;
+
+  // Find which group label contains the current route so we can auto-expand it
+  const activeGroupLabel = navGroups.find((g) =>
+    g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/"))
+  )?.label ?? null;
+
+  // Expanded state: persisted in localStorage, starts with only active group open
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed: string[] = JSON.parse(stored);
+        // Always include the active group even if it wasn't stored
+        const set = new Set(parsed);
+        if (activeGroupLabel) set.add(activeGroupLabel);
+        return set;
+      }
+    } catch {}
+    // Default: only the active group is expanded
+    return new Set(activeGroupLabel ? [activeGroupLabel] : []);
+  });
+
+  // When route changes, ensure the active group is expanded
+  useEffect(() => {
+    if (activeGroupLabel) {
+      setExpandedGroups((prev) => {
+        if (prev.has(activeGroupLabel)) return prev;
+        const next = new Set(prev);
+        next.add(activeGroupLabel);
+        return next;
+      });
+    }
+  }, [activeGroupLabel]);
+
+  // Persist expanded state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...expandedGroups]));
+    } catch {}
+  }, [expandedGroups]);
+
+  function toggleGroup(label: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }
 
   const handleLogout = async () => {
     try {
@@ -190,51 +242,92 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                 return true;
               });
               if (items.length === 0) return null;
+
+              const isExpanded = expandedGroups.has(group.label);
+              const hasActiveChild = items.some(
+                (item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/")
+              );
+
               return (
-              <div key={group.label} className="mb-2">
-                <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {group.label}
-                </p>
-                {items.map((item) => {
-                  const isActive = location.pathname === item.to;
-                  const linkClass = cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:text-primary",
-                    isActive
-                      ? "border border-primary/10 bg-card text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
-                      : "border border-transparent text-muted-foreground hover:border-border/70 hover:bg-card hover:shadow-[0_2px_10px_rgba(15,23,42,0.04)]"
-                  );
-                  const inner = (
-                    <>
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      <span className="flex-1">{item.label}</span>
-                      {item.to === "/sms-inbox" && smsUnreadCount > 0 && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
-                          {smsUnreadCount > 9 ? "9+" : smsUnreadCount}
-                        </span>
-                      )}
-                    </>
-                  );
-                  return item.href ? (
-                    <a
-                      key={item.to}
-                      href={item.href}
-                      onClick={onLinkClick}
-                      className={linkClass}
-                    >
-                      {inner}
-                    </a>
-                  ) : (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={onLinkClick}
-                      className={linkClass}
-                    >
-                      {inner}
-                    </Link>
-                  );
-                })}
-              </div>
+                <div key={group.label} className="mb-1">
+                  {/* Group header — clickable to toggle */}
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-1.5 rounded-lg transition-colors duration-150",
+                      "hover:bg-muted/50 group",
+                      hasActiveChild && !isExpanded && "text-primary"
+                    )}
+                  >
+                    <span className={cn(
+                      "text-xs font-semibold uppercase tracking-wider transition-colors duration-150",
+                      hasActiveChild && !isExpanded
+                        ? "text-primary"
+                        : "text-muted-foreground group-hover:text-foreground"
+                    )}>
+                      {group.label}
+                    </span>
+                    <span className={cn(
+                      "transition-colors duration-150",
+                      hasActiveChild && !isExpanded ? "text-primary" : "text-muted-foreground/50 group-hover:text-muted-foreground"
+                    )}>
+                      {isExpanded
+                        ? <ChevronDown className="h-3.5 w-3.5" />
+                        : <ChevronRight className="h-3.5 w-3.5" />
+                      }
+                    </span>
+                  </button>
+
+                  {/* Collapsible items */}
+                  <div
+                    className={cn(
+                      "overflow-hidden transition-all duration-200 ease-in-out",
+                      isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+                    )}
+                  >
+                    <div className="pt-0.5 pb-1">
+                      {items.map((item) => {
+                        const isActive = location.pathname === item.to;
+                        const linkClass = cn(
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 hover:text-primary",
+                          isActive
+                            ? "border border-primary/10 bg-card text-primary shadow-[0_3px_12px_rgba(15,23,42,0.08)] ring-1 ring-primary/5"
+                            : "border border-transparent text-muted-foreground hover:border-border/70 hover:bg-card hover:shadow-[0_2px_10px_rgba(15,23,42,0.04)]"
+                        );
+                        const inner = (
+                          <>
+                            <item.icon className="h-4 w-4 flex-shrink-0" />
+                            <span className="flex-1">{item.label}</span>
+                            {item.to === "/sms-inbox" && smsUnreadCount > 0 && (
+                              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+                                {smsUnreadCount > 9 ? "9+" : smsUnreadCount}
+                              </span>
+                            )}
+                          </>
+                        );
+                        return item.href ? (
+                          <a
+                            key={item.to}
+                            href={item.href}
+                            onClick={onLinkClick}
+                            className={linkClass}
+                          >
+                            {inner}
+                          </a>
+                        ) : (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            onClick={onLinkClick}
+                            className={linkClass}
+                          >
+                            {inner}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </nav>
