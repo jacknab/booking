@@ -428,6 +428,10 @@ app.use((req, res, next) => {
   const { startBirthdayScheduler } = await import("./birthday-scheduler");
   startBirthdayScheduler();
 
+  // Start weekly revenue digest email scheduler (runs every Monday at 9am)
+  const { startWeeklyDigestScheduler } = await import("./intelligence/weekly-digest-email");
+  startWeeklyDigestScheduler();
+
   // Start lapsed client re-engagement scheduler (checks hourly, sends at 10am)
   const { startLapsedClientScheduler } = await import("./lapsed-client-scheduler");
   startLapsedClientScheduler();

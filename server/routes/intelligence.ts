@@ -1155,6 +1155,25 @@ router.post("/campaigns/send", async (req, res) => {
   }
 });
 
+// POST /api/intelligence/send-weekly-digest
+// Manually triggers the weekly revenue digest email for a store (owner only)
+router.post("/send-weekly-digest", async (req, res) => {
+  const { storeId } = req.body;
+  if (!storeId) return res.status(400).json({ error: "storeId required" });
+
+  try {
+    const { sendWeeklyDigest } = await import("../intelligence/weekly-digest-email");
+    const result = await sendWeeklyDigest(storeId);
+    if (result.sent) {
+      return res.json({ success: true, message: "Weekly digest email sent" });
+    }
+    return res.json({ success: false, skipped: result.skipped });
+  } catch (err: any) {
+    console.error("[intelligence] send-weekly-digest error:", err);
+    res.status(500).json({ error: "Failed to send weekly digest" });
+  }
+});
+
 // POST /api/intelligence/refresh
 // Triggers a manual re-computation of intelligence for a store
 router.post("/refresh", async (req, res) => {
