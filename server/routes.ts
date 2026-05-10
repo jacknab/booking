@@ -7964,5 +7964,12 @@ If you have any questions, please contact your administrator.
   // Start Google Reviews auto-sync (every 6 hours — new engine, new schema + legacy fallback)
   startGoogleReviewSyncScheduler();
 
+  // ── Revenue Intelligence Engine ──────────────────────────────────────────────
+  const { default: intelligenceRouter } = await import("./routes/intelligence.js");
+  app.use("/api/intelligence", intelligenceRouter);
+
+  const { startIntelligenceScheduler } = await import("./intelligence/orchestrator.js");
+  startIntelligenceScheduler();
+
   return httpServer;
 }

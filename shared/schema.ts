@@ -1450,3 +1450,19 @@ export const smsConversations = pgTable("sms_conversations", {
 
 export type SmsConversation = typeof smsConversations.$inferSelect;
 export type InsertSmsConversation = typeof smsConversations.$inferInsert;
+
+// ── Revenue Intelligence Engine ──────────────────────────────────────────────
+export {
+  clientIntelligence,
+  staffIntelligence,
+  intelligenceInterventions,
+  growthScoreSnapshots,
+  deadSeatPatterns,
+} from "./schema/intelligence";
+export type {
+  ClientIntelligence,
+  StaffIntelligence,
+  IntelligenceIntervention,
+  GrowthScoreSnapshot,
+  DeadSeatPattern,
+} from "./schema/intelligence";

@@ -33,6 +33,7 @@ import {
   ChevronRight,
   CreditCard,
   CircleUser,
+  Brain,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, hideForStaff: true },
       { to: "/analytics", label: "Analytics", icon: TrendingUp, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
+      { to: "/intelligence", label: "Revenue Intelligence", icon: Brain, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
     ],
   },
   {
