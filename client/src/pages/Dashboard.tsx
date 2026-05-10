@@ -24,7 +24,7 @@ import {
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2, CheckCircle2, ChevronRight, DollarSign } from "lucide-react";
+import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2, CheckCircle2, ChevronRight, DollarSign, BellOff } from "lucide-react";
 
 function GradeColorClass(grade: string) {
   if (grade === "A") return "text-emerald-400";
@@ -217,7 +217,32 @@ const copilotGradient: Record<string, { bg: string; accent: string; icon: React.
   },
 };
 
+const SNOOZE_DURATION_MS = 24 * 60 * 60 * 1000;
+
+function snoozeKey(storeId: number, type: string) {
+  return `copilot_snooze_${storeId}_${type}`;
+}
+
+function getSnoozedTypes(storeId: number): Set<string> {
+  const now = Date.now();
+  const snoozed = new Set<string>();
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith(`copilot_snooze_${storeId}_`)) continue;
+    const expiry = parseInt(localStorage.getItem(key) || "0");
+    if (now < expiry) {
+      snoozed.add(key.replace(`copilot_snooze_${storeId}_`, ""));
+    } else {
+      localStorage.removeItem(key);
+    }
+  }
+  return snoozed;
+}
+
 function RevenueCopilotWidget({ storeId }: { storeId: number }) {
+  const [snoozed, setSnoozed] = useState<Set<string>>(() => getSnoozedTypes(storeId));
+  const [snoozeAnim, setSnoozeAnim] = useState(false);
+
   const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/intelligence/daily-digest", storeId],
     queryFn: async () => {
@@ -231,8 +256,21 @@ function RevenueCopilotWidget({ storeId }: { storeId: number }) {
 
   if (isLoading) return null;
 
-  const topAction = data?.actions?.[0];
-  const remainingCount = (data?.totalActions || 0) - 1;
+  const allActions: any[] = data?.actions || [];
+  const visibleActions = allActions.filter((a) => !snoozed.has(a.type));
+  const topAction = visibleActions[0] ?? null;
+  const snoozedCount = allActions.length - visibleActions.length;
+  const remainingCount = visibleActions.length - 1;
+
+  const handleSnooze = (type: string) => {
+    const expiry = Date.now() + SNOOZE_DURATION_MS;
+    localStorage.setItem(snoozeKey(storeId, type), String(expiry));
+    setSnoozeAnim(true);
+    setTimeout(() => {
+      setSnoozed(getSnoozedTypes(storeId));
+      setSnoozeAnim(false);
+    }, 350);
+  };
 
   if (!topAction) {
     return (
@@ -240,9 +278,22 @@ function RevenueCopilotWidget({ storeId }: { storeId: number }) {
         <div className="w-10 h-10 rounded-full bg-emerald-800/50 flex items-center justify-center flex-shrink-0">
           <CheckCircle2 className="h-5 w-5 text-emerald-400" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-emerald-300">You're ahead of it</p>
-          <p className="text-xs text-emerald-500 mt-0.5">No urgent actions right now — all revenue signals look healthy.</p>
+          <p className="text-xs text-emerald-500 mt-0.5">
+            No urgent actions right now — all revenue signals look healthy.
+            {snoozedCount > 0 && (
+              <button
+                onClick={() => {
+                  allActions.forEach((a) => localStorage.removeItem(snoozeKey(storeId, a.type)));
+                  setSnoozed(new Set());
+                }}
+                className="ml-2 underline hover:text-emerald-400 transition-colors"
+              >
+                ({snoozedCount} snoozed — tap to restore)
+              </button>
+            )}
+          </p>
         </div>
       </div>
     );
@@ -252,19 +303,31 @@ function RevenueCopilotWidget({ storeId }: { storeId: number }) {
   const hasRevenue = (topAction.revenueAtStake || 0) > 0;
 
   return (
-    <div className={`rounded-2xl bg-gradient-to-br ${style.bg} border border-white/10 p-5 mb-6`}>
+    <div
+      className={`rounded-2xl bg-gradient-to-br ${style.bg} border border-white/10 p-5 mb-6 transition-opacity duration-300 ${snoozeAnim ? "opacity-0" : "opacity-100"}`}
+    >
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
           {style.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-[11px] font-bold tracking-widest uppercase text-white/40">Revenue Co-pilot</p>
-            {remainingCount > 0 && (
-              <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-medium">
-                +{remainingCount} more
-              </span>
-            )}
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-bold tracking-widest uppercase text-white/40">Revenue Co-pilot</p>
+              {remainingCount > 0 && (
+                <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-medium">
+                  +{remainingCount} more
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => handleSnooze(topAction.type)}
+              title="Snooze for 24 hours"
+              className="flex items-center gap-1 text-white/30 hover:text-white/60 transition-colors text-[11px] ml-2 flex-shrink-0"
+            >
+              <BellOff className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Snooze 24h</span>
+            </button>
           </div>
           <p className="text-base font-bold text-white leading-snug">{topAction.label}</p>
           <p className="text-sm text-white/50 mt-1 leading-snug">{topAction.detail}</p>
