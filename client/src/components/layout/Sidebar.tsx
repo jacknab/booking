@@ -103,10 +103,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "LaunchSite",
+    label: "Launchit!",
     items: [
       { to: "/launchsite/", href: "/launchsite/", label: "Website Templates", icon: LayoutTemplate },
-      { to: "/launchsite/admin.php", href: "/launchsite/admin.php", label: "Manage Websites", icon: Globe },
       { to: "/launchsite/admin-edit.php", href: "/launchsite/admin-edit.php", label: "Website Editor", icon: Palette },
     ],
   },
