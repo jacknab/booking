@@ -8,7 +8,7 @@ import {
   Calendar, Zap, RefreshCw, Send, ChevronRight, BarChart3,
   Clock, Target, Activity, CheckCircle2, XCircle, ArrowUpRight,
   ArrowDownRight, Minus, Brain, LineChart, Download, Sparkles,
-  Trophy, AlertCircle
+  Trophy, AlertCircle, Mail
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -274,6 +274,34 @@ export default function Intelligence() {
     onError: () => toast({ title: "Refresh failed", variant: "destructive" }),
   });
 
+  const sendDigestMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/intelligence/send-weekly-digest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ storeId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: "Weekly digest sent!",
+          description: "Check your inbox — the report is on its way.",
+        });
+      } else {
+        toast({
+          title: "Digest not sent",
+          description: data.skipped || "Email may not be configured yet.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => toast({ title: "Failed to send digest", variant: "destructive" }),
+  });
+
   const winbackMutation = useMutation({
     mutationFn: async (customerId: number) => {
       const res = await fetch("/api/intelligence/winback", {
@@ -414,6 +442,33 @@ export default function Intelligence() {
                 Updated {formatDistanceToNow(new Date(summary.lastComputedAt), { addSuffix: true })}
               </span>
             )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendDigestMutation.mutate()}
+                    disabled={sendDigestMutation.isPending}
+                    className="gap-2"
+                  >
+                    {sendDigestMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : sendDigestMutation.isSuccess ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {sendDigestMutation.isPending ? "Sending…" : "Send digest"}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-xs">Send yourself a preview of the weekly email digest right now — same report that goes out every Monday at 9am.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button
               variant="outline"
               size="sm"
