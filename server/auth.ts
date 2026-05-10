@@ -14,9 +14,12 @@ import { TrialService } from "./services/trial-service";
 import { checkGoogleLoginRateLimit } from "./rate-limits";
 
 export function setupAuth(app: Express) {
-  // Trust all proxy hops — required for Replit (multiple proxy layers) and
+  // Trust exactly 1 proxy hop — required for Replit (proxied HTTPS) and
   // VPS setups where Nginx sits in front of Node.
-  app.set("trust proxy", true);
+  // Using `1` instead of `true` satisfies express-rate-limit's trust proxy
+  // validation (ERR_ERL_PERMISSIVE_TRUST_PROXY) while still allowing correct
+  // IP detection through a single reverse proxy layer.
+  app.set("trust proxy", 1);
 
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({

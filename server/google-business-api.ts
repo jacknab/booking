@@ -11,6 +11,24 @@ import {
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+/**
+ * Returns the correct Google Business OAuth redirect URI for the current environment.
+ *
+ * Priority:
+ *  1. GOOGLE_BUSINESS_CALLBACK_URL — explicitly configured (all environments)
+ *  2. REPLIT_DEV_DOMAIN             — auto-derived from Replit's dev proxy domain
+ *  3. Production certxa.com fallback
+ */
+export function getGoogleBusinessCallbackUrl(): string {
+  if (process.env.GOOGLE_BUSINESS_CALLBACK_URL) {
+    return process.env.GOOGLE_BUSINESS_CALLBACK_URL;
+  }
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}/api/google-business/callback`;
+  }
+  return "https://certxa.com/api/google-business/callback";
+}
+
 export interface GoogleAuthConfig {
   clientId: string;
   clientSecret: string;
@@ -140,94 +158,122 @@ export class GoogleBusinessAPIManager {
   /**
    * List Google Business accounts for the authenticated user.
    * API: mybusinessaccountmanagement v1 — accounts.list
+   *
+   * Retries on 429 with exponential backoff: 5 s → 10 s → 20 s (3 attempts total).
    */
-  async getBusinessAccounts(): Promise<any> {
+  async getBusinessAccounts(maxAttempts = 3): Promise<any> {
     console.log("[Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list");
     const service = google.mybusinessaccountmanagement({ version: "v1", auth: this.oauth2Client });
-    try {
-      const response = await service.accounts.list({});
-      const data = response.data;
-      const accounts: any[] = data.accounts ?? [];
-      console.log(`[Google Business OAuth] getBusinessAccounts — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
-      console.log(`[Google Business OAuth] getBusinessAccounts — accounts found: ${accounts.length}`);
-      accounts.forEach((a: any, i: number) => {
-        console.log(
-          `[Google Business OAuth]   [${i}] name="${a.name}"` +
-          `  accountName="${a.accountName ?? "(none)"}` +
-          `  type="${a.type ?? "(none)"}"` +
-          `  verificationState="${a.verificationState ?? "(none)"}"` +
-          `  vettedState="${a.vettedState ?? "(none)"}"`,
-        );
-      });
-      if (accounts.length === 0) {
-        console.warn(
-          "[Google Business OAuth] getBusinessAccounts — ZERO accounts returned. " +
-          "The authenticated Google account has no Business Profile. " +
-          "The user needs to create one at business.google.com.",
-        );
+    const rateLimitDelays = [5_000, 10_000, 20_000];
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await service.accounts.list({});
+        const data = response.data;
+        const accounts: any[] = data.accounts ?? [];
+        console.log(`[Google Business OAuth] getBusinessAccounts — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
+        console.log(`[Google Business OAuth] getBusinessAccounts — accounts found: ${accounts.length}`);
+        accounts.forEach((a: any, i: number) => {
+          console.log(
+            `[Google Business OAuth]   [${i}] name="${a.name}"` +
+            `  accountName="${a.accountName ?? "(none)"}` +
+            `  type="${a.type ?? "(none)"}"` +
+            `  verificationState="${a.verificationState ?? "(none)"}"` +
+            `  vettedState="${a.vettedState ?? "(none)"}"`,
+          );
+        });
+        if (accounts.length === 0) {
+          console.warn(
+            "[Google Business OAuth] getBusinessAccounts — ZERO accounts returned. " +
+            "The authenticated Google account has no Business Profile. " +
+            "The user needs to create one at business.google.com.",
+          );
+        }
+        return data;
+      } catch (error: any) {
+        const status = error?.code ?? error?.response?.status ?? error?.status;
+        const msg = error?.message ?? String(error);
+        const body = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
+        console.error(`[Google Business OAuth] getBusinessAccounts FAILED — attempt ${attempt + 1}/${maxAttempts} — status: ${status}  message: ${msg}`);
+        console.error(`[Google Business OAuth] getBusinessAccounts FAILED — response body: ${body}`);
+
+        if (status === 429 && attempt < maxAttempts - 1) {
+          const delay = rateLimitDelays[attempt] ?? 20_000;
+          console.warn(`[Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting ${delay}ms before retry ${attempt + 2}/${maxAttempts}`);
+          await new Promise<void>((r) => setTimeout(r, delay));
+          continue;
+        }
+        if (status === 403) {
+          console.error(
+            "[Google Business OAuth] 403: Ensure 'My Business Account Management API' is enabled " +
+            "in Google Cloud Console and the business.manage scope is on the OAuth consent screen.",
+          );
+        }
+        throw error;
       }
-      return data;
-    } catch (error: any) {
-      const status = error?.code ?? error?.response?.status ?? error?.status;
-      const msg = error?.message ?? String(error);
-      const body = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
-      console.error(`[Google Business OAuth] getBusinessAccounts FAILED — status: ${status}  message: ${msg}`);
-      console.error(`[Google Business OAuth] getBusinessAccounts FAILED — response body: ${body}`);
-      if (status === 403) {
-        console.error(
-          "[Google Business OAuth] 403: Ensure 'My Business Account Management API' is enabled " +
-          "in Google Cloud Console and the business.manage scope is on the OAuth consent screen.",
-        );
-      }
-      throw error;
     }
+    return { accounts: [] };
   }
 
   /**
    * List locations for a given business account.
    * API: mybusinessbusinessinformation v1 — accounts.locations.list
+   *
+   * Retries on 429 with exponential backoff: 5 s → 10 s → 20 s (3 attempts total).
    */
-  async getLocations(accountName: string): Promise<any> {
+  async getLocations(accountName: string, maxAttempts = 3): Promise<any> {
     console.log(`[Google Business OAuth] getLocations — account: ${accountName}`);
     const service = google.mybusinessbusinessinformation({ version: "v1", auth: this.oauth2Client });
-    try {
-      const response = await service.accounts.locations.list({
-        parent: accountName,
-        readMask: "name,title,storeCode,storefrontAddress,phoneNumbers,websiteUri",
-      } as any);
-      const data = response.data;
-      const locs: any[] = data.locations ?? [];
-      console.log(`[Google Business OAuth] getLocations — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
-      console.log(`[Google Business OAuth] getLocations — locations found: ${locs.length}`);
-      locs.forEach((l: any, i: number) => {
-        console.log(
-          `[Google Business OAuth]   [${i}] name="${l.name}"` +
-          `  title="${l.title ?? "(none)"}"` +
-          `  storeCode="${l.storeCode ?? "(none)"}"`,
-        );
-        if (l.storefrontAddress) {
-          console.log(`[Google Business OAuth]       address: ${JSON.stringify(l.storefrontAddress)}`);
+    const rateLimitDelays = [5_000, 10_000, 20_000];
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await service.accounts.locations.list({
+          parent: accountName,
+          readMask: "name,title,storeCode,storefrontAddress,phoneNumbers,websiteUri",
+        } as any);
+        const data = response.data;
+        const locs: any[] = data.locations ?? [];
+        console.log(`[Google Business OAuth] getLocations — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
+        console.log(`[Google Business OAuth] getLocations — locations found: ${locs.length}`);
+        locs.forEach((l: any, i: number) => {
+          console.log(
+            `[Google Business OAuth]   [${i}] name="${l.name}"` +
+            `  title="${l.title ?? "(none)"}"` +
+            `  storeCode="${l.storeCode ?? "(none)"}"`,
+          );
+          if (l.storefrontAddress) {
+            console.log(`[Google Business OAuth]       address: ${JSON.stringify(l.storefrontAddress)}`);
+          }
+        });
+        if (locs.length === 0) {
+          console.warn(
+            `[Google Business OAuth] getLocations — ZERO locations returned for account ${accountName}. ` +
+            "The account may have no verified locations in Google Business Profile.",
+          );
         }
-      });
-      if (locs.length === 0) {
-        console.warn(
-          `[Google Business OAuth] getLocations — ZERO locations returned for account ${accountName}. ` +
-          "The account may have no verified locations in Google Business Profile.",
-        );
+        return data;
+      } catch (error: any) {
+        const status = error?.code ?? error?.response?.status ?? error?.status;
+        const msg = error?.message ?? String(error);
+        console.error(`[Google Business OAuth] getLocations FAILED — attempt ${attempt + 1}/${maxAttempts} — status: ${status}  message: ${msg}`);
+
+        if (status === 429 && attempt < maxAttempts - 1) {
+          const delay = rateLimitDelays[attempt] ?? 20_000;
+          console.warn(`[Google Business OAuth] getLocations — 429 quota exceeded, waiting ${delay}ms before retry ${attempt + 2}/${maxAttempts}`);
+          await new Promise<void>((r) => setTimeout(r, delay));
+          continue;
+        }
+        if (status === 403) {
+          console.error("[Google Business OAuth] 403: Ensure 'Business Profile API' is enabled in Google Cloud Console and the business.manage scope is approved.");
+        }
+        if (status === 404) {
+          console.error(`[Google Business OAuth] 404: Account "${accountName}" not found or this token does not have access to it.`);
+        }
+        throw error;
       }
-      return data;
-    } catch (error: any) {
-      const status = error?.code ?? error?.response?.status ?? error?.status;
-      const msg = error?.message ?? String(error);
-      console.error(`[Google Business OAuth] getLocations FAILED — status: ${status}  message: ${msg}`);
-      if (status === 403) {
-        console.error("[Google Business OAuth] 403: Ensure 'Business Profile API' is enabled in Google Cloud Console and the business.manage scope is approved.");
-      }
-      if (status === 404) {
-        console.error(`[Google Business OAuth] 404: Account "${accountName}" not found or this token does not have access to it.`);
-      }
-      throw error;
     }
+    return { locations: [] };
   }
 
   /**

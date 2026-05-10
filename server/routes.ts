@@ -64,6 +64,7 @@ import {
   GoogleBusinessAPIManager,
   createApiManagerFromProfile,
   publishReviewResponse,
+  getGoogleBusinessCallbackUrl,
 } from "./google-business-api";
 import { syncReviewsForStore, startGoogleReviewSyncScheduler } from "./google-review-sync";
 import { TrialService } from "./services/trial-service";
@@ -4057,7 +4058,7 @@ If you have any questions, please contact your administrator.
       (req.session as any).googleOAuthState   = csrf;
       (req.session as any).googleOAuthStoreId = storeId;
 
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback";
+      const redirectUri  = getGoogleBusinessCallbackUrl();
       const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
       const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
@@ -4119,7 +4120,7 @@ If you have any questions, please contact your administrator.
       (req.session as any).googleOAuthStoreId = storeId; // belt-and-suspenders fallback
 
       // BUSINESS integration credentials — NEVER shared with the login system
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback";
+      const redirectUri  = getGoogleBusinessCallbackUrl();
       const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
       const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
@@ -4218,7 +4219,7 @@ If you have any questions, please contact your administrator.
     // ── Exchange code for tokens ─────────────────────────────────────────────
     try {
       // BUSINESS credentials only — never shared with the login system
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback";
+      const redirectUri  = getGoogleBusinessCallbackUrl();
       const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
       const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
@@ -4409,7 +4410,7 @@ If you have any questions, please contact your administrator.
         console.error("[Google Business OAuth] 403: API access denied. Check:");
         console.error("[Google Business OAuth]   - 'My Business Account Management API' enabled in Google Cloud Console");
         console.error("[Google Business OAuth]   - business.manage scope approved on OAuth consent screen");
-        console.error("[Google Business OAuth]   - redirect_uri matches exactly:", process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback");
+        console.error("[Google Business OAuth]   - redirect_uri matches exactly:", getGoogleBusinessCallbackUrl());
         return res.redirect("/google-business?google_error=access_denied");
       }
       return res.redirect("/google-business?google_error=server_error");
@@ -4475,7 +4476,7 @@ If you have any questions, please contact your administrator.
 
     const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
     const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
-    const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? "https://certxa.com/google-business";
+    const redirectUri  = getGoogleBusinessCallbackUrl();
 
     if (!clientId || !clientSecret) {
       return res.status(500).json({ message: "Google Business OAuth credentials are not configured on the server." });
@@ -4692,7 +4693,7 @@ If you have any questions, please contact your administrator.
       const apiManager = new GoogleBusinessAPIManager({
         clientId:     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
         clientSecret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
-        redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback",
+        redirectUri:  getGoogleBusinessCallbackUrl(),
       });
 
       const tokens = await apiManager.getTokensFromCode(code);
