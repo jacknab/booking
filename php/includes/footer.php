@@ -58,6 +58,18 @@
           <li><a href="/salonos.php#reviews">Google Reviews</a></li>
         </ul>
       </div>
+
+      <div>
+        <p class="footer-col-title">Launchit!</p>
+        <ul class="footer-col-links">
+          <li><a href="/launchsite.php">Launchit! Overview</a></li>
+          <li><a href="/launchsite/">Templates</a></li>
+          <li><a href="/launchsite.php#how-it-works">How It Works</a></li>
+          <li><a href="/pricing.php">Pricing</a></li>
+          <li><a href="/launchsite.php#domains">Custom Domains</a></li>
+          <li><a href="/launchsite.php#seo">SEO Tools</a></li>
+        </ul>
+      </div>
       <div>
         <p class="footer-col-title">Features</p>
         <ul class="footer-col-links">
