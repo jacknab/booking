@@ -29,6 +29,7 @@ import {
   ChevronRight,
   Sparkles,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import axios from "axios";
 import { GoogleBusinessProfile } from "@shared/schema";
@@ -775,16 +776,40 @@ export function GoogleBusinessProfileSetup({
               </div>
             )}
 
-            {/* Connected state banner */}
-            <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle2 className="text-green-600 flex-shrink-0 mt-0.5" size={18} />
-              <div>
-                <h4 className="font-medium text-green-900 text-sm">Connected</h4>
-                <p className="text-sm text-green-700 mt-0.5">
-                  Reviews sync automatically every 6 hours.
-                </p>
+            {/* Status banner — green when healthy, amber when location not selected */}
+            {profile.isConnected ? (
+              <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle2 className="text-green-600 flex-shrink-0 mt-0.5" size={18} />
+                <div>
+                  <h4 className="font-medium text-green-900 text-sm">Connected</h4>
+                  <p className="text-sm text-green-700 mt-0.5">
+                    Reviews sync automatically every 6 hours.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={18} />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-amber-900 text-sm">No location selected</h4>
+                  <p className="text-sm text-amber-700 mt-0.5">
+                    Your Google account is linked but no business location has been chosen yet.
+                    Click <strong>Reconnect</strong> to pick one — no need to disconnect first.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={handleStartAuth}
+                    disabled={loading}
+                    className="mt-3 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    {loading
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <RotateCcw size={13} />}
+                    Reconnect &amp; Select Location
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Business details */}
             <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
@@ -813,7 +838,7 @@ export function GoogleBusinessProfileSetup({
                 </div>
               ) : (
                 <p className="text-xs text-blue-700">
-                  No business name saved. Disconnect and reconnect to select a location.
+                  No location selected yet.
                 </p>
               )}
             </div>
@@ -843,29 +868,39 @@ export function GoogleBusinessProfileSetup({
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="outline"
                 onClick={loadProfile}
                 disabled={loading}
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 min-w-[110px]"
               >
                 <RefreshCw size={14} />
-                Refresh Status
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleStartAuth}
+                disabled={loading}
+                className="flex-1 gap-2 min-w-[110px] border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                Reconnect
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleDisconnect}
                 disabled={loading}
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 min-w-[110px]"
               >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
+                <LogOut size={14} />
                 Disconnect
               </Button>
             </div>
 
             <p className="text-xs text-gray-400 text-center">
-              Disconnecting will revoke our access and delete all synced reviews from this platform. Your reviews remain on Google.
+              <strong>Reconnect</strong> re-links your Google account without losing synced reviews.{" "}
+              <strong>Disconnect</strong> revokes access and removes all synced review data.
             </p>
           </CardContent>
         </Card>
