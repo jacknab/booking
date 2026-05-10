@@ -5008,6 +5008,38 @@ If you have any questions, please contact your administrator.
   });
 
   /**
+   * GET /api/google-business/stored-accounts/:storeId
+   *
+   * Returns the Google Business accounts already stored in the DB for this store
+   * (populated during the OAuth flow via exchange-code or the legacy callback).
+   * Used by the "Select Location" flow so users can pick a location without
+   * re-doing OAuth when accounts were already authorized.
+   */
+  app.get("/api/google-business/stored-accounts/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+    if (!storeId) return res.status(400).json({ message: "Invalid storeId" });
+
+    try {
+      const rows = await db
+        .select()
+        .from(googleBusinessAccounts)
+        .where(eq(googleBusinessAccounts.storeId, storeId))
+        .orderBy(googleBusinessAccounts.createdAt);
+
+      // Strip tokens — only send safe fields
+      const safeAccounts = rows.map(({ accessToken, refreshToken, ...safe }) => safe);
+      console.log(`[GBP] stored-accounts — storeId=${storeId}  found=${rows.length}`);
+      res.json({ accounts: safeAccounts });
+    } catch (error: any) {
+      console.error("[GBP] stored-accounts ERROR:", error?.message ?? error);
+      res.status(500).json({ message: "Failed to fetch stored accounts" });
+    }
+  });
+
+  /**
    * Disconnect Google Business Profile.
    * Revokes the OAuth token at Google, then removes all local review data.
    * Required by Google API policies: users must be able to revoke access at any time,

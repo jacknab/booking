@@ -30,6 +30,7 @@ import {
   Sparkles,
   ArrowRight,
   RotateCcw,
+  List,
 } from "lucide-react";
 import axios from "axios";
 import { GoogleBusinessProfile } from "@shared/schema";
@@ -236,12 +237,64 @@ export function GoogleBusinessProfileSetup({
       const res = await axios.get(`/api/google-business/profile/${storeId}`);
       if (res.data.profile) {
         setProfile(res.data.profile);
+        setProfileId(res.data.profile.id); // so actions in "connected" state have the profile ID
         setStep("connected");
       } else {
         setStep("initial");
       }
     } catch {
       setStep("initial");
+    }
+  };
+
+  /**
+   * Load accounts already stored in the DB (from previous OAuth flows) and drop
+   * the user directly into the location-picker without requiring a new OAuth round-trip.
+   */
+  const handleSelectFromStoredAccounts = async () => {
+    if (!storeId) return;
+    const useProfileId = profileId ?? (profile as any)?.id ?? null;
+    if (!useProfileId) {
+      setErrorMsg("Could not determine the current profile. Please try reconnecting.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      setStep("loading");
+
+      const res = await axios.get(`/api/google-business/stored-accounts/${storeId}`);
+      const accts: Account[] = (res.data.accounts ?? []).map((a: any) => ({
+        name:        a.googleAccountId,
+        accountName: a.accountName ?? a.displayName ?? null,
+      }));
+
+      if (!accts.length) {
+        setErrorMsg(
+          "No Google accounts found in the system for this store. " +
+          "Please use Reconnect to go through Google sign-in again."
+        );
+        setStep("connected");
+        setLoading(false);
+        return;
+      }
+
+      setProfileId(useProfileId);
+      setAccounts(accts);
+
+      if (accts.length === 1) {
+        // Single account — fetch its locations immediately
+        await fetchLocationsForAccount(accts[0].name, useProfileId);
+      } else {
+        // Multiple accounts — let user pick one first
+        setSelectedAccount(accts[0].name);
+        setStep("select-account");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
+      setStep("connected");
+      setLoading(false);
     }
   };
 
@@ -794,19 +847,31 @@ export function GoogleBusinessProfileSetup({
                   <h4 className="font-medium text-amber-900 text-sm">No location selected</h4>
                   <p className="text-sm text-amber-700 mt-0.5">
                     Your Google account is linked but no business location has been chosen yet.
-                    Click <strong>Reconnect</strong> to pick one — no need to disconnect first.
+                    If you've already signed in with Google, use <strong>Select Location</strong> to pick one instantly — no sign-in needed. Otherwise, use <strong>Reconnect</strong>.
                   </p>
-                  <Button
-                    size="sm"
-                    onClick={handleStartAuth}
-                    disabled={loading}
-                    className="mt-3 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
-                  >
-                    {loading
-                      ? <Loader2 size={13} className="animate-spin" />
-                      : <RotateCcw size={13} />}
-                    Reconnect &amp; Select Location
-                  </Button>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={handleSelectFromStoredAccounts}
+                      disabled={loading}
+                      className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      {loading
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : <List size={13} />}
+                      Select Location
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleStartAuth}
+                      disabled={loading}
+                      className="gap-1.5 border-amber-400 text-amber-800 hover:bg-amber-100"
+                    >
+                      <RotateCcw size={13} />
+                      Reconnect
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -880,11 +945,20 @@ export function GoogleBusinessProfileSetup({
               </Button>
               <Button
                 variant="outline"
+                onClick={handleSelectFromStoredAccounts}
+                disabled={loading}
+                className="flex-1 gap-2 min-w-[130px] border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <List size={14} />}
+                Select Location
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handleStartAuth}
                 disabled={loading}
-                className="flex-1 gap-2 min-w-[110px] border-blue-200 text-blue-700 hover:bg-blue-50"
+                className="flex-1 gap-2 min-w-[110px]"
               >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                <RotateCcw size={14} />
                 Reconnect
               </Button>
               <Button
@@ -899,7 +973,8 @@ export function GoogleBusinessProfileSetup({
             </div>
 
             <p className="text-xs text-gray-400 text-center">
-              <strong>Reconnect</strong> re-links your Google account without losing synced reviews.{" "}
+              <strong>Select Location</strong> picks from your already-authorized accounts.{" "}
+              <strong>Reconnect</strong> re-links via Google sign-in.{" "}
               <strong>Disconnect</strong> revokes access and removes all synced review data.
             </p>
           </CardContent>
