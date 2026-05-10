@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS locations (
   cancellation_hours_cutoff INTEGER NOT NULL DEFAULT 24,
   pos_enabled BOOLEAN NOT NULL DEFAULT true,
   is_training_sandbox BOOLEAN NOT NULL DEFAULT false,
-  sandbox_parent_store_id INTEGER
+  sandbox_parent_store_id INTEGER,
+  weekly_digest_opt_out BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS business_hours (
@@ -1510,3 +1511,23 @@ CREATE TABLE IF NOT EXISTS dead_seat_patterns (
   CONSTRAINT dsp_store_slot_uidx UNIQUE (store_id, day_of_week, hour_start)
 );
 CREATE INDEX IF NOT EXISTS dsp_store_id_idx ON dead_seat_patterns(store_id);
+
+-- ── AI Chatbot ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS conversations (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ── Safe column additions (idempotent ALTER TABLE statements) ───────────────
+-- These add columns that were introduced after the initial schema was written.
+-- Using IF NOT EXISTS ensures they are safe to run on any database (new or existing).
+ALTER TABLE locations ADD COLUMN IF NOT EXISTS weekly_digest_opt_out BOOLEAN NOT NULL DEFAULT false;
