@@ -1,13 +1,13 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { addDays, addMinutes, isSameDay } from "date-fns";
+import { addDays, addMinutes, isSameDay, format } from "date-fns";
 import { formatInTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { Plus, Check, CalendarPlus, Search, Clock, Play, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Check, CalendarPlus, Search, Clock, Play, CheckCircle2, XCircle, Bell, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 
-const TIME_COL_W = 44;
-const STAFF_HEADER_H = 68;
+const TIME_COL_W = 60;
+const STAFF_HEADER_H = 82;
 
 interface WeekDay {
   date: Date;
@@ -199,10 +199,9 @@ export function MobileCalendarView({
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-background">
 
-      {/* ── Week strip ── */}
+      {/* ── Date header ── */}
       <div
-        className="flex-shrink-0 border-b flex"
-        style={{ backgroundColor: "#f1f5f9" }}
+        className="flex-shrink-0 h-12 flex items-center justify-between px-3 bg-white border-b border-gray-100"
         onTouchStart={(e) => {
           const t = e.touches[0];
           weekStripTouchRef.current = { x: t.clientX, y: t.clientY };
@@ -214,41 +213,42 @@ export function MobileCalendarView({
           const dy = t.clientY - weekStripTouchRef.current.y;
           weekStripTouchRef.current = null;
           if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-          onSelectDate(addDays(currentDate, dx < 0 ? 7 : -7));
+          onSelectDate(addDays(currentDate, dx < 0 ? 1 : -1));
         }}
       >
-        <div className="flex-shrink-0" style={{ width: TIME_COL_W }} />
-        <div className="flex flex-1">
-          {weekDayLabels.map((wd) => {
-            const isSelected = isSameDay(wd.date, currentDate);
-            return (
-              <button
-                key={wd.date.toISOString()}
-                className="flex-1 flex flex-col items-center justify-center py-1.5 active:opacity-60 transition-opacity"
-                onClick={() => onSelectDate(wd.date)}
-              >
-                <span className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wide leading-none mb-1",
-                  wd.isToday ? "text-pink-400" : "text-slate-400"
-                )}>
-                  {wd.label}
-                </span>
-                <span className={cn(
-                  "text-[15px] font-bold leading-none w-7 h-7 flex items-center justify-center rounded-full",
-                  wd.isToday && isSelected
-                    ? "bg-pink-300 text-pink-800"
-                    : wd.isToday
-                      ? "text-pink-400"
-                      : isSelected
-                        ? "bg-pink-100 text-pink-700"
-                        : "text-slate-500"
-                )}>
-                  {wd.date.getDate()}
-                </span>
-              </button>
-            );
-          })}
+        <button
+          className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
+          aria-label="Calendar"
+        >
+          <CalendarDays size={20} className="text-slate-500" />
+        </button>
+
+        <div className="flex items-center gap-1">
+          <button
+            className="w-8 h-8 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
+            onClick={() => onSelectDate(addDays(currentDate, -1))}
+            aria-label="Previous day"
+          >
+            <ChevronLeft size={18} className="text-slate-500" />
+          </button>
+          <span className="text-[14px] font-semibold text-slate-800 tabular-nums tracking-tight px-1">
+            {format(currentDate, "EEE d MMM, yyyy")}
+          </span>
+          <button
+            className="w-8 h-8 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
+            onClick={() => onSelectDate(addDays(currentDate, 1))}
+            aria-label="Next day"
+          >
+            <ChevronRight size={18} className="text-slate-500" />
+          </button>
         </div>
+
+        <button
+          className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
+          aria-label="Notifications"
+        >
+          <Bell size={20} className="text-slate-500" />
+        </button>
       </div>
 
       {/* ── Staff headers row ── */}
@@ -274,7 +274,7 @@ export function MobileCalendarView({
           )}
         </div>
 
-        {/* Staff header cells — tappable to filter */}
+        {/* Staff header cells — centered avatar + name + Add Shift */}
         <AnimatePresence mode="wait" custom={swipeDir}>
           <motion.div
             key={`hdr-${safeStaffPage}-${COLS_PER_PAGE}`}
@@ -287,52 +287,34 @@ export function MobileCalendarView({
           >
             {visibleStaff.map((member: any) => {
               const color = getStaffColor(member);
-              const aptCount = getAppointmentsForStaff(member.id).length;
               const isFiltered = selectedStaffId === member.id;
               return (
                 <button
                   key={member.id}
-                  className="flex-1 flex items-center gap-2 px-3 active:opacity-70 transition-opacity text-left"
+                  className="flex-1 flex flex-col items-center justify-center py-2 gap-[3px] active:opacity-70 transition-opacity"
                   style={{
                     minWidth: 0,
-                    borderLeft: `3px solid ${color}`,
-                    backgroundColor: isFiltered ? color + "14" : undefined,
+                    backgroundColor: isFiltered ? color + "12" : undefined,
                   }}
                   onClick={() => onFilterStaff(isFiltered ? "all" : member.id)}
                 >
                   <Avatar
-                    className="w-9 h-9 flex-shrink-0 ring-2 ring-offset-1"
-                    style={{ ["--tw-ring-color" as any]: color + "60" }}
+                    className="w-10 h-10 flex-shrink-0"
+                    style={{ border: `2px solid ${color}40` }}
                   >
                     <AvatarFallback
-                      style={{ backgroundColor: color + "22", color }}
-                      className="text-[11px] font-extrabold"
+                      style={{ backgroundColor: color + "20", color }}
+                      className="text-[13px] font-extrabold"
                     >
                       {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-bold truncate leading-tight text-foreground">{member.name}</p>
-                    <div className="mt-1 flex items-center gap-1">
-                      {aptCount === 0 ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-muted text-muted-foreground">
-                          No appts
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white leading-none"
-                          style={{ backgroundColor: color }}
-                        >
-                          {aptCount} appt{aptCount !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                      {isFiltered && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary">
-                          filtered
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <p className="text-[12px] font-semibold text-slate-700 leading-tight truncate max-w-full px-1">
+                    {member.name}
+                  </p>
+                  <span className="text-[10px] font-medium text-blue-500 leading-none">
+                    Add Shift
+                  </span>
                 </button>
               );
             })}
@@ -358,44 +340,34 @@ export function MobileCalendarView({
             className="flex-shrink-0 bg-card relative border-r border-border/40"
             style={{ width: TIME_COL_W }}
           >
-            {/* Timeline pill */}
+            {/* Timeline pill — red outlined box */}
             {isToday && timeLinePosition !== null && (
               <div
                 className="absolute z-20 pointer-events-none"
-                style={{ top: timeLinePosition, transform: "translateY(-50%)", right: -2, left: 0 }}
+                style={{ top: timeLinePosition, transform: "translateY(-50%)", right: 0, left: 0 }}
               >
                 <span
-                  className="text-[11px] font-extrabold text-white px-1.5 py-1 rounded-md leading-none block text-center shadow-lg"
-                  style={{ backgroundColor: "#2563eb", boxShadow: "0 2px 8px rgba(37,99,235,0.55)" }}
+                  className="text-[10px] font-bold text-red-600 px-1 py-[3px] rounded leading-none block text-center"
+                  style={{ border: "1.5px solid #dc2626", backgroundColor: "white" }}
                 >
                   {timeLineLabel}
                 </span>
               </div>
             )}
 
-            {/* Hour labels */}
-            {Array.from({ length: TOTAL_HOURS * 4 + 1 }, (_, i) => {
-              const totalMins = i * 15;
-              const h = START_HOUR + Math.floor(totalMins / 60);
-              const m = totalMins % 60;
-              if (h > END_HOUR || (h === END_HOUR && m > 0)) return null;
-              if (m !== 0 && m !== 30) return null;
-              const topPx = (totalMins / 60) * HOUR_HEIGHT;
-              const isHour = m === 0;
-              if (!isHour) {
-                return (
-                  <div key={`t-${h}-${m}`} className="absolute right-0 flex items-center justify-end pr-1 -translate-y-1/2" style={{ top: topPx }}>
-                    <span className="text-[9px] font-medium text-muted-foreground/60 tabular-nums">:30</span>
-                  </div>
-                );
-              }
+            {/* Hour labels — "9:00am" inline format */}
+            {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => {
+              const h = START_HOUR + i;
+              if (h > END_HOUR) return null;
+              const topPx = i * HOUR_HEIGHT;
               const hMod = h % 24;
               const displayH = hMod === 0 ? 12 : hMod > 12 ? hMod - 12 : hMod;
               const ampm = hMod >= 12 ? "pm" : "am";
               return (
-                <div key={`t-${h}-${m}`} className="absolute right-0 left-0 flex flex-col items-end pr-1.5 -translate-y-1/2" style={{ top: topPx }}>
-                  <span className="text-[13px] font-extrabold text-foreground tabular-nums leading-none">{displayH}</span>
-                  <span className="text-[9px] font-bold text-muted-foreground leading-none mt-0.5">{ampm}</span>
+                <div key={`t-${h}`} className="absolute right-0 left-0 flex items-center justify-end pr-1.5 -translate-y-1/2" style={{ top: topPx }}>
+                  <span className="text-[10px] font-semibold text-slate-500 tabular-nums whitespace-nowrap leading-none">
+                    {displayH}:00{ampm}
+                  </span>
                 </div>
               );
             })}
@@ -493,11 +465,13 @@ export function MobileCalendarView({
         </button>
       )}
 
-      {/* ── FAB ── */}
+      {/* ── FAB — centered above bottom nav ── */}
       <button
-        className="fixed z-40 right-4 flex items-center justify-center rounded-full shadow-2xl active:scale-95 transition-transform duration-100"
+        className="fixed z-40 flex items-center justify-center rounded-full shadow-2xl active:scale-95 transition-transform duration-100"
         style={{
           bottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+          left: "50%",
+          transform: "translateX(-50%)",
           width: 56,
           height: 56,
           backgroundColor: "#0f172a",
@@ -665,11 +639,11 @@ function StaffColumn({
         );
       })}
 
-      {/* Current time line */}
+      {/* Current time line — red */}
       {isToday && timeLinePosition !== null && (
         <div
           className="absolute left-0 right-0 z-10 pointer-events-none"
-          style={{ top: timeLinePosition, height: 2, backgroundColor: "#2563eb" }}
+          style={{ top: timeLinePosition, height: 2, backgroundColor: "#dc2626" }}
         />
       )}
 
