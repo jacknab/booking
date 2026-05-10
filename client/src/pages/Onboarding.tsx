@@ -432,24 +432,20 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050C18] text-white p-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#050C18] via-[#0f0524] to-[#050C18] text-white p-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div className="w-full max-w-xl transition-all duration-300">
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-lg shadow" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          <span className="font-extrabold text-2xl tracking-tight text-white">Certxa</span>
-        </div>
 
         <div className="flex items-center justify-center gap-2 mb-10">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div key={i} className="flex items-center gap-2">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all ${step > i + 1 ? "bg-[#00D4AA] text-[#050C18]" : step === i + 1 ? "bg-[#00D4AA] text-[#050C18]" : "bg-white/10 text-white/40"}`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all ${step > i + 1 ? "bg-[#3B0764] text-white" : step === i + 1 ? "bg-[#F59E0B] text-[#3B0764]" : "bg-white/10 text-white/40"}`}
                 data-testid={`step-indicator-${i + 1}`}
               >
                 {step > i + 1 ? <Check className="w-3.5 h-3.5" /> : i + 1}
               </div>
               {i < totalSteps - 1 && (
-                <div className={`h-0.5 w-10 rounded-full transition-all ${step > i + 1 ? "bg-[#00D4AA]" : "bg-white/10"}`} />
+                <div className={`h-0.5 w-10 rounded-full transition-all ${step > i + 1 ? "bg-[#3B0764]" : "bg-white/10"}`} />
               )}
             </div>
           ))}
@@ -457,11 +453,12 @@ export default function Onboarding() {
 
         {step === 1 && (
           <div className="bg-white rounded-2xl shadow-xl p-10 text-center">
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <img src="/web-app.png" alt="Certxa" className="w-8 h-8 rounded-lg" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              <span className="font-extrabold text-2xl tracking-tight text-[#050C18]">Certxa</span>
+            <div className="text-center mb-6">
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "#3B0764", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                Certxa<span style={{ color: "#F59E0B" }}>.</span>
+              </span>
             </div>
-            <h2 className="text-2xl font-bold text-[#00AACC] mb-3" data-testid="text-step1-title">Tell us a little about yourself</h2>
+            <h2 className="text-2xl font-bold text-[#3B0764] mb-3" data-testid="text-step1-title">Tell us a little about yourself</h2>
             <p className="text-gray-500 text-sm mb-6">Let's tailor Certxa to you! Just a few quick questions</p>
             <p className="text-gray-800 font-semibold mb-5">Who do you need Certxa for?</p>
             <div className="flex flex-col gap-3">
@@ -474,14 +471,14 @@ export default function Onboarding() {
                   setStaffCount(1);
                   setStep(2);
                 }}
-                className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "myself" ? "border-[#00AACC] bg-[#00AACC]/10 text-[#00AACC]" : "border-[#00AACC] text-[#00AACC] hover:bg-[#00AACC]/5"}`}
+                className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "myself" ? "border-[#3B0764] bg-[#3B0764]/10 text-[#3B0764]" : "border-[#3B0764] text-[#3B0764] hover:bg-[#3B0764]/5"}`}
               >
                 Myself
               </button>
               <button
                 type="button"
                 onClick={() => { setTeamSize("team"); setStep(2); }}
-                className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "team" ? "border-[#00AACC] bg-[#00AACC]/10 text-[#00AACC]" : "border-[#00AACC] text-[#00AACC] hover:bg-[#00AACC]/5"}`}
+                className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "team" ? "border-[#3B0764] bg-[#3B0764]/10 text-[#3B0764]" : "border-[#3B0764] text-[#3B0764] hover:bg-[#3B0764]/5"}`}
               >
                 Me and my team
               </button>
@@ -505,6 +502,11 @@ export default function Onboarding() {
           return (
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
               <div className="px-8 pt-8 pb-4">
+                <div className="text-center mb-5">
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "#3B0764", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                    Certxa<span style={{ color: "#F59E0B" }}>.</span>
+                  </span>
+                </div>
                 <h2 className="text-xl font-bold text-gray-900 mb-4">How can Certxa help you better manage your business</h2>
                 <p className="text-sm text-gray-500 mb-5 text-center">I want to....</p>
                 <div className="flex flex-col gap-1">
@@ -512,7 +514,7 @@ export default function Onboarding() {
                     <label key={g} className="flex items-center gap-3 py-2.5 cursor-pointer group">
                       <div
                         onClick={() => toggleGoal(g)}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${goals.includes(g) ? "bg-[#4B5FD6] border-[#4B5FD6]" : "border-gray-300 bg-white"}`}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${goals.includes(g) ? "bg-[#3B0764] border-[#3B0764]" : "border-gray-300 bg-white"}`}
                       >
                         {goals.includes(g) && (
                           <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
@@ -535,7 +537,7 @@ export default function Onboarding() {
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#4B5FD6] hover:bg-[#3d4fb8] transition-colors"
+                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#3B0764] hover:bg-[#2d0552] transition-colors"
                 >
                   Continue
                 </button>
@@ -553,7 +555,7 @@ export default function Onboarding() {
           return showBusinessTypePanel ? (
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                <button type="button" onClick={() => setShowBusinessTypePanel(false)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <button type="button" onClick={() => setShowBusinessTypePanel(false)} className="text-gray-500 hover:text-[#3B0764] transition-colors">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <span className="font-semibold text-gray-800 text-sm">Select Business Type</span>
@@ -564,7 +566,7 @@ export default function Onboarding() {
                     key={bt}
                     type="button"
                     onClick={() => { setSelectedType(bt); setShowBusinessTypePanel(false); }}
-                    className="w-full text-left px-5 py-4 text-sm text-gray-700 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-5 py-4 text-sm text-gray-700 border-b border-gray-100 last:border-0 hover:bg-[#3B0764]/5 hover:text-[#3B0764] transition-colors"
                   >
                     {bt}
                   </button>
@@ -574,6 +576,11 @@ export default function Onboarding() {
           ) : (
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
               <div className="px-6 pt-6 pb-2 space-y-4">
+                <div className="text-center mb-1">
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "#3B0764", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                    Certxa<span style={{ color: "#F59E0B" }}>.</span>
+                  </span>
+                </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Name <span className="text-red-500">*</span></label>
                   <input
@@ -583,13 +590,13 @@ export default function Onboarding() {
                     placeholder="Enter Business Name"
                     data-testid="input-business-name"
                     autoFocus
-                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#4B5FD6] text-sm"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#3B0764] text-sm"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Telephone Number <span className="text-red-500">*</span></label>
-                  <div className="flex items-center h-12 rounded-xl border border-gray-200 overflow-hidden focus-within:border-[#4B5FD6] transition-colors">
+                  <div className="flex items-center h-12 rounded-xl border border-gray-200 overflow-hidden focus-within:border-[#3B0764] transition-colors">
                     <span className="flex items-center gap-1 px-3 text-sm text-gray-600 border-r border-gray-200 h-full bg-gray-50 shrink-0">
                       🇺🇸 <ChevronRight className="w-3 h-3 text-gray-400" />
                     </span>
@@ -612,7 +619,7 @@ export default function Onboarding() {
                   <button
                     type="button"
                     onClick={() => setShowBusinessTypePanel(true)}
-                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-left flex items-center justify-between hover:border-[#4B5FD6] transition-colors"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-left flex items-center justify-between hover:border-[#3B0764] transition-colors"
                   >
                     <span className={selectedType ? "text-sm text-gray-800" : "text-sm text-gray-400"}>
                       {selectedType || "Select Business Type"}
@@ -632,7 +639,7 @@ export default function Onboarding() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Set Timezone <span className="text-red-500">*</span></label>
                   <Select value={timezone} onValueChange={setTimezone}>
-                    <SelectTrigger data-testid="select-timezone" className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-gray-800 bg-white focus:border-[#4B5FD6]">
+                    <SelectTrigger data-testid="select-timezone" className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-gray-800 bg-white focus:border-[#3B0764]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -645,7 +652,7 @@ export default function Onboarding() {
                   </Select>
                 </div>
 
-                <p className="text-xs text-[#4B5FD6] text-center pb-2">All fields are required <span className="text-red-500">*</span></p>
+                <p className="text-xs text-[#3B0764] text-center pb-2">All fields are required <span className="text-red-500">*</span></p>
               </div>
               <div className="flex border-t border-gray-100">
                 <button
@@ -657,7 +664,7 @@ export default function Onboarding() {
                 <button
                   onClick={() => setStep(4)}
                   disabled={!canProceed(3)}
-                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#4B5FD6] hover:bg-[#3d4fb8] transition-colors disabled:opacity-50"
+                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#3B0764] hover:bg-[#2d0552] transition-colors disabled:opacity-50"
                 >
                   Continue
                 </button>
@@ -696,12 +703,17 @@ export default function Onboarding() {
 
           return (
             <div>
+              <div className="text-center mb-4">
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "white", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                  Certxa<span style={{ color: "#F59E0B" }}>.</span>
+                </span>
+              </div>
               <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step3-title">Set your business hours</h2>
               <p className="text-sm text-white/45 text-center mb-6">These will be your default staff hours too</p>
 
               {/* Builder card */}
               {!allDaysSet && (
-                <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-5 mb-4">
+                <div className="bg-[#1a0533] border border-white/10 rounded-2xl p-5 mb-4">
                   <p className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Add hours</p>
 
                   {/* Time inputs */}
@@ -712,7 +724,7 @@ export default function Onboarding() {
                         type="time"
                         value={addOpenTime}
                         onChange={e => setAddOpenTime(e.target.value)}
-                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#00D4AA]/50"
+                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#F59E0B]/50"
                         style={{ colorScheme: "dark" }}
                       />
                     </div>
@@ -723,7 +735,7 @@ export default function Onboarding() {
                         type="time"
                         value={addCloseTime}
                         onChange={e => setAddCloseTime(e.target.value)}
-                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#00D4AA]/50"
+                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#F59E0B]/50"
                         style={{ colorScheme: "dark" }}
                       />
                     </div>
@@ -744,7 +756,7 @@ export default function Onboarding() {
                             alreadySet
                               ? "bg-white/4 border-white/8 text-white/20 cursor-not-allowed"
                               : selected
-                              ? "bg-[#00D4AA] border-[#00D4AA] text-[#050C18]"
+                              ? "bg-[#F59E0B] border-[#F59E0B] text-[#3B0764]"
                               : "bg-white/6 border-white/15 text-white/70 hover:bg-white/10"
                           }`}
                         >
@@ -759,7 +771,7 @@ export default function Onboarding() {
                     type="button"
                     onClick={handleAddHours}
                     disabled={addDays.length === 0}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-30"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-30"
                   >
                     <Plus className="w-4 h-4" />
                     Add {addDays.length > 0 ? `${addDays.length} day${addDays.length > 1 ? "s" : ""}` : "days"}
@@ -768,7 +780,7 @@ export default function Onboarding() {
               )}
 
               {/* Schedule preview — always Sun–Sat order */}
-              <div className="bg-[#0D1F35] border border-white/10 rounded-2xl overflow-hidden">
+              <div className="bg-[#1a0533] border border-white/10 rounded-2xl overflow-hidden">
                 <p className="text-xs text-white/50 font-semibold uppercase tracking-wider px-5 pt-4 pb-2">Your schedule</p>
                 {hours.map((day, i) => (
                   <div key={i} className="flex items-center justify-between px-5 py-3 border-t border-white/6 first:border-0" data-testid={`row-day-${i}`}>
@@ -778,7 +790,7 @@ export default function Onboarding() {
                     {day.isClosed ? (
                       <span className="text-sm text-white/25 italic flex-1">Closed</span>
                     ) : (
-                      <span className="text-sm text-[#00D4AA] flex-1 font-medium">
+                      <span className="text-sm text-[#F59E0B] flex-1 font-medium">
                         {formatTime(day.openTime)} – {formatTime(day.closeTime)}
                       </span>
                     )}
@@ -805,7 +817,7 @@ export default function Onboarding() {
                   onClick={() => teamSize === "myself" ? handleComplete() : setStep(5)}
                   disabled={!canProceed(4) || onboardMutation.isPending}
                   data-testid="button-next-step"
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-40">
                   {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                   {teamSize === "myself"
                     ? (onboardMutation.isPending ? "Setting up…" : "Complete Setup")
@@ -819,10 +831,15 @@ export default function Onboarding() {
 
         {step === 5 && (
           <div>
+            <div className="text-center mb-4">
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "white", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                Certxa<span style={{ color: "#F59E0B" }}>.</span>
+              </span>
+            </div>
             <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step4-title">Add your team</h2>
             <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
 
-            <div className="bg-[#0D1F35] border border-white/10 rounded-2xl p-6">
+            <div className="bg-[#1a0533] border border-white/10 rounded-2xl p-6">
               <div className="space-y-3">
                 {staffNames.map((name, i) => (
                   <div key={i} className="space-y-1">
@@ -839,7 +856,7 @@ export default function Onboarding() {
                         placeholder={i === 0 ? "Owner name" : "Staff member name"}
                         data-testid={`input-staff-name-${i}`}
                         autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
-                        className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#00D4AA]/50 h-11 rounded-xl ${name.trim() === "" ? "border-red-500/50" : ""}`}
+                        className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#F59E0B]/50 h-11 rounded-xl ${name.trim() === "" ? "border-red-500/50" : ""}`}
                       />
                       {i > 0 && (
                         <button
@@ -857,7 +874,7 @@ export default function Onboarding() {
                       )}
                       {i === 0 && (
                         <div className="w-9 h-9 shrink-0 flex items-center justify-center">
-                          <span className="text-[10px] text-[#00D4AA] font-bold border border-[#00D4AA]/30 rounded px-1.5 py-0.5 bg-[#00D4AA]/10">YOU</span>
+                          <span className="text-[10px] text-[#F59E0B] font-bold border border-[#F59E0B]/30 rounded px-1.5 py-0.5 bg-[#F59E0B]/10">YOU</span>
                         </div>
                       )}
                     </div>
@@ -876,7 +893,7 @@ export default function Onboarding() {
                     setStaffNames(prev => [...prev, ""]);
                     setStaffCount(prev => prev + 1);
                   }}
-                  className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/20 text-white/50 hover:border-[#00D4AA]/40 hover:text-[#00D4AA] text-sm font-semibold transition-all"
+                  className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/20 text-white/50 hover:border-[#F59E0B]/40 hover:text-[#F59E0B] text-sm font-semibold transition-all"
                 >
                   <Plus className="w-4 h-4" /> Add staff member
                 </button>
@@ -898,7 +915,7 @@ export default function Onboarding() {
                 onClick={handleComplete}
                 disabled={!canProceed(5) || onboardMutation.isPending}
                 data-testid="button-complete-setup"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-40"
               >
                 {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 {onboardMutation.isPending ? "Setting up…" : "Complete Setup"}
@@ -958,7 +975,7 @@ function BusinessTypeCard({
       <div
         className={`relative h-64 w-full rounded-2xl overflow-hidden transition-all duration-200 bg-gradient-to-br ${type.fallbackGradient} ${
           isSelected
-            ? "ring-2 ring-[#00D4AA] ring-offset-2 ring-offset-[#050C18] shadow-xl shadow-[#00D4AA]/20 scale-[1.03]"
+            ? "ring-2 ring-[#F59E0B] ring-offset-2 ring-offset-[#050C18] shadow-xl shadow-[#F59E0B]/20 scale-[1.03]"
             : "hover:scale-[1.01] hover:shadow-lg opacity-80 hover:opacity-100"
         }`}
       >
@@ -974,13 +991,13 @@ function BusinessTypeCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
         {isSelected && (
-          <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-[#00D4AA] flex items-center justify-center shadow">
-            <Check className="w-3.5 h-3.5 text-[#050C18]" />
+          <div className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-[#F59E0B] flex items-center justify-center shadow">
+            <Check className="w-3.5 h-3.5 text-[#3B0764]" />
           </div>
         )}
       </div>
       <div className="mt-2.5 px-0.5">
-        <p className={`font-bold text-sm leading-tight ${isSelected ? "text-[#00D4AA]" : "text-white"}`}>{type.label}</p>
+        <p className={`font-bold text-sm leading-tight ${isSelected ? "text-[#F59E0B]" : "text-white"}`}>{type.label}</p>
         <p className="text-xs text-white/40 mt-0.5 leading-snug">{type.description}</p>
       </div>
     </div>
@@ -1067,7 +1084,7 @@ function Step1BusinessType({
 
       <div className="mt-6 flex justify-end">
         <button onClick={onNext} disabled={!canProceed} data-testid="button-next-step"
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-40">
           Next <ArrowRight className="w-4 h-4" />
         </button>
       </div>
