@@ -4176,12 +4176,12 @@ If you have any questions, please contact your administrator.
 
     if (oauthError) {
       console.warn("[Google Business OAuth] User denied access or Google returned an error:", oauthError);
-      return res.redirect(`/reviews?google_error=${encodeURIComponent(oauthError)}`);
+      return res.redirect(`/google-business?google_error=${encodeURIComponent(oauthError)}`);
     }
 
     if (!code || !state) {
       console.error("[Google Business OAuth] Missing code or state in callback");
-      return res.redirect("/reviews?google_error=missing_params");
+      return res.redirect("/google-business?google_error=missing_params");
     }
 
     // ── Decode & verify CSRF state ───────────────────────────────────────────
@@ -4194,7 +4194,7 @@ If you have any questions, please contact your administrator.
       console.log("[Google Business OAuth]   decoded storeId:", storeId, "  csrf:", csrf);
     } catch {
       console.error("[Google Business OAuth] Failed to decode state payload");
-      return res.redirect("/reviews?google_error=invalid_state");
+      return res.redirect("/google-business?google_error=invalid_state");
     }
 
     const expectedCsrf    = (req.session as any).googleOAuthState;
@@ -4204,12 +4204,12 @@ If you have any questions, please contact your administrator.
 
     if (expectedCsrf && expectedCsrf !== csrf) {
       console.error("[Google Business OAuth] CSRF mismatch — possible replay or CSRF attack");
-      return res.redirect("/reviews?google_error=csrf_mismatch");
+      return res.redirect("/google-business?google_error=csrf_mismatch");
     }
     if (!storeId && fallbackStoreId) storeId = Number(fallbackStoreId);
     if (!storeId) {
       console.error("[Google Business OAuth] Could not determine storeId from state or session");
-      return res.redirect("/reviews?google_error=missing_store");
+      return res.redirect("/google-business?google_error=missing_store");
     }
 
     delete (req.session as any).googleOAuthState;
@@ -4228,7 +4228,7 @@ If you have any questions, please contact your administrator.
 
       if (!tokens.access_token) {
         console.error("[Google Business OAuth] No access_token returned — aborting");
-        return res.redirect("/reviews?google_error=no_access_token");
+        return res.redirect("/google-business?google_error=no_access_token");
       }
 
       // ── Attempt to fetch account email (expected to fail with business.manage only) ──
@@ -4388,10 +4388,10 @@ If you have any questions, please contact your administrator.
       console.log("[Google Business OAuth]   accounts  :", accounts.length);
       console.log("[Google Business OAuth]   locations :", allLocations.length);
       console.log("[Google Business OAuth]   profileId :", profileRow.id);
-      console.log("[Google Business OAuth]   → redirecting to /reviews?google_connected=1");
+      console.log("[Google Business OAuth]   → redirecting to /google-business?google_connected=1");
 
       req.session.save(() => {
-        res.redirect(`/reviews?google_connected=1&storeId=${storeId}`);
+        res.redirect(`/google-business?google_connected=1&storeId=${storeId}`);
       });
     } catch (error: any) {
       console.error("[Google Business OAuth] ── Callback FAILED ──────────────────────────────");
@@ -4403,123 +4403,149 @@ If you have any questions, please contact your administrator.
 
       if (status === 429) {
         console.error("[Google Business OAuth] 429: API quota exceeded — request increase at https://support.google.com/business/contact/api_default_quota_increase");
-        return res.redirect("/reviews?google_error=quota_exceeded");
+        return res.redirect("/google-business?google_error=quota_exceeded");
       }
       if (status === 403) {
         console.error("[Google Business OAuth] 403: API access denied. Check:");
         console.error("[Google Business OAuth]   - 'My Business Account Management API' enabled in Google Cloud Console");
         console.error("[Google Business OAuth]   - business.manage scope approved on OAuth consent screen");
         console.error("[Google Business OAuth]   - redirect_uri matches exactly:", process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback");
-        return res.redirect("/reviews?google_error=access_denied");
+        return res.redirect("/google-business?google_error=access_denied");
       }
-      return res.redirect("/reviews?google_error=server_error");
+      return res.redirect("/google-business?google_error=server_error");
     }
   });
 
   /**
    * GET /google-business
    *
-   * Dual-purpose route registered BEFORE the SPA catch-all:
+   * Always passes through to the SPA. The frontend detects ?code=...&state=... or
+   * ?google_error=... and drives the OAuth completion itself via
+   * POST /api/google-business/exchange-code.
    *
-   *   1. Google OAuth return — when Google redirects the browser here with ?code=...&state=...
-   *      (i.e. GOOGLE_BUSINESS_CALLBACK_URL = "https://certxa.com/google-business") the server
-   *      handles the full token exchange server-side so the session is never lost.
-   *      Result is stashed in session → browser is redirected to /google-business?google_connected=1.
-   *
-   *   2. Normal navigation — no ?code → call next() so the SPA catch-all serves index.html.
-   *
-   * This makes the flow work regardless of whether GOOGLE_BUSINESS_CALLBACK_URL points to this
-   * frontend path or to /api/google-business/callback.
+   * Historical note: this route previously ran a server-side code exchange and
+   * stashed the result in req.session. That broke when the Google cross-site redirect
+   * arrived with a new/different session cookie, so the frontend could never pick up
+   * the connection result. The exchange is now done client-side via exchange-code.
    */
-  app.get("/google-business", async (req, res, next) => {
-    const { code, state, error: oauthError } = req.query as Record<string, string>;
+  app.get("/google-business", (_req, _res, next) => next());
 
-    // Not an OAuth callback — let the SPA handle it
-    if (!code && !oauthError) return next();
 
-    console.log("[Google Business OAuth] ── /google-business callback intercepted (server-side) ──");
+  /**
+   * POST /api/google-business/exchange-code
+   *
+   * Frontend-driven OAuth completion. The browser receives ?code=...&state=... from
+   * Google, then posts them here to exchange for tokens, fetch accounts+locations,
+   * and save everything to the DB in one authenticated call.
+   *
+   * This avoids the session-identity mismatch bug of the old server-side interceptor:
+   * because the browser is already logged in when it makes this POST, we can use
+   * the authenticated session reliably.
+   *
+   * Body: { code: string, state?: string, storeId: number }
+   * Returns: { success, accounts, businesses, profileId }
+   */
+  app.post("/api/google-business/exchange-code", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    if (oauthError) {
-      console.warn("[Google Business OAuth] User denied or Google returned error:", oauthError);
-      return res.redirect(`/google-business?google_error=${encodeURIComponent(oauthError)}`);
+    const { code, state, storeId: rawStoreId } = req.body as {
+      code?: string;
+      state?: string;
+      storeId?: number | string;
+    };
+
+    if (!code) {
+      return res.status(400).json({ message: "code is required" });
     }
 
-    if (!code || !state) {
-      return res.redirect("/google-business?google_error=missing_params");
-    }
-
-    // ── Decode & verify CSRF state ───────────────────────────────────────────
-    let storeId: number;
-    let csrf: string;
-    try {
-      const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
-      storeId = Number(decoded.storeId);
-      csrf    = decoded.csrf;
-      console.log("[Google Business OAuth]   decoded storeId:", storeId, "  csrf:", csrf);
-    } catch {
-      console.error("[Google Business OAuth] Failed to decode state payload");
-      return res.redirect("/google-business?google_error=invalid_state");
-    }
-
-    const expectedCsrf    = (req.session as any).googleOAuthState;
-    const fallbackStoreId = (req.session as any).googleOAuthStoreId;
-    if (expectedCsrf && expectedCsrf !== csrf) {
-      console.error("[Google Business OAuth] CSRF mismatch");
-      return res.redirect("/google-business?google_error=csrf_mismatch");
-    }
-    if (!storeId && fallbackStoreId) storeId = Number(fallbackStoreId);
-    if (!storeId) {
-      console.error("[Google Business OAuth] Could not determine storeId");
-      return res.redirect("/google-business?google_error=missing_store");
-    }
-    delete (req.session as any).googleOAuthState;
-    delete (req.session as any).googleOAuthStoreId;
-
-    try {
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback";
-      const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
-      const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
-
-      console.log("[Google Business OAuth] /google-business — token exchange redirect_uri:", redirectUri);
-      const apiManager = new GoogleBusinessAPIManager({ clientId, clientSecret, redirectUri });
-      const tokens = await apiManager.getTokensFromCode(code);
-
-      if (!tokens.access_token) {
-        console.error("[Google Business OAuth] No access_token — aborting");
-        return res.redirect("/google-business?google_error=no_access_token");
+    // Prefer storeId from body; fall back to value encoded in base64url state blob
+    let storeId = rawStoreId ? Number(rawStoreId) : 0;
+    if (!storeId && state) {
+      try {
+        const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
+        if (decoded.storeId) storeId = Number(decoded.storeId);
+      } catch {
+        console.warn("[exchange-code] Could not decode state payload to extract storeId");
       }
+    }
+    if (!storeId) {
+      return res.status(400).json({ message: "storeId is required (pass in body or encoded in state)" });
+    }
 
-      const userInfo = await apiManager.getGoogleUserInfo();
+    const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
+    const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
+    const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? "https://certxa.com/google-business";
 
+    if (!clientId || !clientSecret) {
+      return res.status(500).json({ message: "Google Business OAuth credentials are not configured on the server." });
+    }
+
+    console.log(`[exchange-code] storeId=${storeId}  redirectUri=${redirectUri}`);
+
+    try {
+      const apiManager = new GoogleBusinessAPIManager({ clientId, clientSecret, redirectUri });
+
+      // 1. Exchange code → tokens
+      const tokens = await apiManager.getTokensFromCode(code);
+      if (!tokens.access_token) {
+        console.error("[exchange-code] No access_token returned from Google");
+        return res.status(400).json({ message: "Google did not return an access token. Please try connecting again." });
+      }
+      console.log(`[exchange-code] access_token: (obtained)  refresh_token: ${tokens.refresh_token ? "(obtained)" : "(none)"}`);
+
+      // 2. Fetch Google Business accounts
       let accounts: any[] = [];
       try {
         const accountsData = await apiManager.getBusinessAccounts();
-        accounts = (accountsData.accounts ?? []) as any[];
-        console.log("[Google Business OAuth]   accounts:", accounts.length);
-      } catch (acctErr: any) {
-        console.error("[Google Business OAuth] Failed to fetch accounts:", acctErr?.message ?? acctErr);
+        accounts = accountsData.accounts ?? [];
+        console.log(`[exchange-code] accounts found: ${accounts.length}`);
+      } catch (err: any) {
+        console.error("[exchange-code] Failed to fetch accounts:", err?.message ?? err);
+        // Return 400 with a helpful message instead of 500 — the user can fix this
+        const status = err?.code ?? err?.response?.status;
+        if (status === 403) {
+          return res.status(403).json({
+            message:
+              "Google denied access to Business Profile accounts. Ensure the 'My Business Account Management API' " +
+              "and 'Business Profile API' are enabled in your Google Cloud project.",
+          });
+        }
+        if (status === 429) {
+          return res.status(429).json({ message: "Google API quota exceeded. Please wait and try again." });
+        }
+        return res.status(400).json({ message: "Failed to fetch Google Business accounts: " + (err?.message ?? "unknown error") });
       }
 
+      if (!accounts.length) {
+        console.warn("[exchange-code] No Business Profile accounts found for this Google account");
+        return res.status(400).json({
+          message:
+            "No Google Business Profile was found on this Google account. " +
+            "Please make sure you have a Business Profile at business.google.com.",
+        });
+      }
+
+      // 3. Fetch locations for every account
       const allLocations: any[] = [];
       for (const account of accounts) {
         try {
           const locData = await apiManager.getLocations(account.name);
-          const locs    = locData.locations ?? [];
+          const locs = locData.locations ?? [];
           allLocations.push(...locs.map((l: any) => ({ ...l, _accountName: account.name })));
-          console.log(`[Google Business OAuth]   fetched ${locs.length} location(s) for ${account.name}`);
+          console.log(`[exchange-code] ${locs.length} location(s) for account ${account.name}`);
         } catch (locErr: any) {
-          console.error(`[Google Business OAuth] Failed to fetch locations for ${account.name}:`, locErr?.message ?? locErr);
+          console.error(`[exchange-code] Failed to fetch locations for ${account.name}:`, locErr?.message ?? locErr);
         }
       }
 
-      // Upsert profile
+      // 4. Upsert the google_business_profiles row (tokens + account info)
       const existingProfile = await db
         .select()
         .from(googleBusinessProfiles)
         .where(eq(googleBusinessProfiles.storeId, storeId))
         .limit(1);
 
-      const firstAccount = accounts[0];
       let profileRow: typeof googleBusinessProfiles.$inferSelect;
       if (existingProfile.length) {
         const updated = await db
@@ -4528,15 +4554,15 @@ If you have any questions, please contact your administrator.
             accessToken:                 tokens.access_token,
             refreshToken:                tokens.refresh_token ?? existingProfile[0].refreshToken,
             tokenExpiresAt:              tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-            googleAccountEmail:          userInfo?.email ?? existingProfile[0].googleAccountEmail,
-            businessAccountId:           firstAccount?.name ?? existingProfile[0].businessAccountId,
-            businessAccountResourceName: firstAccount?.name ?? existingProfile[0].businessAccountResourceName,
+            businessAccountId:           accounts[0]?.name ?? existingProfile[0].businessAccountId,
+            businessAccountResourceName: accounts[0]?.name ?? existingProfile[0].businessAccountResourceName,
             isConnected:                 false,
             updatedAt:                   new Date(),
           })
           .where(eq(googleBusinessProfiles.storeId, storeId))
           .returning();
         profileRow = updated[0];
+        console.log(`[exchange-code] updated existing profile id=${profileRow.id}`);
       } else {
         const inserted = await db
           .insert(googleBusinessProfiles)
@@ -4545,75 +4571,70 @@ If you have any questions, please contact your administrator.
             accessToken:                 tokens.access_token,
             refreshToken:                tokens.refresh_token ?? null,
             tokenExpiresAt:              tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-            googleAccountEmail:          userInfo?.email ?? null,
-            businessAccountId:           firstAccount?.name ?? null,
-            businessAccountResourceName: firstAccount?.name ?? null,
+            businessAccountId:           accounts[0]?.name ?? null,
+            businessAccountResourceName: accounts[0]?.name ?? null,
             isConnected:                 false,
           })
           .returning();
         profileRow = inserted[0];
+        console.log(`[exchange-code] inserted new profile id=${profileRow.id}`);
       }
 
-      // Upsert account rows
-      const sessionUserId: string | null = (req.session as any)?.userId ?? null;
-      if (sessionUserId && accounts.length) {
-        for (const acct of accounts) {
-          try {
-            const existingAcct = await db
-              .select({ id: googleBusinessAccounts.id })
-              .from(googleBusinessAccounts)
-              .where(eq(googleBusinessAccounts.googleAccountId, acct.name))
-              .limit(1);
-            if (existingAcct.length) {
-              await db
-                .update(googleBusinessAccounts)
-                .set({
-                  accountName:  acct.accountName ?? acct.displayName ?? null,
-                  accessToken:  tokens.access_token,
-                  refreshToken: tokens.refresh_token ?? undefined,
-                  tokenExpiry:  tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-                  scopes:       tokens.scope ?? null,
-                  updatedAt:    new Date(),
-                })
-                .where(eq(googleBusinessAccounts.id, existingAcct[0].id));
-            } else {
-              await db.insert(googleBusinessAccounts).values({
-                storeId,
-                userId:          sessionUserId,
-                googleAccountId: acct.name,
-                accountName:     acct.accountName ?? acct.displayName ?? null,
-                accessToken:     tokens.access_token,
-                refreshToken:    tokens.refresh_token ?? null,
-                tokenExpiry:     tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-                scopes:          tokens.scope ?? null,
-              });
-            }
-          } catch (acctWriteErr: any) {
-            console.warn(`[Google Business OAuth] Could not upsert account "${acct.name}":`, acctWriteErr?.message ?? acctWriteErr);
+      // 5. Upsert google_business_accounts rows so connect-location can find them
+      for (const acct of accounts) {
+        try {
+          const existingAcct = await db
+            .select({ id: googleBusinessAccounts.id })
+            .from(googleBusinessAccounts)
+            .where(eq(googleBusinessAccounts.googleAccountId, acct.name))
+            .limit(1);
+
+          if (existingAcct.length) {
+            await db
+              .update(googleBusinessAccounts)
+              .set({
+                accountName:  acct.accountName ?? acct.displayName ?? null,
+                accessToken:  tokens.access_token,
+                refreshToken: tokens.refresh_token ?? undefined,
+                tokenExpiry:  tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+                scopes:       tokens.scope ?? null,
+                updatedAt:    new Date(),
+              })
+              .where(eq(googleBusinessAccounts.id, existingAcct[0].id));
+          } else {
+            await db.insert(googleBusinessAccounts).values({
+              storeId,
+              userId:          userId as string,
+              googleAccountId: acct.name,
+              accountName:     acct.accountName ?? acct.displayName ?? null,
+              accessToken:     tokens.access_token,
+              refreshToken:    tokens.refresh_token ?? null,
+              tokenExpiry:     tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              scopes:          tokens.scope ?? null,
+            });
           }
+        } catch (acctErr: any) {
+          console.warn(`[exchange-code] Could not upsert account "${acct.name}":`, acctErr?.message ?? acctErr);
         }
       }
 
-      // Stash result for frontend pickup
-      (req.session as any).googleConnectionResult = {
+      console.log(`[exchange-code] complete — returning ${accounts.length} account(s) and ${allLocations.length} location(s) to frontend`);
+      res.json({
         success:    true,
-        email:      userInfo?.email ?? null,
         accounts,
         businesses: allLocations,
         profileId:  profileRow.id,
-        storeId,
-      };
-
-      console.log("[Google Business OAuth] /google-business — exchange complete, redirecting to clean URL");
-      req.session.save(() => {
-        res.redirect(`/google-business?google_connected=1&storeId=${storeId}`);
       });
     } catch (error: any) {
-      console.error("[Google Business OAuth] /google-business callback error:", error?.message ?? error);
       const status = error?.code ?? error?.response?.status ?? error?.status;
-      if (status === 429) return res.redirect("/google-business?google_error=quota_exceeded");
-      if (status === 403) return res.redirect("/google-business?google_error=access_denied");
-      return res.redirect("/google-business?google_error=server_error");
+      const msg    = error?.message ?? String(error);
+      console.error(`[exchange-code] ERROR — status=${status ?? "(none)"}  message=${msg}`);
+      if (error?.response?.data) {
+        console.error("[exchange-code] Google error body:", JSON.stringify(error.response.data).slice(0, 400));
+      }
+      if (status === 429) return res.status(429).json({ message: "Google API quota exceeded. Please wait and try again." });
+      if (status === 403) return res.status(403).json({ message: "Google denied access. Check your Google Cloud API settings." });
+      res.status(500).json({ message: "Failed to complete Google Business connection: " + msg });
     }
   });
 

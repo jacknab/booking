@@ -156,18 +156,39 @@ export function GoogleBusinessProfileSetup({
   const [connectedLocationName, setConnectedLocationName] = useState<string | null>(null);
   const [connectedLocationAddr, setConnectedLocationAddr] = useState<string | null>(null);
 
-  // ── Mount: detect OAuth return or load existing profile ────────────────────
+  // ── Step 1: Capture URL params at mount (before any effect can clear them) ──
+  // Using useState lazy-init guarantees this runs exactly once, synchronously,
+  // before the first render — so even if storeId is null on first render, we
+  // still have the params when storeId loads later.
+  const [capturedParams] = useState<{
+    googleConnected: string | null;
+    googleError:     string | null;
+    code:            string | null;
+    state:           string | null;
+  }>(() => {
+    const p = new URLSearchParams(window.location.search);
+    return {
+      googleConnected: p.get("google_connected"),
+      googleError:     p.get("google_error"),
+      code:            p.get("code"),
+      state:           p.get("state"),
+    };
+  });
 
+  // ── Step 2: Clear URL once on mount so params don't persist on back/forward ─
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const googleConnected = urlParams.get("google_connected");
-    const googleError     = urlParams.get("google_error");
-    const code            = urlParams.get("code");
-    const stateParm       = urlParams.get("state");
-
+    const { googleConnected, googleError, code } = capturedParams;
     if (googleConnected || googleError || code) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once
+
+  // ── Step 3: Process captured params once storeId is available ──────────────
+  // Depends on [storeId, capturedParams]. capturedParams never changes (frozen at
+  // mount), but including it avoids the exhaustive-deps warning.
+  useEffect(() => {
+    const { googleConnected, googleError, code, state: stateParm } = capturedParams;
 
     if (googleError) {
       const messages: Record<string, string> = {
@@ -185,19 +206,25 @@ export function GoogleBusinessProfileSetup({
       return;
     }
 
-    if (googleConnected === "1" && storeId) {
+    // Wait for storeId before doing anything that talks to the API
+    if (!storeId) return;
+
+    if (code) {
+      // Direct frontend-mediated exchange using the new exchange-code endpoint
+      handleExchangeCode(code, stateParm ?? undefined);
+      return;
+    }
+
+    if (googleConnected === "1") {
+      // Fallback: server-side flow redirected with ?google_connected=1
+      // Try the session pickup first; if it fails the user can reconnect.
       handlePickupConnectionResult();
       return;
     }
 
-    if (code && storeId) {
-      handleLegacyCallback(code, stateParm ?? undefined);
-      return;
-    }
-
-    if (storeId) loadProfile();
+    loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId]);
+  }, [storeId, capturedParams]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────────
 
@@ -303,6 +330,60 @@ export function GoogleBusinessProfileSetup({
     }
   };
 
+  /**
+   * Primary OAuth completion handler — calls the new exchange-code endpoint
+   * which is fully stateless w.r.t. the session (no session stash needed).
+   */
+  const handleExchangeCode = async (code: string, state?: string) => {
+    if (!storeId) return;
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      setStep("loading");
+
+      const res = await axios.post("/api/google-business/exchange-code", { code, storeId, state });
+      const accts: Account[]    = res.data.accounts ?? [];
+      const prefetchedLocs: Location[] = res.data.businesses ?? [];
+      const pid   = res.data.profileId;
+
+      setProfileId(pid);
+      setAccounts(accts);
+      setAllPrefetchedLocations(prefetchedLocs);
+
+      if (!accts.length) {
+        setErrorMsg("No Business Profile accounts found.");
+        setStep("initial");
+        return;
+      }
+
+      if (accts.length === 1) {
+        const accountLocs = prefetchedLocs.filter(
+          (l: any) => l._accountName === accts[0].name || !l._accountName
+        );
+        if (accountLocs.length > 0) {
+          setLocations(accountLocs);
+          setSelectedAccount(accts[0].name);
+          if (accountLocs.length === 1) {
+            await connectLocation(accountLocs[0], pid);
+          } else {
+            setStep("select-location");
+          }
+        } else {
+          await fetchLocationsForAccount(accts[0].name, pid);
+        }
+      } else {
+        setSelectedAccount(accts[0].name);
+        setStep("select-account");
+      }
+    } catch (err: any) {
+      setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
+      setStep("initial");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Legacy callback — kept for backward compat (POST /api/google-business/callback). */
   const handleLegacyCallback = async (code: string, state?: string) => {
     if (!storeId) return;
     try {

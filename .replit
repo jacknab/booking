@@ -83,7 +83,7 @@ GOOGLE_BUSINESS_CLIENT_ID = "384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.
 
 [userenv.development]
 GOOGLE_REDIRECT_URI = "https://d50b7bd7-1eef-499d-8cb6-7b6864f817e8-00-15c44xj4ay3q2.kirk.replit.dev/api/google-business/callback"
-GOOGLE_BUSINESS_CALLBACK_URL = "https://d50b7bd7-1eef-499d-8cb6-7b6864f817e8-00-15c44xj4ay3q2.kirk.replit.dev/api/google-business/callback"
+GOOGLE_BUSINESS_CALLBACK_URL = "https://99eeaddd-9ccd-4ab0-bf3c-c6b241c60ade-00-30q3noq5ugwtr.janeway.replit.dev/google-business"
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://certxa.com/api/google-business/callback"
