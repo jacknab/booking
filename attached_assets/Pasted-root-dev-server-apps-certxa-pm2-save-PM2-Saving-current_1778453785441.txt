@@ -1,0 +1,137 @@
+root@dev-server:/apps/certxa# pm2 save
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+root@dev-server:/apps/certxa#
+root@dev-server:/apps/certxa# # 4. Verify it's running in production mode
+root@dev-server:/apps/certxa# pm2 logs certxa --lines 20
+[TAILING] Tailing last 20 lines for [certxa] process (change the value with --lines option)
+/apps/certxa/logs/pm2-out.log last 20 lines:
+11|certxa  | 2026-05-10 22:56:05 +00:00: [Google Login OAuth]   client_id   : 384071838764…
+11|certxa  | 2026-05-10 22:56:05 +00:00: [Google Login OAuth]   callback_url: https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:05 +00:00: [Google Login OAuth]   scopes      : openid, email, profile
+11|certxa  | 2026-05-10 22:56:06 +00:00: [migrations] First run on existing DB — seeding 15 migration(s) as baseline…
+11|certxa  | 2026-05-10 22:56:06 +00:00: [migrations] ✓ Baseline seeded. Future migrations will run automatically.
+11|certxa  | 2026-05-10 22:56:06 +00:00: [PHP] Starting on port 8104
+11|certxa  | 2026-05-10 22:56:06 +00:00: [Crew] Overtime detector started
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Dunning] Billing dunning scheduler started (checks every hour, locks after 30 days)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Training] Graduation scheduler started (hourly grad sweep, 6h digest, daily sandbox reset)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Queue SMS] Smart travel-alert scheduler started (checks every 2 minutes)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [TrialReminder] Scheduler started — checks for 30/7/1 day reminders every hour
+11|certxa  | 2026-05-10 22:56:07 +00:00: [GoogleReviews] Auto-sync scheduler started (6-hour interval)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [intelligence] Scheduler started (runs every 6 hours)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [PHP] Server is ready
+11|certxa  | 2026-05-10 22:56:07 +00:00: [TrialExpiration] Scheduler started — runs every hour
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Birthday] Scheduler started (runs daily at 9am store time, checks every hour)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [WeeklyDigest] Scheduler started (runs every Monday at 9am, checks hourly)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [LapsedClient] Scheduler started (runs daily at 10am, checks every hour)
+
+/apps/certxa/logs/pm2-error.log last 20 lines:
+11|certxa  | 2026-05-10 22:56:06 +00:00: [certxa] WARNING — missing optional environment variables (some features may be disabled):
+11|certxa  | 2026-05-10 22:56:06 +00:00:   MISSING: GOOGLE_AUTH_CALLBACK_URL
+11|certxa  | 2026-05-10 22:56:06 +00:00:           Google OAuth callback e.g. https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:06 +00:00:
+11|certxa  | 2026-05-10 22:56:07 +00:00: [PHP] [Sun May 10 22:56:06 2026] Failed to listen on 127.0.0.1:8104 (reason: Address already in use)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [PHP] Server exited (code=1, signal=null)
+11|certxa  | 2026-05-10 22:56:07 +00:00: [SSR] Failed to load SSR bundle, falling back to SPA-only: TypeError: zce is not a function
+11|certxa  | 2026-05-10 22:56:07 +00:00:     at /apps/certxa/dist/index.cjs:969:7082
+11|certxa  | 2026-05-10 22:56:07 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+11|certxa  | 2026-05-10 22:56:07 +00:00: Error: listen EADDRINUSE: address already in use 0.0.0.0:8100
+11|certxa  | 2026-05-10 22:56:07 +00:00:     at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+11|certxa  | 2026-05-10 22:56:07 +00:00:     at listenInCluster (node:net:1965:12)
+11|certxa  | 2026-05-10 22:56:07 +00:00:     at doListen (node:net:2139:7)
+11|certxa  | 2026-05-10 22:56:07 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+11|certxa  | 2026-05-10 22:56:07 +00:00:   code: 'EADDRINUSE',
+11|certxa  | 2026-05-10 22:56:07 +00:00:   errno: -98,
+11|certxa  | 2026-05-10 22:56:07 +00:00:   syscall: 'listen',
+11|certxa  | 2026-05-10 22:56:07 +00:00:   address: '0.0.0.0',
+11|certxa  | 2026-05-10 22:56:07 +00:00:   port: 8100
+11|certxa  | 2026-05-10 22:56:07 +00:00: }
+
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Google Login OAuth] Configuring passport strategy
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Google Login OAuth]   client_id   : 384071838764…
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Google Login OAuth]   callback_url: https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:07 +00:00: [Google Login OAuth]   scopes      : openid, email, profile
+11|certxa  | 2026-05-10 22:56:09 +00:00:
+11|certxa  | 2026-05-10 22:56:09 +00:00: [certxa] WARNING — missing optional environment variables (some features may be disabled):
+11|certxa  | 2026-05-10 22:56:09 +00:00:   MISSING: GOOGLE_AUTH_CALLBACK_URL
+11|certxa  | 2026-05-10 22:56:09 +00:00:           Google OAuth callback e.g. https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:09 +00:00:
+11|certxa  | 2026-05-10 22:56:09 +00:00: [migrations] ✓ Up to date
+11|certxa  | 2026-05-10 22:56:09 +00:00: [PHP] Starting on port 8104
+11|certxa  | 2026-05-10 22:56:09 +00:00: [Crew] Overtime detector started
+11|certxa  | 2026-05-10 22:56:09 +00:00: [Dunning] Billing dunning scheduler started (checks every hour, locks after 30 days)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [Training] Graduation scheduler started (hourly grad sweep, 6h digest, daily sandbox reset)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [Queue SMS] Smart travel-alert scheduler started (checks every 2 minutes)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [TrialReminder] Scheduler started — checks for 30/7/1 day reminders every hour
+11|certxa  | 2026-05-10 22:56:09 +00:00: [GoogleReviews] Auto-sync scheduler started (6-hour interval)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [intelligence] Scheduler started (runs every 6 hours)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [PHP] [Sun May 10 22:56:09 2026] Failed to listen on 127.0.0.1:8104 (reason: Address already in use)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [PHP] Server is ready
+11|certxa  | 2026-05-10 22:56:09 +00:00: [PHP] Server exited (code=1, signal=null)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [TrialExpiration] Scheduler started — runs every hour
+11|certxa  | 2026-05-10 22:56:09 +00:00: [Birthday] Scheduler started (runs daily at 9am store time, checks every hour)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [WeeklyDigest] Scheduler started (runs every Monday at 9am, checks hourly)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [LapsedClient] Scheduler started (runs daily at 10am, checks every hour)
+11|certxa  | 2026-05-10 22:56:09 +00:00: [SSR] Failed to load SSR bundle, falling back to SPA-only: TypeError: zce is not a function
+11|certxa  | 2026-05-10 22:56:09 +00:00:     at /apps/certxa/dist/index.cjs:969:7082
+11|certxa  | 2026-05-10 22:56:09 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+11|certxa  | 2026-05-10 22:56:09 +00:00: Error: listen EADDRINUSE: address already in use 0.0.0.0:8100
+11|certxa  | 2026-05-10 22:56:09 +00:00:     at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+11|certxa  | 2026-05-10 22:56:09 +00:00:     at listenInCluster (node:net:1965:12)
+11|certxa  | 2026-05-10 22:56:09 +00:00:     at doListen (node:net:2139:7)
+11|certxa  | 2026-05-10 22:56:09 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+11|certxa  | 2026-05-10 22:56:09 +00:00:   code: 'EADDRINUSE',
+11|certxa  | 2026-05-10 22:56:09 +00:00:   errno: -98,
+11|certxa  | 2026-05-10 22:56:09 +00:00:   syscall: 'listen',
+11|certxa  | 2026-05-10 22:56:09 +00:00:   address: '0.0.0.0',
+11|certxa  | 2026-05-10 22:56:09 +00:00:   port: 8100
+11|certxa  | 2026-05-10 22:56:09 +00:00: }
+11|certxa  | 2026-05-10 22:56:10 +00:00: [Google Login OAuth] Configuring passport strategy
+11|certxa  | 2026-05-10 22:56:10 +00:00: [Google Login OAuth]   client_id   : 384071838764…
+11|certxa  | 2026-05-10 22:56:10 +00:00: [Google Login OAuth]   callback_url: https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:10 +00:00: [Google Login OAuth]   scopes      : openid, email, profile
+11|certxa  | 2026-05-10 22:56:11 +00:00:
+11|certxa  | 2026-05-10 22:56:11 +00:00: [certxa] WARNING — missing optional environment variables (some features may be disabled):
+11|certxa  | 2026-05-10 22:56:11 +00:00:   MISSING: GOOGLE_AUTH_CALLBACK_URL
+11|certxa  | 2026-05-10 22:56:11 +00:00:           Google OAuth callback e.g. https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:11 +00:00:
+11|certxa  | 2026-05-10 22:56:11 +00:00: [migrations] ✓ Up to date
+11|certxa  | 2026-05-10 22:56:11 +00:00: [PHP] Starting on port 8104
+11|certxa  | 2026-05-10 22:56:11 +00:00: [Crew] Overtime detector started
+11|certxa  | 2026-05-10 22:56:11 +00:00: [Dunning] Billing dunning scheduler started (checks every hour, locks after 30 days)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [Training] Graduation scheduler started (hourly grad sweep, 6h digest, daily sandbox reset)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [SMS] Reminder scheduler started (checks every 5 minutes)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [Email] Reminder scheduler started (checks every 5 minutes)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [Queue SMS] Smart travel-alert scheduler started (checks every 2 minutes)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [TrialReminder] Scheduler started — checks for 30/7/1 day reminders every hour
+11|certxa  | 2026-05-10 22:56:11 +00:00: [GoogleReviews] Auto-sync scheduler started (6-hour interval)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [intelligence] Scheduler started (runs every 6 hours)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [PHP] [Sun May 10 22:56:11 2026] Failed to listen on 127.0.0.1:8104 (reason: Address already in use)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [PHP] Server is ready
+11|certxa  | 2026-05-10 22:56:11 +00:00: [PHP] Server exited (code=1, signal=null)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [TrialExpiration] Scheduler started — runs every hour
+11|certxa  | 2026-05-10 22:56:11 +00:00: [Birthday] Scheduler started (runs daily at 9am store time, checks every hour)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [WeeklyDigest] Scheduler started (runs every Monday at 9am, checks hourly)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [LapsedClient] Scheduler started (runs daily at 10am, checks every hour)
+11|certxa  | 2026-05-10 22:56:11 +00:00: [SSR] Failed to load SSR bundle, falling back to SPA-only: TypeError: zce is not a function
+11|certxa  | 2026-05-10 22:56:11 +00:00:     at /apps/certxa/dist/index.cjs:969:7082
+11|certxa  | 2026-05-10 22:56:11 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+11|certxa  | 2026-05-10 22:56:11 +00:00: Error: listen EADDRINUSE: address already in use 0.0.0.0:8100
+11|certxa  | 2026-05-10 22:56:11 +00:00:     at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+11|certxa  | 2026-05-10 22:56:11 +00:00:     at listenInCluster (node:net:1965:12)
+11|certxa  | 2026-05-10 22:56:11 +00:00:     at doListen (node:net:2139:7)
+11|certxa  | 2026-05-10 22:56:11 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+11|certxa  | 2026-05-10 22:56:11 +00:00:   code: 'EADDRINUSE',
+11|certxa  | 2026-05-10 22:56:11 +00:00:   errno: -98,
+11|certxa  | 2026-05-10 22:56:11 +00:00:   syscall: 'listen',
+11|certxa  | 2026-05-10 22:56:11 +00:00:   address: '0.0.0.0',
+11|certxa  | 2026-05-10 22:56:11 +00:00:   port: 8100
+11|certxa  | 2026-05-10 22:56:11 +00:00: }
+11|certxa  | 2026-05-10 22:56:12 +00:00: [Google Login OAuth] Configuring passport strategy
+11|certxa  | 2026-05-10 22:56:12 +00:00: [Google Login OAuth]   client_id   : 384071838764…
+11|certxa  | 2026-05-10 22:56:12 +00:00: [Google Login OAuth]   callback_url: https://certxa.com/api/auth/google/callback
+11|certxa  | 2026-05-10 22:56:12 +00:00: [Google Login OAuth]   scopes      : openid, email, profile

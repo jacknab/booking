@@ -53,9 +53,11 @@ import path from "path";
 import fs from "fs";
 import { startPhpServer, phpMiddleware, isPhpReady } from "./php-proxy";
 import { pool } from "./db";
-// In the esbuild CJS bundle, require is a real global — grab it the same
-// way __dirname is grabbed above so it's available for loading the SSR bundle.
-const _require: NodeRequire = (globalThis as any).require;
+import { createRequire } from "module";
+// createRequire is the reliable way to get a CJS require() in both ESM source
+// and esbuild CJS output — avoids the (globalThis as any).require pattern
+// which can become undefined after minification.
+const _require: NodeRequire = createRequire(import.meta.url);
 
 // Landing page routes that get server-side rendered for SEO
 // Note: /hair-salons, /barbershops, /nail-salons are now served by the PHP site
