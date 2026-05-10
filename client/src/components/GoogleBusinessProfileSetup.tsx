@@ -146,6 +146,7 @@ export function GoogleBusinessProfileSetup({
   const [step, setStep]                               = useState<SetupStep>("loading");
   const [accounts, setAccounts]                       = useState<Account[]>([]);
   const [locations, setLocations]                     = useState<Location[]>([]);
+  const [allPrefetchedLocations, setAllPrefetchedLocations] = useState<Location[]>([]);
   const [selectedAccount, setSelectedAccount]         = useState<string | null>(null);
   const [pendingLocation, setPendingLocation]         = useState<Location | null>(null);
   const [profileId, setProfileId]                     = useState<number | null>(null);
@@ -243,8 +244,8 @@ export function GoogleBusinessProfileSetup({
 
   /**
    * Called after Google redirects back with ?google_connected=1.
-   * Picks up the session result and decides which step to show.
-   * Auto-advances through single-account flows.
+   * Picks up the session result (which already includes pre-fetched locations)
+   * and decides which step to show. Auto-advances through single-account flows.
    */
   const handlePickupConnectionResult = async () => {
     if (!storeId) return;
@@ -254,7 +255,8 @@ export function GoogleBusinessProfileSetup({
       setStep("loading");
 
       const res = await axios.get("/api/google-business/connection-result");
-      const { accounts: accts = [], profileId: pid } = res.data;
+      // `businesses` = all locations already fetched during the OAuth callback
+      const { accounts: accts = [], businesses: prefetchedLocs = [], profileId: pid } = res.data;
 
       if (!accts.length) {
         setErrorMsg(
@@ -267,12 +269,30 @@ export function GoogleBusinessProfileSetup({
 
       setProfileId(pid);
       setAccounts(accts);
+      setAllPrefetchedLocations(prefetchedLocs);
 
-      // Auto-advance: single account → skip account selection
       if (accts.length === 1) {
-        await fetchLocationsForAccount(accts[0].name, pid);
+        // Single account — use pre-fetched locations if available, otherwise fall back to API
+        const accountLocs: Location[] = prefetchedLocs.length > 0
+          ? prefetchedLocs.filter((l: any) => l._accountName === accts[0].name || !l._accountName)
+          : [];
+
+        if (accountLocs.length > 0) {
+          setLocations(accountLocs);
+          setSelectedAccount(accts[0].name);
+          if (accountLocs.length === 1) {
+            // Only one location — connect it automatically
+            await connectLocation(accountLocs[0], pid);
+          } else {
+            setStep("select-location");
+          }
+        } else {
+          // No pre-fetched locations — fall back to live API call
+          await fetchLocationsForAccount(accts[0].name, pid);
+        }
       } else {
-        setSelectedAccount(accts[0].name); // pre-select first
+        // Multiple accounts — pre-select first, let user choose
+        setSelectedAccount(accts[0].name);
         setStep("select-account");
       }
     } catch (err: any) {
@@ -291,20 +311,38 @@ export function GoogleBusinessProfileSetup({
       setStep("loading");
 
       const res = await axios.post("/api/google-business/callback", { code, storeId, state });
-      const accts = res.data.accounts ?? [];
+      const accts: Account[]    = res.data.accounts ?? [];
+      const prefetchedLocs: Location[] = res.data.businesses ?? [];
       const pid   = res.data.profileId;
 
       setProfileId(pid);
       setAccounts(accts);
+      setAllPrefetchedLocations(prefetchedLocs);
 
-      if (accts.length === 1) {
-        await fetchLocationsForAccount(accts[0].name, pid);
-      } else if (accts.length > 1) {
-        setSelectedAccount(accts[0].name);
-        setStep("select-account");
-      } else {
+      if (!accts.length) {
         setErrorMsg("No Business Profile accounts found.");
         setStep("initial");
+        return;
+      }
+
+      if (accts.length === 1) {
+        const accountLocs = prefetchedLocs.filter(
+          (l: any) => l._accountName === accts[0].name || !l._accountName
+        );
+        if (accountLocs.length > 0) {
+          setLocations(accountLocs);
+          setSelectedAccount(accts[0].name);
+          if (accountLocs.length === 1) {
+            await connectLocation(accountLocs[0], pid);
+          } else {
+            setStep("select-location");
+          }
+        } else {
+          await fetchLocationsForAccount(accts[0].name, pid);
+        }
+      } else {
+        setSelectedAccount(accts[0].name);
+        setStep("select-account");
       }
     } catch (err: any) {
       setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
@@ -352,7 +390,20 @@ export function GoogleBusinessProfileSetup({
 
   const handleSelectAccount = () => {
     if (!selectedAccount) return;
-    fetchLocationsForAccount(selectedAccount);
+    // Use pre-fetched locations for this account if available; otherwise hit the API
+    const accountLocs: Location[] = allPrefetchedLocations.filter(
+      (l: any) => l._accountName === selectedAccount || !l._accountName
+    );
+    if (accountLocs.length > 0) {
+      setLocations(accountLocs);
+      if (accountLocs.length === 1) {
+        connectLocation(accountLocs[0]);
+      } else {
+        setStep("select-location");
+      }
+    } else {
+      fetchLocationsForAccount(selectedAccount);
+    }
   };
 
   // ── Location connect ───────────────────────────────────────────────────────

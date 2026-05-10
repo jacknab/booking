@@ -4489,6 +4489,19 @@ If you have any questions, please contact your administrator.
         return res.status(400).json({ message: "No Google Business accounts found for this Google account" });
       }
 
+      // Fetch all locations for every account so the frontend can show them without a second API call
+      const allLocations: any[] = [];
+      for (const account of accounts) {
+        try {
+          const locData = await apiManager.getLocations(account.name);
+          const locs = locData.locations ?? [];
+          allLocations.push(...locs.map((l: any) => ({ ...l, _accountName: account.name })));
+          console.log(`[Google Business OAuth] POST callback — fetched ${locs.length} location(s) for ${account.name}`);
+        } catch (locErr: any) {
+          console.error(`[Google Business OAuth] POST callback — failed to fetch locations for ${account.name}:`, locErr?.message ?? locErr);
+        }
+      }
+
       const existingProfile = await db
         .select()
         .from(googleBusinessProfiles)
@@ -4532,11 +4545,11 @@ If you have any questions, please contact your administrator.
       res.json({
         message:     "Google account authenticated",
         accounts,
+        businesses:  allLocations,
         profileId:   profileRow.id,
         googleEmail: userInfo?.email ?? null,
         success:     true,
         email:       userInfo?.email ?? null,
-        businesses:  accounts,
       });
     } catch (error: any) {
       console.error("[Google Business OAuth] POST callback error:", error);
