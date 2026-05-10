@@ -380,6 +380,41 @@ export default function Intelligence() {
   const [campaignSegment, setCampaignSegment] = useState<string | null>(null);
   const [campaignMessage, setCampaignMessage] = useState("");
   const [campaignSent, setCampaignSent] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [sentReminders, setSentReminders] = useState<Set<number>>(new Set());
+
+  const { data: dailyDigest, isLoading: digestLoading } = useQuery<any>({
+    queryKey: ["/api/intelligence/daily-digest", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/daily-digest?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 3 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+  });
+
+  const sendReminderMutation = useMutation({
+    mutationFn: async ({ appointmentId, customerId }: { appointmentId: number; customerId: number }) => {
+      const res = await fetch("/api/intelligence/send-noshow-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ storeId, appointmentId, customerId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      if (data.success) {
+        setSentReminders(prev => new Set(prev).add(variables.appointmentId));
+        toast({ title: "Reminder sent!", description: "Client has been messaged about their upcoming appointment." });
+      } else {
+        toast({ title: "Could not send reminder", description: data.error, variant: "destructive" });
+      }
+    },
+    onError: () => toast({ title: "Failed to send reminder", variant: "destructive" }),
+  });
 
   const { data: servicePerfData, isLoading: servicePerfLoading } = useQuery<any>({
     queryKey: ["/api/intelligence/service-performance", storeId],
@@ -634,6 +669,90 @@ export default function Intelligence() {
 
           {/* ── OVERVIEW TAB ── */}
           <TabsContent value="overview" className="space-y-6 mt-6">
+            {/* ── TODAY'S PRIORITY ACTIONS ── */}
+            {(digestLoading || dailyDigest) && (
+              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-primary" />
+                        Today's Priority Actions
+                      </CardTitle>
+                      <CardDescription>
+                        {dailyDigest?.totalActions > 0
+                          ? `${dailyDigest.totalActions} opportunity${dailyDigest.totalActions !== 1 ? "ies" : "y"} identified — here's where to focus`
+                          : "Everything looks great — no urgent actions today"}
+                      </CardDescription>
+                    </div>
+                    {dailyDigest?.todayRevenue > 0 && (
+                      <div className="text-right hidden sm:block">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Revenue today</p>
+                        <p className="text-xl font-bold text-emerald-600">${dailyDigest.todayRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {digestLoading ? (
+                    <div className="flex items-center gap-2 text-muted-foreground py-4">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading today's actions…</span>
+                    </div>
+                  ) : dailyDigest?.actions?.length > 0 ? (
+                    <div className="space-y-2">
+                      {dailyDigest.actions.map((action: any, i: number) => {
+                        const priorityColors: Record<number, string> = {
+                          1: "border-red-200 bg-red-50/60 dark:bg-red-950/10 dark:border-red-900/40",
+                          2: "border-orange-200 bg-orange-50/60 dark:bg-orange-950/10 dark:border-orange-900/40",
+                          3: "border-amber-200 bg-amber-50/60 dark:bg-amber-950/10 dark:border-amber-900/40",
+                          4: "border-violet-200 bg-violet-50/60 dark:bg-violet-950/10 dark:border-violet-900/40",
+                          5: "border-blue-200 bg-blue-50/60 dark:bg-blue-950/10 dark:border-blue-900/40",
+                        };
+                        const dotColors: Record<number, string> = {
+                          1: "bg-red-500",
+                          2: "bg-orange-500",
+                          3: "bg-amber-500",
+                          4: "bg-violet-500",
+                          5: "bg-blue-500",
+                        };
+                        return (
+                          <button
+                            key={i}
+                            className={`w-full flex items-start gap-3 rounded-xl border p-3.5 text-left hover:opacity-80 transition-opacity ${priorityColors[action.priority] || "border-muted bg-muted/20"}`}
+                            onClick={() => handleTabChange(action.tab)}
+                          >
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${dotColors[action.priority] || "bg-muted-foreground"}`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold">{action.label}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{action.detail}</p>
+                              {action.revenueAtStake > 0 && (
+                                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mt-1">
+                                  ${action.revenueAtStake.toLocaleString(undefined, { maximumFractionDigits: 0 })} at stake
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                              <span className="text-xs font-medium text-primary hidden sm:block">{action.ctaLabel}</span>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 py-4">
+                      <CheckCircle2 className="h-8 w-8 text-emerald-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">You're all caught up</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">No urgent revenue actions needed today. Keep it up!</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Wins Summary */}
             {(dashboard || score) && (() => {
               const wins: { icon: React.ReactNode; color: string; action: string; value: string; tab: string }[] = [];
@@ -1240,7 +1359,10 @@ export default function Intelligence() {
                   <CardContent>
                     {noShowData.risks?.length > 0 ? (
                       <div className="space-y-2">
-                        {noShowData.risks.filter((r: any) => r.noShowRiskLabel !== "low").map((risk: any) => (
+                        {noShowData.risks.filter((r: any) => r.noShowRiskLabel !== "low").map((risk: any) => {
+                          const reminded = sentReminders.has(risk.appointmentId);
+                          const isSending = sendReminderMutation.isPending && sendReminderMutation.variables?.appointmentId === risk.appointmentId;
+                          return (
                           <div key={risk.appointmentId} className="flex items-center gap-3 p-3 rounded-xl border">
                             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${risk.noShowRiskLabel === "high" ? "bg-red-500" : "bg-amber-400"}`} />
                             <div className="flex-1">
@@ -1258,8 +1380,40 @@ export default function Intelligence() {
                                 <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{risk.riskFactors[0]}</p>
                               )}
                             </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant={reminded ? "secondary" : "outline"}
+                                    className={`gap-1.5 flex-shrink-0 ${reminded ? "text-emerald-600 border-emerald-200" : ""}`}
+                                    disabled={reminded || isSending || !risk.customerPhone}
+                                    onClick={() => sendReminderMutation.mutate({ appointmentId: risk.appointmentId, customerId: risk.customerId })}
+                                  >
+                                    {isSending ? (
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    ) : reminded ? (
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                    ) : (
+                                      <Send className="h-3.5 w-3.5" />
+                                    )}
+                                    <span className="hidden sm:inline text-xs">
+                                      {isSending ? "Sending…" : reminded ? "Sent" : "Remind"}
+                                    </span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                  {!risk.customerPhone
+                                    ? "No phone number on file"
+                                    : reminded
+                                    ? "Reminder already sent this session"
+                                    : "Send an SMS reminder for this appointment"}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">

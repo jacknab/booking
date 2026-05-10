@@ -1,0 +1,38 @@
+You've identified something real. Every salon SaaS is a feature brochure. Nobody is actually mining the data sitting in their own system to tell a salon owner "here's the money you're leaving on the table and here's exactly how to get it back."
+
+Here's what that looks like as a real product:
+
+The core problem you've spotted: Salons don't lose clients dramatically — they lose them quietly. A client who came every 5 weeks just... stops. The salon has no idea until it's too late. That silent drift is where the real revenue loss is.
+
+Here's what I'd build on top of what you already have:
+
+1. Client Drift Engine (biggest direct revenue impact)
+Every client develops a visit cadence — every 4 weeks, 6 weeks, whatever. The system learns it. When someone goes 20% past their personal cadence without rebooking, it automatically fires a personalized SMS: "Hi Sarah, it's been 7 weeks since your balayage — time for a refresh? Book now: [link]" — not a blast, a personal nudge at exactly the right moment. This alone can recover 10-15% of quietly drifting clients.
+
+2. Revenue Leakage Report
+Monthly, cold hard numbers: "You had 45 active clients in March. 8 of them haven't booked since. Estimated lost annual revenue: $3,200. Here are their names. One tap to reach them." Not a dashboard stat — an action item.
+
+3. Dead Seat Intelligence
+Tuesday 2-4pm is consistently 20% booked. The system finds that pattern, identifies clients who've booked Tuesdays before and haven't been in 6+ weeks, and gives the owner a one-click "fill those seats" campaign.
+
+4. No-Show Prediction
+Score every upcoming appointment: booking lead time, client no-show history, day of week, service type. Flag the high-risk ones the morning before. The owner sees "3 appointments tomorrow have elevated no-show risk" and fires confirmations with one tap.
+
+5. Rebooking Rate by Stylist
+"Ashley rebooks 78% of her color clients. Jake rebooks 39%." That number is sitting in your data right now. Surface it. Tell Jake what's different. This changes behavior.
+
+6. Smart Cancellation Recovery
+When a cancellation hits, immediately scan: active waitlist + lapsed clients at-cadence + clients who've taken that same service + available that time. Fire a targeted "opening just came up" text to the top 3. Turns cancellations from dead revenue into filled seats.
+
+7. LTV + Churn Risk Score
+Every client gets two numbers: lifetime value and churn risk. High LTV + rising churn risk = the most dangerous combination. Surface those clients prominently. "Your 8 most valuable at-risk clients represent $11,400 in annual revenue."
+
+8. One Growth Score
+A single business health number (0-100) on the dashboard home screen composed of: retention rate, rebooking rate, seat utilization, average ticket trend, new client conversion. When it moves, it tells you exactly why.
+
+What you're describing isn't a feature — it's a revenue co-pilot. The salon owner opens the app and instead of seeing a calendar, they see "Here's the money you're leaving on the table today and here's one button to go get it."
+
+The infrastructure for most of this already exists in your system — appointments, clients, SMS, schedulers. It's the intelligence layer on top that's missing.
+
+Where do you want to start? The Client Drift Engine is the fastest to build and has the most direct, measurable impact on revenue. I can build it this session — it would add an automatic cadence-based rebooking engine that runs in the background and recovers drifting clients before you even know they're gone.
+

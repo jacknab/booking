@@ -1265,8 +1265,77 @@ router.post("/send-weekly-digest", async (req, res) => {
   }
 });
 
-// POST /api/intelligence/refresh
-// Triggers a manual re-computation of intelligence for a store
+// POST /api/intelligence/send-noshow-reminder
+// Sends a one-tap SMS reminder to a client for an upcoming high-risk appointment
+router.post("/send-noshow-reminder", async (req, res) => {
+  const { storeId, appointmentId, customerId } = req.body;
+  if (!storeId || !appointmentId || !customerId) {
+    return res.status(400).json({ error: "storeId, appointmentId, and customerId required" });
+  }
+
+  try {
+    const { sendSms } = await import("../sms.js");
+
+    // Load appointment, customer, and store info
+    const [apptRow] = await db.execute(
+      sql`SELECT a.date, s.name AS service_name, st.name AS staff_name
+          FROM appointments a
+          LEFT JOIN services s ON s.id = a.service_id
+          LEFT JOIN staff st ON st.id = a.staff_id
+          WHERE a.id = ${appointmentId} AND a.store_id = ${storeId}
+          LIMIT 1`
+    );
+    const [customerRow] = await db.execute(
+      sql`SELECT name, phone, marketing_opt_in FROM customers WHERE id = ${customerId} AND store_id = ${storeId} LIMIT 1`
+    );
+    const [locationRow] = await db.execute(
+      sql`SELECT name, slug FROM locations WHERE id = ${storeId} LIMIT 1`
+    );
+
+    if (!customerRow || !(customerRow as any).phone) {
+      return res.json({ success: false, error: "No phone number on file" });
+    }
+
+    const appt = apptRow as any;
+    const customer = customerRow as any;
+    const location = locationRow as any;
+
+    const firstName = customer.name.split(" ")[0];
+    const storeName = location?.name || "us";
+    const apptDate = appt?.date ? new Date(appt.date) : null;
+    const timeStr = apptDate
+      ? apptDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+      : "your appointment";
+    const serviceStr = appt?.service_name ? ` for ${appt.service_name}` : "";
+    const staffStr = appt?.staff_name ? ` with ${appt.staff_name}` : "";
+
+    const APP_URL = process.env.APP_URL || "https://certxa.com";
+    const bookingSlug = location?.slug;
+    const bookingLink = bookingSlug ? `${APP_URL}/book/${bookingSlug}` : APP_URL;
+
+    const message = `Hi ${firstName}! Just a reminder — you have an appointment${serviceStr}${staffStr} at ${storeName} tomorrow at ${timeStr}. We look forward to seeing you! Need to reschedule? ${bookingLink}\n\nReply STOP to opt out.`;
+
+    await sendSms(storeId, customer.phone, message, "no_show_reminder", appointmentId, customerId);
+
+    // Log the intervention
+    await db.insert(intelligenceInterventions).values({
+      storeId,
+      customerId,
+      interventionType: "no_show_reminder",
+      channel: "sms",
+      messageBody: message,
+      status: "sent",
+      triggeredBy: "manual",
+      appointmentId,
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[intelligence] send-noshow-reminder error:", err);
+    res.status(500).json({ error: "Failed to send reminder", detail: err.message });
+  }
+});
+
 router.post("/refresh", async (req, res) => {
   const { storeId } = req.body;
   if (!storeId) return res.status(400).json({ error: "storeId required" });
