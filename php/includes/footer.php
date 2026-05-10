@@ -34,15 +34,15 @@
         </div>
       </div>
       <div>
-        <p class="footer-col-title">LaunchSite</p>
+        <p class="footer-col-title">Company</p>
         <ul class="footer-col-links">
-          <li><a href="/launchsite.php" style="font-weight:600;color:#6366f1;">LaunchSite Overview</a></li>
-          <li><a href="/editor/">Website Builder</a></li>
-          <li><a href="/launchsite.php#templates">Templates</a></li>
-          <li><a href="/launchsite.php#features">Features</a></li>
-          <li><a href="/editor/?template=barbershop">Barbershop Templates</a></li>
-          <li><a href="/editor/?template=hair-salon">Hair Salon Templates</a></li>
-          <li><a href="/editor/?template=nail-salon">Nail Salon Templates</a></li>
+          <li><a href="/case-studies.php">Success Stories</a></li>
+          <li><a href="/blog.php">Blog</a></li>
+          <li><a href="/pricing.php">Pricing</a></li>
+          <li><a href="/about">About Us</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Help Centre</a></li>
+          <li><a href="/contact.php">Contact Us</a></li>
         </ul>
       </div>
 
@@ -70,7 +70,6 @@
           <li><a href="/reserve-with-google.php">Reserve With Google</a></li>
           <li><a href="/client-reviews.php">Client Reviews</a></li>
           <li><a href="/data-transfer.php">Free Data Transfer</a></li>
-          <li><a href="/launchsite.php">LaunchSite</a></li>
         </ul>
       </div>
       <div>
@@ -80,22 +79,10 @@
           <li><a href="/nail-salon-software.php">Nail Salon Software</a></li>
           <li><a href="/barbershop-software.php">Barbershop Software</a></li>
         </ul>
-        <p class="footer-col-title" style="margin-top:20px;">Compare</p>
+        <p class="footer-col-title" style="margin-top:20px;">Login Access</p>
         <ul class="footer-col-links">
-          <li><a href="/vs-glossgenius.php">Certxa vs GlossGenius</a></li>
-          <li><a href="/vs-vagaro.php">Certxa vs Vagaro</a></li>
-        </ul>
-      </div>
-      <div>
-        <p class="footer-col-title">Company</p>
-        <ul class="footer-col-links">
-          <li><a href="/case-studies.php">Success Stories</a></li>
-          <li><a href="/blog.php">Blog</a></li>
-          <li><a href="/pricing.php">Pricing</a></li>
-          <li><a href="/about">About Us</a></li>
-          <li><a href="#">Careers</a></li>
-          <li><a href="#">Help Centre</a></li>
-          <li><a href="/contact.php">Contact Us</a></li>
+          <li><a href="/auth">SalonOS Login</a></li>
+          <li><a href="/staff-auth">Staff Login</a></li>
         </ul>
       </div>
     </div>
