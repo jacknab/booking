@@ -599,129 +599,213 @@ router.get("/daily-digest", async (req, res) => {
     todayEnd.setHours(23, 59, 59, 999);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const actions: Array<{ type: string; priority: number; label: string; detail: string; count?: number }> = [];
+    const actions: Array<{ type: string; priority: number; label: string; detail: string; count?: number; revenueAtStake?: number; tab: string; ctaLabel: string }> = [];
 
-    // 1. No-show risk appointments today
-    const [noShowRiskToday] = await db.execute(
-      sql`SELECT COUNT(*)::int AS cnt
-          FROM appointments a
-          JOIN client_intelligence ci ON ci.customer_id = a.customer_id AND ci.store_id = a.store_id
-          WHERE a.store_id = ${storeId}
-            AND a.date >= ${todayStart.toISOString()}
-            AND a.date <= ${todayEnd.toISOString()}
-            AND a.status IN ('pending', 'confirmed')
-            AND CAST(ci.no_show_rate AS DECIMAL) >= 40`
-    );
+    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+    // Run all count + revenue queries in parallel
+    const [
+      [noShowRiskToday], [noShowRevenueRow],
+      [criticalChurnRow], [criticalChurnRevenueRow],
+      [cancellationRow], [cancellationRevenueRow],
+      [driftingHighLtv], [driftingRevenueRow],
+      [nudgeRow], [nudgeRevenueRow],
+      [todayRevenueRow],
+    ] = await Promise.all([
+      // 1a. No-show risk count
+      db.execute(
+        sql`SELECT COUNT(*)::int AS cnt
+            FROM appointments a
+            JOIN client_intelligence ci ON ci.customer_id = a.customer_id AND ci.store_id = a.store_id
+            WHERE a.store_id = ${storeId}
+              AND a.date >= ${todayStart.toISOString()}
+              AND a.date <= ${todayEnd.toISOString()}
+              AND a.status IN ('pending', 'confirmed')
+              AND CAST(ci.no_show_rate AS DECIMAL) >= 40`
+      ),
+      // 1b. No-show revenue at stake
+      db.execute(
+        sql`SELECT COALESCE(SUM(CAST(a.price AS DECIMAL)), 0)::float AS rev
+            FROM appointments a
+            JOIN client_intelligence ci ON ci.customer_id = a.customer_id AND ci.store_id = a.store_id
+            WHERE a.store_id = ${storeId}
+              AND a.date >= ${todayStart.toISOString()}
+              AND a.date <= ${todayEnd.toISOString()}
+              AND a.status IN ('pending', 'confirmed')
+              AND CAST(ci.no_show_rate AS DECIMAL) >= 40`
+      ),
+      // 2a. Critical churn count
+      db.execute(
+        sql`SELECT COUNT(*)::int AS cnt
+            FROM client_intelligence ci
+            WHERE ci.store_id = ${storeId}
+              AND ci.churn_risk_label = 'critical'
+              AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
+      ),
+      // 2b. Critical churn LTV at stake (annual value)
+      db.execute(
+        sql`SELECT COALESCE(SUM(ci.ltv_12_month::numeric), 0)::float AS rev
+            FROM client_intelligence ci
+            WHERE ci.store_id = ${storeId}
+              AND ci.churn_risk_label = 'critical'
+              AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
+      ),
+      // 3a. Cancellations today count
+      db.execute(
+        sql`SELECT COUNT(*)::int AS cnt
+            FROM appointments a
+            WHERE a.store_id = ${storeId}
+              AND a.date >= ${todayStart.toISOString()}
+              AND a.date <= ${todayEnd.toISOString()}
+              AND a.status = 'cancelled'`
+      ),
+      // 3b. Cancellation revenue at stake
+      db.execute(
+        sql`SELECT COALESCE(SUM(CAST(a.price AS DECIMAL)), 0)::float AS rev
+            FROM appointments a
+            WHERE a.store_id = ${storeId}
+              AND a.date >= ${todayStart.toISOString()}
+              AND a.date <= ${todayEnd.toISOString()}
+              AND a.status = 'cancelled'`
+      ),
+      // 4a. Drifting high-LTV count
+      db.execute(
+        sql`SELECT COUNT(*)::int AS cnt
+            FROM client_intelligence ci
+            WHERE ci.store_id = ${storeId}
+              AND ci.is_drifting = true
+              AND ci.ltv_12_month::numeric >= 200
+              AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
+      ),
+      // 4b. Drifting LTV at stake (annual)
+      db.execute(
+        sql`SELECT COALESCE(SUM(ci.ltv_12_month::numeric), 0)::float AS rev
+            FROM client_intelligence ci
+            WHERE ci.store_id = ${storeId}
+              AND ci.is_drifting = true
+              AND ci.ltv_12_month::numeric >= 200
+              AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
+      ),
+      // 5a. Rebooking nudge count
+      db.execute(
+        sql`SELECT COUNT(*)::int AS cnt
+            FROM client_intelligence ci
+            WHERE ci.store_id = ${storeId}
+              AND ci.next_expected_visit_date IS NOT NULL
+              AND ci.next_expected_visit_date >= ${now.toISOString()}
+              AND ci.next_expected_visit_date <= ${in3Days.toISOString()}
+              AND NOT EXISTS (
+                SELECT 1 FROM appointments a
+                WHERE a.store_id = ${storeId}
+                  AND a.customer_id = ci.customer_id
+                  AND a.status IN ('pending','confirmed')
+                  AND a.date >= ${now.toISOString()}
+              )`
+      ),
+      // 5b. Rebooking nudge revenue potential (avg ticket × count)
+      db.execute(
+        sql`SELECT COALESCE(AVG(ci.avg_ticket_value::numeric), 0)::float AS avg_ticket
+            FROM client_intelligence ci
+            WHERE ci.store_id = ${storeId}
+              AND ci.next_expected_visit_date IS NOT NULL
+              AND ci.next_expected_visit_date >= ${now.toISOString()}
+              AND ci.next_expected_visit_date <= ${in3Days.toISOString()}
+              AND NOT EXISTS (
+                SELECT 1 FROM appointments a
+                WHERE a.store_id = ${storeId}
+                  AND a.customer_id = ci.customer_id
+                  AND a.status IN ('pending','confirmed')
+                  AND a.date >= ${now.toISOString()}
+              )`
+      ),
+      // Revenue today (completed + started)
+      db.execute(
+        sql`SELECT COALESCE(SUM(CAST(total_paid AS DECIMAL(10,2))), 0)::float AS rev
+            FROM appointments
+            WHERE store_id = ${storeId}
+              AND date >= ${todayStart.toISOString()}
+              AND date <= ${todayEnd.toISOString()}
+              AND status IN ('completed', 'started')`
+      ),
+    ]);
+
     const noShowRisk = parseInt((noShowRiskToday as any)?.cnt || "0");
     if (noShowRisk > 0) {
+      const rev = parseFloat((noShowRevenueRow as any)?.rev || "0");
       actions.push({
         type: "no_show_risk",
         priority: 1,
         label: `${noShowRisk} high-risk appointment${noShowRisk > 1 ? "s" : ""} today`,
-        detail: "Clients with a history of no-shows — consider sending a confirmation",
+        detail: "Clients with a history of no-shows — confirm attendance before they slip away",
         count: noShowRisk,
+        revenueAtStake: rev,
+        tab: "noshow",
+        ctaLabel: "Review no-show risks",
       });
     }
 
-    // 2. Critical churn-risk clients not contacted in 7 days
-    const [criticalChurnRow] = await db.execute(
-      sql`SELECT COUNT(*)::int AS cnt
-          FROM client_intelligence ci
-          WHERE ci.store_id = ${storeId}
-            AND ci.churn_risk_label = 'critical'
-            AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
-    );
     const criticalChurn = parseInt((criticalChurnRow as any)?.cnt || "0");
     if (criticalChurn > 0) {
+      const rev = parseFloat((criticalChurnRevenueRow as any)?.rev || "0");
       actions.push({
         type: "critical_churn",
         priority: 2,
         label: `${criticalChurn} critical-risk client${criticalChurn > 1 ? "s" : ""} need outreach`,
         detail: "High-LTV clients who haven't visited in a long time — act now before they're gone",
         count: criticalChurn,
+        revenueAtStake: rev,
+        tab: "clients",
+        ctaLabel: "View at-risk clients",
       });
     }
 
-    // 3. Revenue leakage from cancellations with open seats
-    const [cancellationRow] = await db.execute(
-      sql`SELECT COUNT(*)::int AS cnt
-          FROM appointments a
-          WHERE a.store_id = ${storeId}
-            AND a.date >= ${todayStart.toISOString()}
-            AND a.date <= ${todayEnd.toISOString()}
-            AND a.status = 'cancelled'`
-    );
     const cancelledToday = parseInt((cancellationRow as any)?.cnt || "0");
     if (cancelledToday > 0) {
+      const rev = parseFloat((cancellationRevenueRow as any)?.rev || "0");
       actions.push({
         type: "cancellation_recovery",
         priority: 3,
         label: `${cancelledToday} cancellation${cancelledToday > 1 ? "s" : ""} — open slots today`,
         detail: "Fill these slots by messaging waitlisted or lapsed clients",
         count: cancelledToday,
+        revenueAtStake: rev,
+        tab: "seats",
+        ctaLabel: "Find replacements",
       });
     }
 
-    // 4. Drifting high-LTV clients
-    const [driftingHighLtv] = await db.execute(
-      sql`SELECT COUNT(*)::int AS cnt
-          FROM client_intelligence ci
-          WHERE ci.store_id = ${storeId}
-            AND ci.is_drifting = true
-            AND ci.ltv_12_month::numeric >= 200
-            AND (ci.last_winback_sent_at IS NULL OR ci.last_winback_sent_at < ${sevenDaysAgo.toISOString()})`
-    );
     const driftingHighLtvCount = parseInt((driftingHighLtv as any)?.cnt || "0");
     if (driftingHighLtvCount > 0) {
+      const rev = parseFloat((driftingRevenueRow as any)?.rev || "0");
       actions.push({
         type: "high_ltv_drifting",
         priority: 4,
         label: `${driftingHighLtvCount} high-value client${driftingHighLtvCount > 1 ? "s" : ""} drifting`,
-        detail: "Top spenders whose visit frequency is slipping — ideal for rebooking campaign",
+        detail: "Top spenders whose visit frequency is slipping — ideal for a win-back campaign",
         count: driftingHighLtvCount,
+        revenueAtStake: rev,
+        tab: "clients",
+        ctaLabel: "Start win-back campaign",
       });
     }
 
-    // 5. Rebooking nudge opportunities (next expected visit in 1-3 days)
-    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const [nudgeRow] = await db.execute(
-      sql`SELECT COUNT(*)::int AS cnt
-          FROM client_intelligence ci
-          WHERE ci.store_id = ${storeId}
-            AND ci.next_expected_visit_date IS NOT NULL
-            AND ci.next_expected_visit_date >= ${now.toISOString()}
-            AND ci.next_expected_visit_date <= ${in3Days.toISOString()}
-            AND NOT EXISTS (
-              SELECT 1 FROM appointments a
-              WHERE a.store_id = ${storeId}
-                AND a.customer_id = ci.customer_id
-                AND a.status IN ('pending','confirmed')
-                AND a.date >= ${now.toISOString()}
-            )`
-    );
     const nudgeCount = parseInt((nudgeRow as any)?.cnt || "0");
     if (nudgeCount > 0) {
+      const avgTicket = parseFloat((nudgeRevenueRow as any)?.avg_ticket || "0");
       actions.push({
         type: "rebooking_nudge",
         priority: 5,
         label: `${nudgeCount} client${nudgeCount > 1 ? "s" : ""} due for a visit soon`,
-        detail: "Their next expected visit is in 1-3 days but nothing is booked",
+        detail: "Their next expected visit is in 1-3 days but nothing is booked yet",
         count: nudgeCount,
+        revenueAtStake: nudgeCount * avgTicket,
+        tab: "overview",
+        ctaLabel: "Send booking nudges",
       });
     }
 
-    // Revenue today (completed + started)
-    const [todayRevenueRow] = await db.execute(
-      sql`SELECT COALESCE(SUM(CAST(total_paid AS DECIMAL(10,2))), 0)::float AS rev
-          FROM appointments
-          WHERE store_id = ${storeId}
-            AND date >= ${todayStart.toISOString()}
-            AND date <= ${todayEnd.toISOString()}
-            AND status IN ('completed', 'started')`
-    );
     const todayRevenue = parseFloat((todayRevenueRow as any)?.rev || "0");
 
-    // Sort by priority
     actions.sort((a, b) => a.priority - b.priority);
 
     res.json({

@@ -24,7 +24,7 @@ import {
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2, CheckCircle2, ChevronRight, DollarSign } from "lucide-react";
 
 function GradeColorClass(grade: string) {
   if (grade === "A") return "text-emerald-400";
@@ -188,6 +188,112 @@ const digestIcons: Record<string, React.ReactNode> = {
   high_ltv_drifting: <Users className="h-4 w-4 text-violet-500" />,
   rebooking_nudge: <Clock className="h-4 w-4 text-blue-500" />,
 };
+
+const copilotGradient: Record<string, { bg: string; accent: string; icon: React.ReactNode }> = {
+  no_show_risk: {
+    bg: "from-red-950 to-red-900",
+    accent: "text-red-300",
+    icon: <UserX className="h-5 w-5 text-red-300" />,
+  },
+  critical_churn: {
+    bg: "from-orange-950 to-orange-900",
+    accent: "text-orange-300",
+    icon: <AlertCircle className="h-5 w-5 text-orange-300" />,
+  },
+  cancellation_recovery: {
+    bg: "from-amber-950 to-amber-900",
+    accent: "text-amber-300",
+    icon: <CalendarX className="h-5 w-5 text-amber-300" />,
+  },
+  high_ltv_drifting: {
+    bg: "from-violet-950 to-violet-900",
+    accent: "text-violet-300",
+    icon: <Users className="h-5 w-5 text-violet-300" />,
+  },
+  rebooking_nudge: {
+    bg: "from-blue-950 to-blue-900",
+    accent: "text-blue-300",
+    icon: <Clock className="h-5 w-5 text-blue-300" />,
+  },
+};
+
+function RevenueCopilotWidget({ storeId }: { storeId: number }) {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/intelligence/daily-digest", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/daily-digest?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) return null;
+
+  const topAction = data?.actions?.[0];
+  const remainingCount = (data?.totalActions || 0) - 1;
+
+  if (!topAction) {
+    return (
+      <div className="rounded-2xl bg-emerald-950 border border-emerald-800/40 p-5 mb-6 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-full bg-emerald-800/50 flex items-center justify-center flex-shrink-0">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-emerald-300">You're ahead of it</p>
+          <p className="text-xs text-emerald-500 mt-0.5">No urgent actions right now — all revenue signals look healthy.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const style = copilotGradient[topAction.type] || copilotGradient.critical_churn;
+  const hasRevenue = (topAction.revenueAtStake || 0) > 0;
+
+  return (
+    <div className={`rounded-2xl bg-gradient-to-br ${style.bg} border border-white/10 p-5 mb-6`}>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          {style.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-[11px] font-bold tracking-widest uppercase text-white/40">Revenue Co-pilot</p>
+            {remainingCount > 0 && (
+              <span className="text-[10px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full font-medium">
+                +{remainingCount} more
+              </span>
+            )}
+          </div>
+          <p className="text-base font-bold text-white leading-snug">{topAction.label}</p>
+          <p className="text-sm text-white/50 mt-1 leading-snug">{topAction.detail}</p>
+
+          <div className="flex items-center justify-between mt-4 gap-3">
+            {hasRevenue ? (
+              <div className="flex items-center gap-1.5">
+                <DollarSign className={`h-3.5 w-3.5 ${style.accent}`} />
+                <span className={`text-sm font-bold ${style.accent}`}>
+                  ${Math.round(topAction.revenueAtStake).toLocaleString()}
+                </span>
+                <span className="text-xs text-white/40">at stake</span>
+              </div>
+            ) : (
+              <div />
+            )}
+            <Link
+              to={`/intelligence?tab=${topAction.tab}`}
+              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 transition-colors text-white text-sm font-semibold px-4 py-2 rounded-xl"
+            >
+              {topAction.ctaLabel}
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const digestColors: Record<string, string> = {
   no_show_risk: "border-l-red-400",
@@ -504,6 +610,9 @@ export default function Dashboard() {
         </div>
         <NotificationBell />
       </div>
+
+      {/* Revenue Co-pilot — single most urgent action */}
+      {selectedStore?.id && <RevenueCopilotWidget storeId={selectedStore.id} />}
 
       {/* Stat Cards — 4-column on md+, 2×2 on mobile */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

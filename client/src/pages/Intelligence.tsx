@@ -1,7 +1,8 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   TrendingUp, TrendingDown, AlertTriangle, Users, DollarSign,
   Calendar, Zap, RefreshCw, Send, ChevronRight, BarChart3,
@@ -153,7 +154,18 @@ export default function Intelligence() {
   const storeId = selectedStore?.id;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) setActiveTab(tabFromUrl);
+  }, [searchParams]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
 
   const { data: dashboard, isLoading: dashLoading } = useQuery<any>({
     queryKey: ["/api/intelligence/dashboard", storeId],
@@ -479,7 +491,7 @@ export default function Intelligence() {
         </div>
 
         {/* Main tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="flex flex-wrap h-auto gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="clients">At-Risk Clients</TabsTrigger>
