@@ -360,7 +360,7 @@ export function createApiManagerFromProfile(profile: {
   const manager = new GoogleBusinessAPIManager({
     clientId:     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
     clientSecret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
-    redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
+    redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL ?? "https://certxa.com/api/google-business/callback",
   });
 
   manager.setCredentials({

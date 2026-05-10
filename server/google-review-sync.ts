@@ -86,7 +86,7 @@ function buildOAuth2ClientFromAccount(account: {
   const client = new OAuth2Client(
     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
     process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
-    process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
+    process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? "https://certxa.com/api/google-business/callback",
   );
   client.setCredentials({
     access_token:  account.accessToken,
@@ -121,7 +121,7 @@ function buildOAuth2ClientFromProfile(profile: {
   const client = new OAuth2Client(
     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
     process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
-    process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
+    process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? "https://certxa.com/api/google-business/callback",
   );
   client.setCredentials({
     access_token:  profile.accessToken,
