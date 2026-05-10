@@ -18,6 +18,12 @@ import {
   Sparkles,
   MapPin,
   Building2,
+  ChevronDown,
+  ChevronUp,
+  WifiOff,
+  Zap,
+  History,
+  XCircle,
 } from "lucide-react";
 import axios from "axios";
 import { GoogleReview } from "@shared/schema";
@@ -26,18 +32,14 @@ import { BulkDraftModal } from "@/components/BulkDraftModal";
 import { ReviewSentimentDashboard } from "@/components/ReviewSentimentDashboard";
 import { InlineReplyDrafter } from "@/components/InlineReplyDrafter";
 
+// ── Types ──────────────────────────────────────────────────────────────────────
+
 interface ReviewStats {
   totalReviews: number;
   averageRating: number | string;
   respondedReviews: number;
   notRespondedReviews: number;
-  ratingDistribution: {
-    5: number;
-    4: number;
-    3: number;
-    2: number;
-    1: number;
-  };
+  ratingDistribution: { 5: number; 4: number; 3: number; 2: number; 1: number };
   lastSyncedAt: string | null;
   nextSyncAt: string | null;
 }
@@ -52,9 +54,41 @@ interface ConnectedProfile {
   isConnected: boolean;
 }
 
+interface SyncLog {
+  id: number;
+  syncType: string;
+  status: "success" | "failed";
+  errorMessage: string | null;
+  reviewsSynced: number | null;
+  syncedAt: string | null;
+  locationId: number | null;
+}
+
+interface SyncResult {
+  synced: number;
+  inserted: number;
+  updated: number;
+  locationResourceName: string;
+  businessName: string | null;
+  durationMs: number;
+  source: "new_schema" | "legacy";
+  syncLogId: number | null;
+}
+
+type SyncPhase =
+  | "idle"
+  | "starting"
+  | "fetching"
+  | "processing"
+  | "saving"
+  | "done"
+  | "error";
+
 interface GoogleReviewsManagerProps {
   storeId?: number | null;
 }
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatRelativeTime(dateStr: string | null): string {
   if (!dateStr) return "Never";
@@ -80,40 +114,58 @@ function formatAbsoluteTime(dateStr: string | null): string {
   });
 }
 
+const PHASE_LABELS: Record<SyncPhase, string> = {
+  idle:       "",
+  starting:   "Starting sync…",
+  fetching:   "Fetching from Google…",
+  processing: "Processing reviews…",
+  saving:     "Saving to database…",
+  done:       "Sync complete",
+  error:      "Sync failed",
+};
+
+// ── Component ──────────────────────────────────────────────────────────────────
+
 export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsManagerProps = {}) {
   const params = useParams();
   const storeId = propStoreId ?? (params?.storeId ? Number(params.storeId) : null);
 
-  const [reviews, setReviews] = useState<GoogleReview[]>([]);
-  const [stats, setStats] = useState<ReviewStats | null>(null);
+  const [reviews, setReviews]                   = useState<GoogleReview[]>([]);
+  const [stats, setStats]                       = useState<ReviewStats | null>(null);
   const [connectedProfile, setConnectedProfile] = useState<ConnectedProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [syncSuccess, setSyncSuccess] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [filterRating, setFilterRating] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [selectedReview, setSelectedReview] = useState<GoogleReview | null>(null);
-  const [showBulkDraft, setShowBulkDraft] = useState(false);
+  const [syncLogs, setSyncLogs]                 = useState<SyncLog[]>([]);
+  const [loading, setLoading]                   = useState(true);
+  const [syncPhase, setSyncPhase]               = useState<SyncPhase>("idle");
+  const [syncResult, setSyncResult]             = useState<SyncResult | null>(null);
+  const [syncError, setSyncError]               = useState<string | null>(null);
+  const [showSyncHistory, setShowSyncHistory]   = useState(false);
+  const [filterRating, setFilterRating]         = useState<number | null>(null);
+  const [filterStatus, setFilterStatus]         = useState<string | null>(null);
+  const [selectedReview, setSelectedReview]     = useState<GoogleReview | null>(null);
+  const [showBulkDraft, setShowBulkDraft]       = useState(false);
   const [activeInlineDraft, setActiveInlineDraft] = useState<number | null>(null);
+
+  const syncing = syncPhase !== "idle" && syncPhase !== "done" && syncPhase !== "error";
 
   useEffect(() => {
     if (storeId) {
-      loadReviews();
-      loadStats();
-      loadProfile();
+      loadAll();
     }
   }, [storeId, filterRating, filterStatus]);
+
+  // ── Data loaders ─────────────────────────────────────────────────────────────
+
+  const loadAll = async () => {
+    await Promise.all([loadReviews(), loadStats(), loadProfile(), loadSyncLogs()]);
+  };
 
   const loadProfile = async () => {
     if (!storeId) return;
     try {
       const response = await axios.get(`/api/google-business/profile/${storeId}`);
-      if (response.data.profile) {
-        setConnectedProfile(response.data.profile);
-      }
-    } catch (error) {
-      console.error("Failed to load Google Business profile:", error);
+      if (response.data.profile) setConnectedProfile(response.data.profile);
+    } catch {
+      // Non-fatal — connection status may simply not be set up yet
     }
   };
 
@@ -121,17 +173,13 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
     if (!storeId) return;
     try {
       setLoading(true);
-      const params: Record<string, any> = { limit: 50 };
-      if (filterRating) params.rating = filterRating;
-      if (filterStatus) params.status = filterStatus;
-
-      const response = await axios.get(
-        `/api/google-business/reviews/${storeId}`,
-        { params }
-      );
+      const p: Record<string, any> = { limit: 50 };
+      if (filterRating) p.rating = filterRating;
+      if (filterStatus) p.status = filterStatus;
+      const response = await axios.get(`/api/google-business/reviews/${storeId}`, { params: p });
       setReviews(response.data.reviews);
-    } catch (error) {
-      console.error("Failed to load reviews:", error);
+    } catch {
+      // keep existing reviews
     } finally {
       setLoading(false);
     }
@@ -140,63 +188,341 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   const loadStats = async () => {
     if (!storeId) return;
     try {
-      const response = await axios.get(
-        `/api/google-business/reviews-stats/${storeId}`
-      );
+      const response = await axios.get(`/api/google-business/reviews-stats/${storeId}`);
       setStats(response.data);
-    } catch (error) {
-      console.error("Failed to load stats:", error);
+    } catch {
+      // keep existing stats
     }
   };
 
-  const handleSyncReviews = async () => {
+  const loadSyncLogs = async () => {
     if (!storeId) return;
     try {
-      setSyncing(true);
-      setSyncSuccess(false);
-      setSyncError(null);
-      const response = await axios.post(`/api/google-business/sync-reviews/${storeId}`);
-      await Promise.all([loadReviews(), loadStats()]);
-      setSyncSuccess(true);
-      setTimeout(() => setSyncSuccess(false), 4000);
-    } catch (error: any) {
-      console.error("Failed to sync reviews:", error);
-      const msg = error?.response?.data?.message ?? error?.message ?? "Failed to sync reviews. Check server logs for details.";
-      setSyncError(msg);
-      setTimeout(() => setSyncError(null), 10000);
-    } finally {
-      setSyncing(false);
+      const response = await axios.get(`/api/google-business/sync-logs/${storeId}?limit=10`);
+      setSyncLogs(response.data.logs ?? []);
+    } catch {
+      // non-fatal
     }
   };
 
-  const renderStarRating = (rating: number) => {
+  // ── Sync handler ──────────────────────────────────────────────────────────────
+
+  const handleSyncReviews = async () => {
+    if (!storeId || syncing) return;
+
+    setSyncResult(null);
+    setSyncError(null);
+    setSyncPhase("starting");
+
+    // Animate phases on a timer — the real work happens in the POST
+    const phaseTimer = setTimeout(() => setSyncPhase("fetching"), 600);
+    const phaseTimer2 = setTimeout(() => setSyncPhase("processing"), 2500);
+
+    try {
+      const response = await axios.post(`/api/google-business/sync-reviews/${storeId}`);
+      clearTimeout(phaseTimer);
+      clearTimeout(phaseTimer2);
+
+      setSyncPhase("saving");
+      const result: SyncResult = response.data;
+
+      // Small pause on "saving" so the user sees it briefly
+      await new Promise<void>((r) => setTimeout(r, 400));
+      setSyncResult(result);
+      setSyncPhase("done");
+
+      // Refresh all data after sync
+      await Promise.all([loadReviews(), loadStats(), loadProfile(), loadSyncLogs()]);
+
+      // Reset to idle after 6 seconds
+      setTimeout(() => {
+        setSyncPhase("idle");
+        setSyncResult(null);
+      }, 6000);
+    } catch (err: any) {
+      clearTimeout(phaseTimer);
+      clearTimeout(phaseTimer2);
+
+      const raw = err?.response?.data?.message ?? err?.message ?? "Failed to sync reviews.";
+
+      // Translate technical errors into user-friendly messages
+      let friendly = raw;
+      if (raw.includes("No active location") || raw.includes("No location connected")) {
+        friendly = "No active Google Business location is selected. Go to the Connection tab and select a location.";
+      } else if (raw.includes("token") || raw.includes("credential") || raw.includes("auth")) {
+        friendly = "Unable to authenticate with Google. Please reconnect your Google Business Profile.";
+      } else if (raw.includes("quota") || raw.includes("429")) {
+        friendly = "Google API rate limit reached. The system will retry automatically — try again in a few minutes.";
+      } else if (raw.includes("403") || raw.includes("PERMISSION_DENIED")) {
+        friendly = "Google denied access to reviews. Ensure the Business Profile API is enabled in Google Cloud Console.";
+      } else if (raw.includes("404") || raw.includes("not found")) {
+        friendly = "Your connected location was not found on Google. Please reconnect and reselect your location.";
+      }
+
+      setSyncError(friendly);
+      setSyncPhase("error");
+
+      // Reload sync logs — the failed attempt was logged
+      await loadSyncLogs();
+
+      setTimeout(() => {
+        setSyncPhase("idle");
+        setSyncError(null);
+      }, 12000);
+    }
+  };
+
+  // ── Sub-renders ───────────────────────────────────────────────────────────────
+
+  const renderStarRating = (rating: number) => (
+    <div className="flex items-center gap-1">
+      {[...Array(5)].map((_, i) => (
+        <Star key={i} size={16} className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+      ))}
+      <span className="ml-2 text-sm font-medium">{rating}/5</span>
+    </div>
+  );
+
+  const renderStarLabel = (rating: number) => (
+    <div className="flex items-center gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <Star key={i} size={12} className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+      ))}
+    </div>
+  );
+
+  const renderConnectionStatus = () => {
+    if (!connectedProfile) return null;
+
+    if (!connectedProfile.isConnected || !connectedProfile.locationResourceName) {
+      return (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-start gap-3">
+              <WifiOff size={16} className="text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">No active Google Business location selected</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Go to the <strong>Connection</strong> tab and connect your Google Business Profile, then select a location.
+                  Reviews cannot be synced until a location is active.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const health = (() => {
+      if (!connectedProfile.lastSyncedAt) return "warning";
+      const ms = Date.now() - new Date(connectedProfile.lastSyncedAt).getTime();
+      if (ms < 7 * 60 * 60 * 1000) return "healthy";   // synced within 7h
+      if (ms < 24 * 60 * 60 * 1000) return "warning";  // synced within 24h
+      return "stale";
+    })();
+
+    const healthDot: Record<string, string> = {
+      healthy: "bg-green-500",
+      warning: "bg-amber-400",
+      stale:   "bg-red-400",
+    };
+    const healthLabel: Record<string, string> = {
+      healthy: "Syncing normally",
+      warning: "Sync overdue",
+      stale:   "Sync stale — check connection",
+    };
+
     return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            size={16}
-            className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
-          />
-        ))}
-        <span className="ml-2 text-sm font-medium">{rating}/5</span>
-      </div>
+      <Card className="border-green-200 bg-green-50/40">
+        <CardContent className="py-3 px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <Building2 size={16} className="text-green-700" />
+              <span className="text-sm font-semibold text-green-900">Connected Business</span>
+              <span className="flex items-center gap-1 text-xs text-green-700">
+                <span className={`inline-block w-2 h-2 rounded-full ${healthDot[health]}`} />
+                {healthLabel[health]}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {connectedProfile.businessName && (
+                <span className="font-medium text-green-900">{connectedProfile.businessName}</span>
+              )}
+              {connectedProfile.googleAccountEmail && (
+                <span className="text-xs text-green-700">{connectedProfile.googleAccountEmail}</span>
+              )}
+              {connectedProfile.locationAddress && (
+                <span className="flex items-center gap-1 text-green-700">
+                  <MapPin size={13} />
+                  {connectedProfile.locationAddress}
+                </span>
+              )}
+              {connectedProfile.locationId && (
+                <span className="text-xs font-mono text-green-600 bg-white border border-green-200 rounded px-1.5 py-0.5">
+                  ID: {connectedProfile.locationId}
+                </span>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
-  const renderStarLabel = (rating: number) => {
+  const renderSyncFeedback = () => {
+    if (syncPhase === "idle") return null;
+
+    if (syncPhase === "error" && syncError) {
+      return (
+        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <XCircle size={16} className="flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium mb-0.5">Sync failed</p>
+            <p>{syncError}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (syncPhase === "done" && syncResult) {
+      const newBadge = syncResult.inserted > 0
+        ? <span className="text-emerald-700 font-semibold">{syncResult.inserted} new</span>
+        : null;
+      const updBadge = syncResult.updated > 0
+        ? <span className="text-blue-700 font-semibold">{syncResult.updated} updated</span>
+        : null;
+      const noneMsg = syncResult.synced === 0
+        ? <span className="text-gray-500">No reviews found on Google yet</span>
+        : null;
+
+      return (
+        <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+          <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5 text-emerald-600" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold">
+              Sync complete —{" "}
+              {noneMsg ?? (
+                <>
+                  {syncResult.synced} review{syncResult.synced !== 1 ? "s" : ""} synced
+                  {(newBadge || updBadge) && (
+                    <span className="font-normal text-xs ml-1 text-emerald-700">
+                      ({[newBadge, updBadge].filter(Boolean).map((b, i) => (
+                        <span key={i}>{i > 0 ? ", " : ""}{b}</span>
+                      ))})
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
+            <p className="text-xs text-emerald-600 mt-0.5">
+              {syncResult.durationMs}ms · source: {syncResult.source === "new_schema" ? "new schema" : "legacy profile"}
+              {syncResult.syncLogId ? ` · log #${syncResult.syncLogId}` : ""}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (syncing) {
+      return (
+        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+          <Loader2 size={16} className="animate-spin flex-shrink-0 text-blue-600" />
+          <span className="font-medium">{PHASE_LABELS[syncPhase]}</span>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderSyncHistory = () => {
+    if (syncLogs.length === 0 && !showSyncHistory) return null;
+
     return (
-      <div className="flex items-center gap-0.5">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            size={12}
-            className={i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200"}
-          />
-        ))}
-      </div>
+      <Card className="border-white/10 bg-white/5">
+        <CardHeader
+          className="py-3 px-4 cursor-pointer select-none"
+          onClick={() => setShowSyncHistory((v) => !v)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History size={14} className="text-muted-foreground" />
+              <CardTitle className="text-sm font-semibold">Sync History</CardTitle>
+              {syncLogs.length > 0 && (
+                <Badge variant="outline" className="text-xs h-5 px-1.5">
+                  {syncLogs.length}
+                </Badge>
+              )}
+            </div>
+            {showSyncHistory ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+          </div>
+          {!showSyncHistory && syncLogs.length > 0 && (
+            <CardDescription className="text-xs mt-0.5">
+              Last sync: {formatRelativeTime(syncLogs[0]?.syncedAt ?? null)} —{" "}
+              <span className={syncLogs[0]?.status === "success" ? "text-emerald-600" : "text-red-500"}>
+                {syncLogs[0]?.status === "success"
+                  ? `${syncLogs[0].reviewsSynced ?? 0} reviews synced`
+                  : "failed"}
+              </span>
+            </CardDescription>
+          )}
+        </CardHeader>
+
+        {showSyncHistory && (
+          <CardContent className="pt-0 pb-4 px-4">
+            {syncLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No sync attempts recorded yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {syncLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className={`flex items-start gap-3 rounded-lg px-3 py-2 text-sm border ${
+                      log.status === "success"
+                        ? "bg-emerald-50/60 border-emerald-100"
+                        : "bg-red-50/60 border-red-100"
+                    }`}
+                  >
+                    {log.status === "success" ? (
+                      <CheckCircle2 size={14} className="text-emerald-600 mt-0.5 shrink-0" />
+                    ) : (
+                      <XCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-medium ${log.status === "success" ? "text-emerald-800" : "text-red-700"}`}>
+                          {log.status === "success" ? "Success" : "Failed"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatAbsoluteTime(log.syncedAt)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({formatRelativeTime(log.syncedAt)})
+                        </span>
+                        {log.reviewsSynced !== null && log.status === "success" && (
+                          <Badge variant="outline" className="text-xs h-4 px-1.5 text-emerald-700 border-emerald-200">
+                            {log.reviewsSynced} reviews
+                          </Badge>
+                        )}
+                        {log.locationId && (
+                          <span className="text-xs font-mono text-muted-foreground">loc #{log.locationId}</span>
+                        )}
+                      </div>
+                      {log.errorMessage && (
+                        <p className="text-xs text-red-600 mt-1 break-words">{log.errorMessage}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
     );
   };
+
+  // ── Response rate ─────────────────────────────────────────────────────────────
 
   const responseRate =
     stats && stats.totalReviews > 0
@@ -213,56 +539,18 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
     );
   }
 
+  // ── Main render ───────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
 
-      {/* Connected Business Card */}
-      {connectedProfile && connectedProfile.isConnected && (
-        <Card className="border-green-200 bg-green-50/40">
-          <CardContent className="py-3 px-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-2 shrink-0">
-                <Building2 size={16} className="text-green-700" />
-                <span className="text-sm font-semibold text-green-900">Connected Business</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                {connectedProfile.businessName && (
-                  <span className="font-medium text-green-900">{connectedProfile.businessName}</span>
-                )}
-                {connectedProfile.locationAddress && (
-                  <span className="flex items-center gap-1 text-green-700">
-                    <MapPin size={13} />
-                    {connectedProfile.locationAddress}
-                  </span>
-                )}
-                {connectedProfile.locationId && (
-                  <span className="text-xs font-mono text-green-600 bg-white border border-green-200 rounded px-1.5 py-0.5">
-                    ID: {connectedProfile.locationId}
-                  </span>
-                )}
-                {!connectedProfile.businessName && (
-                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
-                    No business name — reconnect to select a location
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Connection status */}
+      {renderConnectionStatus()}
 
-      {/* Sync error banner */}
-      {syncError && (
-        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <span className="font-medium">Sync failed: </span>
-            <span>{syncError}</span>
-          </div>
-        </div>
-      )}
+      {/* Sync feedback (phases / result / error) */}
+      {renderSyncFeedback()}
 
-      {/* Sync Status Bar */}
+      {/* Sync Control Bar */}
       <Card className="border-blue-100 bg-blue-50/50">
         <CardContent className="py-3 px-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -298,18 +586,15 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
               )}
 
               {!stats?.lastSyncedAt && stats !== null && (
-                <span className="text-sm text-blue-600">Auto-syncs every 6 hours — click Sync Now to pull reviews immediately.</span>
+                <span className="text-sm text-blue-600 flex items-center gap-1">
+                  <Zap size={12} />
+                  Auto-syncs every 6 hours — click Sync Now to pull reviews immediately.
+                </span>
               )}
             </div>
 
-            {/* Sync Now button + Bulk Draft button + success indicator */}
+            {/* Sync button + Bulk draft button */}
             <div className="flex items-center gap-2 shrink-0">
-              {syncSuccess && (
-                <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
-                  <CheckCircle2 size={14} />
-                  Synced!
-                </span>
-              )}
               <Button
                 onClick={handleSyncReviews}
                 disabled={syncing}
@@ -320,7 +605,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                 {syncing ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Syncing…
+                    {PHASE_LABELS[syncPhase].replace("…", "")}…
                   </>
                 ) : (
                   <>
@@ -393,8 +678,6 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
       {/* Rating distribution + compliance panel */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          {/* Rating Distribution */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -423,7 +706,6 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
             </CardContent>
           </Card>
 
-          {/* Google Policy Compliance */}
           <Card className="border-emerald-200 bg-emerald-50/50">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -458,7 +740,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
         <ReviewSentimentDashboard storeId={storeId} />
       )}
 
-      {/* Controls */}
+      {/* Review filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="flex gap-2 ml-auto">
           <select
@@ -519,7 +801,6 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
               <Card
                 className="hover:bg-gray-50 transition cursor-pointer"
                 onClick={(e) => {
-                  // Don't open dialog when clicking inside the inline drafter
                   if ((e.target as HTMLElement).closest("[data-inline-drafter]")) return;
                   setSelectedReview(review);
                 }}
@@ -569,29 +850,19 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                         try {
                           const urls = JSON.parse(review.reviewImageUrls);
                           return urls.map((url: string, i: number) => (
-                            <img
-                              key={i}
-                              src={url}
-                              alt="Review"
-                              className="w-20 h-20 object-cover rounded"
-                            />
+                            <img key={i} src={url} alt="Review" className="w-20 h-20 object-cover rounded" />
                           ));
-                        } catch {
-                          return null;
-                        }
+                        } catch { return null; }
                       })()}
                     </div>
                   )}
 
-                  {/* Action row */}
                   <div
                     className="flex items-center justify-between gap-2 pt-1"
                     data-inline-drafter
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <p className="text-xs text-muted-foreground">
-                      Click card to view full details
-                    </p>
+                    <p className="text-xs text-muted-foreground">Click card to view full details</p>
 
                     {review.responseStatus !== "responded" && storeId && (
                       activeInlineDraft === review.id ? (
@@ -617,7 +888,6 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                     )}
                   </div>
 
-                  {/* Inline drafter panel */}
                   {activeInlineDraft === review.id && storeId && (
                     <div data-inline-drafter onClick={(e) => e.stopPropagation()}>
                       <InlineReplyDrafter
@@ -626,10 +896,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
                         reviewText={review.reviewText}
                         rating={review.rating}
                         customerName={review.customerName}
-                        onDraftSaved={() => {
-                          loadReviews();
-                          loadStats();
-                        }}
+                        onDraftSaved={() => { loadReviews(); loadStats(); }}
                         onClose={() => setActiveInlineDraft(null)}
                       />
                     </div>
@@ -641,6 +908,10 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
         </div>
       )}
 
+      {/* Sync History */}
+      {renderSyncHistory()}
+
+      {/* Dialogs */}
       {selectedReview && storeId && (
         <ReviewResponseDialog
           review={selectedReview}

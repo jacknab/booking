@@ -4784,6 +4784,41 @@ If you have any questions, please contact your administrator.
   });
 
   /**
+   * GET /api/google-business/sync-logs/:storeId
+   * Returns the last N sync attempts for a store (default 10, max 50).
+   * Used by the frontend Sync History panel.
+   */
+  app.get("/api/google-business/sync-logs/:storeId", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const storeId = Number(req.params.storeId);
+    const limit = Math.min(Number(req.query.limit ?? 10), 50);
+
+    try {
+      const logs = await db
+        .select({
+          id:            googleBusinessSyncLogs.id,
+          syncType:      googleBusinessSyncLogs.syncType,
+          status:        googleBusinessSyncLogs.status,
+          errorMessage:  googleBusinessSyncLogs.errorMessage,
+          reviewsSynced: googleBusinessSyncLogs.reviewsSynced,
+          syncedAt:      googleBusinessSyncLogs.syncedAt,
+          locationId:    googleBusinessSyncLogs.locationId,
+        })
+        .from(googleBusinessSyncLogs)
+        .where(eq(googleBusinessSyncLogs.storeId, storeId))
+        .orderBy(desc(googleBusinessSyncLogs.syncedAt))
+        .limit(limit);
+
+      res.json({ logs });
+    } catch (err: any) {
+      console.error(`[GBP] sync-logs FAILED for storeId=${storeId}:`, err?.message ?? err);
+      res.status(500).json({ message: "Failed to fetch sync logs" });
+    }
+  });
+
+  /**
    * AI-powered reply suggestions for a Google review
    */
   app.post("/api/google-business/suggest-reply/:storeId", async (req, res) => {
