@@ -7,17 +7,21 @@ defined('PAGE_DESC')     or define('PAGE_DESC',     'Certxa is the all-in-one sa
 defined('PAGE_KEYWORDS') or define('PAGE_KEYWORDS', 'salon management software, salon booking software, beauty salon software, salon scheduling app, online booking for salons, salon POS system, hair salon software');
 defined('PAGE_OG_IMAGE') or define('PAGE_OG_IMAGE', SITE_URL . '/assets/images/og-image.jpg');
 
-// Canonical: prefer explicit constant, fall back to current path
+// Canonical: prefer explicit constant, fall back to current path (no .php extension)
 if (!defined('PAGE_CANONICAL')) {
-  $path = strtok($_SERVER['REQUEST_URI'] ?? '/overview.php', '?');
-  // normalise /index.php and bare / to overview
-  if ($path === '/' || $path === '/index.php') $path = '/overview.php';
+  $path = strtok($_SERVER['REQUEST_URI'] ?? '/overview', '?');
+  // normalise /index.php and bare / to /overview
+  if ($path === '/' || $path === '/index.php') $path = '/overview';
+  // strip .php extension and /default suffix for clean canonical URLs
+  $path = preg_replace('/\.php$/', '', $path);
+  $path = preg_replace('#/default$#', '', $path);
+  if ($path === '') $path = '/overview';
   define('PAGE_CANONICAL', SITE_URL . $path);
 }
 
 // Breadcrumb: array of ['name'=>'...','url'=>'...']
 defined('PAGE_BREADCRUMBS') or define('PAGE_BREADCRUMBS', json_encode([
-  ['name' => 'Home', 'url' => SITE_URL . '/overview.php']
+  ['name' => 'Home', 'url' => SITE_URL . '/overview']
 ]));
 
 // JSON-LD: page can define PAGE_SCHEMA as a JSON string

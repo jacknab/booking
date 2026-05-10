@@ -3,7 +3,12 @@
  * PHP built-in server router for certxa.com
  *
  * - /launchsite/* → served from php/launchsite/ (LaunchSite template catalog)
+ *   Exception: /launchsite exactly (no trailing slash) → launchsite/default.php (marketing overview)
  * - /* everything else → served from php/ root (main certxa.com marketing site)
+ *
+ * Page structure: each page lives in its own directory as default.php
+ *   e.g. /overview → overview/default.php
+ *        /pricing  → pricing/default.php
  */
 
 $mime_map = [
@@ -37,11 +42,22 @@ function serve_static(string $path, array $mime_map): void {
     exit;
 }
 
+function require_page(string $path): void {
+    require $path;
+    exit;
+}
+
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 if ($uri === '') $uri = '/';
 
 // ── LaunchSite catalog (/launchsite/*) ────────────────────────────────────────
-if ($uri === '/launchsite' || strpos($uri, '/launchsite/') === 0) {
+// Exception: bare /launchsite (no slash) → serve launchsite marketing overview page
+if ($uri === '/launchsite') {
+    require __DIR__ . '/launchsite/default.php';
+    exit;
+}
+
+if (strpos($uri, '/launchsite/') === 0) {
     $launch_uri  = preg_replace('#^/launchsite/?#', '/', $uri);
     if ($launch_uri === '') $launch_uri = '/';
 
@@ -63,6 +79,10 @@ if ($uri === '/launchsite' || strpos($uri, '/launchsite/') === 0) {
             readfile($index);
             exit;
         }
+        // Try default.php then index.php for sub-directories
+        $base = rtrim($launch_file, '/');
+        if (is_file($base . '/default.php')) { require_page($base . '/default.php'); }
+        if (is_file($base . '/index.php'))   { require_page($base . '/index.php'); }
     }
 
     // Static file
@@ -70,13 +90,17 @@ if ($uri === '/launchsite' || strpos($uri, '/launchsite/') === 0) {
         serve_static($launch_file, $GLOBALS['mime_map']);
     }
 
-    // PHP page routing
+    // PHP page routing for launchsite sub-paths
     if ($launch_uri === '/') {
         require $launch_root . '/index.php';
     } elseif (is_file($launch_file) && pathinfo($launch_file, PATHINFO_EXTENSION) === 'php') {
         require $launch_file;
     } elseif (is_file($launch_file . '.php')) {
         require $launch_file . '.php';
+    } elseif (is_dir($launch_file) && is_file(rtrim($launch_file,'/') . '/default.php')) {
+        require rtrim($launch_file, '/') . '/default.php';
+    } elseif (is_dir($launch_file) && is_file(rtrim($launch_file,'/') . '/index.php')) {
+        require rtrim($launch_file, '/') . '/index.php';
     } else {
         http_response_code(404);
         echo '<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>';
@@ -87,28 +111,48 @@ if ($uri === '/launchsite' || strpos($uri, '/launchsite/') === 0) {
 // ── Main certxa.com site (everything else) ───────────────────────────────────
 $file = __DIR__ . $uri;
 
-// Directory → try index.php
-if (is_dir($file)) {
-    $index = rtrim($file, '/') . '/index.php';
-    if (is_file($index)) {
-        require $index;
-        exit;
-    }
+// Root → index.php
+if ($uri === '/') {
+    require __DIR__ . '/index.php';
+    exit;
 }
 
-// Static file
+// Static file (non-PHP)
 if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) !== 'php') {
     serve_static($file, $mime_map);
 }
 
-// PHP page routing
-if ($uri === '/') {
-    require __DIR__ . '/index.php';
-} elseif (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
-    require $file;
-} elseif (is_file($file . '.php')) {
-    require $file . '.php';
-} else {
-    http_response_code(404);
-    echo '<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>';
+// Directory → prefer default.php, fall back to index.php
+if (is_dir($file)) {
+    $base = rtrim($file, '/');
+    if (is_file($base . '/default.php')) { require_page($base . '/default.php'); }
+    if (is_file($base . '/index.php'))   { require_page($base . '/index.php'); }
 }
+
+// Direct PHP file match (e.g. someone still hits /pricing.php)
+if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
+    require $file;
+    exit;
+}
+
+// Strip trailing slash and retry as directory
+$stripped = rtrim($file, '/');
+if ($stripped !== $file && is_dir($stripped)) {
+    if (is_file($stripped . '/default.php')) { require_page($stripped . '/default.php'); }
+    if (is_file($stripped . '/index.php'))   { require_page($stripped . '/index.php'); }
+}
+
+// Append .php for old-style flat files (backwards compat)
+if (is_file($file . '.php')) {
+    require $file . '.php';
+    exit;
+}
+
+// Directory/default.php for slug-style URLs without trailing slash
+if (is_file($file . '/default.php')) {
+    require $file . '/default.php';
+    exit;
+}
+
+http_response_code(404);
+echo '<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>';
