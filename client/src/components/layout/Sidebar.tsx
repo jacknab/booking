@@ -190,14 +190,12 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
     return new Set(activeGroupLabel ? [activeGroupLabel] : []);
   });
 
-  // When route changes, ensure the active group is expanded
+  // When route changes, expand only the active group (accordion — close everything else)
   useEffect(() => {
     if (activeGroupLabel) {
       setExpandedGroups((prev) => {
-        if (prev.has(activeGroupLabel)) return prev;
-        const next = new Set(prev);
-        next.add(activeGroupLabel);
-        return next;
+        if (prev.size === 1 && prev.has(activeGroupLabel)) return prev;
+        return new Set([activeGroupLabel]);
       });
     }
   }, [activeGroupLabel]);
@@ -209,15 +207,15 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
     } catch {}
   }, [expandedGroups]);
 
+  // Accordion: opening a group closes all others
   function toggleGroup(label: string) {
     setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) {
-        next.delete(label);
-      } else {
-        next.add(label);
+      if (prev.has(label)) {
+        // Clicking the already-open group collapses it
+        return new Set<string>();
       }
-      return next;
+      // Open only this group
+      return new Set([label]);
     });
   }
 
