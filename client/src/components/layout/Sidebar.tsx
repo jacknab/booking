@@ -53,6 +53,7 @@ type NavItem = {
   anyOf?: string[];
   hideForStaff?: boolean;
   eliteOnly?: boolean;
+  hideForSolo?: boolean;
 };
 
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -87,9 +88,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Business",
     items: [
       { to: "/services", label: "Services", icon: Scissors, permission: PERMISSIONS.SERVICES_MANAGE, hideForStaff: true },
-      { to: "/staff", label: "Team", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE, hideForStaff: true },
-      { to: "/dashboard/training", label: "Staff Training", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
-      { to: "/dashboard/training/settings", label: "Training Settings", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE },
+      { to: "/staff", label: "Team", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE, hideForStaff: true, hideForSolo: true },
+      { to: "/dashboard/training", label: "Staff Training", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE, hideForSolo: true },
+      { to: "/dashboard/training/settings", label: "Training Settings", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE, hideForSolo: true },
       { to: "/products", label: "Products", icon: ShoppingBag, permission: PERMISSIONS.PRODUCTS_MANAGE },
       { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList, permission: PERMISSIONS.SERVICES_MANAGE },
     ],
@@ -124,7 +125,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/sms-settings", label: "SMS Notifications", icon: MessageSquare, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/mail-settings", label: "Email Notifications", icon: Mail, permission: PERMISSIONS.STORE_SETTINGS },
       { to: "/business-settings", label: "Business Settings", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
-      { to: "/team-permissions", label: "Roles & Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE },
+      { to: "/team-permissions", label: "Roles & Permissions", icon: Shield, permission: PERMISSIONS.STAFF_MANAGE, hideForSolo: true },
       { to: "/api-keys", label: "API Keys", icon: Key, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true, eliteOnly: true },
       { to: "/multi-location", label: "Multi-Location", icon: Building2, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true, eliteOnly: true },
     ],
@@ -140,6 +141,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const { selectedStore } = useSelectedStore();
   const { can, canAny, isStaff } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
+  const isSolo = (selectedStore as any)?.teamSize === "myself";
 
   const { data: subscription } = useQuery<any>({
     queryKey: ["/api/billing/subscription", selectedStore?.id],
@@ -245,6 +247,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
                 : group.items.filter((item) => !posHiddenRoutes.includes(item.to))
               ).filter((item) => {
                 if (isStaff && item.hideForStaff) return false;
+                if (isSolo && item.hideForSolo) return false;
                 if (item.permission && !can(item.permission)) return false;
                 if (item.anyOf && !canAny(...item.anyOf)) return false;
                 if (item.eliteOnly && !isElite) return false;

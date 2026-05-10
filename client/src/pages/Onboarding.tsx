@@ -418,6 +418,7 @@ export default function Onboarding() {
       phone: phone.trim() || undefined,
       businessHours: hours,
       staff: validStaff,
+      teamSize: teamSize ?? undefined,
     });
   };
 
@@ -466,7 +467,13 @@ export default function Onboarding() {
             <div className="flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => { setTeamSize("myself"); setStep(2); }}
+                onClick={() => {
+                  setTeamSize("myself");
+                  const firstName = (user as any)?.firstName || user?.email?.split("@")[0] || "Me";
+                  setStaffNames([firstName]);
+                  setStaffCount(1);
+                  setStep(2);
+                }}
                 className={`w-full py-4 rounded-xl border-2 font-semibold text-base transition-all ${teamSize === "myself" ? "border-[#00AACC] bg-[#00AACC]/10 text-[#00AACC]" : "border-[#00AACC] text-[#00AACC] hover:bg-[#00AACC]/5"}`}
               >
                 Myself

@@ -2167,6 +2167,7 @@ If you have any questions, please contact your administrator.
           name: z.string().min(1),
           color: z.string().optional(),
         })).min(1).optional(),
+        teamSize: z.enum(["myself", "team"]).optional(),
       });
 
       const parsed = onboardingSchema.safeParse(req.body);
@@ -2187,6 +2188,7 @@ If you have any questions, please contact your administrator.
         phone,
         businessHours: hoursData,
         staff: staffData,
+        teamSize: teamSizeValue,
       } = parsed.data;
 
       console.log("Onboarding: Looking up template for business type:", businessType);
@@ -2204,8 +2206,9 @@ If you have any questions, please contact your administrator.
         state: state || null,
         postcode: postcode || null,
         phone: phone || null,
-        category: businessType, // Save the business type to the category field
+        category: businessType,
         userId: userId,
+        teamSize: teamSizeValue || null,
       });
 
       console.log("Onboarding: Store created successfully:", store.id);
