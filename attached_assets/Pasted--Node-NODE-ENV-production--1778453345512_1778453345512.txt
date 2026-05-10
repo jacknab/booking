@@ -1,0 +1,54 @@
+# ─── Node ───────────────────────────────────────────────────────────────────
+NODE_ENV=production
+PORT=8100
+
+# ─── Database ────────────────────────────────────────────────────────────────
+# Format: postgresql://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=disable
+DATABASE_URL=postgresql://certxa2026_user:661233c3df9ddefd5b74a6f85f392bebbdcf2fe5f4cd0e95f4a56c2438b15d11@127.0.0.1:5432/certxa2026_db?sslmode=disable
+
+# ─── Session ─────────────────────────────────────────────────────────────────
+# CRITICAL: Must be a long random string. Generated with: openssl rand -hex 64
+SESSION_SECRET=c5dc56b9b96b5dbbbf9aa23f9f891b4dd504889a9c324715aed761e50cbc68bcab7f2427f97c8f98932c6dc482ecfc6d72862d62c2cd0877789dbd75b92c2ca7
+
+# ─── App URL ─────────────────────────────────────────────────────────────────
+APP_URL=https://certxa.com
+
+# ─── CORS ────────────────────────────────────────────────────────────────────
+CORS_ALLOW_ALL=true
+CORS_ORIGINS=https://certxa.com,https://www.certxa.com,https://manage.certxa.com
+
+# ─── Google OAuth (for user login) ───────────────────────────────────────────
+GOOGLE_CLIENT_ID=384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+#GOOGLE_AUTH_CALLBACK_URL=https://certxa.com/api/auth/google/callback
+
+# ─── Google Business Profile API (for store Google reviews sync) ──────────────
+GOOGLE_REDIRECT_URI=https://certxa.com/api/google-business/callback
+
+# ─── Twilio (SMS notifications) ───────────────────────────────────────────────
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+18888147623
+
+# ─── TextBelt (fallback SMS) ──────────────────────────────────────────────────
+TEXTBELT_API_KEY=your_textbelt_key
+
+# ─── Mailgun (email notifications) ───────────────────────────────────────────
+MAILGUN_API_KEY=your_mailgun_api_key
+MAILGUN_DOMAIN=mg.yourdomain.com
+MAILGUN_FROM_EMAIL=noreply@yourdomain.com
+MAILGUN_FROM_NAME=Certxa
+MAILGUN_SENDER_EMAIL=noreply@yourdomain.com
+
+# ─── Stripe (payments / subscriptions) ───────────────────────────────────────
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxx
+
+# ─── OpenAI (AI chatbot / suggestions) ───────────────────────────────────────
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+
+# ─── Trial period ─────────────────────────────────────────────────────────────
+TRIAL_PERIOD_DAYS=60
+
+# ─── Active store groups (internal feature flag) ──────────────────────────────
+ACTIVE_GROUPS=3
