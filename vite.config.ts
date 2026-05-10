@@ -6,7 +6,6 @@ import compression from "vite-plugin-compression";
 export default defineConfig({
   plugins: [
     react(),
-    // Enable gzip and brotli compression
     compression({
       verbose: true,
       disable: false,
@@ -26,11 +25,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // Use esbuild for faster minification (Vite v3+ default)
     minify: 'esbuild',
     cssCodeSplit: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 6000,
   },
   server: {
     host: "0.0.0.0",
@@ -48,4 +46,3 @@ export default defineConfig({
     include: ['react', 'react-dom'],
   },
 });
-

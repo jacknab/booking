@@ -10,10 +10,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 8100
-externalPort = 3000
-
-[[ports]]
 localPort = 23636
 externalPort = 5000
 
@@ -38,6 +34,10 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Production Preview"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -49,6 +49,18 @@ outputType = "webview"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Production Preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build && NODE_ENV=production node dist/index.cjs"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0", "javascript_openai_ai_integrations:2.0.0"]
