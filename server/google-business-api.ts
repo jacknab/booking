@@ -16,7 +16,6 @@ export interface GoogleReviewData {
     displayName: string;
     profilePhotoUrl?: string;
   };
-  // New API uses "starRating" string enum; old API uses numeric "rating"
   starRating?: string; // "ONE" | "TWO" | "THREE" | "FOUR" | "FIVE"
   rating?: number;
   comment?: string;
@@ -36,9 +35,7 @@ export interface GoogleReviewData {
 /** Convert "FIVE" / 5 to numeric 5 */
 function normalizeStarRating(rating: string | number | undefined): number {
   if (typeof rating === "number") return Math.min(5, Math.max(1, rating));
-  const map: Record<string, number> = {
-    ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5,
-  };
+  const map: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
   return map[rating ?? ""] ?? 0;
 }
 
@@ -49,44 +46,43 @@ export class GoogleBusinessAPIManager {
     this.oauth2Client = new OAuth2Client(
       config.clientId,
       config.clientSecret,
-      config.redirectUri
+      config.redirectUri,
     );
   }
 
   /**
-   * Get the OAuth2 authorization URL for user consent.
-   * state should be a random CSRF token stored in the session.
+   * Generate the Google OAuth consent URL.
+   * Scope: business.manage ONLY — never mixes login scopes.
+   * include_granted_scopes is intentionally false to prevent scope bleed
+   * from any other OAuth session the user may have.
    */
   getAuthUrl(
-    scopes: string[] = [
-      // Business-only scope — NEVER include login scopes (userinfo.email / userinfo.profile)
-      // here. Those belong exclusively to the Google Login OAuth system (/api/auth/google).
-      "https://www.googleapis.com/auth/business.manage",
-    ],
-    state?: string
+    scopes: string[] = ["https://www.googleapis.com/auth/business.manage"],
+    state?: string,
   ): string {
+    console.log("[Google Business OAuth] getAuthUrl — scopes:", scopes.join(", "));
     return this.oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: scopes,
-      prompt: "consent",        // always show consent so we get a fresh refresh_token
-      include_granted_scopes: true,
+      prompt: "consent",             // always show consent to get a fresh refresh_token
+      include_granted_scopes: false, // do NOT merge with previously granted scopes
       state,
     });
   }
 
-  /**
-   * Exchange authorization code for tokens.
-   * Automatically stores credentials on the internal OAuth2Client.
-   */
+  /** Exchange an authorization code for access + refresh tokens. */
   async getTokensFromCode(code: string) {
+    console.log("[Google Business OAuth] getTokensFromCode — exchanging authorization code…");
     const { tokens } = await this.oauth2Client.getToken(code);
     this.oauth2Client.setCredentials(tokens);
+    console.log("[Google Business OAuth] getTokensFromCode — access_token:", tokens.access_token ? "(obtained)" : "(MISSING)");
+    console.log("[Google Business OAuth] getTokensFromCode — refresh_token:", tokens.refresh_token ? "(obtained)" : "(none — may need prompt=consent)");
+    console.log("[Google Business OAuth] getTokensFromCode — scope:", tokens.scope ?? "(none)");
+    console.log("[Google Business OAuth] getTokensFromCode — expiry:", tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : "(none)");
     return tokens;
   }
 
-  /**
-   * Set stored credentials so subsequent calls auto-refresh the access token.
-   */
+  /** Set stored credentials — used when rehydrating from the database. */
   setCredentials(tokens: {
     access_token?: string | null;
     refresh_token?: string | null;
@@ -96,52 +92,85 @@ export class GoogleBusinessAPIManager {
   }
 
   /**
-   * Fetch the authenticated Google user's email / display name.
-   * Required to store googleAccountEmail during the OAuth flow.
+   * Register a callback that fires whenever the OAuth2Client auto-refreshes
+   * the access token. Use this to persist the new token back to the database.
+   */
+  onTokenRefresh(
+    callback: (tokens: { access_token?: string | null; expiry_date?: number | null }) => Promise<void>,
+  ): void {
+    this.oauth2Client.on("tokens", (tokens) => {
+      console.log("[Google Business OAuth] Token auto-refreshed by OAuth2Client");
+      console.log("[Google Business OAuth]   new access_token:", tokens.access_token ? "(present)" : "(missing)");
+      console.log("[Google Business OAuth]   new expiry:", tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : "(none)");
+      callback(tokens).catch((err) =>
+        console.error("[Google Business OAuth] Failed to persist refreshed token to DB:", err),
+      );
+    });
+  }
+
+  /**
+   * Attempt to fetch the Google account email from the userinfo endpoint.
+   * This requires openid/email scope. With business.manage-only tokens it will
+   * fail — that is expected and handled gracefully (returns null).
    */
   async getGoogleUserInfo(): Promise<{ email: string; name: string } | null> {
     try {
       const oauth2 = google.oauth2({ version: "v2", auth: this.oauth2Client });
       const { data } = await oauth2.userinfo.get();
+      console.log("[Google Business OAuth] getGoogleUserInfo — email:", data.email ?? "(none)");
       return { email: data.email ?? "", name: data.name ?? "" };
-    } catch (error) {
-      console.error("Error fetching Google user info:", error);
+    } catch (error: any) {
+      const status = error?.code ?? error?.response?.status ?? error?.status;
+      // 403 is expected when the token only has business.manage scope (no openid/email scope)
+      console.warn(
+        `[Google Business OAuth] getGoogleUserInfo — skipped (status ${status ?? "unknown"}). ` +
+        "This is expected with business.manage-only tokens. googleAccountEmail will be stored as null.",
+      );
       return null;
     }
   }
 
   /**
    * List Google Business accounts for the authenticated user.
-   * Uses mybusinessaccountmanagement v1 with proper auth.
+   * API: mybusinessaccountmanagement v1 — accounts.list
    */
   async getBusinessAccounts(): Promise<any> {
-    console.log("[GBP] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list");
-    // Pass the OAuth client directly into the API constructor
-    const service = google.mybusinessaccountmanagement({
-      version: "v1",
-      auth: this.oauth2Client,
-    });
+    console.log("[Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list");
+    const service = google.mybusinessaccountmanagement({ version: "v1", auth: this.oauth2Client });
     try {
       const response = await service.accounts.list({});
       const data = response.data;
       const accounts: any[] = data.accounts ?? [];
-      console.log(`[GBP] getBusinessAccounts — raw response: ${JSON.stringify(data).slice(0, 500)}`);
-      console.log(`[GBP] getBusinessAccounts — accounts found: ${accounts.length}`);
+      console.log(`[Google Business OAuth] getBusinessAccounts — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
+      console.log(`[Google Business OAuth] getBusinessAccounts — accounts found: ${accounts.length}`);
       accounts.forEach((a: any, i: number) => {
-        console.log(`[GBP]   [${i}] name="${a.name}"  accountName="${a.accountName ?? "(none)"}"  type="${a.type ?? "(none)"}"  verificationState="${a.verificationState ?? "(none)"}"  vettedState="${a.vettedState ?? "(none)"}"`);
+        console.log(
+          `[Google Business OAuth]   [${i}] name="${a.name}"` +
+          `  accountName="${a.accountName ?? "(none)"}` +
+          `  type="${a.type ?? "(none)"}"` +
+          `  verificationState="${a.verificationState ?? "(none)"}"` +
+          `  vettedState="${a.vettedState ?? "(none)"}"`,
+        );
       });
       if (accounts.length === 0) {
-        console.warn("[GBP] getBusinessAccounts — ZERO accounts returned. The authenticated Google account has no Business Profile. The user needs to create one at business.google.com.");
+        console.warn(
+          "[Google Business OAuth] getBusinessAccounts — ZERO accounts returned. " +
+          "The authenticated Google account has no Business Profile. " +
+          "The user needs to create one at business.google.com.",
+        );
       }
       return data;
     } catch (error: any) {
       const status = error?.code ?? error?.response?.status ?? error?.status;
       const msg = error?.message ?? String(error);
-      const responseBody = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
-      console.error(`[GBP] getBusinessAccounts FAILED — status: ${status}  message: ${msg}`);
-      console.error(`[GBP] getBusinessAccounts FAILED — response body: ${responseBody}`);
+      const body = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
+      console.error(`[Google Business OAuth] getBusinessAccounts FAILED — status: ${status}  message: ${msg}`);
+      console.error(`[Google Business OAuth] getBusinessAccounts FAILED — response body: ${body}`);
       if (status === 403) {
-        console.error("[GBP] 403: Ensure 'My Business Account Management API' is enabled in Google Cloud Console and the business.manage scope is on the OAuth consent screen.");
+        console.error(
+          "[Google Business OAuth] 403: Ensure 'My Business Account Management API' is enabled " +
+          "in Google Cloud Console and the business.manage scope is on the OAuth consent screen.",
+        );
       }
       throw error;
     }
@@ -149,44 +178,46 @@ export class GoogleBusinessAPIManager {
 
   /**
    * List locations for a given business account.
-   * Uses mybusinessbusinessinformation v1 with proper auth.
+   * API: mybusinessbusinessinformation v1 — accounts.locations.list
    */
   async getLocations(accountName: string): Promise<any> {
-    console.log(`[GBP] getLocations — account: ${accountName}`);
-    const service = google.mybusinessbusinessinformation({
-      version: "v1",
-      auth: this.oauth2Client,
-    });
+    console.log(`[Google Business OAuth] getLocations — account: ${accountName}`);
+    const service = google.mybusinessbusinessinformation({ version: "v1", auth: this.oauth2Client });
     try {
       const response = await service.accounts.locations.list({
         parent: accountName,
-        // readMask is REQUIRED by mybusinessbusinessinformation v1
-        // "title" is the human-readable business name
         readMask: "name,title,storeCode,storefrontAddress,phoneNumbers,websiteUri",
       } as any);
       const data = response.data;
       const locs: any[] = data.locations ?? [];
-      console.log(`[GBP] getLocations — raw response: ${JSON.stringify(data).slice(0, 500)}`);
-      console.log(`[GBP] getLocations — locations found: ${locs.length}`);
+      console.log(`[Google Business OAuth] getLocations — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
+      console.log(`[Google Business OAuth] getLocations — locations found: ${locs.length}`);
       locs.forEach((l: any, i: number) => {
-        console.log(`[GBP]   [${i}] name="${l.name}"  title="${l.title ?? "(none)"}"  storeCode="${l.storeCode ?? "(none)"}"`);
+        console.log(
+          `[Google Business OAuth]   [${i}] name="${l.name}"` +
+          `  title="${l.title ?? "(none)"}"` +
+          `  storeCode="${l.storeCode ?? "(none)"}"`,
+        );
         if (l.storefrontAddress) {
-          console.log(`[GBP]       address: ${JSON.stringify(l.storefrontAddress)}`);
+          console.log(`[Google Business OAuth]       address: ${JSON.stringify(l.storefrontAddress)}`);
         }
       });
       if (locs.length === 0) {
-        console.warn(`[GBP] getLocations — ZERO locations returned for account ${accountName}. The account may have no verified locations in Google Business Profile.`);
+        console.warn(
+          `[Google Business OAuth] getLocations — ZERO locations returned for account ${accountName}. ` +
+          "The account may have no verified locations in Google Business Profile.",
+        );
       }
       return data;
     } catch (error: any) {
       const status = error?.code ?? error?.response?.status ?? error?.status;
       const msg = error?.message ?? String(error);
-      console.error(`[GBP] getLocations FAILED — status: ${status}  message: ${msg}`);
+      console.error(`[Google Business OAuth] getLocations FAILED — status: ${status}  message: ${msg}`);
       if (status === 403) {
-        console.error("[GBP] 403: Ensure 'Business Profile API' is enabled in Google Cloud Console and the business.manage scope is approved.");
+        console.error("[Google Business OAuth] 403: Ensure 'Business Profile API' is enabled in Google Cloud Console and the business.manage scope is approved.");
       }
       if (status === 404) {
-        console.error(`[GBP] 404: Account "${accountName}" not found or this token does not have access to it.`);
+        console.error(`[Google Business OAuth] 404: Account "${accountName}" not found or this token does not have access to it.`);
       }
       throw error;
     }
@@ -194,13 +225,12 @@ export class GoogleBusinessAPIManager {
 
   /**
    * Get reviews for a specific location.
-   * Uses direct HTTP calls to mybusinessreviews.googleapis.com v1
-   * because the googleapis npm package does not bundle this API.
+   * Uses direct HTTP to mybusinessreviews.googleapis.com v1 (not bundled in googleapis npm).
    */
   async getReviews(locationName: string): Promise<GoogleReviewData[]> {
-    console.log(`[GBP] getReviews — location: ${locationName}`);
     const url = `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews`;
-    console.log(`[GBP] getReviews — URL: ${url}`);
+    console.log(`[Google Business OAuth] getReviews — location: ${locationName}`);
+    console.log(`[Google Business OAuth] getReviews — URL: ${url}`);
     try {
       const response = await this.oauth2Client.request<{
         reviews?: GoogleReviewData[];
@@ -213,30 +243,40 @@ export class GoogleBusinessAPIManager {
         params: { pageSize: 50 },
       });
       const reviews = response.data.reviews ?? [];
-      console.log(`[GBP] getReviews — totalReviewCount from API: ${response.data.totalReviewCount ?? "(not returned)"}`);
-      console.log(`[GBP] getReviews — averageRating from API: ${response.data.averageRating ?? "(not returned)"}`);
-      console.log(`[GBP] getReviews — reviews in this page: ${reviews.length}`);
+      console.log(`[Google Business OAuth] getReviews — totalReviewCount: ${response.data.totalReviewCount ?? "(not returned)"}`);
+      console.log(`[Google Business OAuth] getReviews — averageRating: ${response.data.averageRating ?? "(not returned)"}`);
+      console.log(`[Google Business OAuth] getReviews — reviews in this page: ${reviews.length}`);
       if (reviews.length === 0) {
-        console.warn(`[GBP] getReviews — ZERO reviews returned for location "${locationName}". This could mean the location has no reviews, or the API access does not include review data.`);
-        console.warn(`[GBP] getReviews — raw response: ${JSON.stringify(response.data).slice(0, 300)}`);
+        console.warn(
+          `[Google Business OAuth] getReviews — ZERO reviews for location "${locationName}". ` +
+          "The location may have no reviews, or the API scope does not include review access.",
+        );
+        console.warn(`[Google Business OAuth] getReviews — full response: ${JSON.stringify(response.data).slice(0, 300)}`);
       } else {
         reviews.slice(0, 3).forEach((r: any, i: number) => {
-          console.log(`[GBP]   [${i}] reviewId="${r.name}"  rating="${r.starRating ?? r.rating}"  reviewer="${r.reviewer?.displayName ?? "(none)"}"`);
+          console.log(
+            `[Google Business OAuth]   [${i}] reviewId="${r.name}"` +
+            `  rating="${r.starRating ?? r.rating}"` +
+            `  reviewer="${r.reviewer?.displayName ?? "(none)"}"`,
+          );
         });
       }
       return reviews;
     } catch (error: any) {
       const status = error?.code ?? error?.response?.status ?? error?.status;
       const msg = error?.message ?? String(error);
-      const responseBody = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
-      console.error(`[GBP] getReviews FAILED — location: ${locationName}`);
-      console.error(`[GBP] getReviews FAILED — status: ${status}  message: ${msg}`);
-      console.error(`[GBP] getReviews FAILED — response body: ${responseBody}`);
+      const body = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
+      console.error(`[Google Business OAuth] getReviews FAILED — location: ${locationName}`);
+      console.error(`[Google Business OAuth] getReviews FAILED — status: ${status}  message: ${msg}`);
+      console.error(`[Google Business OAuth] getReviews FAILED — response body: ${body}`);
       if (status === 403) {
-        console.error("[GBP] 403 on reviews: The Business Profile API may not have reviews scope, or the location does not belong to this account.");
+        console.error("[Google Business OAuth] 403: The location may not belong to this account, or business.manage scope is insufficient for reviews.");
       }
       if (status === 404) {
-        console.error(`[GBP] 404 on reviews: Location resource "${locationName}" not found. Verify the location name format is exactly as returned by getLocations (e.g. accounts/123/locations/456).`);
+        console.error(
+          `[Google Business OAuth] 404: Location resource "${locationName}" not found. ` +
+          "Verify it matches exactly what getLocations returned (e.g. accounts/123/locations/456).",
+        );
       }
       throw error;
     }
@@ -247,15 +287,17 @@ export class GoogleBusinessAPIManager {
    * PUT https://mybusinessreviews.googleapis.com/v1/{reviewName}/reply
    */
   async replyToReview(reviewName: string, comment: string): Promise<any> {
+    console.log(`[Google Business OAuth] replyToReview — reviewName: ${reviewName}`);
     try {
       const response = await this.oauth2Client.request({
         url: `https://mybusinessreviews.googleapis.com/v1/${reviewName}/reply`,
         method: "PUT",
         data: { comment },
       });
+      console.log(`[Google Business OAuth] replyToReview — success`);
       return response.data;
     } catch (error) {
-      console.error("Error replying to review:", error);
+      console.error("[Google Business OAuth] replyToReview FAILED:", error);
       throw error;
     }
   }
@@ -265,6 +307,7 @@ export class GoogleBusinessAPIManager {
    * DELETE https://mybusinessreviews.googleapis.com/v1/{reviewName}/reply
    */
   async deleteReviewReply(reviewName: string): Promise<any> {
+    console.log(`[Google Business OAuth] deleteReviewReply — reviewName: ${reviewName}`);
     try {
       const response = await this.oauth2Client.request({
         url: `https://mybusinessreviews.googleapis.com/v1/${reviewName}/reply`,
@@ -272,65 +315,78 @@ export class GoogleBusinessAPIManager {
       });
       return response.data;
     } catch (error) {
-      console.error("Error deleting review reply:", error);
+      console.error("[Google Business OAuth] deleteReviewReply FAILED:", error);
       throw error;
     }
   }
 
   /**
    * Revoke the stored OAuth access token at Google.
-   * Called when the user disconnects their Google Business Profile.
-   * Errors are swallowed so local cleanup still proceeds.
+   * Called on disconnect — errors are swallowed so local cleanup still proceeds.
    */
   async revokeTokens(): Promise<void> {
     try {
       const accessToken = this.oauth2Client.credentials.access_token;
       if (accessToken) {
         await this.oauth2Client.revokeToken(accessToken);
-        console.log("Google OAuth token revoked successfully");
+        console.log("[Google Business OAuth] Token revoked at Google");
       }
     } catch (error) {
-      // Non-fatal: token may already be expired or revoked
-      console.warn("Could not revoke Google OAuth token:", error);
+      console.warn("[Google Business OAuth] Could not revoke token (may already be expired):", error);
     }
   }
 }
 
 /**
  * Build an authenticated GoogleBusinessAPIManager from a stored profile row.
- * The OAuth2Client handles automatic token refresh transparently.
+ *
+ * Credentials: GOOGLE_BUSINESS_* env vars ONLY (falls back to legacy GOOGLE_CLIENT_* if not set).
+ * Token refresh: hooks up an event listener that persists refreshed tokens to the DB automatically,
+ * so the stored token stays valid across server restarts without re-authenticating.
  */
 export function createApiManagerFromProfile(profile: {
+  id: number;
   accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresAt: Date | null;
 }): GoogleBusinessAPIManager {
-  // Uses GOOGLE_BUSINESS_* vars exclusively — NEVER shares credentials with the login system.
-  // Falls back to legacy GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI.
   const manager = new GoogleBusinessAPIManager({
     clientId:     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
     clientSecret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
     redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
   });
+
   manager.setCredentials({
-    access_token: profile.accessToken,
+    access_token:  profile.accessToken,
     refresh_token: profile.refreshToken,
-    expiry_date: profile.tokenExpiresAt?.getTime() ?? null,
+    expiry_date:   profile.tokenExpiresAt?.getTime() ?? null,
   });
+
+  // Persist auto-refreshed tokens back to the DB so they survive server restarts
+  manager.onTokenRefresh(async (newTokens) => {
+    console.log(`[Google Business OAuth] Persisting refreshed token for profile id=${profile.id}`);
+    await db
+      .update(googleBusinessProfiles)
+      .set({
+        accessToken:    newTokens.access_token ?? undefined,
+        tokenExpiresAt: newTokens.expiry_date ? new Date(newTokens.expiry_date) : undefined,
+        updatedAt:      new Date(),
+      })
+      .where(eq(googleBusinessProfiles.id, profile.id));
+  });
+
   return manager;
 }
 
 /**
  * Sync reviews from Google for a store and upsert into the local database.
- * Returns a summary of what was synced so callers can include it in API responses.
+ * Only syncs reviews for the selected location (locationResourceName).
  */
 export async function syncGoogleReviews(
   storeId: number,
-  _legacyOAuth2Client?: OAuth2Client   // signature kept for backward compat
 ): Promise<{ synced: number; locationResourceName: string; businessName: string | null }> {
-  console.log(`[GBP:sync] ── Starting sync for storeId=${storeId} ───────────────`);
+  console.log(`[Google Business OAuth] ── syncGoogleReviews START — storeId=${storeId} ──`);
 
-  // Load the stored profile
   const profiles = await db
     .select()
     .from(googleBusinessProfiles)
@@ -338,36 +394,40 @@ export async function syncGoogleReviews(
     .limit(1);
 
   if (!profiles.length) {
-    const msg = `[GBP:sync] No Google Business Profile row found for storeId=${storeId}`;
-    console.error(msg);
+    console.error(`[Google Business OAuth] syncGoogleReviews — no profile row for storeId=${storeId}`);
     throw new Error("Google Business Profile not connected for this store");
   }
 
   const googleProfile = profiles[0];
-  console.log(`[GBP:sync] Profile found — id=${googleProfile.id}  isConnected=${googleProfile.isConnected}  businessName="${googleProfile.businessName ?? "(none)"}"  locationResourceName="${googleProfile.locationResourceName ?? "(none)"}"`);
-  console.log(`[GBP:sync]   accessToken present: ${!!googleProfile.accessToken}  refreshToken present: ${!!googleProfile.refreshToken}`);
-  console.log(`[GBP:sync]   tokenExpiresAt: ${googleProfile.tokenExpiresAt?.toISOString() ?? "(none)"}`);
+  console.log(
+    `[Google Business OAuth] syncGoogleReviews — profile id=${googleProfile.id}` +
+    `  isConnected=${googleProfile.isConnected}` +
+    `  businessName="${googleProfile.businessName ?? "(none)"}"` +
+    `  locationResourceName="${googleProfile.locationResourceName ?? "(none)"}"`,
+  );
+  console.log(
+    `[Google Business OAuth] syncGoogleReviews —` +
+    `  accessToken: ${googleProfile.accessToken ? "present" : "MISSING"}` +
+    `  refreshToken: ${googleProfile.refreshToken ? "present" : "MISSING"}` +
+    `  tokenExpiresAt: ${googleProfile.tokenExpiresAt?.toISOString() ?? "(none)"}`,
+  );
 
   if (!googleProfile.locationResourceName) {
-    const msg = `[GBP:sync] locationResourceName is NULL for storeId=${storeId}. User must complete location selection in the Google Business setup.`;
-    console.error(msg);
+    console.error(`[Google Business OAuth] syncGoogleReviews — locationResourceName is NULL for storeId=${storeId}. User must select a location first.`);
     throw new Error("No location connected. Please reconnect your Google Business Profile and select a location.");
   }
 
-  if (!googleProfile.accessToken) {
-    const msg = `[GBP:sync] accessToken is NULL for storeId=${storeId}. Re-authentication required.`;
-    console.error(msg);
+  if (!googleProfile.accessToken && !googleProfile.refreshToken) {
+    console.error(`[Google Business OAuth] syncGoogleReviews — no tokens for storeId=${storeId}. Re-authentication required.`);
     throw new Error("Google access token missing. Please reconnect your Google Business Profile.");
   }
 
   const apiManager = createApiManagerFromProfile(googleProfile);
 
-  // Fetch reviews from the Google API
-  console.log(`[GBP:sync] Calling getReviews for location: ${googleProfile.locationResourceName}`);
+  console.log(`[Google Business OAuth] syncGoogleReviews — calling getReviews for: ${googleProfile.locationResourceName}`);
   const reviews = await apiManager.getReviews(googleProfile.locationResourceName);
-  console.log(`[GBP:sync] getReviews returned ${reviews.length} review(s)`);
+  console.log(`[Google Business OAuth] syncGoogleReviews — getReviews returned ${reviews.length} review(s)`);
 
-  // Upsert each review into the database
   let insertedCount = 0;
   let updatedCount = 0;
 
@@ -377,7 +437,12 @@ export async function syncGoogleReviews(
     const reviewText = review.comment ?? (review as any).reviewText;
     const hasReply = !!(review.reviewReply ?? review.publisherResponse);
 
-    console.log(`[GBP:sync]   review="${googleReviewId}"  rating=${rating}  reviewer="${review.reviewer?.displayName ?? "Anonymous"}"  hasReply=${hasReply}`);
+    console.log(
+      `[Google Business OAuth] syncGoogleReviews —` +
+      `  review="${googleReviewId}"  rating=${rating}` +
+      `  reviewer="${review.reviewer?.displayName ?? "Anonymous"}"` +
+      `  hasReply=${hasReply}`,
+    );
 
     const existing = await db
       .select()
@@ -389,15 +454,15 @@ export async function syncGoogleReviews(
       await db.insert(googleReviews).values({
         storeId,
         googleReviewId,
-        googleLocationId: googleProfile.locationId,
-        customerName: review.reviewer?.displayName ?? "Anonymous",
+        googleLocationId:     googleProfile.locationId,
+        customerName:         review.reviewer?.displayName ?? "Anonymous",
         rating,
         reviewText,
-        reviewImageUrls: JSON.stringify([]),
-        reviewCreateTime: review.createTime ? new Date(review.createTime) : null,
-        reviewUpdateTime: review.updateTime ? new Date(review.updateTime) : null,
+        reviewImageUrls:      JSON.stringify([]),
+        reviewCreateTime:     review.createTime ? new Date(review.createTime) : null,
+        reviewUpdateTime:     review.updateTime ? new Date(review.updateTime) : null,
         reviewerLanguageCode: "en",
-        responseStatus: hasReply ? "responded" : "not_responded",
+        responseStatus:       hasReply ? "responded" : "not_responded",
       });
       insertedCount++;
     } else {
@@ -405,38 +470,36 @@ export async function syncGoogleReviews(
         .update(googleReviews)
         .set({
           reviewText,
-          responseStatus: hasReply ? "responded" : "not_responded",
+          responseStatus:  hasReply ? "responded" : "not_responded",
           reviewUpdateTime: review.updateTime ? new Date(review.updateTime) : null,
-          updatedAt: new Date(),
+          updatedAt:       new Date(),
         })
         .where(eq(googleReviews.googleReviewId, googleReviewId));
       updatedCount++;
     }
   }
 
-  // Record the last sync timestamp
   await db
     .update(googleBusinessProfiles)
     .set({ lastSyncedAt: new Date() })
     .where(eq(googleBusinessProfiles.id, googleProfile.id));
 
-  console.log(`[GBP:sync] ── Sync complete for storeId=${storeId}: ${reviews.length} reviews (${insertedCount} new, ${updatedCount} updated) ──`);
+  console.log(
+    `[Google Business OAuth] ── syncGoogleReviews DONE — storeId=${storeId}:` +
+    ` ${reviews.length} total (${insertedCount} new, ${updatedCount} updated) ──`,
+  );
 
   return {
-    synced: reviews.length,
+    synced:               reviews.length,
     locationResourceName: googleProfile.locationResourceName,
-    businessName: googleProfile.businessName,
+    businessName:         googleProfile.businessName,
   };
 }
 
 /**
  * Publish an approved review response from the database to Google.
  */
-export async function publishReviewResponse(
-  responseId: number,
-  _legacyOAuth2Client?: OAuth2Client   // signature kept for backward compat
-): Promise<void> {
-  // Load the draft response
+export async function publishReviewResponse(responseId: number): Promise<void> {
   const responses = await db
     .select()
     .from(googleReviewResponses)
@@ -446,7 +509,6 @@ export async function publishReviewResponse(
   if (!responses.length) throw new Error("Review response not found");
   const reviewResponse = responses[0];
 
-  // Load the associated review
   const reviewRecords = await db
     .select()
     .from(googleReviews)
@@ -456,7 +518,6 @@ export async function publishReviewResponse(
   if (!reviewRecords.length) throw new Error("Review not found");
   const review = reviewRecords[0];
 
-  // Load the store's Google Business Profile for tokens
   const profileData = await db
     .select()
     .from(googleBusinessProfiles)
@@ -468,21 +529,19 @@ export async function publishReviewResponse(
 
   const apiManager = createApiManagerFromProfile(googleProfile);
 
-  // Post the reply via the Google API
   const reviewResourceName = `${googleProfile.locationResourceName}/reviews/${review.googleReviewId}`;
+  console.log(`[Google Business OAuth] publishReviewResponse — posting reply to: ${reviewResourceName}`);
   await apiManager.replyToReview(reviewResourceName, reviewResponse.responseText);
 
-  // Mark the response as published
   await db
     .update(googleReviewResponses)
     .set({ responseStatus: "approved", updatedAt: new Date() })
     .where(eq(googleReviewResponses.id, responseId));
 
-  // Mark the review as responded
   await db
     .update(googleReviews)
     .set({ responseStatus: "responded" })
     .where(eq(googleReviews.id, review.id));
 
-  console.log(`Published response for review ${review.googleReviewId}`);
+  console.log(`[Google Business OAuth] publishReviewResponse — published for review ${review.googleReviewId}`);
 }
