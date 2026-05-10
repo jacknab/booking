@@ -54,10 +54,13 @@ import fs from "fs";
 import { startPhpServer, phpMiddleware, isPhpReady } from "./php-proxy";
 import { pool } from "./db";
 import { createRequire } from "module";
-// createRequire is the reliable way to get a CJS require() in both ESM source
-// and esbuild CJS output — avoids the (globalThis as any).require pattern
-// which can become undefined after minification.
-const _require: NodeRequire = createRequire(import.meta.url);
+// esbuild injects __filename as a real global in CJS output (same as __dirname).
+// Using it as the base for createRequire avoids the import.meta.url warning
+// that appears when targeting CJS format, and works reliably in both dev (tsx)
+// and the minified production bundle.
+const _require: NodeRequire = createRequire(
+  (globalThis as any).__filename ?? process.argv[1]
+);
 
 // Landing page routes that get server-side rendered for SEO
 // Note: /hair-salons, /barbershops, /nail-salons are now served by the PHP site
