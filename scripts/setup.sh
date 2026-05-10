@@ -204,8 +204,18 @@ success "Production bundle built"
 
 # ── 9. Database schema ────────────────────────────────────────────────────────
 info "Step 9/10 — Loading database schema"
+# Load schema as the app user (owns the tables from the start)
 psql "$DATABASE_URL" -f "$APP_DIR/schema.sql" > /dev/null 2>&1
-success "Schema loaded"
+# Grant full permissions to the app user on all tables/sequences
+# (covers tables created by schema.sql regardless of who ran it)
+sudo -u postgres psql -d "$DB_NAME" -c "
+  GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"$DB_USER\";
+  GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"$DB_USER\";
+  GRANT USAGE ON SCHEMA public TO \"$DB_USER\";
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"$DB_USER\";
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"$DB_USER\";
+" > /dev/null
+success "Schema loaded and permissions granted"
 
 # ── 10. Start under PM2 ───────────────────────────────────────────────────────
 info "Step 10/10 — Starting app with PM2"

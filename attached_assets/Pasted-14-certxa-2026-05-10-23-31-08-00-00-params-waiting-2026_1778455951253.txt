@@ -1,0 +1,29 @@
+14|certxa  | 2026-05-10 23:31:08 +00:00: params: waiting,2026-05-10T00:00:00.000Z
+14|certxa  | 2026-05-10 23:31:08 +00:00:     at jw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-10 23:31:08 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-10 23:31:08 +00:00:     at async /apps/certxa/dist/index.cjs:72:31699
+14|certxa  | 2026-05-10 23:31:08 +00:00:     at async qM (/apps/certxa/dist/index.cjs:694:42114) {
+14|certxa  | 2026-05-10 23:31:08 +00:00:   query: 'select "id", "store_id", "service_id", "staff_id", "customer_id", "customer_name", "customer_phone", "customer_email", "preferred_date", "preferred_time_start", "preferred_time_end", "notes", "party_size", "status", "notified_at", "called_at", "completed_at", "customer_latitude", "customer_longitude", "sms_sent_at", "created_at" from "waitlist" where ("waitlist"."status" = $1 and "waitlist"."created_at" >= $2 and "waitlist"."customer_phone" is not null and "waitlist"."customer_latitude" is not null and "waitlist"."customer_longitude" is not null and "waitlist"."sms_sent_at" is null) order by "waitlist"."created_at" asc',
+14|certxa  | 2026-05-10 23:31:08 +00:00:   params: [ 'waiting', '2026-05-10T00:00:00.000Z' ],
+14|certxa  | 2026-05-10 23:31:08 +00:00:   cause: error: permission denied for table waitlist
+14|certxa  | 2026-05-10 23:31:08 +00:00:       at /apps/certxa/dist/index.cjs:72:15253
+14|certxa  | 2026-05-10 23:31:08 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-10 23:31:08 +00:00:     length: 96,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-10 23:31:08 +00:00:     code: '42501',
+14|certxa  | 2026-05-10 23:31:08 +00:00:     detail: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     hint: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     position: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     where: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     schema: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     table: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     column: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-10 23:31:08 +00:00:     file: 'aclchk.c',
+14|certxa  | 2026-05-10 23:31:08 +00:00:     line: '3655',
+14|certxa  | 2026-05-10 23:31:08 +00:00:     routine: 'aclcheck_error'
+14|certxa  | 2026-05-10 23:31:08 +00:00:   }
+14|certxa  | 2026-05-10 23:31:08 +00:00: }
