@@ -3940,11 +3940,39 @@ If you have any questions, please contact your administrator.
    *
    * Separate from /api/auth/google which handles user login exclusively.
    */
+
+  // Per-user rate limit for OAuth connect attempts: max 5 per 15 minutes
+  const _oauthConnectAttempts = new Map<number, { count: number; windowStart: number }>();
+  const OAUTH_WINDOW_MS  = 15 * 60 * 1000; // 15 minutes
+  const OAUTH_MAX_ATTEMPTS = 5;
+
+  function checkOAuthRateLimit(userId: number): { allowed: boolean; retryAfterSecs: number } {
+    const now = Date.now();
+    const entry = _oauthConnectAttempts.get(userId);
+    if (!entry || now - entry.windowStart > OAUTH_WINDOW_MS) {
+      _oauthConnectAttempts.set(userId, { count: 1, windowStart: now });
+      return { allowed: true, retryAfterSecs: 0 };
+    }
+    if (entry.count >= OAUTH_MAX_ATTEMPTS) {
+      const retryAfterSecs = Math.ceil((OAUTH_WINDOW_MS - (now - entry.windowStart)) / 1000);
+      return { allowed: false, retryAfterSecs };
+    }
+    entry.count++;
+    return { allowed: true, retryAfterSecs: 0 };
+  }
+
   app.get("/api/google-business/connect", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) {
       console.warn("[Google Business OAuth] /connect — unauthenticated request rejected");
       return res.redirect("/auth?reason=login_required");
+    }
+
+    const { allowed, retryAfterSecs } = checkOAuthRateLimit(userId);
+    if (!allowed) {
+      const mins = Math.ceil(retryAfterSecs / 60);
+      console.warn(`[Google Business OAuth] /connect — rate limit hit for userId=${userId}`);
+      return res.status(429).send(`Too many connection attempts. Please wait ${mins} minute${mins !== 1 ? "s" : ""} and try again.`);
     }
 
     const storeId = req.query.storeId ? Number(req.query.storeId) : null;
@@ -3998,6 +4026,13 @@ If you have any questions, please contact your administrator.
   app.get("/api/google-business/auth-url", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { allowed, retryAfterSecs } = checkOAuthRateLimit(userId);
+    if (!allowed) {
+      const mins = Math.ceil(retryAfterSecs / 60);
+      console.warn(`[Google Business OAuth] /auth-url — rate limit hit for userId=${userId}`);
+      return res.status(429).json({ message: `Too many connection attempts. Please wait ${mins} minute${mins !== 1 ? "s" : ""} and try again.` });
+    }
 
     const storeId = req.query.storeId ? Number(req.query.storeId) : null;
     if (!storeId) {
