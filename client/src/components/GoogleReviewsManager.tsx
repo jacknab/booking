@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -144,8 +144,47 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   const [selectedReview, setSelectedReview]     = useState<GoogleReview | null>(null);
   const [showBulkDraft, setShowBulkDraft]       = useState(false);
   const [activeInlineDraft, setActiveInlineDraft] = useState<number | null>(null);
+  const [cooldownSecsLeft, setCooldownSecsLeft] = useState<number>(0);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const COOLDOWN_SECS = 300; // 5 minutes
+  const cooldownKey = storeId ? `google_sync_cooldown_${storeId}` : null;
 
   const syncing = syncPhase !== "idle" && syncPhase !== "done" && syncPhase !== "error";
+  const inCooldown = cooldownSecsLeft > 0;
+
+  // Restore cooldown from localStorage on mount
+  useEffect(() => {
+    if (!cooldownKey) return;
+    const stored = localStorage.getItem(cooldownKey);
+    if (stored) {
+      const remaining = Math.ceil((Number(stored) - Date.now()) / 1000);
+      if (remaining > 0) startCooldownTimer(remaining);
+      else localStorage.removeItem(cooldownKey);
+    }
+  }, [cooldownKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function startCooldownTimer(secs: number) {
+    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    setCooldownSecsLeft(secs);
+    cooldownTimerRef.current = setInterval(() => {
+      setCooldownSecsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownTimerRef.current!);
+          cooldownTimerRef.current = null;
+          if (cooldownKey) localStorage.removeItem(cooldownKey);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  function formatCooldown(secs: number): string {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m > 0 ? `${m}m ${s.toString().padStart(2, "0")}s` : `${s}s`;
+  }
 
   useEffect(() => {
     if (storeId) {
@@ -208,7 +247,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
   // ── Sync handler ──────────────────────────────────────────────────────────────
 
   const handleSyncReviews = async () => {
-    if (!storeId || syncing) return;
+    if (!storeId || syncing || inCooldown) return;
 
     setSyncResult(null);
     setSyncError(null);
@@ -230,6 +269,10 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
       await new Promise<void>((r) => setTimeout(r, 400));
       setSyncResult(result);
       setSyncPhase("done");
+
+      // Start cooldown to prevent rapid re-syncing
+      if (cooldownKey) localStorage.setItem(cooldownKey, String(Date.now() + COOLDOWN_SECS * 1000));
+      startCooldownTimer(COOLDOWN_SECS);
 
       // Refresh all data after sync
       await Promise.all([loadReviews(), loadStats(), loadProfile(), loadSyncLogs()]);
@@ -261,6 +304,11 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
 
       setSyncError(friendly);
       setSyncPhase("error");
+
+      // Start a shorter cooldown on error (2 minutes) to prevent hammering on failure
+      const errorCooldown = 120;
+      if (cooldownKey) localStorage.setItem(cooldownKey, String(Date.now() + errorCooldown * 1000));
+      startCooldownTimer(errorCooldown);
 
       // Reload sync logs — the failed attempt was logged
       await loadSyncLogs();
@@ -597,15 +645,21 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 onClick={handleSyncReviews}
-                disabled={syncing}
+                disabled={syncing || inCooldown}
                 size="sm"
                 variant="outline"
-                className="gap-1.5 border-blue-300 bg-white text-blue-800 hover:bg-blue-50"
+                className={`gap-1.5 ${inCooldown ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed" : "border-blue-300 bg-white text-blue-800 hover:bg-blue-50"}`}
+                title={inCooldown ? `Available again in ${formatCooldown(cooldownSecsLeft)}` : "Pull latest reviews from Google now"}
               >
                 {syncing ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
                     {PHASE_LABELS[syncPhase].replace("…", "")}…
+                  </>
+                ) : inCooldown ? (
+                  <>
+                    <RefreshCw size={14} />
+                    {formatCooldown(cooldownSecsLeft)}
                   </>
                 ) : (
                   <>
