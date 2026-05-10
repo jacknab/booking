@@ -105,14 +105,25 @@ export function setupAuth(app: Express) {
     });
   });
 
+  const googleCallbackURL =
+    process.env.GOOGLE_LOGIN_CALLBACK_URL ??
+    process.env.GOOGLE_AUTH_CALLBACK_URL  ??
+    "https://certxa.com/api/auth/google/callback";
+
   app.get(
     "/api/auth/google/callback",
-    passport.authenticate("google", { session: false, failureRedirect: "/auth" }),
+    (req, res, next) => {
+      passport.authenticate("google", {
+        session:         false,
+        failureRedirect: "/auth?error=google_failed",
+        callbackURL:     googleCallbackURL,
+      })(req, res, next);
+    },
     async (req: Request, res: Response) => {
       console.log("Google OAuth: Callback received, user:", (req.user as any)?.email);
       if (!req.user) {
-        console.error("Google OAuth: No user in request");
-        return res.redirect("/auth");
+        console.error("Google OAuth: No user in request after passport — redirecting to /auth");
+        return res.redirect("/auth?error=google_no_user");
       }
 
       const user = req.user as any;
@@ -141,8 +152,15 @@ export function setupAuth(app: Express) {
 
       req.session.save((err) => {
         if (err) {
-          console.error("Session save error:", err);
-          return res.redirect("/auth");
+          console.error("Google OAuth: Session save failed —", err);
+          // Session save failed but user IS authenticated — set a short-lived cookie as fallback
+          res.cookie("auth_pending_uid", user.id, {
+            httpOnly: true,
+            secure:   true,
+            sameSite: "none",
+            maxAge:   60_000, // 1 minute — just long enough to land on the next page
+          });
+          return res.redirect(redirectTarget);
         }
         res.redirect(redirectTarget);
       });

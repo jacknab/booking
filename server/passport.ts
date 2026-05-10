@@ -28,6 +28,8 @@ if (loginClientId && loginClientSecret) {
         clientID:     loginClientId,
         clientSecret: loginClientSecret,
         callbackURL,
+        proxy:        true,  // trust X-Forwarded-* headers from Nginx
+        state:        false, // disable session-based CSRF state — eliminates first-visit session timing failures
       },
       async (_accessToken: string, _refreshToken: string, profile: any, done: any) => {
         try {
