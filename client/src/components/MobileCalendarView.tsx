@@ -452,11 +452,11 @@ export function MobileCalendarView({
         />
       )}
 
-      {/* ── Now pill ── */}
+      {/* ── Now pill — right-aligned ── */}
       {showJumpToNow && (
         <button
           onClick={scrollToNow}
-          className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold shadow-xl active:bg-blue-700 active:scale-95 transition-all"
+          className="fixed z-50 right-4 flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold shadow-xl active:bg-blue-700 active:scale-95 transition-all"
           style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)" }}
           data-testid="button-jump-to-now"
         >
@@ -591,10 +591,9 @@ function StaffColumn({
 
   return (
     <div
-      className="flex-1 relative select-none"
+      className="flex-1 relative select-none bg-white"
       style={{
         height: totalGridH,
-        backgroundColor: staffColor + "09",
         borderLeft: `3px solid ${staffColor}`,
         WebkitUserSelect: "none",
         userSelect: "none",
