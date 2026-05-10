@@ -12,7 +12,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical, Plus, LayoutList } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical, Plus, LayoutList, Zap, Send } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -1545,6 +1545,172 @@ export default function Calendar() {
   );
 }
 
+interface FillSlotCandidate {
+  customerId: number;
+  customerName: string;
+  customerPhone: string | null;
+  lastVisitDate: string | null;
+  daysSinceLast: number | null;
+  preferredService: string | null;
+  preferredStaff: string | null;
+  suggestedMessage: string;
+  priority: "high" | "medium" | "low";
+}
+
+function FillSlotSection({
+  appointment,
+  storeId,
+}: {
+  appointment: AppointmentWithDetails;
+  storeId: number;
+}) {
+  const [sentIds, setSentIds] = useState<Set<number>>(new Set());
+  const [sendingId, setSendingId] = useState<number | null>(null);
+  const { toast: fillToast } = useToast();
+
+  const { data: candidates, isLoading } = useQuery<FillSlotCandidate[]>({
+    queryKey: ["/api/intelligence/cancellation-recovery", appointment.id, storeId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/intelligence/cancellation-recovery/${appointment.id}?storeId=${storeId}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!appointment.id && !!storeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const handleSend = async (candidate: FillSlotCandidate) => {
+    setSendingId(candidate.customerId);
+    try {
+      const res = await fetch("/api/intelligence/fill-slot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          storeId,
+          customerId: candidate.customerId,
+          message: candidate.suggestedMessage,
+          cancelledAppointmentId: appointment.id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSentIds(prev => new Set([...prev, candidate.customerId]));
+        fillToast({ title: "Message sent!", description: `${candidate.customerName} has been notified about the open slot.` });
+      } else {
+        fillToast({ title: "Could not send", description: data.error || "Failed to send SMS.", variant: "destructive" });
+      }
+    } catch {
+      fillToast({ title: "Failed to send", variant: "destructive" });
+    } finally {
+      setSendingId(null);
+    }
+  };
+
+  const priorityConfig: Record<string, { bg: string; text: string; label: string }> = {
+    high: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: "High" },
+    medium: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: "Mid" },
+    low: { bg: "bg-blue-50 border-blue-200", text: "text-blue-700", label: "Low" },
+  };
+
+  return (
+    <div className="pt-3 border-t space-y-3">
+      <div className="flex items-center gap-2">
+        <Zap className="h-4 w-4 text-amber-500 flex-shrink-0" />
+        <span className="text-sm font-semibold">Fill this slot</span>
+        {!isLoading && candidates && candidates.length > 0 && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {Math.min(candidates.length, 3)} match{Math.min(candidates.length, 3) !== 1 ? "es" : ""}
+          </span>
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Finding candidates…
+        </div>
+      )}
+
+      {!isLoading && (!candidates || candidates.length === 0) && (
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          No matching candidates found — consider posting about the opening or checking your waitlist.
+        </p>
+      )}
+
+      {!isLoading && candidates && candidates.slice(0, 3).map((candidate) => {
+        const isSent = sentIds.has(candidate.customerId);
+        const isSending = sendingId === candidate.customerId;
+        const pc = priorityConfig[candidate.priority] || priorityConfig.low;
+        const hasPhone = !!candidate.customerPhone;
+
+        return (
+          <div
+            key={candidate.customerId}
+            className={cn(
+              "rounded-lg border p-3 space-y-2 transition-colors",
+              isSent ? "bg-emerald-50 border-emerald-200" : "bg-muted/40 border-border"
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
+                  {candidate.customerName[0]?.toUpperCase() || "?"}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate leading-tight">{candidate.customerName}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {candidate.daysSinceLast !== null
+                      ? `${candidate.daysSinceLast}d since last visit`
+                      : "First-time candidate"}
+                  </p>
+                </div>
+              </div>
+              <span className={cn(
+                "text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0",
+                pc.bg, pc.text
+              )}>
+                {pc.label}
+              </span>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed italic">
+              "{candidate.suggestedMessage.split("\n")[0]}"
+            </p>
+
+            <Button
+              size="sm"
+              className={cn(
+                "w-full h-8 text-xs font-semibold gap-1.5",
+                isSent
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : hasPhone
+                  ? "bg-amber-500 hover:bg-amber-600 text-white"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+              )}
+              onClick={() => !isSent && hasPhone && handleSend(candidate)}
+              disabled={isSent || isSending || !hasPhone}
+            >
+              {isSent ? (
+                <><Check className="h-3.5 w-3.5" /> Sent ✓</>
+              ) : isSending ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sending…</>
+              ) : !hasPhone ? (
+                "No phone on file"
+              ) : (
+                <><Send className="h-3.5 w-3.5" /> Send Message</>
+              )}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AppointmentDetailsPanel({
   appointment,
   timezone,
@@ -1704,6 +1870,12 @@ function AppointmentDetailsPanel({
           <span>Client is {minutesPastStart} min late · check them in or mark as no-show</span>
         </div>
       )}
+      {appointment.status === "cancelled" && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-amber-700 text-sm font-semibold">
+          <Zap className="w-4 h-4 flex-shrink-0" />
+          <span>Slot is open — find someone to fill it below</span>
+        </div>
+      )}
       <div className="p-4 border-b flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Avatar className="w-9 h-9">
@@ -1858,6 +2030,11 @@ function AppointmentDetailsPanel({
             </div>
           </div>
         )}
+
+        {/* ── Fill Slot — shown for cancelled appointments ── */}
+        {appointment.status === "cancelled" && detailStore?.id && (
+          <FillSlotSection appointment={appointment} storeId={detailStore.id} />
+        )}
       </div>
 
       <div
@@ -1875,6 +2052,27 @@ function AppointmentDetailsPanel({
               </span>
             </div>
           </div>
+        )}
+
+        {/* Cancelled footer — book a new client into the same slot */}
+        {appointment.status === "cancelled" && (
+          <Button
+            variant="outline"
+            className="w-full gap-2 font-semibold border-amber-400 text-amber-700 hover:bg-amber-50"
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (appointment.staffId) params.set("staffId", String(appointment.staffId));
+              if (appointment.serviceId) params.set("serviceId", String(appointment.serviceId));
+              const d = new Date(appointment.date);
+              params.set("date", d.toISOString().split("T")[0]);
+              params.set("hour", String(d.getHours()));
+              params.set("minute", String(d.getMinutes()));
+              window.location.href = `/booking/new?${params.toString()}`;
+            }}
+          >
+            <CalendarPlus className="h-4 w-4" />
+            Book New Client into this Slot
+          </Button>
         )}
 
         {/* Review Request — shown for completed appointments with a phone number */}
