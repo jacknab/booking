@@ -208,9 +208,10 @@ export default function Onboarding() {
   const { user, isLoading } = useAuth();
 
   // ── All hooks must be declared before any conditional return ──
-  const totalSteps = 5;
+  const totalSteps = 6;
   const [step, setStep] = useState(1);
   const [teamSize, setTeamSize] = useState<"myself" | "team" | null>(null);
+  const [goals, setGoals] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -421,8 +422,9 @@ export default function Onboarding() {
 
   const canProceed = (s: number) => {
     if (s === 1) return teamSize !== null;
-    if (s === 2) return !!selectedType;
-    if (s === 3) {
+    if (s === 2) return true;
+    if (s === 3) return !!selectedType;
+    if (s === 4) {
       const hasName = businessName.trim().length > 0;
       const validEmail = !email.trim() || validateEmail(email);
       const validPhone = !phone.trim() || validatePhone(phone);
@@ -440,14 +442,14 @@ export default function Onboarding() {
         !addressError
       );
     }
-    if (s === 4) return true;
-    if (s === 5) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
+    if (s === 5) return true;
+    if (s === 6) return staffNames.length > 0 && staffNames.every(n => n.trim().length > 0);
     return false;
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050C18] text-white p-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div className={`w-full transition-all duration-300 ${step === 2 ? "max-w-2xl" : "max-w-xl"}`}>
+      <div className={`w-full transition-all duration-300 ${step === 3 ? "max-w-2xl" : "max-w-xl"}`}>
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <img src="/web-app.png" alt="Certxa" className="w-10 h-10 rounded-lg shadow" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
           <span className="font-extrabold text-2xl tracking-tight text-white">Certxa</span>
@@ -497,16 +499,71 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && (() => {
+          const goalOptions = [
+            "Reduce my no-shows",
+            "Allow my clients to book online",
+            "Send promotions to my clients",
+            "Accept credit cards",
+            "Get more online reviews",
+            "Get more client referrals",
+            "Manage my staff schedules",
+            "Sell gift cards",
+          ];
+          const toggleGoal = (g: string) =>
+            setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
+          return (
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="px-8 pt-8 pb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">How can Certxa help you better manage your business</h2>
+                <p className="text-sm text-gray-500 mb-5 text-center">I want to....</p>
+                <div className="flex flex-col gap-1">
+                  {goalOptions.map((g) => (
+                    <label key={g} className="flex items-center gap-3 py-2.5 cursor-pointer group">
+                      <div
+                        onClick={() => toggleGoal(g)}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${goals.includes(g) ? "bg-[#4B5FD6] border-[#4B5FD6]" : "border-gray-300 bg-white"}`}
+                      >
+                        {goals.includes(g) && (
+                          <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                      <span onClick={() => toggleGoal(g)} className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{g}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 text-center mt-5 mb-4">We would like to better understand your needs</p>
+              </div>
+              <div className="flex border-t border-gray-100">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors border-r border-gray-100"
+                >
+                  back
+                </button>
+                <button
+                  onClick={() => setStep(3)}
+                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#4B5FD6] hover:bg-[#3d4fb8] transition-colors"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {step === 3 && (
           <Step1BusinessType
             selectedType={selectedType}
             setSelectedType={setSelectedType}
-            onNext={() => setStep(3)}
-            canProceed={canProceed(2)}
+            onNext={() => setStep(4)}
+            canProceed={canProceed(3)}
           />
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div>
             <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step2-title">Tell us about your business</h2>
             <p className="text-sm text-white/45 text-center mb-6">This info helps set up your store profile</p>
@@ -631,11 +688,11 @@ export default function Onboarding() {
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(2)} data-testid="button-back-step"
+              <button onClick={() => setStep(3)} data-testid="button-back-step"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
-              <button onClick={() => setStep(4)} disabled={!canProceed(3)} data-testid="button-next-step"
+              <button onClick={() => setStep(5)} disabled={!canProceed(4)} data-testid="button-next-step"
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
                 Next <ArrowRight className="w-4 h-4" />
               </button>
@@ -643,7 +700,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 4 && (() => {
+        {step === 5 && (() => {
           const openDayIndices = hours.filter(h => !h.isClosed).map(h => h.dayOfWeek);
           const allDaysSet = openDayIndices.length === 7;
 
@@ -774,11 +831,11 @@ export default function Onboarding() {
               </div>
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <button onClick={() => setStep(3)} data-testid="button-back-step"
+                <button onClick={() => setStep(4)} data-testid="button-back-step"
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setStep(5)} disabled={!canProceed(4)} data-testid="button-next-step"
+                <button onClick={() => setStep(6)} disabled={!canProceed(5)} data-testid="button-next-step"
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
                   Next <ArrowRight className="w-4 h-4" />
                 </button>
@@ -787,7 +844,7 @@ export default function Onboarding() {
           );
         })()}
 
-        {step === 5 && (
+        {step === 6 && (
           <div>
             <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step4-title">Add your team</h2>
             <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
@@ -860,13 +917,13 @@ export default function Onboarding() {
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={() => setStep(4)} data-testid="button-back-step"
+              <button onClick={() => setStep(5)} data-testid="button-back-step"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <button
                 onClick={handleComplete}
-                disabled={!canProceed(5) || onboardMutation.isPending}
+                disabled={!canProceed(6) || onboardMutation.isPending}
                 data-testid="button-complete-setup"
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40"
               >
