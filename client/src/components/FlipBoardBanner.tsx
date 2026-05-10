@@ -96,7 +96,7 @@ export function FlipBoardBanner() {
       icon: trialTier === "info" ? Clock : trialTier === "inactive" ? Zap : AlertTriangle,
       text:
         trialTier === "info" ? (
-          <>Your free trial ends in <strong>{daysRemaining} days</strong>. Upgrade to keep your bookings and website running.</>
+          <>Your free trial ends in <strong>{daysRemaining} days</strong>.</>
         ) : trialTier === "warning" ? (
           <><strong>{daysRemaining} days left</strong> in your free trial. Subscribe now to avoid interruption.</>
         ) : trialTier === "urgent" ? (
@@ -123,16 +123,16 @@ export function FlipBoardBanner() {
   if (smsCritical || smsLow) {
     messages.push({
       id: smsCritical ? "sms-critical" : "sms-low",
-      icon: smsCritical ? AlertTriangle : MessageSquare,
-      text: smsCritical
-        ? <>Critical: Only <strong>{smsTotal} SMS credit{smsTotal === 1 ? "" : "s"}</strong> remaining — outbound SMS will stop when depleted.</>
-        : <>Low SMS balance: <strong>{smsTotal} credit{smsTotal === 1 ? "" : "s"}</strong> remaining. Top up to keep messages flowing.</>,
-      ctaLabel: "Buy SMS Credits",
+      icon: MessageSquare,
+      text: smsTotal === 0
+        ? <>SMS credits depleted — outbound messages are paused.</>
+        : smsCritical
+        ? <>{smsTotal} SMS credit{smsTotal === 1 ? "" : "s"} remaining.</>
+        : <>Running low on SMS — {smsTotal} credit{smsTotal === 1 ? "" : "s"} left.</>,
+      ctaLabel: smsTotal === 0 ? "Purchase SMS Package" : "Buy SMS Credits",
       ctaAction: () => smsBucketMutation.mutate(),
       barBg: smsCritical ? "bg-red-800" : "bg-amber-700",
-      ctaBg: smsCritical
-        ? "bg-red-500 hover:bg-red-400 text-white"
-        : "bg-amber-500 hover:bg-amber-400 text-white",
+      ctaBg: "bg-transparent hover:bg-white/10 border border-white/40 text-white",
       smsAction: true,
     });
   }
