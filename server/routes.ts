@@ -4440,9 +4440,14 @@ If you have any questions, please contact your administrator.
    */
   app.get("/google-business", (_req, _res, next) => next());
 
+  app.get("/api/google-business/quota-status", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const { getQuotaGuardStatus } = await import("./google-quota-guard");
+    return res.json(getQuotaGuardStatus());
+  });
+
   /**
-   * POST /api/google-business/retry-fetch-accounts
-   *
    * Retries fetching Google Business accounts + locations using already-stored
    * OAuth tokens. Called when the initial callback succeeded (tokens saved) but
    * getBusinessAccounts() hit a 429 quota limit, leaving accounts: [] in the session.

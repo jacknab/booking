@@ -209,10 +209,10 @@ export class GoogleBusinessAPIManager {
         console.error(`[Google Business OAuth] getBusinessAccounts FAILED — response body: ${body}`);
 
         if (status === 429) {
-          // Record in the quota guard — blocks all subsequent calls for 2 minutes
-          recordQuota429();
+          // Record in the quota guard — classifies & persists cooldown to disk
+          recordQuota429(error);
           if (attempt < maxAttempts - 1) {
-            // One short wait only — the quota guard will block further attempts anyway
+            // One short wait then let the guard block further attempts
             console.warn(`[Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 3s before attempt ${attempt + 2}/${maxAttempts}`);
             await new Promise<void>((r) => setTimeout(r, 3_000));
             continue;

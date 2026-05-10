@@ -184,10 +184,10 @@ async function fetchReviewsWithRetry(
       console.error(`[ReviewSync]   status=${status ?? "(none)"}  message=${errMsg}`);
       console.error(`[ReviewSync]   response body=${body}`);
 
-      // ── 429 Rate limit: record in guard and stop retrying ─────────────────
+      // ── 429 Rate limit: classify & persist cooldown, abort retries ────────
       if (status === 429) {
-        recordQuota429();
-        console.warn(`[ReviewSync] Rate limit (429) — quota guard activated (2-min cooldown), aborting retries`);
+        recordQuota429(err);
+        console.warn(`[ReviewSync] Rate limit (429) — quota guard activated (persisted cooldown), aborting retries`);
         throw err;
       }
 
