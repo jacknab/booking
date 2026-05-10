@@ -12,7 +12,7 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useCalendarSettings, DEFAULT_CALENDAR_SETTINGS } from "@/hooks/use-calendar-settings";
 import { formatInTz, toStoreLocal, getTimezoneAbbr, getNowInTimezone } from "@/lib/timezone";
 import { addDays, subDays, isSameDay, addMinutes, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarPlus, Users, Globe, ArrowLeft, ArrowUp, X, Clock, Loader2, CreditCard, Banknote, Smartphone, DollarSign, Check, Receipt, Percent, Tag, Delete, Printer, XCircle, Settings, PersonStanding, LayoutDashboard, TrendingUp, CalendarDays, Scissors, ShoppingBag, UserCircle, Gift, ClipboardList, FileText, BarChart3, MessageSquare, Mail, Building2, MapPin, Star, Sparkle, ThumbsUp, ListOrdered, Search, AlertCircle, Lock, Bell, ListFilter, MoreVertical, Plus, LayoutList } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CashDrawerPanel } from "@/pages/CashDrawer";
 import { MobileCalendarView } from "@/components/MobileCalendarView";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { WeeklyAgendaView } from "@/components/WeeklyAgendaView";
 
 type SidebarItem =
   | { kind: "link"; to: string; label: string; icon: any }
@@ -125,6 +126,7 @@ export default function Calendar() {
   const [quickCheckoutOpen, setQuickCheckoutOpen] = useState(false);
   const [showCashDrawer, setShowCashDrawer] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [calView, setCalView] = useState<"grid" | "agenda">("grid");
   const navDrawerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -578,9 +580,16 @@ export default function Calendar() {
             <div className="w-9 shrink-0" />
           )}
 
-          {/* More */}
-          <button className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 active:text-slate-700 transition-colors shrink-0">
-            <MoreVertical className="w-[18px] h-[18px]" />
+          {/* View toggle: grid ↔ agenda */}
+          <button
+            onClick={() => setCalView(v => v === "grid" ? "agenda" : "grid")}
+            className="w-9 h-9 flex items-center justify-center rounded-full active:opacity-60 transition-opacity shrink-0"
+            aria-label={calView === "grid" ? "Switch to agenda view" : "Switch to grid view"}
+          >
+            {calView === "grid"
+              ? <LayoutList className="w-[18px] h-[18px] text-slate-400" />
+              : <CalendarDays className="w-[18px] h-[18px] text-teal-500" />
+            }
           </button>
         </div>
       )}
@@ -662,6 +671,33 @@ export default function Calendar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* View toggle: grid ↔ agenda */}
+          <div className="flex items-center rounded-lg border bg-muted/50 p-0.5 gap-0.5">
+            <button
+              onClick={() => setCalView("grid")}
+              aria-label="Grid view"
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-md transition-all",
+                calView === "grid"
+                  ? "bg-card shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <CalendarDays className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCalView("agenda")}
+              aria-label="Agenda view"
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-md transition-all",
+                calView === "agenda"
+                  ? "bg-card shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutList className="w-4 h-4" />
+            </button>
+          </div>
           <div className="relative">
             <button
               onClick={() => setShowNewApptMenu(v => !v)}
@@ -833,7 +869,7 @@ export default function Calendar() {
               />
             </div>
           )}
-          {showJumpToNow && (
+          {showJumpToNow && calView === "grid" && (
             <button
               onClick={scrollToNow}
               className="absolute bottom-4 right-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-lg hover:bg-blue-700 transition-colors"
@@ -843,6 +879,36 @@ export default function Calendar() {
               Now
             </button>
           )}
+
+          {/* ── Weekly Agenda View (all screen sizes) ── */}
+          {calView === "agenda" && (
+            <div className="absolute inset-0 overflow-hidden" style={isMobile ? { paddingBottom: 72 } : undefined}>
+              <WeeklyAgendaView
+                appointments={appointments ?? []}
+                staffList={staffList ?? []}
+                timezone={timezone}
+                weekDayLabels={weekDayLabels}
+                currentDate={currentDate}
+                selectedAppointment={selectedAppointment}
+                onSelectAppointment={(apt) => {
+                  setSelectedAppointment(apt);
+                  setShowCheckout(false);
+                  setShowCancelFlow(false);
+                }}
+                onNewBooking={() => {
+                  setLookupMode(false);
+                  setSelectedAppointment(null);
+                  setShowCancelFlow(false);
+                  setShowCheckout(false);
+                  setShowClientLookup(true);
+                }}
+                getStaffColor={getStaffColor}
+              />
+            </div>
+          )}
+
+          {/* ── Grid view (mobile + desktop) ── */}
+          {calView === "grid" && (
           <AnimatePresence initial={false} custom={slideDir}>
           <motion.div
             key={currentDate.toISOString().slice(0, 10)}
@@ -1193,6 +1259,7 @@ export default function Calendar() {
             )}
           </motion.div>
           </AnimatePresence>
+          )}
         </div>
 
         <Sheet open={quickCheckoutOpen} onOpenChange={setQuickCheckoutOpen}>
