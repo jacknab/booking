@@ -1522,6 +1522,31 @@ If you have any questions, please contact your administrator.
         return res.status(400).json({ message: "Cannot create an appointment in the past" });
       }
 
+      // Validate staff is assigned to the requested service
+      if (input.staffId && input.serviceId) {
+        const staffServices = await storage.getStaffServices(input.staffId);
+        const canPerformService = staffServices.some(ss => ss.serviceId === input.serviceId);
+        if (!canPerformService) {
+          return res.status(400).json({ message: "This staff member is not assigned to the selected service" });
+        }
+      }
+
+      // Check for scheduling conflicts (overlapping appointments for the same staff)
+      if (input.staffId && input.storeId) {
+        const appointmentEnd = new Date(input.date.getTime() + (input.duration || 30) * 60000);
+        const existingApts = await storage.getAppointments({ storeId: input.storeId });
+        const hasConflict = existingApts.some(apt => {
+          if (apt.staffId !== input.staffId) return false;
+          if (apt.status === "cancelled") return false;
+          const aptStart = new Date(apt.date);
+          const aptEnd = new Date(aptStart.getTime() + apt.duration * 60000);
+          return input.date < aptEnd && appointmentEnd > aptStart;
+        });
+        if (hasConflict) {
+          return res.status(409).json({ message: "This staff member already has an appointment at that time" });
+        }
+      }
+
       if (input.storeId) {
         const calSettings = await storage.getCalendarSettings(input.storeId);
         if (calSettings && !calSettings.allowBookingOutsideHours) {
@@ -2414,12 +2439,17 @@ If you have any questions, please contact your administrator.
       let candidateStaff: typeof import("@shared/schema").staff.$inferSelect[];
       if (specificStaffId) {
         const member = await storage.getStaffMember(specificStaffId);
-        candidateStaff = member ? [member] : [];
+        if (member) {
+          // Verify this staff member is assigned to the requested service
+          const staffServices = await storage.getStaffServices(specificStaffId);
+          const canPerformService = staffServices.some(ss => ss.serviceId === serviceId);
+          candidateStaff = canPerformService ? [member] : [];
+        } else {
+          candidateStaff = [];
+        }
       } else {
         candidateStaff = await storage.getStaffForService(serviceId);
-        if (candidateStaff.length === 0) {
-          candidateStaff = await storage.getAllStaff(store.id);
-        }
+        // Do NOT fall back to all staff — only show staff assigned to this service
       }
 
       if (candidateStaff.length === 0) return res.json([]);
@@ -2472,6 +2502,36 @@ If you have any questions, please contact your administrator.
                 break;
               }
             }
+
+            // Check staff availability rules (days off and custom hours)
+            if (!hasConflict) {
+              const staffAvailRules = await storage.getStaffAvailability(staffMember.id);
+              if (staffAvailRules && staffAvailRules.length > 0) {
+                const slotLocalDate = toZonedTime(slotStart, tz);
+                const slotDayOfWeek = slotLocalDate.getDay();
+                const dayAvailability = staffAvailRules.find(r => r.dayOfWeek === slotDayOfWeek);
+
+                if (dayAvailability) {
+                  const [availStartHour, availStartMin] = dayAvailability.startTime.split(":").map(Number);
+                  const [availEndHour, availEndMin] = dayAvailability.endTime.split(":").map(Number);
+                  const slotLocalHour = slotLocalDate.getHours();
+                  const slotLocalMin = slotLocalDate.getMinutes();
+                  const slotTimeInMin = slotLocalHour * 60 + slotLocalMin;
+                  const slotEndLocal = toZonedTime(slotEnd, tz);
+                  const slotEndTimeInMin = slotEndLocal.getHours() * 60 + slotEndLocal.getMinutes();
+                  const availStartInMin = availStartHour * 60 + availStartMin;
+                  const availEndInMin = availEndHour * 60 + availEndMin;
+
+                  if (slotTimeInMin < availStartInMin || slotEndTimeInMin > availEndInMin) {
+                    hasConflict = true;
+                  }
+                } else {
+                  // Staff has availability rules but none for this day — they are off
+                  hasConflict = true;
+                }
+              }
+            }
+
             if (!hasConflict) {
               availableForSlot.push({
                 staffMember,
@@ -2527,6 +2587,36 @@ If you have any questions, please contact your administrator.
       const phoneDigits = input.customerPhone.replace(/\D/g, "");
       if (phoneDigits.length !== 10) {
         return res.status(400).json({ message: "Phone number must be 10 digits" });
+      }
+
+      // Validate staff is assigned to the requested service
+      const staffServices = await storage.getStaffServices(input.staffId);
+      const canPerformService = staffServices.some(ss => ss.serviceId === input.serviceId);
+      if (!canPerformService) {
+        return res.status(400).json({ message: "The selected staff member cannot perform this service" });
+      }
+
+      // Check for scheduling conflicts
+      const appointmentStart = new Date(input.date);
+      const appointmentEnd = new Date(appointmentStart.getTime() + input.duration * 60000);
+      const dayStartLocal = new Date(appointmentStart);
+      dayStartLocal.setHours(0, 0, 0, 0);
+      const dayEndLocal = new Date(appointmentStart);
+      dayEndLocal.setHours(23, 59, 59, 999);
+      const dayAppointments = await storage.getAppointments({
+        from: dayStartLocal,
+        to: dayEndLocal,
+        storeId: store.id,
+      });
+      const hasConflict = dayAppointments.some(apt => {
+        if (apt.staffId !== input.staffId) return false;
+        if (apt.status === "cancelled") return false;
+        const aptStart = new Date(apt.date);
+        const aptEnd = new Date(aptStart.getTime() + apt.duration * 60000);
+        return appointmentStart < aptEnd && appointmentEnd > aptStart;
+      });
+      if (hasConflict) {
+        return res.status(409).json({ message: "This time slot is no longer available. Please choose another time." });
       }
 
       let customer = input.customerPhone
