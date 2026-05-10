@@ -349,6 +349,16 @@ app.use((req, res, next) => {
 
 // --- Main Async Boot ---
 (async () => {
+  // Run any pending SQL migrations before anything else starts.
+  // This keeps the VPS database in sync on every server restart/deploy.
+  try {
+    const { runMigrations } = await import("./startup/runMigrations");
+    await runMigrations();
+  } catch (err: any) {
+    console.error("[migrations] FATAL: migration failed on startup:", err.message);
+    process.exit(1);
+  }
+
   // Start the PHP server for the certxa.com marketing/catalog pages
   startPhpServer();
 

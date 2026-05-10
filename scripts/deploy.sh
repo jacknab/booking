@@ -43,6 +43,9 @@ echo "==> New bundle: $NEW_HASH"
 echo "==> Verifying built bundle (build:check)"
 npm run build:check
 
+echo "==> Running database migrations"
+npm run migrate
+
 RESTART_CMD="${RESTART_CMD:-pm2 restart all}"
 echo "==> Restarting service: $RESTART_CMD"
 eval "$RESTART_CMD"
