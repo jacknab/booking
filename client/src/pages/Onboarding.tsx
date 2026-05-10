@@ -105,6 +105,31 @@ function formatTime(t: string): string {
 
 const staffColors = ["#f472b6", "#a78bfa", "#60a5fa", "#34d399", "#fbbf24", "#f87171", "#818cf8", "#fb923c", "#2dd4bf", "#e879f9"];
 
+// Maps US state abbreviation → best-fit timezone from the timezones list above.
+// Used by the ZIP lookup so city+state+timezone all update together.
+const stateTimezoneMap: Record<string, string> = {
+  CT: "America/New_York", DC: "America/New_York", DE: "America/New_York",
+  FL: "America/New_York", GA: "America/New_York", IN: "America/New_York",
+  KY: "America/New_York", MA: "America/New_York", MD: "America/New_York",
+  ME: "America/New_York", MI: "America/New_York", NC: "America/New_York",
+  NH: "America/New_York", NJ: "America/New_York", NY: "America/New_York",
+  OH: "America/New_York", PA: "America/New_York", RI: "America/New_York",
+  SC: "America/New_York", TN: "America/New_York", VA: "America/New_York",
+  VT: "America/New_York", WV: "America/New_York",
+  AL: "America/Chicago",  AR: "America/Chicago",  IA: "America/Chicago",
+  IL: "America/Chicago",  KS: "America/Chicago",  LA: "America/Chicago",
+  MN: "America/Chicago",  MO: "America/Chicago",  MS: "America/Chicago",
+  ND: "America/Chicago",  NE: "America/Chicago",  OK: "America/Chicago",
+  SD: "America/Chicago",  TX: "America/Chicago",  WI: "America/Chicago",
+  CO: "America/Denver",   ID: "America/Denver",   MT: "America/Denver",
+  NM: "America/Denver",   UT: "America/Denver",   WY: "America/Denver",
+  AZ: "America/Phoenix",
+  CA: "America/Los_Angeles", NV: "America/Los_Angeles",
+  OR: "America/Los_Angeles", WA: "America/Los_Angeles",
+  AK: "America/Anchorage",
+  HI: "Pacific/Honolulu",
+};
+
 function detectTimezone(): string {
   try {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -224,6 +249,7 @@ export default function Onboarding() {
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
+  const [zipLookupStatus, setZipLookupStatus] = useState<"idle" | "loading" | "found" | "not-found">("idle");
   const [emailError, setEmailError] = useState("");
   const [timezone, setTimezone] = useState(() => detectTimezone());
   const [hours, setHours] = useState(defaultHours);
@@ -317,8 +343,36 @@ export default function Onboarding() {
     setPostcode(digitsOnly);
     if (digitsOnly.trim() && !validatePostcode(digitsOnly)) {
       setPostcodeError("Zip code must be 5 digits");
+      setZipLookupStatus("idle");
     } else {
       setPostcodeError("");
+    }
+
+    // Trigger ZIP lookup as soon as 5 digits are complete
+    if (digitsOnly.length === 5) {
+      setZipLookupStatus("loading");
+      (async () => {
+        try {
+          const res = await fetch(`https://api.zippopotam.us/us/${digitsOnly}`, { credentials: "omit" });
+          if (!res.ok) { setZipLookupStatus("not-found"); return; }
+          const data = await res.json();
+          const place = data?.places?.[0];
+          if (!place) { setZipLookupStatus("not-found"); return; }
+          const detectedCity: string = place["place name"] ?? "";
+          const detectedState: string = place["state abbreviation"] ?? "";
+          if (detectedCity) setCity(detectedCity);
+          if (detectedState && usStates.some(s => s.value === detectedState)) {
+            setState(detectedState);
+            const tz = stateTimezoneMap[detectedState];
+            if (tz) setTimezone(tz);
+          }
+          setZipLookupStatus("found");
+        } catch {
+          setZipLookupStatus("not-found");
+        }
+      })();
+    } else if (digitsOnly.length < 5) {
+      setZipLookupStatus("idle");
     }
   };
 
@@ -675,17 +729,39 @@ export default function Onboarding() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Zip Code</label>
-                    <input
-                      type="text"
-                      value={postcode}
-                      onChange={(e) => handlePostcodeChange(e.target.value)}
-                      placeholder="e.g. 90210"
-                      data-testid="input-postcode"
-                      inputMode="numeric"
-                      maxLength={5}
-                      className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#3B0764] text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={postcode}
+                        onChange={(e) => handlePostcodeChange(e.target.value)}
+                        placeholder="e.g. 90210"
+                        data-testid="input-postcode"
+                        inputMode="numeric"
+                        maxLength={5}
+                        className={`w-full h-12 px-4 pr-10 rounded-xl border text-gray-800 placeholder:text-gray-400 focus:outline-none text-sm transition-colors ${
+                          zipLookupStatus === "found" ? "border-green-400 focus:border-green-500" :
+                          zipLookupStatus === "not-found" ? "border-red-300 focus:border-red-400" :
+                          "border-gray-200 focus:border-[#3B0764]"
+                        }`}
+                      />
+                      {zipLookupStatus === "loading" && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 text-[#3B0764] animate-spin" />
+                        </div>
+                      )}
+                      {zipLookupStatus === "found" && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Check className="w-4 h-4 text-green-500" />
+                        </div>
+                      )}
+                    </div>
                     {postcodeError && <p className="text-xs text-red-500 mt-1">{postcodeError}</p>}
+                    {zipLookupStatus === "found" && !postcodeError && (
+                      <p className="text-xs text-green-600 mt-1">City, state &amp; timezone updated</p>
+                    )}
+                    {zipLookupStatus === "not-found" && !postcodeError && (
+                      <p className="text-xs text-amber-600 mt-1">ZIP not found — fill in city &amp; state manually</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Timezone</label>
