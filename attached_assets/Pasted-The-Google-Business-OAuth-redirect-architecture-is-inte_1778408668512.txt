@@ -1,0 +1,160 @@
+The Google Business OAuth redirect architecture is intentional and should remain frontend-based.
+
+Google redirects users to:
+
+https://certxa.com/google-business
+
+This is the frontend Google Business settings/reviews page.
+
+However, the OAuth completion flow is currently broken.
+
+Right now:
+- OAuth starts successfully
+- User authenticates with Google
+- User is redirected back to `/google-business`
+- BUT the app never completes the connection process
+- No business accounts are fetched
+- No locations are fetched
+- No location selection UI appears
+- No profile is saved
+- `/api/google-business/profile/:storeId` always returns:
+  { "profile": null }
+
+Fix the ENTIRE frontend-to-backend Google Business connection flow.
+
+--------------------------------------------------
+REQUIRED FLOW
+--------------------------------------------------
+
+1. User clicks:
+"Connect Google Business"
+
+2. Backend generates OAuth URL correctly
+
+3. Google redirects back to:
+https://certxa.com/google-business?code=...&state=...
+
+4. Frontend `/google-business` page MUST:
+- detect OAuth query params
+- extract `code`
+- extract `state`
+- immediately call backend exchange endpoint
+
+Example:
+POST /api/google-business/exchange-code
+
+Payload:
+{
+  "code": "...",
+  "state": "...",
+  "storeId": 1
+}
+
+--------------------------------------------------
+BACKEND EXCHANGE ENDPOINT
+--------------------------------------------------
+
+Create or fix:
+
+POST /api/google-business/exchange-code
+
+This endpoint MUST:
+
+1. Exchange auth code for:
+- access token
+- refresh token
+
+2. Fetch Google Business accounts using:
+https://mybusinessaccountmanagement.googleapis.com/v1/accounts
+
+3. Fetch locations for each account using:
+https://mybusinessbusinessinformation.googleapis.com/v1/accounts/{accountId}/locations
+
+4. Return all available locations to frontend
+
+--------------------------------------------------
+FRONTEND LOCATION PICKER
+--------------------------------------------------
+
+After locations are returned:
+
+Show UI allowing user to:
+- select Google Business account
+- select business location
+
+Display:
+- business name
+- address
+- location name
+
+If only ONE location exists:
+- auto-select it
+- continue automatically
+
+--------------------------------------------------
+SAVE SELECTED LOCATION
+--------------------------------------------------
+
+After selection:
+save the connected location to database.
+
+Create or update:
+google_business_profiles
+
+Required fields:
+- storeId
+- googleAccountId
+- googleLocationId
+- locationName
+- address
+- accessToken
+- refreshToken
+- connectedAt
+
+Ensure only ONE active Google Business profile per store.
+
+--------------------------------------------------
+PROFILE API FIX
+--------------------------------------------------
+
+Fix:
+GET /api/google-business/profile/:storeId
+
+It currently returns:
+{ "profile": null }
+
+After successful connection it MUST return:
+- locationName
+- accountId
+- locationId
+- connected status
+- connectedAt
+
+--------------------------------------------------
+ERROR HANDLING
+--------------------------------------------------
+
+Add detailed logging for:
+- OAuth code exchange failures
+- invalid state token
+- missing scopes
+- no business accounts
+- no locations found
+- expired refresh tokens
+- failed database saves
+
+--------------------------------------------------
+IMPORTANT
+--------------------------------------------------
+
+Do NOT redesign the OAuth redirect structure.
+
+Keep:
+https://certxa.com/google-business
+
+as the frontend OAuth landing page.
+
+The issue is NOT OAuth initiation.
+The issue is the missing OAuth completion flow after redirect.
+
+Implement the missing exchange, account fetch, location fetch, selection, and database persistence logic completely.
