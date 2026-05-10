@@ -83,7 +83,13 @@ export function setupAuth(app: Express) {
       console.warn(`[Google Login OAuth] Rate limit hit for IP ${ip}`);
       return res.status(429).send(`Too many sign-in attempts. Please wait ${retryMins} minute${retryMins !== 1 ? "s" : ""} and try again.`);
     }
+    const loginCallbackURL =
+      process.env.GOOGLE_LOGIN_CALLBACK_URL ??
+      process.env.GOOGLE_AUTH_CALLBACK_URL  ??
+      "https://certxa.com/api/auth/google/callback";
+
     console.log("[Google Login OAuth] OAuth URL generated — initiating authentication flow");
+    console.log("[Google Login OAuth]   callback_url (sent to Google):", loginCallbackURL);
     // Stash kiosk-mode flag (from query string) into the session so the callback can apply it
     if (req.query.keepSignedIn === "1") {
       (req.session as any).pendingKiosk = true;
@@ -92,7 +98,10 @@ export function setupAuth(app: Express) {
     }
     console.log("Google OAuth: Initiating authentication...");
     req.session.save(() => {
-      passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+      passport.authenticate("google", {
+        scope: ["profile", "email"],
+        callbackURL: loginCallbackURL,
+      })(req, res, next);
     });
   });
 
