@@ -4729,11 +4729,27 @@ If you have any questions, please contact your administrator.
   /**
    * Sync reviews from Google.
    */
+  // Per-store rate limit: 1 manual sync per 5 minutes
+  const _syncCooldowns = new Map<number, number>();
+  const SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+
   app.post("/api/google-business/sync-reviews/:storeId", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const storeId = Number(req.params.storeId);
+
+    // Server-side rate limit — prevents bypass of the frontend cooldown timer
+    const lastSync = _syncCooldowns.get(storeId);
+    if (lastSync && Date.now() - lastSync < SYNC_COOLDOWN_MS) {
+      const secsLeft = Math.ceil((SYNC_COOLDOWN_MS - (Date.now() - lastSync)) / 1000);
+      const mins = Math.floor(secsLeft / 60);
+      const secs = secsLeft % 60;
+      const label = mins > 0 ? `${mins}m ${secs.toString().padStart(2, "0")}s` : `${secsLeft}s`;
+      return res.status(429).json({ message: `Sync rate limit — please wait ${label} before syncing again.` });
+    }
+    _syncCooldowns.set(storeId, Date.now());
+
     console.log(`[GBP] Manual sync-reviews triggered for storeId=${storeId}`);
 
     try {

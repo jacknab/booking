@@ -1,0 +1,53 @@
+# ─── Node ───────────────────────────────────────────────────────────────────
+NODE_ENV=production
+PORT=8100
+
+# ─── Database ────────────────────────────────────────────────────────────────
+# Format: postgresql://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=disable
+DATABASE_URL=postgresql://certxa_user:booking_secure_pass_2024@127.0.0.1/certxa4_db?sslmode=disable
+
+# ─── Session ─────────────────────────────────────────────────────────────────
+# CRITICAL: Must be a long random string. Generated with: openssl rand -hex 64
+SESSION_SECRET=c5dc56b9b96b5dbbbf9aa23f9f891b4dd504889a9c324715aed761e50cbc68bcab7f2427f97c8f98932c6dc482ecfc6d72862d62c2cd0877789dbd75b92c2ca7
+
+# ─── App URL ─────────────────────────────────────────────────────────────────
+APP_URL=https://certxa.com
+
+# ─── CORS ────────────────────────────────────────────────────────────────────
+CORS_ALLOW_ALL=false
+CORS_ORIGINS=https://certxa.com,https://www.certxa.com,https://manage.certxa.com
+
+GOOGLE_CLIENT_ID=384071838764-33oa1uq4m69c8nva9ltjsjumrjhj3sq4.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+#GOOGLE_AUTH_CALLBACK_URL=https://certxa.com/api/auth/google/callback
+
+# ─── Google Business Profile API (for store Google reviews sync) ──────────────
+GOOGLE_REDIRECT_URI=https://certxa.com/api/google-business/callback
+
+# ─── Twilio (SMS notifications) ───────────────────────────────────────────────
+TWILIO_ACCOUNT_SID=AC311f29c602e53d39bd64ec06176b4a8a
+TWILIO_AUTH_TOKEN=9b9fef1098d7fbafc80dc2af2a2f5d5e
+TWILIO_PHONE_NUMBER=+18888147623
+
+# ─── TextBelt (fallback SMS) ──────────────────────────────────────────────────
+TEXTBELT_API_KEY=72e1474409622d01ce0546f66c616d92007c3cfeElh50XxpXJm6P1U0B4jsCfgXL
+
+# ─── Mailgun (email notifications) ───────────────────────────────────────────
+MAILGUN_API_KEY=your_mailgun_api_key
+MAILGUN_DOMAIN=mg.yourdomain.com
+MAILGUN_FROM_EMAIL=noreply@yourdomain.com
+MAILGUN_FROM_NAME=Certxa
+MAILGUN_SENDER_EMAIL=noreply@yourdomain.com
+
+# ─── Stripe (payments / subscriptions) ───────────────────────────────────────
+STRIPE_SECRET_KEY=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
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxx
+
+# ─── OpenAI (AI chatbot / suggestions) ───────────────────────────────────────
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+
+# ─── Trial period ─────────────────────────────────────────────────────────────
+TRIAL_PERIOD_DAYS=60
+
+# ─── Active store groups (internal feature flag) ──────────────────────────────
+ACTIVE_GROUPS=3
