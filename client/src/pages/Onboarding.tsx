@@ -240,7 +240,7 @@ export default function Onboarding() {
     }
   }, [user?.email]);
 
-  // Auto-detect City and State from the user's IP address (one-time, on mount)
+  // Auto-detect City, State, and Timezone from the user's IP address (one-time, on mount)
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -251,10 +251,14 @@ export default function Onboarding() {
         if (cancelled) return;
         const detectedCity: string | undefined = data?.city;
         const detectedState: string | undefined = data?.region_code;
-        // Only populate fields that the user hasn't already filled in
+        const detectedTz: string | undefined = data?.timezone;
+        // Only populate fields the user hasn't already filled in
         setCity((prev) => (prev.trim() ? prev : detectedCity || prev));
         if (detectedState && usStates.some((s) => s.value === detectedState)) {
           setState((prev) => (prev ? prev : detectedState));
+        }
+        if (detectedTz && timezones.some((t) => t.value === detectedTz)) {
+          setTimezone((prev) => (prev === detectTimezone() ? detectedTz : prev));
         }
       } catch {
         // Silent fail — user can still enter manually
@@ -629,30 +633,78 @@ export default function Onboarding() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country <span className="text-red-500">*</span></label>
-                  <div className="w-full h-12 px-4 rounded-xl border border-gray-200 flex items-center justify-between bg-gray-50">
-                    <span className="text-sm text-gray-700">United States</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Street Address</label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    placeholder="123 Main St, Suite 100"
+                    data-testid="input-address"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#3B0764] text-sm"
+                  />
+                  {addressError && <p className="text-xs text-red-500 mt-1">{addressError}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">City</label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="Auto-detected"
+                      data-testid="input-city"
+                      className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#3B0764] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">State</label>
+                    <Select value={state} onValueChange={setState}>
+                      <SelectTrigger data-testid="select-state" className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-gray-800 bg-white focus:border-[#3B0764]">
+                        <SelectValue placeholder="Auto-detected" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usStates.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Set Timezone <span className="text-red-500">*</span></label>
-                  <Select value={timezone} onValueChange={setTimezone}>
-                    <SelectTrigger data-testid="select-timezone" className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-gray-800 bg-white focus:border-[#3B0764]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timezones.map((tz) => (
-                        <SelectItem key={tz.value} value={tz.value} data-testid={`option-tz-${tz.value}`}>
-                          {tz.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Zip Code</label>
+                    <input
+                      type="text"
+                      value={postcode}
+                      onChange={(e) => handlePostcodeChange(e.target.value)}
+                      placeholder="e.g. 90210"
+                      data-testid="input-postcode"
+                      inputMode="numeric"
+                      maxLength={5}
+                      className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#3B0764] text-sm"
+                    />
+                    {postcodeError && <p className="text-xs text-red-500 mt-1">{postcodeError}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Timezone</label>
+                    <Select value={timezone} onValueChange={setTimezone}>
+                      <SelectTrigger data-testid="select-timezone" className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-gray-800 bg-white focus:border-[#3B0764]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timezones.map((tz) => (
+                          <SelectItem key={tz.value} value={tz.value} data-testid={`option-tz-${tz.value}`}>
+                            {tz.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <p className="text-xs text-[#3B0764] text-center pb-2">All fields are required <span className="text-red-500">*</span></p>
+                <p className="text-xs text-[#3B0764]/70 text-center pb-1">City, state &amp; timezone are auto-detected from your location — edit if needed</p>
               </div>
               <div className="flex border-t border-gray-100">
                 <button
