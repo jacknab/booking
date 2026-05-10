@@ -26,6 +26,7 @@
 
 import { OAuth2Client } from "google-auth-library";
 import { db } from "./db";
+import { isQuotaCoolingDown, recordQuota429 } from "./google-quota-guard";
 import {
   googleBusinessAccounts,
   googleBusinessLocations,
@@ -183,12 +184,11 @@ async function fetchReviewsWithRetry(
       console.error(`[ReviewSync]   status=${status ?? "(none)"}  message=${errMsg}`);
       console.error(`[ReviewSync]   response body=${body}`);
 
-      // ── 429 Rate limit: exponential backoff ────────────────────────────────
-      if (status === 429 && attempt < maxAttempts - 1) {
-        const delay = rateLimitDelays[attempt] ?? 20_000;
-        console.warn(`[ReviewSync] Rate limit (429) — waiting ${delay}ms before retry ${attempt + 2}/${maxAttempts}`);
-        await sleep(delay);
-        continue;
+      // ── 429 Rate limit: record in guard and stop retrying ─────────────────
+      if (status === 429) {
+        recordQuota429();
+        console.warn(`[ReviewSync] Rate limit (429) — quota guard activated (2-min cooldown), aborting retries`);
+        throw err;
       }
 
       // ── 401 Expired token: let OAuth2Client refresh and retry once ─────────
@@ -580,9 +580,16 @@ export async function syncReviewsForStore(storeId: number): Promise<SyncResult> 
  */
 export function startGoogleReviewSyncScheduler(): void {
   const INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
-  const INITIAL_DELAY_MS = 30_000;         // 30 seconds after boot
+  const INITIAL_DELAY_MS = 5 * 60 * 1000; // 5 minutes after boot (avoids quota on restarts)
 
   const syncAll = async () => {
+    // Skip the sweep if we're in a quota cooldown window
+    const cooldown = isQuotaCoolingDown();
+    if (cooldown.coolingDown) {
+      const secs = Math.ceil(cooldown.retryAfterMs / 1000);
+      console.warn(`[ReviewSync] Scheduler — skipping sweep: quota cooldown active, ${secs}s remaining`);
+      return;
+    }
     console.log("[ReviewSync] Scheduler — starting sync sweep…");
     const sweepStart = Date.now();
 

@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { db } from "./db";
+import { recordQuota429, isQuotaCoolingDown } from "./google-quota-guard";
 import {
   googleBusinessProfiles,
   googleBusinessAccounts,
@@ -162,46 +163,60 @@ export class GoogleBusinessAPIManager {
    * Retries on 429 with exponential backoff: 5 s → 10 s → 20 s (3 attempts total).
    */
   async getBusinessAccounts(maxAttempts = 3): Promise<any> {
+    // Respect global quota cooldown — don't even attempt if we're cooling down
+    const cooldown = isQuotaCoolingDown();
+    if (cooldown.coolingDown) {
+      const secs = Math.ceil(cooldown.retryAfterMs / 1000);
+      console.warn(`[Google Business OAuth] getBusinessAccounts — skipped: quota cooldown active, ${secs}s remaining`);
+      const err: any = new Error(`Google API quota cooldown active. Please wait ${secs} seconds before retrying.`);
+      err.code = 429;
+      err.quotaCooldown = true;
+      err.retryAfterMs = cooldown.retryAfterMs;
+      throw err;
+    }
+
     console.log("[Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list");
     const service = google.mybusinessaccountmanagement({ version: "v1", auth: this.oauth2Client });
-    const rateLimitDelays = [5_000, 10_000, 20_000];
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const response = await service.accounts.list({});
         const data = response.data;
         const accounts: any[] = data.accounts ?? [];
-        console.log(`[Google Business OAuth] getBusinessAccounts — raw response (first 500 chars): ${JSON.stringify(data).slice(0, 500)}`);
         console.log(`[Google Business OAuth] getBusinessAccounts — accounts found: ${accounts.length}`);
         accounts.forEach((a: any, i: number) => {
           console.log(
             `[Google Business OAuth]   [${i}] name="${a.name}"` +
             `  accountName="${a.accountName ?? "(none)"}` +
-            `  type="${a.type ?? "(none)"}"` +
-            `  verificationState="${a.verificationState ?? "(none)"}"` +
-            `  vettedState="${a.vettedState ?? "(none)"}"`,
+            `  type="${a.type ?? "(none)"}"`,
           );
         });
         if (accounts.length === 0) {
           console.warn(
             "[Google Business OAuth] getBusinessAccounts — ZERO accounts returned. " +
-            "The authenticated Google account has no Business Profile. " +
-            "The user needs to create one at business.google.com.",
+            "The user needs to create a Business Profile at business.google.com.",
           );
         }
         return data;
       } catch (error: any) {
+        // Re-throw cooldown errors immediately without retrying
+        if (error?.quotaCooldown) throw error;
+
         const status = error?.code ?? error?.response?.status ?? error?.status;
         const msg = error?.message ?? String(error);
         const body = error?.response?.data ? JSON.stringify(error.response.data).slice(0, 400) : "(no body)";
         console.error(`[Google Business OAuth] getBusinessAccounts FAILED — attempt ${attempt + 1}/${maxAttempts} — status: ${status}  message: ${msg}`);
         console.error(`[Google Business OAuth] getBusinessAccounts FAILED — response body: ${body}`);
 
-        if (status === 429 && attempt < maxAttempts - 1) {
-          const delay = rateLimitDelays[attempt] ?? 20_000;
-          console.warn(`[Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting ${delay}ms before retry ${attempt + 2}/${maxAttempts}`);
-          await new Promise<void>((r) => setTimeout(r, delay));
-          continue;
+        if (status === 429) {
+          // Record in the quota guard — blocks all subsequent calls for 2 minutes
+          recordQuota429();
+          if (attempt < maxAttempts - 1) {
+            // One short wait only — the quota guard will block further attempts anyway
+            console.warn(`[Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 3s before attempt ${attempt + 2}/${maxAttempts}`);
+            await new Promise<void>((r) => setTimeout(r, 3_000));
+            continue;
+          }
         }
         if (status === 403) {
           console.error(

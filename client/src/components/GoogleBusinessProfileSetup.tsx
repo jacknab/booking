@@ -10,7 +10,7 @@
  *   success        → stats + "View My Reviews" CTA
  *   connected      → returning-user state (already set up)
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { GoogleConnectGate } from "@/components/GoogleConnectGate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -158,6 +158,8 @@ export function GoogleBusinessProfileSetup({
   const [syncedCount, setSyncedCount]                 = useState<number>(0);
   const [connectedLocationName, setConnectedLocationName] = useState<string | null>(null);
   const [connectedLocationAddr, setConnectedLocationAddr] = useState<string | null>(null);
+  const [quotaCooldownSecs, setQuotaCooldownSecs]     = useState<number>(0);
+  const quotaTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Step 1: Capture URL params at mount (before any effect can clear them) ──
   // Using useState lazy-init guarantees this runs exactly once, synchronously,
@@ -186,6 +188,13 @@ export function GoogleBusinessProfileSetup({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once
+
+  // Cleanup quota cooldown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (quotaTimerRef.current) clearInterval(quotaTimerRef.current);
+    };
+  }, []);
 
   // ── Step 3: Process captured params once storeId is available ──────────────
   // Depends on [storeId, capturedParams]. capturedParams never changes (frozen at
@@ -451,12 +460,28 @@ export function GoogleBusinessProfileSetup({
     }
   };
 
+  /** Start a visible countdown from `seconds` down to 0, disabling the retry button. */
+  const startQuotaCooldown = (seconds: number) => {
+    if (quotaTimerRef.current) clearInterval(quotaTimerRef.current);
+    setQuotaCooldownSecs(seconds);
+    quotaTimerRef.current = setInterval(() => {
+      setQuotaCooldownSecs((prev) => {
+        if (prev <= 1) {
+          clearInterval(quotaTimerRef.current!);
+          quotaTimerRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   /**
    * Retry fetching Business accounts using already-stored tokens.
    * Called from the quota-retry step — no re-auth needed.
    */
   const handleRetryFetchAccounts = async () => {
-    if (!storeId) return;
+    if (!storeId || quotaCooldownSecs > 0) return;
     try {
       setLoading(true);
       setErrorMsg(null);
@@ -499,7 +524,9 @@ export function GoogleBusinessProfileSetup({
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 429) {
-        setErrorMsg("Google API quota is still exceeded. Please wait 1–2 minutes and try again.");
+        const retryAfterSecs: number = err?.response?.data?.retryAfterSecs ?? 120;
+        setErrorMsg(`Google API quota exceeded — please wait for the countdown before retrying.`);
+        startQuotaCooldown(retryAfterSecs);
       } else {
         setErrorMsg(mapErrorToHuman(err?.response?.data?.message ?? err?.message ?? ""));
       }
@@ -754,18 +781,30 @@ export function GoogleBusinessProfileSetup({
                 saved — click <strong>Try Again</strong> below and it should work.
               </p>
               <p className="text-xs text-amber-600 mt-1">
-                If it keeps failing, wait 2–3 minutes before retrying. No need to sign in with Google again.
+                No need to sign in with Google again.
               </p>
             </div>
+
+            {quotaCooldownSecs > 0 && (
+              <div className="flex items-center gap-3 rounded-lg bg-amber-100 border border-amber-300 p-3 text-sm text-amber-800">
+                <Loader2 size={16} className="animate-spin flex-shrink-0 text-amber-600" />
+                <span>
+                  Quota cooldown active — retry available in{" "}
+                  <strong>{quotaCooldownSecs}s</strong>
+                </span>
+              </div>
+            )}
 
             <div className="flex flex-col gap-2">
               <Button
                 onClick={handleRetryFetchAccounts}
-                disabled={loading}
+                disabled={loading || quotaCooldownSecs > 0}
                 className="w-full gap-2"
               >
                 {loading ? (
                   <><Loader2 size={15} className="animate-spin" /> Loading your locations…</>
+                ) : quotaCooldownSecs > 0 ? (
+                  <><Loader2 size={15} className="animate-spin" /> Wait {quotaCooldownSecs}s…</>
                 ) : (
                   <><RefreshCw size={15} /> Try Again</>
                 )}

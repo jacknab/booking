@@ -4460,6 +4460,19 @@ If you have any questions, please contact your administrator.
 
     console.log(`[GBP] retry-fetch-accounts — storeId=${storeId}`);
 
+    // Check quota cooldown BEFORE hitting the API
+    const { isQuotaCoolingDown } = await import("./google-quota-guard");
+    const cooldown = isQuotaCoolingDown();
+    if (cooldown.coolingDown) {
+      const secs = Math.ceil(cooldown.retryAfterMs / 1000);
+      console.warn(`[GBP] retry-fetch-accounts — blocked by quota cooldown, ${secs}s remaining`);
+      return res.status(429).json({
+        message: `Google API quota cooldown active. Please wait ${secs} seconds before retrying.`,
+        retryAfterMs: cooldown.retryAfterMs,
+        retryAfterSecs: secs,
+      });
+    }
+
     try {
       const profiles = await db
         .select()
@@ -4487,7 +4500,13 @@ If you have any questions, please contact your administrator.
         const status = err?.code ?? err?.response?.status ?? err?.status;
         console.error(`[GBP] retry-fetch-accounts — getBusinessAccounts failed — status: ${status}  message: ${err?.message}`);
         if (status === 429) {
-          return res.status(429).json({ message: "Google API quota is still exceeded. Please wait 1–2 minutes and try again." });
+          const retryAfterMs = err?.retryAfterMs ?? 2 * 60 * 1000;
+          const retryAfterSecs = Math.ceil(retryAfterMs / 1000);
+          return res.status(429).json({
+            message: `Google API quota exceeded. Please wait ${retryAfterSecs} seconds before retrying.`,
+            retryAfterMs,
+            retryAfterSecs,
+          });
         }
         if (status === 403) {
           return res.status(403).json({ message: "Google denied access. Ensure the Business Profile API is enabled in Google Cloud Console." });

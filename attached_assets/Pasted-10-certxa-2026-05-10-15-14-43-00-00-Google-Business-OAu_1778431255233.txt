@@ -1,0 +1,642 @@
+10|certxa  | 2026-05-10 15:14:43 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 1/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:14:43 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 15:14:43 +00:00: [Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 5000ms before retry 2/3
+10|certxa  | 2026-05-10 15:14:50 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 2/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:14:50 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 15:14:50 +00:00: [Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 10000ms before retry 3/3
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 3/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] Failed to fetch accounts — status: 429
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] Error detail: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] 429: Quota exceeded fetching accounts — tokens saved, user can retry without re-auth
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] Upserting profile in DB for storeId: 1
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] Profile updated — id: 9
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] No accounts returned — skipping googleBusinessAccounts upsert
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth] ── Callback complete ──────────────────────────────
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth]   email     : (not available)
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth]   accounts  : 0
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth]   locations : 0
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth]   profileId : 9
+10|certxa  | 2026-05-10 15:15:02 +00:00: [Google Business OAuth]   → redirecting to /google-business?google_connected=1
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/google-business/callback 302 in 21759ms
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/billing/account-status 304 in 12ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/auth/user 304 in 23ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/trial/status 304 in 14ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/training/notifications 304 in 19ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/stores 304 in 22ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/training/state 304 in 44ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:15:02 +00:00: 3:15:02 PM [express] GET /api/trial/status 304 in 6ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 15:15:03 +00:00: 3:15:03 PM [express] GET /api/billing/sms-status/1 304 in 15ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 15:15:03 +00:00: 3:15:03 PM [express] GET /api/billing/subscription/1 304 in 16ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 15:15:03 +00:00: 3:15:03 PM [express] GET /api/sms-inbox/conversations 304 in 12ms :: []
+10|certxa  | 2026-05-10 15:15:03 +00:00: [Google Business OAuth] connection-result picked up by frontend for storeId: 1
+10|certxa  | 2026-05-10 15:15:03 +00:00: 3:15:03 PM [express] GET /api/google-business/connection-result 304 in 13ms :: {"email":null,"storeId":1,"success":true,"accounts":[],"profileId":9,"businesses":[],"quotaError":true}
+10|certxa  | 2026-05-10 15:20:03 +00:00: 3:20:03 PM [express] GET /api/training/state 304 in 25ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/auth/user 304 in 44ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/training/notifications 304 in 45ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/billing/subscription/1 304 in 51ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/sms-inbox/conversations 304 in 54ms :: []
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/billing/sms-status/1 304 in 57ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/billing/account-status 304 in 68ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 15:23:08 +00:00: 3:23:08 PM [express] GET /api/stores 304 in 75ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 15:23:10 +00:00: [GBP] retry-fetch-accounts — storeId=1
+10|certxa  | 2026-05-10 15:23:10 +00:00: [Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list
+10|certxa  | 2026-05-10 15:23:12 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 1/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:23:12 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 15:23:12 +00:00: [Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 5000ms before retry 2/3
+10|certxa  | 2026-05-10 15:23:19 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 2/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:23:19 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 15:23:19 +00:00: [Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 10000ms before retry 3/3
+10|certxa  | 2026-05-10 15:23:31 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 3/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:23:31 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 15:23:31 +00:00: [GBP] retry-fetch-accounts — getBusinessAccounts failed — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 15:23:31 +00:00: 3:23:31 PM [express] POST /api/google-business/retry-fetch-accounts 429 in 21608ms :: {"message":"Google API quota is still exceeded. Please wait 1–2 minutes and try again."}
+10|certxa  | 2026-05-10 15:23:38 +00:00: 3:23:38 PM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 15:24:08 +00:00: 3:24:08 PM [express] GET /api/training/notifications 304 in 19ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 15:24:08 +00:00: 3:24:08 PM [express] GET /api/billing/sms-status/1 304 in 21ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 15:24:08 +00:00: 3:24:08 PM [express] GET /api/sms-inbox/conversations 304 in 7ms :: []
+10|certxa  | 2026-05-10 15:25:03 +00:00: 3:25:03 PM [express] GET /api/training/state 304 in 26ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:27:27 +00:00: [PHP] [Sun May 10 15:27:27 2026] 127.0.0.1:33880 Accepted
+10|certxa  | 2026-05-10 15:27:27 +00:00: [PHP] [Sun May 10 15:27:27 2026] 127.0.0.1:33880 Closing
+10|certxa  | 2026-05-10 15:30:03 +00:00: 3:30:03 PM [express] GET /api/training/state 304 in 26ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:35:03 +00:00: 3:35:03 PM [express] GET /api/training/state 304 in 32ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:37:02 +00:00: 3:37:02 PM [express] GET /api/auth/google/callback 302 in 2ms
+10|certxa  | 2026-05-10 15:40:03 +00:00: 3:40:03 PM [express] GET /api/training/state 304 in 25ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:45:21 +00:00: 3:45:21 PM [express] GET /api/training/state 304 in 23ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:50:21 +00:00: 3:50:21 PM [express] GET /api/training/state 304 in 21ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 15:55:21 +00:00: 3:55:21 PM [express] GET /api/training/state 304 in 24ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45040 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45040 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45054 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45054 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45056 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45056 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45064 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45066 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45064 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [Sun May 10 16:11:07 2026] 127.0.0.1:45066 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45074 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45074 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45084 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45084 Closing
+10|certxa  | 2026-05-10 16:11:07 +00:00: [Sun May 10 16:11:07 2026] 127.0.0.1:45098 Accepted
+10|certxa  | 2026-05-10 16:11:07 +00:00: [PHP] [Sun May 10 16:11:07 2026] 127.0.0.1:45098 Closing
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45102 Accepted
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45102 Closing
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45108 Accepted
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45108 Closing
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45116 Accepted
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45116 Closing
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45130 Accepted
+10|certxa  | 2026-05-10 16:11:08 +00:00: [PHP] [Sun May 10 16:11:08 2026] 127.0.0.1:45130 Closing
+10|certxa  | 2026-05-10 16:11:10 +00:00: [PHP] [Sun May 10 16:11:10 2026] 127.0.0.1:45136 Accepted
+10|certxa  | 2026-05-10 16:11:10 +00:00: [PHP] [Sun May 10 16:11:10 2026] 127.0.0.1:45136 Closing
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34670 Accepted
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34670 Closing
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34674 Accepted
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34680 Accepted
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34674 Closing
+10|certxa  | 2026-05-10 16:11:11 +00:00: [Sun May 10 16:11:11 2026] 127.0.0.1:34680 Closing
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34686 Accepted
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34686 Closing
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34698 Accepted
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34698 Closing
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34714 Accepted
+10|certxa  | 2026-05-10 16:11:11 +00:00: [PHP] [Sun May 10 16:11:11 2026] 127.0.0.1:34714 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34730 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34730 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34736 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34736 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34748 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34748 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [Sun May 10 16:11:12 2026] 127.0.0.1:34762 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34762 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34764 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34778 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34764 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [Sun May 10 16:11:12 2026] 127.0.0.1:34778 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34788 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34788 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34804 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34804 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34806 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34806 Closing
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34816 Accepted
+10|certxa  | 2026-05-10 16:11:12 +00:00: [PHP] [Sun May 10 16:11:12 2026] 127.0.0.1:34816 Closing
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34818 Accepted
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34818 Closing
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34834 Accepted
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34834 Closing
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34846 Accepted
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34848 Accepted
+10|certxa  | 2026-05-10 16:11:13 +00:00: [PHP] [Sun May 10 16:11:13 2026] 127.0.0.1:34846 Closing
+10|certxa  | 2026-05-10 16:11:13 +00:00: [Sun May 10 16:11:13 2026] 127.0.0.1:34848 Closing
+10|certxa  | 2026-05-10 16:11:14 +00:00: [PHP] [Sun May 10 16:11:14 2026] 127.0.0.1:34850 Accepted
+10|certxa  | 2026-05-10 16:11:14 +00:00: [PHP] [Sun May 10 16:11:14 2026] 127.0.0.1:34850 Closing
+10|certxa  | 2026-05-10 16:11:14 +00:00: [PHP] [Sun May 10 16:11:14 2026] 127.0.0.1:34858 Accepted
+10|certxa  | 2026-05-10 16:11:14 +00:00: [PHP] [Sun May 10 16:11:14 2026] 127.0.0.1:34858 Closing
+10|certxa  | 2026-05-10 16:11:15 +00:00: [PHP] [Sun May 10 16:11:15 2026] 127.0.0.1:34864 Accepted
+10|certxa  | 2026-05-10 16:11:15 +00:00: [PHP] [Sun May 10 16:11:15 2026] 127.0.0.1:34864 Closing
+10|certxa  | 2026-05-10 16:11:15 +00:00: [PHP] [Sun May 10 16:11:15 2026] 127.0.0.1:34868 Accepted
+10|certxa  | 2026-05-10 16:11:15 +00:00: [PHP] [Sun May 10 16:11:15 2026] 127.0.0.1:34880 Accepted
+10|certxa  | 2026-05-10 16:11:15 +00:00: [PHP] [Sun May 10 16:11:15 2026] 127.0.0.1:34868 Closing
+10|certxa  | 2026-05-10 16:11:15 +00:00: [Sun May 10 16:11:15 2026] 127.0.0.1:34880 Closing
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34888 Accepted
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34888 Closing
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34890 Accepted
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34890 Closing
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34902 Accepted
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34902 Closing
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34908 Accepted
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34924 Accepted
+10|certxa  | 2026-05-10 16:11:16 +00:00: [PHP] [Sun May 10 16:11:16 2026] 127.0.0.1:34908 Closing
+10|certxa  | 2026-05-10 16:11:16 +00:00: [Sun May 10 16:11:16 2026] 127.0.0.1:34924 Closing
+10|certxa  | 2026-05-10 16:11:17 +00:00: [PHP] [Sun May 10 16:11:17 2026] 127.0.0.1:34928 Accepted
+10|certxa  | 2026-05-10 16:11:17 +00:00: [PHP] [Sun May 10 16:11:17 2026] 127.0.0.1:34928 Closing
+10|certxa  | 2026-05-10 16:11:17 +00:00: [PHP] [Sun May 10 16:11:17 2026] 127.0.0.1:34940 Accepted
+10|certxa  | 2026-05-10 16:11:17 +00:00: [PHP] [Sun May 10 16:11:17 2026] 127.0.0.1:34940 Closing
+10|certxa  | 2026-05-10 16:11:18 +00:00: [PHP] [Sun May 10 16:11:18 2026] 127.0.0.1:34952 Accepted
+10|certxa  | 2026-05-10 16:11:18 +00:00: [PHP] [Sun May 10 16:11:18 2026] 127.0.0.1:34952 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34956 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34970 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34956 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [Sun May 10 16:11:19 2026] 127.0.0.1:34970 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34976 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34976 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34980 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34980 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34986 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34990 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34986 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [Sun May 10 16:11:19 2026] 127.0.0.1:34990 Closing
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34994 Accepted
+10|certxa  | 2026-05-10 16:11:19 +00:00: [PHP] [Sun May 10 16:11:19 2026] 127.0.0.1:34994 Closing
+10|certxa  | 2026-05-10 16:11:20 +00:00: [PHP] [Sun May 10 16:11:20 2026] 127.0.0.1:35000 Accepted
+10|certxa  | 2026-05-10 16:11:20 +00:00: [PHP] [Sun May 10 16:11:20 2026] 127.0.0.1:35000 Closing
+10|certxa  | 2026-05-10 16:11:20 +00:00: [PHP] [Sun May 10 16:11:20 2026] 127.0.0.1:35010 Accepted
+10|certxa  | 2026-05-10 16:11:20 +00:00: [PHP] [Sun May 10 16:11:20 2026] 127.0.0.1:35010 Closing
+10|certxa  | 2026-05-10 16:11:20 +00:00: [PHP] [Sun May 10 16:11:20 2026] 127.0.0.1:35020 Accepted
+10|certxa  | 2026-05-10 16:11:20 +00:00: [PHP] [Sun May 10 16:11:20 2026] 127.0.0.1:35020 Closing
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59760 Accepted
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59760 Closing
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59772 Accepted
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59786 Accepted
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59772 Closing
+10|certxa  | 2026-05-10 16:11:23 +00:00: [Sun May 10 16:11:23 2026] 127.0.0.1:59786 Closing
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59796 Accepted
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59796 Closing
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59800 Accepted
+10|certxa  | 2026-05-10 16:11:23 +00:00: [PHP] [Sun May 10 16:11:23 2026] 127.0.0.1:59800 Closing
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/training/state 304 in 8ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/trial/status 304 in 9ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/stores 304 in 21ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/training/notifications 304 in 21ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/trial/status 304 in 5ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/google-business/profile/1 200 in 12ms :: {"profile":{"id":9,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T16:14:39.755Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T14:17:21.614Z","updatedAt":"2026-05-10T15:15:02.382Z"}}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/billing/sms-status/1 304 in 15ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/billing/subscription/1 304 in 26ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 16:12:24 +00:00: 4:12:24 PM [express] GET /api/sms-inbox/conversations 304 in 25ms :: []
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth] Generating auth URL
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth]   client_id    : 937441122821…
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth]   client_secret: (set)
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth]   redirect_uri : https://certxa.com/api/google-business/callback
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth]   storeId      : 1
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth]   csrf         : 570c1c3d35d6011bd35e09aed67a8040
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth] getAuthUrl — scopes: https://www.googleapis.com/auth/business.manage
+10|certxa  | 2026-05-10 16:12:29 +00:00: [Google Business OAuth] Auth URL generated successfully — scope: business.manage only
+10|certxa  | 2026-05-10 16:12:29 +00:00: 4:12:29 PM [express] GET /api/google-business/auth-url 200 in 7ms :: {"authUrl":"https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage&prompt=consent&include_granted_scopes=false&state=eyJjc3JmIjoiNTcwYzFjM2QzNWQ2MDExYmQzNWUwOWFlZDY3YTgwNDAiLCJzdG9yZUlkIjoxfQ&response_type=code&client_id=937441122821-ke4oasfc31420g573mi0kh9gjuj1tnch.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fcertxa.com%2Fapi%2Fgoogle-business%2Fcallback"}
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] ── Callback received ──────────────────────────────
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   code  : 4/0AeoWuM_Or3VS43LCH… (73 chars)
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   state : eyJjc3JmIjoiNTcwYzFjM2QzNWQ2MD…
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   error : (none)
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   decoded storeId: 1   csrf: 570c1c3d35d6011bd35e09aed67a8040
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   session csrf    : 570c1c3d35d6011bd35e09aed67a8040
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   session storeId : 1
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] Token exchange — redirect_uri: https://certxa.com/api/google-business/callback
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getTokensFromCode — exchanging authorization code…
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getTokensFromCode — access_token: (obtained)
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getTokensFromCode — refresh_token: (obtained)
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getTokensFromCode — scope: https://www.googleapis.com/auth/business.manage
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getTokensFromCode — expiry: 2026-05-10T17:12:55.401Z
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] Attempting to fetch Google account email (may be skipped with business.manage-only scope)…
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getGoogleUserInfo — skipped (status 401). This is expected with business.manage-only tokens. googleAccountEmail will be stored as null.
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth]   email: (not available — expected with business.manage-only scope)
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] Fetching Business Profile accounts…
+10|certxa  | 2026-05-10 16:12:56 +00:00: [Google Business OAuth] getBusinessAccounts — calling mybusinessaccountmanagement v1 accounts.list
+10|certxa  | 2026-05-10 16:12:58 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 1/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 16:12:58 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 16:12:58 +00:00: [Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 5000ms before retry 2/3
+10|certxa  | 2026-05-10 16:13:05 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 2/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 16:13:05 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 16:13:05 +00:00: [Google Business OAuth] getBusinessAccounts — 429 quota exceeded, waiting 10000ms before retry 3/3
+10|certxa  | 2026-05-10 16:13:05 +00:00: [PHP] [Sun May 10 16:13:05 2026] 127.0.0.1:46498 Accepted
+10|certxa  | 2026-05-10 16:13:05 +00:00: [PHP] [Sun May 10 16:13:05 2026] 127.0.0.1:46498 Closing
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — attempt 3/3 — status: 429  message: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] getBusinessAccounts FAILED — response body: {"error":{"code":429,"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.","errors":[{"message":"Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:9374411228
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] Failed to fetch accounts — status: 429
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] Error detail: Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:937441122821'.
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] 429: Quota exceeded fetching accounts — tokens saved, user can retry without re-auth
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] Upserting profile in DB for storeId: 1
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] Profile updated — id: 9
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] ── Callback complete ──────────────────────────────
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth]   email     : (not available)
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth]   accounts  : 0
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth]   locations : 0
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth]   profileId : 9
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] No accounts returned — skipping googleBusinessAccounts upsert
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth]   → redirecting to /google-business?google_connected=1
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/google-business/callback 302 in 21818ms
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/billing/account-status 304 in 7ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/auth/user 304 in 18ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/trial/status 304 in 7ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/training/notifications 304 in 11ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/stores 304 in 27ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/training/state 304 in 26ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/trial/status 304 in 5ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/billing/sms-status/1 304 in 9ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/billing/subscription/1 304 in 6ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/sms-inbox/conversations 304 in 5ms :: []
+10|certxa  | 2026-05-10 16:13:18 +00:00: [Google Business OAuth] connection-result picked up by frontend for storeId: 1
+10|certxa  | 2026-05-10 16:13:18 +00:00: 4:13:18 PM [express] GET /api/google-business/connection-result 304 in 6ms :: {"email":null,"storeId":1,"success":true,"accounts":[],"profileId":9,"businesses":[],"quotaError":true}
+10|certxa  | 2026-05-10 16:13:48 +00:00: 4:13:48 PM [express] GET /api/sms-inbox/conversations 304 in 19ms :: []
+10|certxa  | 2026-05-10 16:14:18 +00:00: 4:14:18 PM [express] GET /api/training/notifications 304 in 18ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 16:14:18 +00:00: 4:14:18 PM [express] GET /api/billing/sms-status/1 304 in 7ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 16:14:18 +00:00: 4:14:18 PM [express] GET /api/sms-inbox/conversations 304 in 6ms :: []
+10|certxa  | 2026-05-10 16:14:30 +00:00: 4:14:30 PM [express] GET /api/google-business/profile/1 200 in 18ms :: {"profile":{"id":9,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T17:12:55.401Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T14:17:21.614Z","updatedAt":"2026-05-10T16:13:18.098Z"}}
+10|certxa  | 2026-05-10 16:14:30 +00:00: Error fetching reviews: error: column "gb_location_id" does not exist
+10|certxa  | 2026-05-10 16:14:30 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 16:14:30 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 16:14:30 +00:00:   length: 114,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   code: '42703',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   position: '68',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   line: '3665',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   routine: 'errorMissingColumn'
+10|certxa  | 2026-05-10 16:14:30 +00:00: }
+10|certxa  | 2026-05-10 16:14:30 +00:00: 4:14:30 PM [express] GET /api/google-business/reviews/1 500 in 10ms :: {"message":"Failed to fetch reviews"}
+10|certxa  | 2026-05-10 16:14:30 +00:00: [GBP] sync-logs FAILED for storeId=1: relation "google_business_sync_logs" does not exist
+10|certxa  | 2026-05-10 16:14:30 +00:00: 4:14:30 PM [express] GET /api/google-business/sync-logs/1 500 in 13ms :: {"message":"Failed to fetch sync logs"}
+10|certxa  | 2026-05-10 16:14:30 +00:00: Error getting review stats: error: column "gb_location_id" does not exist
+10|certxa  | 2026-05-10 16:14:30 +00:00:     at /apps/certxa/dist/index.cjs:71:15231
+10|certxa  | 2026-05-10 16:14:30 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+10|certxa  | 2026-05-10 16:14:30 +00:00:   length: 114,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   severity: 'ERROR',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   code: '42703',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   detail: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   hint: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   position: '68',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   internalPosition: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   internalQuery: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   where: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   schema: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   table: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   column: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   dataType: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   constraint: undefined,
+10|certxa  | 2026-05-10 16:14:30 +00:00:   file: 'parse_relation.c',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   line: '3665',
+10|certxa  | 2026-05-10 16:14:30 +00:00:   routine: 'errorMissingColumn'
+10|certxa  | 2026-05-10 16:14:30 +00:00: }
+10|certxa  | 2026-05-10 16:14:30 +00:00: 4:14:30 PM [express] GET /api/google-business/reviews-stats/1 500 in 42ms :: {"message":"Failed to get review stats"}
+10|certxa  | 2026-05-10 16:14:32 +00:00: [GBP] Manual sync-reviews triggered for storeId=1
+10|certxa  | 2026-05-10 16:14:32 +00:00: [ReviewSync] ── START storeId=1 ──────────────────────────────────
+10|certxa  | 2026-05-10 16:14:32 +00:00: [GBP] sync-reviews FAILED for storeId=1 — status=42P01  message=relation "google_business_locations" does not exist
+10|certxa  | 2026-05-10 16:14:32 +00:00: 4:14:32 PM [express] POST /api/google-business/sync-reviews/1 500 in 9ms :: {"message":"Failed to sync reviews: relation \"google_business_locations\" does not exist"}
+10|certxa  | 2026-05-10 16:14:32 +00:00: [GBP] sync-logs FAILED for storeId=1: relation "google_business_sync_logs" does not exist
+10|certxa  | 2026-05-10 16:14:32 +00:00: 4:14:32 PM [express] GET /api/google-business/sync-logs/1 500 in 19ms :: {"message":"Failed to fetch sync logs"}
+10|certxa  | 2026-05-10 16:14:35 +00:00: 4:14:35 PM [express] GET /api/google-business/profile/1 304 in 20ms :: {"profile":{"id":9,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T17:12:55.401Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T14:17:21.614Z","updatedAt":"2026-05-10T16:13:18.098Z"}}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/auth/user 200 in 5ms :: {"id":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","email":"toby@me.com","googleId":null,"firstName":"Toby","lastName":"Benjamin","profileImageUrl":null,"role":"owner","isAdmin":false,"staffId":null,"permissions":["appointments.viewAll","appointments.viewOwn","appointments.edit","appointments.delete","appointments.cancel","appointments.overrideRules","waitlist.access","customers.view","customers.viewContact","customers.edit","customers.delete","customers.export","customers.import","services.manage","products.manage","pricing.view","pricing.edit","inventory.manage","staff.manage","staff.permissionsManage","staff.invite","staff.remove","reports.view","reports.financial","reports.export","commissions.viewAll","commissions.viewOwn","pos.use","checkout.clients","payments.view","refunds.issue","discounts.apply","void.transactions","cashDrawer.view","cashDrawer.close","marketing.sms","marketing.email","marketing.reviewRequests","giftCards.manage","loyalty.manage","intakeForms.manage","store.settings","store.delete","integrations.manage","billing.manage"],"onboardingCompleted":true,"passwordChanged":false,"createdAt":"2026-05-09T19:09:55.480Z","updatedAt":"2026-05-09T19:09:55.480Z","subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:14:47 +00:00: [PHP] [Sun May 10 16:14:47 2026] 127.0.0.1:39140 Accepted
+10|certxa  | 2026-05-10 16:14:47 +00:00: [PHP] [Sun May 10 16:14:47 2026] 127.0.0.1:39140 Closing
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/billing/account-status 200 in 22ms :: {"accountStatus":"active","salonId":null,"suspendedAt":null,"lockedAt":null,"suspendedReason":null}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/stores 304 in 9ms :: [{"id":1,"name":"Joes Barbershop","timezone":"America/Denver","address":"1825 N logan st","phone":"7202436666","email":"toby@me.com","category":"Barbershop","city":"Denver","state":"CO","postcode":"80203","bookingSlug":"joes-barbershop","bookingTheme":"simple","commissionPayoutFrequency":"monthly","smsTokens":0,"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","accountStatus":"Active","storeLatitude":null,"storeLongitude":null,"yelpAlias":null,"facebookPageId":null,"lateGracePeriodMinutes":10,"cancellationHoursCutoff":24,"posEnabled":true,"isTrainingSandbox":false,"sandboxParentStoreId":null}]
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/training/notifications 304 in 8ms :: {"notifications":[]}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/training/state 304 in 21ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/trial/status 304 in 5ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/billing/subscription/1 304 in 10ms :: {"active":false,"status":"none"}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/billing/sms-status/1 304 in 14ms :: {"smsAllowance":0,"smsCredits":0,"smsCreditsTotalPurchased":0,"planMonthlyAllowance":0,"planName":"Free","packages":[{"id":"10","priceCents":1000,"credits":333,"label":"$10 — 333 SMS"},{"id":"25","priceCents":2500,"credits":833,"label":"$25 — 833 SMS"},{"id":"50","priceCents":5000,"credits":1666,"label":"$50 — 1,666 SMS"}]}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/trial/status 304 in 4ms :: {"isActive":true,"daysRemaining":60,"subscriptionStatus":"trial","trialStartedAt":"2026-05-09T19:09:55.489Z","trialEndsAt":"2026-07-08T19:09:55.489Z"}
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/sms-inbox/conversations 304 in 22ms :: []
+10|certxa  | 2026-05-10 16:14:47 +00:00: 4:14:47 PM [express] GET /api/google-business/profile/1 304 in 28ms :: {"profile":{"id":9,"storeId":1,"googleAccountEmail":null,"businessName":null,"businessAccountId":null,"businessAccountResourceName":null,"locationId":null,"locationResourceName":null,"locationAddress":null,"tokenExpiresAt":"2026-05-10T17:12:55.401Z","isConnected":false,"syncEnabled":true,"lastSyncedAt":null,"createdAt":"2026-05-10T14:17:21.614Z","updatedAt":"2026-05-10T16:13:18.098Z"}}
+10|certxa  | 2026-05-10 16:19:47 +00:00: 4:19:47 PM [express] GET /api/training/state 304 in 20ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:24:47 +00:00: 4:24:47 PM [express] GET /api/training/state 304 in 25ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:27:14 +00:00: [PHP] [Sun May 10 16:27:14 2026] 127.0.0.1:34468 Accepted
+10|certxa  | 2026-05-10 16:27:14 +00:00: [PHP] [Sun May 10 16:27:14 2026] 127.0.0.1:34468 Closing
+10|certxa  | 2026-05-10 16:27:14 +00:00: [PHP] [Sun May 10 16:27:14 2026] 127.0.0.1:34474 Accepted
+10|certxa  | 2026-05-10 16:27:14 +00:00: [PHP] [Sun May 10 16:27:14 2026] 127.0.0.1:34474 Closing
+10|certxa  | 2026-05-10 16:27:14 +00:00: [PHP] [Sun May 10 16:27:14 2026] 127.0.0.1:34482 Accepted
+10|certxa  | 2026-05-10 16:27:14 +00:00: [PHP] [Sun May 10 16:27:14 2026] 127.0.0.1:34482 Closing
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34486 Accepted
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34486 Closing
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34496 Accepted
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34496 Closing
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34502 Accepted
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34502 Closing
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34512 Accepted
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34512 Closing
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34524 Accepted
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34524 Closing
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34538 Accepted
+10|certxa  | 2026-05-10 16:27:15 +00:00: [PHP] [Sun May 10 16:27:15 2026] 127.0.0.1:34538 Closing
+10|certxa  | 2026-05-10 16:27:16 +00:00: [PHP] [Sun May 10 16:27:16 2026] 127.0.0.1:34540 Accepted
+10|certxa  | 2026-05-10 16:27:16 +00:00: [PHP] [Sun May 10 16:27:16 2026] 127.0.0.1:34540 Closing
+10|certxa  | 2026-05-10 16:27:16 +00:00: [PHP] [Sun May 10 16:27:16 2026] 127.0.0.1:34552 Accepted
+10|certxa  | 2026-05-10 16:27:16 +00:00: [PHP] [Sun May 10 16:27:16 2026] 127.0.0.1:34552 Closing
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34562 Accepted
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34562 Closing
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34568 Accepted
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34568 Closing
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34572 Accepted
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34572 Closing
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34586 Accepted
+10|certxa  | 2026-05-10 16:27:17 +00:00: [PHP] [Sun May 10 16:27:17 2026] 127.0.0.1:34586 Closing
+10|certxa  | 2026-05-10 16:27:18 +00:00: [PHP] [Sun May 10 16:27:18 2026] 127.0.0.1:34596 Accepted
+10|certxa  | 2026-05-10 16:27:18 +00:00: [PHP] [Sun May 10 16:27:18 2026] 127.0.0.1:34596 Closing
+10|certxa  | 2026-05-10 16:27:18 +00:00: [PHP] [Sun May 10 16:27:18 2026] 127.0.0.1:34608 Accepted
+10|certxa  | 2026-05-10 16:27:18 +00:00: [PHP] [Sun May 10 16:27:18 2026] 127.0.0.1:34608 Closing
+10|certxa  | 2026-05-10 16:27:19 +00:00: [PHP] [Sun May 10 16:27:19 2026] 127.0.0.1:34622 Accepted
+10|certxa  | 2026-05-10 16:27:19 +00:00: [PHP] [Sun May 10 16:27:19 2026] 127.0.0.1:34622 Closing
+10|certxa  | 2026-05-10 16:27:19 +00:00: [PHP] [Sun May 10 16:27:19 2026] 127.0.0.1:34624 Accepted
+10|certxa  | 2026-05-10 16:27:19 +00:00: [PHP] [Sun May 10 16:27:19 2026] 127.0.0.1:34624 Closing
+10|certxa  | 2026-05-10 16:27:21 +00:00: [PHP] [Sun May 10 16:27:21 2026] 127.0.0.1:47960 Accepted
+10|certxa  | 2026-05-10 16:27:21 +00:00: [PHP] [Sun May 10 16:27:21 2026] 127.0.0.1:47960 Closing
+10|certxa  | 2026-05-10 16:27:22 +00:00: [PHP] [Sun May 10 16:27:22 2026] 127.0.0.1:47962 Accepted
+10|certxa  | 2026-05-10 16:27:22 +00:00: [PHP] [Sun May 10 16:27:22 2026] 127.0.0.1:47962 Closing
+10|certxa  | 2026-05-10 16:27:23 +00:00: [PHP] [Sun May 10 16:27:23 2026] 127.0.0.1:47972 Accepted
+10|certxa  | 2026-05-10 16:27:23 +00:00: [PHP] [Sun May 10 16:27:23 2026] 127.0.0.1:47972 Closing
+10|certxa  | 2026-05-10 16:27:23 +00:00: [PHP] [Sun May 10 16:27:23 2026] 127.0.0.1:47974 Accepted
+10|certxa  | 2026-05-10 16:27:23 +00:00: [PHP] [Sun May 10 16:27:23 2026] 127.0.0.1:47974 Closing
+10|certxa  | 2026-05-10 16:27:23 +00:00: [PHP] [Sun May 10 16:27:23 2026] 127.0.0.1:47984 Accepted
+10|certxa  | 2026-05-10 16:27:23 +00:00: [PHP] [Sun May 10 16:27:23 2026] 127.0.0.1:47984 Closing
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:47998 Accepted
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:47998 Closing
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48008 Accepted
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48008 Closing
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48022 Accepted
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48022 Closing
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48032 Accepted
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48032 Closing
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48036 Accepted
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48036 Closing
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48042 Accepted
+10|certxa  | 2026-05-10 16:27:27 +00:00: [PHP] [Sun May 10 16:27:27 2026] 127.0.0.1:48042 Closing
+10|certxa  | 2026-05-10 16:27:28 +00:00: [PHP] [Sun May 10 16:27:28 2026] 127.0.0.1:48044 Accepted
+10|certxa  | 2026-05-10 16:27:28 +00:00: [PHP] [Sun May 10 16:27:28 2026] 127.0.0.1:48044 Closing
+10|certxa  | 2026-05-10 16:27:30 +00:00: [PHP] [Sun May 10 16:27:30 2026] 127.0.0.1:48056 Accepted
+10|certxa  | 2026-05-10 16:27:30 +00:00: [PHP] [Sun May 10 16:27:30 2026] 127.0.0.1:48056 Closing
+10|certxa  | 2026-05-10 16:27:31 +00:00: [PHP] [Sun May 10 16:27:31 2026] 127.0.0.1:33970 Accepted
+10|certxa  | 2026-05-10 16:27:31 +00:00: [PHP] [Sun May 10 16:27:31 2026] 127.0.0.1:33970 Closing
+10|certxa  | 2026-05-10 16:27:34 +00:00: [PHP] [Sun May 10 16:27:34 2026] 127.0.0.1:33978 Accepted
+10|certxa  | 2026-05-10 16:27:34 +00:00: [PHP] [Sun May 10 16:27:34 2026] 127.0.0.1:33978 Closing
+10|certxa  | 2026-05-10 16:27:35 +00:00: [PHP] [Sun May 10 16:27:35 2026] 127.0.0.1:33988 Accepted
+10|certxa  | 2026-05-10 16:27:35 +00:00: [PHP] [Sun May 10 16:27:35 2026] 127.0.0.1:33988 Closing
+10|certxa  | 2026-05-10 16:27:35 +00:00: [PHP] [Sun May 10 16:27:35 2026] 127.0.0.1:34004 Accepted
+10|certxa  | 2026-05-10 16:27:35 +00:00: [PHP] [Sun May 10 16:27:35 2026] 127.0.0.1:34004 Closing
+10|certxa  | 2026-05-10 16:27:40 +00:00: [PHP] [Sun May 10 16:27:40 2026] 127.0.0.1:54658 Accepted
+10|certxa  | 2026-05-10 16:27:40 +00:00: [PHP] [Sun May 10 16:27:40 2026] 127.0.0.1:54658 Closing
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54666 Accepted
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54666 Closing
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54678 Accepted
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54678 Closing
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54684 Accepted
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54684 Closing
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54692 Accepted
+10|certxa  | 2026-05-10 16:27:41 +00:00: [PHP] [Sun May 10 16:27:41 2026] 127.0.0.1:54692 Closing
+10|certxa  | 2026-05-10 16:27:43 +00:00: [PHP] [Sun May 10 16:27:43 2026] 127.0.0.1:54706 Accepted
+10|certxa  | 2026-05-10 16:27:43 +00:00: [PHP] [Sun May 10 16:27:43 2026] 127.0.0.1:54706 Closing
+10|certxa  | 2026-05-10 16:27:43 +00:00: [PHP] [Sun May 10 16:27:43 2026] 127.0.0.1:54720 Accepted
+10|certxa  | 2026-05-10 16:27:43 +00:00: [PHP] [Sun May 10 16:27:43 2026] 127.0.0.1:54720 Closing
+10|certxa  | 2026-05-10 16:27:46 +00:00: [PHP] [Sun May 10 16:27:46 2026] 127.0.0.1:54728 Accepted
+10|certxa  | 2026-05-10 16:27:46 +00:00: [PHP] [Sun May 10 16:27:46 2026] 127.0.0.1:54728 Closing
+10|certxa  | 2026-05-10 16:27:46 +00:00: [PHP] [Sun May 10 16:27:46 2026] 127.0.0.1:54732 Accepted
+10|certxa  | 2026-05-10 16:27:46 +00:00: [PHP] [Sun May 10 16:27:46 2026] 127.0.0.1:54732 Closing
+10|certxa  | 2026-05-10 16:27:47 +00:00: [PHP] [Sun May 10 16:27:47 2026] 127.0.0.1:54746 Accepted
+10|certxa  | 2026-05-10 16:27:47 +00:00: [PHP] [Sun May 10 16:27:47 2026] 127.0.0.1:54746 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54758 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54758 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54760 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54760 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54766 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54766 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54780 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54780 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54784 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54784 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54796 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54796 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54810 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54810 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54818 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54818 Closing
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54824 Accepted
+10|certxa  | 2026-05-10 16:27:49 +00:00: [PHP] [Sun May 10 16:27:49 2026] 127.0.0.1:54824 Closing
+10|certxa  | 2026-05-10 16:27:50 +00:00: [PHP] [Sun May 10 16:27:50 2026] 127.0.0.1:54826 Accepted
+10|certxa  | 2026-05-10 16:27:50 +00:00: [PHP] [Sun May 10 16:27:50 2026] 127.0.0.1:54826 Closing
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38238 Accepted
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38238 Closing
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38252 Accepted
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38252 Closing
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38268 Accepted
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38268 Closing
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38270 Accepted
+10|certxa  | 2026-05-10 16:27:52 +00:00: [PHP] [Sun May 10 16:27:52 2026] 127.0.0.1:38270 Closing
+10|certxa  | 2026-05-10 16:27:55 +00:00: [PHP] [Sun May 10 16:27:55 2026] 127.0.0.1:38272 Accepted
+10|certxa  | 2026-05-10 16:27:55 +00:00: [PHP] [Sun May 10 16:27:55 2026] 127.0.0.1:38272 Closing
+10|certxa  | 2026-05-10 16:27:55 +00:00: [PHP] [Sun May 10 16:27:55 2026] 127.0.0.1:38278 Accepted
+10|certxa  | 2026-05-10 16:27:55 +00:00: [PHP] [Sun May 10 16:27:55 2026] 127.0.0.1:38278 Closing
+10|certxa  | 2026-05-10 16:27:55 +00:00: [PHP] [Sun May 10 16:27:55 2026] 127.0.0.1:38288 Accepted
+10|certxa  | 2026-05-10 16:27:55 +00:00: [PHP] [Sun May 10 16:27:55 2026] 127.0.0.1:38288 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38298 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38298 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38312 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38312 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38328 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38328 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38344 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38344 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38354 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38354 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38366 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38366 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38368 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38368 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38374 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38374 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38386 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38386 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38392 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38392 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38394 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38394 Closing
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38410 Accepted
+10|certxa  | 2026-05-10 16:27:57 +00:00: [PHP] [Sun May 10 16:27:57 2026] 127.0.0.1:38410 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38424 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38424 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38426 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38426 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38442 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38442 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38448 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38448 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38456 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38456 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38472 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38472 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38482 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38482 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38486 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38486 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38496 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38496 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38506 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38506 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38508 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38508 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38516 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38516 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38520 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38520 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38526 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38526 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38536 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38536 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38544 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38544 Closing
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38556 Accepted
+10|certxa  | 2026-05-10 16:27:58 +00:00: [PHP] [Sun May 10 16:27:58 2026] 127.0.0.1:38556 Closing
+10|certxa  | 2026-05-10 16:27:59 +00:00: [PHP] [Sun May 10 16:27:59 2026] 127.0.0.1:38564 Accepted
+10|certxa  | 2026-05-10 16:27:59 +00:00: [PHP] [Sun May 10 16:27:59 2026] 127.0.0.1:38564 Closing
+10|certxa  | 2026-05-10 16:27:59 +00:00: [PHP] [Sun May 10 16:27:59 2026] 127.0.0.1:38580 Accepted
+10|certxa  | 2026-05-10 16:27:59 +00:00: [PHP] [Sun May 10 16:27:59 2026] 127.0.0.1:38580 Closing
+10|certxa  | 2026-05-10 16:27:59 +00:00: [PHP] [Sun May 10 16:27:59 2026] 127.0.0.1:38582 Accepted
+10|certxa  | 2026-05-10 16:27:59 +00:00: [PHP] [Sun May 10 16:27:59 2026] 127.0.0.1:38582 Closing
+10|certxa  | 2026-05-10 16:28:00 +00:00: [PHP] [Sun May 10 16:28:00 2026] 127.0.0.1:38586 Accepted
+10|certxa  | 2026-05-10 16:28:00 +00:00: [PHP] [Sun May 10 16:28:00 2026] 127.0.0.1:38586 Closing
+10|certxa  | 2026-05-10 16:28:00 +00:00: [PHP] [Sun May 10 16:28:00 2026] 127.0.0.1:32854 Accepted
+10|certxa  | 2026-05-10 16:28:00 +00:00: [PHP] [Sun May 10 16:28:00 2026] 127.0.0.1:32854 Closing
+10|certxa  | 2026-05-10 16:28:03 +00:00: [PHP] [Sun May 10 16:28:03 2026] 127.0.0.1:32864 Accepted
+10|certxa  | 2026-05-10 16:28:03 +00:00: [PHP] [Sun May 10 16:28:03 2026] 127.0.0.1:32864 Closing
+10|certxa  | 2026-05-10 16:28:03 +00:00: [PHP] [Sun May 10 16:28:03 2026] 127.0.0.1:32870 Accepted
+10|certxa  | 2026-05-10 16:28:03 +00:00: [PHP] [Sun May 10 16:28:03 2026] 127.0.0.1:32870 Closing
+10|certxa  | 2026-05-10 16:28:03 +00:00: [PHP] [Sun May 10 16:28:03 2026] 127.0.0.1:32882 Accepted
+10|certxa  | 2026-05-10 16:28:03 +00:00: [PHP] [Sun May 10 16:28:03 2026] 127.0.0.1:32882 Closing
+10|certxa  | 2026-05-10 16:28:06 +00:00: [PHP] [Sun May 10 16:28:06 2026] 127.0.0.1:32884 Accepted
+10|certxa  | 2026-05-10 16:28:06 +00:00: [PHP] [Sun May 10 16:28:06 2026] 127.0.0.1:32884 Closing
+10|certxa  | 2026-05-10 16:28:09 +00:00: [PHP] [Sun May 10 16:28:09 2026] 127.0.0.1:32896 Accepted
+10|certxa  | 2026-05-10 16:28:09 +00:00: [PHP] [Sun May 10 16:28:09 2026] 127.0.0.1:32896 Closing
+10|certxa  | 2026-05-10 16:28:09 +00:00: [PHP] [Sun May 10 16:28:09 2026] 127.0.0.1:32902 Accepted
+10|certxa  | 2026-05-10 16:28:09 +00:00: [PHP] [Sun May 10 16:28:09 2026] 127.0.0.1:32902 Closing
+10|certxa  | 2026-05-10 16:28:09 +00:00: [PHP] [Sun May 10 16:28:09 2026] 127.0.0.1:32906 Accepted
+10|certxa  | 2026-05-10 16:28:09 +00:00: [PHP] [Sun May 10 16:28:09 2026] 127.0.0.1:32906 Closing
+10|certxa  | 2026-05-10 16:28:10 +00:00: [PHP] [Sun May 10 16:28:10 2026] 127.0.0.1:32914 Accepted
+10|certxa  | 2026-05-10 16:28:10 +00:00: [PHP] [Sun May 10 16:28:10 2026] 127.0.0.1:32914 Closing
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42462 Accepted
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42462 Closing
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42474 Accepted
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42474 Closing
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42484 Accepted
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42484 Closing
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42496 Accepted
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42496 Closing
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42502 Accepted
+10|certxa  | 2026-05-10 16:28:12 +00:00: [PHP] [Sun May 10 16:28:12 2026] 127.0.0.1:42502 Closing
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42514 Accepted
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42514 Closing
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42524 Accepted
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42524 Closing
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42540 Accepted
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42540 Closing
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42542 Accepted
+10|certxa  | 2026-05-10 16:28:13 +00:00: [PHP] [Sun May 10 16:28:13 2026] 127.0.0.1:42542 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42546 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42546 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42552 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42552 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42558 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42558 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42570 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42570 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42584 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42584 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42598 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42598 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42610 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42610 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42614 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42614 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42630 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42630 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42636 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42636 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42648 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42648 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42650 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42650 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42664 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42664 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42680 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42680 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42684 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42684 Closing
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42694 Accepted
+10|certxa  | 2026-05-10 16:28:14 +00:00: [PHP] [Sun May 10 16:28:14 2026] 127.0.0.1:42694 Closing
+10|certxa  | 2026-05-10 16:28:16 +00:00: [PHP] [Sun May 10 16:28:16 2026] 127.0.0.1:42704 Accepted
+10|certxa  | 2026-05-10 16:28:16 +00:00: [PHP] [Sun May 10 16:28:16 2026] 127.0.0.1:42704 Closing
+10|certxa  | 2026-05-10 16:28:17 +00:00: [PHP] [Sun May 10 16:28:17 2026] 127.0.0.1:42718 Accepted
+10|certxa  | 2026-05-10 16:28:17 +00:00: [PHP] [Sun May 10 16:28:17 2026] 127.0.0.1:42718 Closing
+10|certxa  | 2026-05-10 16:28:17 +00:00: [PHP] [Sun May 10 16:28:17 2026] 127.0.0.1:42730 Accepted
+10|certxa  | 2026-05-10 16:28:17 +00:00: [PHP] [Sun May 10 16:28:17 2026] 127.0.0.1:42730 Closing
+10|certxa  | 2026-05-10 16:28:17 +00:00: [PHP] [Sun May 10 16:28:17 2026] 127.0.0.1:42740 Accepted
+10|certxa  | 2026-05-10 16:28:17 +00:00: [PHP] [Sun May 10 16:28:17 2026] 127.0.0.1:42740 Closing
+10|certxa  | 2026-05-10 16:28:18 +00:00: [PHP] [Sun May 10 16:28:18 2026] 127.0.0.1:42754 Accepted
+10|certxa  | 2026-05-10 16:28:18 +00:00: [PHP] [Sun May 10 16:28:18 2026] 127.0.0.1:42754 Closing
+10|certxa  | 2026-05-10 16:28:18 +00:00: [PHP] [Sun May 10 16:28:18 2026] 127.0.0.1:42768 Accepted
+10|certxa  | 2026-05-10 16:28:18 +00:00: [PHP] [Sun May 10 16:28:18 2026] 127.0.0.1:42768 Closing
+10|certxa  | 2026-05-10 16:28:18 +00:00: [PHP] [Sun May 10 16:28:18 2026] 127.0.0.1:42772 Accepted
+10|certxa  | 2026-05-10 16:28:18 +00:00: [PHP] [Sun May 10 16:28:18 2026] 127.0.0.1:42772 Closing
+10|certxa  | 2026-05-10 16:28:19 +00:00: [PHP] [Sun May 10 16:28:19 2026] 127.0.0.1:42784 Accepted
+10|certxa  | 2026-05-10 16:28:19 +00:00: [PHP] [Sun May 10 16:28:19 2026] 127.0.0.1:42784 Closing
+10|certxa  | 2026-05-10 16:28:19 +00:00: [PHP] [Sun May 10 16:28:19 2026] 127.0.0.1:42786 Accepted
+10|certxa  | 2026-05-10 16:28:19 +00:00: [PHP] [Sun May 10 16:28:19 2026] 127.0.0.1:42786 Closing
+10|certxa  | 2026-05-10 16:28:19 +00:00: [PHP] [Sun May 10 16:28:19 2026] 127.0.0.1:42790 Accepted
+10|certxa  | 2026-05-10 16:28:19 +00:00: [PHP] [Sun May 10 16:28:19 2026] 127.0.0.1:42790 Closing
+10|certxa  | 2026-05-10 16:28:21 +00:00: [PHP] [Sun May 10 16:28:21 2026] 127.0.0.1:37334 Accepted
+10|certxa  | 2026-05-10 16:28:21 +00:00: [PHP] [Sun May 10 16:28:21 2026] 127.0.0.1:37334 Closing
+10|certxa  | 2026-05-10 16:28:21 +00:00: [PHP] [Sun May 10 16:28:21 2026] 127.0.0.1:37346 Accepted
+10|certxa  | 2026-05-10 16:28:21 +00:00: [PHP] [Sun May 10 16:28:21 2026] 127.0.0.1:37346 Closing
+10|certxa  | 2026-05-10 16:28:22 +00:00: [PHP] [Sun May 10 16:28:22 2026] 127.0.0.1:37352 Accepted
+10|certxa  | 2026-05-10 16:28:22 +00:00: [PHP] [Sun May 10 16:28:22 2026] 127.0.0.1:37352 Closing
+10|certxa  | 2026-05-10 16:28:24 +00:00: [PHP] [Sun May 10 16:28:24 2026] 127.0.0.1:37360 Accepted
+10|certxa  | 2026-05-10 16:28:24 +00:00: [PHP] [Sun May 10 16:28:24 2026] 127.0.0.1:37360 Closing
+10|certxa  | 2026-05-10 16:28:24 +00:00: [PHP] [Sun May 10 16:28:24 2026] 127.0.0.1:37364 Accepted
+10|certxa  | 2026-05-10 16:28:24 +00:00: [PHP] [Sun May 10 16:28:24 2026] 127.0.0.1:37364 Closing
+10|certxa  | 2026-05-10 16:28:25 +00:00: [PHP] [Sun May 10 16:28:25 2026] 127.0.0.1:37374 Accepted
+10|certxa  | 2026-05-10 16:28:25 +00:00: [PHP] [Sun May 10 16:28:25 2026] 127.0.0.1:37374 Closing
+10|certxa  | 2026-05-10 16:28:25 +00:00: [PHP] [Sun May 10 16:28:25 2026] 127.0.0.1:37388 Accepted
+10|certxa  | 2026-05-10 16:28:25 +00:00: [PHP] [Sun May 10 16:28:25 2026] 127.0.0.1:37388 Closing
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37392 Accepted
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37392 Closing
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37408 Accepted
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37408 Closing
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37412 Accepted
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37412 Closing
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37428 Accepted
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37428 Closing
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37442 Accepted
+10|certxa  | 2026-05-10 16:28:26 +00:00: [PHP] [Sun May 10 16:28:26 2026] 127.0.0.1:37442 Closing
+10|certxa  | 2026-05-10 16:29:47 +00:00: 4:29:47 PM [express] GET /api/training/state 304 in 24ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:34:47 +00:00: 4:34:47 PM [express] GET /api/training/state 304 in 21ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
+10|certxa  | 2026-05-10 16:36:41 +00:00: 4:36:41 PM [express] GET /api/google-business/callback 401 in 2ms :: {"message":"Unauthorized"}
+10|certxa  | 2026-05-10 16:36:41 +00:00: 4:36:41 PM [express] GET /api/webhooks/stripe 401 in 2ms :: {"message":"Unauthorized"}
+10|certxa  | 2026-05-10 16:39:47 +00:00: 4:39:47 PM [express] GET /api/training/state 304 in 19ms :: {"enrolled":true,"profile":{"userId":"84630e61-2e0d-43d9-82ef-9775f4d3bfd7","enrolledAt":"2026-05-10T04:34:53.739Z","graduatedAt":null,"graduationNotifiedOwner":false,"graduationStaffNotified":false,"day7DigestSentAt":null},"categories":[],"state":[],"settings":{"enabled":true,"autoEnrollNewStaff":true,"graduationMinDays":7,"showHelpBubbleAfterGraduation":true,"storeId":null}}
