@@ -5207,7 +5207,7 @@ If you have any questions, please contact your administrator.
       ].join("\n");
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
         max_completion_tokens: 1024,
@@ -5310,7 +5310,7 @@ If you have any questions, please contact your administrator.
 
         try {
           const completion = await openai.chat.completions.create({
-            model: "gpt-5-mini",
+            model: "gpt-4o-mini",
             messages: [{
               role: "user",
               content: [
@@ -5736,7 +5736,7 @@ If you have any questions, please contact your administrator.
       });
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-4o-mini",
         messages: [{
           role: "user",
           content: [
