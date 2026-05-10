@@ -1,10 +1,8 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAppointments } from "@/hooks/use-appointments";
 import { useAuth } from "@/hooks/use-auth";
-import { useTrial } from "@/hooks/use-trial";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useStaffList } from "@/hooks/use-staff";
-import { TrialCountdownBanner } from "@/components/TrialCountdownBanner";
 import { formatInTz, toStoreLocal, getNowInTimezone } from "@/lib/timezone";
 import {
   isSameDay,
@@ -27,7 +25,6 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const { selectedStore } = useSelectedStore();
-  const { daysRemaining, subscriptionStatus } = useTrial();
   const timezone = selectedStore?.timezone || "UTC";
   const storeNow = getNowInTimezone(timezone);
 
