@@ -208,9 +208,9 @@ export default function Onboarding() {
   const { user, isLoading } = useAuth();
 
   // ── All hooks must be declared before any conditional return ──
-  const totalSteps = 5;
   const [step, setStep] = useState(1);
   const [teamSize, setTeamSize] = useState<"myself" | "team" | null>(null);
+  const totalSteps = teamSize === "myself" ? 4 : 5;
   const [goals, setGoals] = useState<string[]>([]);
   const [showBusinessTypePanel, setShowBusinessTypePanel] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -794,9 +794,16 @@ export default function Onboarding() {
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setStep(5)} disabled={!canProceed(4)} data-testid="button-next-step"
+                <button
+                  onClick={() => teamSize === "myself" ? handleComplete() : setStep(5)}
+                  disabled={!canProceed(4) || onboardMutation.isPending}
+                  data-testid="button-next-step"
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00D4AA] text-[#050C18] font-bold text-sm transition-all disabled:opacity-40">
-                  Next <ArrowRight className="w-4 h-4" />
+                  {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {teamSize === "myself"
+                    ? (onboardMutation.isPending ? "Setting up…" : "Complete Setup")
+                    : "Next"}
+                  {!onboardMutation.isPending && <ArrowRight className="w-4 h-4" />}
                 </button>
               </div>
             </div>
