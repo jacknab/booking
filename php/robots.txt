@@ -1,12 +1,25 @@
 User-agent: *
 Allow: /
 
-# Block query-string duplicates
+# ── Block old .php URLs — all pages now use clean paths (e.g. /overview not /overview.php)
+# This prevents Google from indexing both versions and consolidates ranking onto clean URLs.
+Disallow: /*.php$
+
+# ── Block internal PHP includes and assets — not meant to be crawled
+Disallow: /includes/
+Disallow: /config.php
+Disallow: /router.php
+Disallow: /api/
+
+# ── Block query-string duplicates
 Disallow: /*?*
 
-# Block admin or private paths (none yet, but good hygiene)
-Disallow: /includes/
-Disallow: /assets/
+# ── Block launchsite internal paths — only the overview page should be indexed
+Disallow: /launchsite/admin
+Disallow: /launchsite/editor
+Disallow: /launchsite/preview
+Disallow: /launchsite/scraped-tmp/
+Disallow: /launchsite/api/
 
 # Sitemap
 Sitemap: https://certxa.com/sitemap.xml
