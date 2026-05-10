@@ -36,15 +36,28 @@ const SSR_ROUTES = new Set([
 export async function setupVite(server: Server, app: Express) {
   const replitDomain = process.env.REPLIT_DEV_DOMAIN;
 
-  // When running inside Replit, attach HMR to the existing HTTP server so
-  // the WebSocket upgrade is handled in-process (no separate port needed).
-  // clientPort: 443 tells the browser to connect to the Replit HTTPS proxy port.
-  const hmrConfig = replitDomain
+  // Fall back to the APP_URL hostname (e.g. certxa.com) when the Replit dev
+  // domain isn't set — covers custom-domain dev and staging environments.
+  const appUrlHost = (() => {
+    try {
+      const u = process.env.APP_URL;
+      return u ? new URL(u).hostname : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Use whichever public hostname the browser actually reaches us at.
+  // clientPort: 443 tells the Vite HMR client to connect via the HTTPS proxy
+  // (wss://<host>/vite-hmr) rather than falling back to localhost.
+  const effectiveHost = replitDomain ?? appUrlHost;
+
+  const hmrConfig = effectiveHost
     ? {
         server,
         path: "/vite-hmr",
         clientPort: 443,
-        host: replitDomain,
+        host: effectiveHost,
         protocol: "wss" as const,
         timeout: 30000,
       }
