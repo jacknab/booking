@@ -30,6 +30,7 @@ import {
   Palette,
   ChevronDown,
   ChevronRight,
+  CreditCard,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         icon: BarChart3,
         anyOf: [PERMISSIONS.COMMISSIONS_VIEW_ALL, PERMISSIONS.COMMISSIONS_VIEW_OWN],
       },
+      { to: "/billing", label: "Billing", icon: CreditCard, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
     ],
   },
   {
