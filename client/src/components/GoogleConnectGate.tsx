@@ -7,6 +7,7 @@ interface GoogleConnectGateProps {
   loading?: boolean;
   title?: string;
   subtitle?: string;
+  compact?: boolean;
 }
 
 export function GoogleConnectGate({
@@ -15,25 +16,18 @@ export function GoogleConnectGate({
   loading = false,
   title = "Connect your Google Business account to auto-collect Google reviews",
   subtitle,
+  compact = false,
 }: GoogleConnectGateProps) {
   const [showConfirm, setShowConfirm] = useState(false);
 
-  return (
+  const content = (
     <div style={{
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      minHeight: "calc(100vh - 64px)",
-      padding: "40px 24px",
-      background: "#fff",
+      gap: compact ? 48 : 80,
+      maxWidth: 860,
+      width: "100%",
     }}>
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 80,
-        maxWidth: 860,
-        width: "100%",
-      }}>
 
         {/* ── Left: CTA ──────────────────────────────────────── */}
         <div style={{
@@ -162,10 +156,30 @@ export function GoogleConnectGate({
           </div>
         </div>
       </div>
+  );
 
+  return (
+    <>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {compact ? (
+        <div style={{ padding: "24px 0" }}>
+          {content}
+        </div>
+      ) : (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "calc(100vh - 64px)",
+          padding: "40px 24px",
+          background: "#fff",
+        }}>
+          {content}
+        </div>
+      )}
 
       {/* ── Confirmation dialog ─────────────────────────────── */}
       {showConfirm && (
@@ -227,7 +241,7 @@ export function GoogleConnectGate({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

@@ -481,6 +481,7 @@ export function GoogleBusinessProfileSetup({
           onConnect={handleStartAuth}
           loading={loading}
           subtitle="We request read access to your Google reviews only. You can disconnect at any time."
+          compact
         />
       </div>
     );
