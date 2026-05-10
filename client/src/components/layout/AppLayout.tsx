@@ -5,8 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, Menu, SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { TrialCountdownBanner } from "@/components/TrialCountdownBanner";
-import { SmsBalanceBanner } from "@/components/SmsBalanceBanner";
+import { FlipBoardBanner } from "@/components/FlipBoardBanner";
 import { useTrial } from "@/hooks/use-trial";
 import { MobileSettingsSheet } from "@/components/MobileSettingsSheet";
 
@@ -34,11 +33,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <TrialCountdownBanner
-        daysRemaining={daysRemaining}
-        subscriptionStatus={subscriptionStatus}
-      />
-      <SmsBalanceBanner />
+      <FlipBoardBanner />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="hidden md:block">
