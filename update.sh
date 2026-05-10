@@ -342,6 +342,16 @@ build({
 ENDOFJS
 success "Server bundle rebuilt → dist/index.cjs"
 
+# ── Apply database schema ──────────────────────────────────────────────────
+info "Applying database schema (npm run db:push) ..."
+if command -v npx &>/dev/null; then
+    npx tsx scripts/db-push.ts \
+        && success "Database schema applied." \
+        || { echo -e "${RED}[WARN]${RESET}  db:push failed — check DATABASE_URL and schema.sql, then re-run manually."; }
+else
+    info "npx not found — skipping db:push. Run 'npm run db:push' manually after deploy."
+fi
+
 # ── Restart PM2 ────────────────────────────────────────────────────────────
 info "Restarting PM2 process '${SERVICE_NAME}'..."
 if pm2 list 2>/dev/null | grep -q "${SERVICE_NAME}"; then
