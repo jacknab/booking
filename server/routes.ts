@@ -3958,7 +3958,7 @@ If you have any questions, please contact your administrator.
       (req.session as any).googleOAuthState   = csrf;
       (req.session as any).googleOAuthStoreId = storeId;
 
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "";
+      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "https://certxa.com/api/google-business/callback";
       const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
       const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
@@ -4013,7 +4013,7 @@ If you have any questions, please contact your administrator.
       (req.session as any).googleOAuthStoreId = storeId; // belt-and-suspenders fallback
 
       // BUSINESS integration credentials — NEVER shared with the login system
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "";
+      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "https://certxa.com/api/google-business/callback";
       const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
       const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
@@ -4112,7 +4112,7 @@ If you have any questions, please contact your administrator.
     // ── Exchange code for tokens ─────────────────────────────────────────────
     try {
       // BUSINESS credentials only — never shared with the login system
-      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "";
+      const redirectUri  = process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "https://certxa.com/api/google-business/callback";
       const clientId     = process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "";
       const clientSecret = process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
@@ -4364,7 +4364,7 @@ If you have any questions, please contact your administrator.
       const apiManager = new GoogleBusinessAPIManager({
         clientId:     process.env.GOOGLE_BUSINESS_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID     ?? "",
         clientSecret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
-        redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "",
+        redirectUri:  process.env.GOOGLE_BUSINESS_CALLBACK_URL  ?? process.env.GOOGLE_REDIRECT_URI  ?? "https://certxa.com/api/google-business/callback",
       });
 
       const tokens = await apiManager.getTokensFromCode(code);

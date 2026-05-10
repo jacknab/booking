@@ -12,11 +12,10 @@ const loginClientId     = process.env.GOOGLE_LOGIN_CLIENT_ID     ?? process.env.
 const loginClientSecret = process.env.GOOGLE_LOGIN_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
 if (loginClientId && loginClientSecret) {
-  const _base = process.env.APP_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000");
   const callbackURL =
     process.env.GOOGLE_LOGIN_CALLBACK_URL ??
     process.env.GOOGLE_AUTH_CALLBACK_URL  ??
-    `${_base}/api/auth/google/callback`;
+    "https://certxa.com/api/auth/google/callback";
 
   console.log("[Google Login OAuth] Configuring passport strategy");
   console.log("[Google Login OAuth]   client_id   :", `${loginClientId.slice(0, 12)}…`);
