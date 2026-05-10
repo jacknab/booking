@@ -117,6 +117,26 @@ if ($uri === '/') {
     exit;
 }
 
+// ── 301 redirect: old .php URLs → clean URLs ─────────────────────────────────
+// e.g. /overview.php → /overview, /pricing.php → /pricing
+// Preserves Google rankings on old URLs while consolidating to clean paths.
+if (substr($uri, -4) === '.php') {
+    $clean = substr($uri, 0, -4);
+    // /index.php → / (root)
+    if ($clean === '/index') $clean = '/';
+    // Only redirect if the clean path actually exists as a directory/page
+    // (avoids redirecting PHP internals like /router or /config)
+    $is_real_page = ($clean === '/')
+        || is_dir(__DIR__ . $clean)
+        || is_file(__DIR__ . $clean . '/default.php');
+    if ($is_real_page) {
+        $qs = isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== ''
+            ? '?' . $_SERVER['QUERY_STRING'] : '';
+        header('Location: ' . $clean . $qs, true, 301);
+        exit;
+    }
+}
+
 // Static file (non-PHP)
 if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) !== 'php') {
     serve_static($file, $mime_map);
@@ -129,12 +149,6 @@ if (is_dir($file)) {
     if (is_file($base . '/index.php'))   { require_page($base . '/index.php'); }
 }
 
-// Direct PHP file match (e.g. someone still hits /pricing.php)
-if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
-    require $file;
-    exit;
-}
-
 // Strip trailing slash and retry as directory
 $stripped = rtrim($file, '/');
 if ($stripped !== $file && is_dir($stripped)) {
@@ -142,15 +156,15 @@ if ($stripped !== $file && is_dir($stripped)) {
     if (is_file($stripped . '/index.php'))   { require_page($stripped . '/index.php'); }
 }
 
-// Append .php for old-style flat files (backwards compat)
-if (is_file($file . '.php')) {
-    require $file . '.php';
+// Slug → directory/default.php (e.g. /overview → overview/default.php)
+if (is_file($file . '/default.php')) {
+    require $file . '/default.php';
     exit;
 }
 
-// Directory/default.php for slug-style URLs without trailing slash
-if (is_file($file . '/default.php')) {
-    require $file . '/default.php';
+// Last resort: serve a .php file directly (only hits PHP internals not covered above)
+if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
+    require $file;
     exit;
 }
 
