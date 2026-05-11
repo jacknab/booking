@@ -77,6 +77,7 @@
           <li><a href="/online-booking">Online Booking</a></li>
           <li><a href="/client-management">Client Management</a></li>
           <li><a href="/client-notifications">Notifications</a></li>
+          <li><a href="/revenue-intelligence">Revenue Intelligence</a></li>
           <li><a href="/payments">Payment Solutions</a></li>
           <li><a href="/card-reader-pos">Card Reader &amp; POS</a></li>
           <li><a href="/reserve-with-google">Reserve With Google</a></li>

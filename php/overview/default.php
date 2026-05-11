@@ -477,7 +477,7 @@ require 'includes/nav.php';
       </a>
 
       <!-- wide card: Revenue Intelligence -->
-      <a href="/salonos#revenue-intelligence" class="bento-card bento-wide" style="background:linear-gradient(135deg,#0d0017,#1a0035,#0d001f);border:1px solid rgba(167,139,250,.3);position:relative;overflow:hidden;text-decoration:none;">
+      <a href="/revenue-intelligence" class="bento-card bento-wide" style="background:linear-gradient(135deg,#0d0017,#1a0035,#0d001f);border:1px solid rgba(167,139,250,.3);position:relative;overflow:hidden;text-decoration:none;">
         <div style="position:absolute;top:-60px;right:-60px;width:250px;height:250px;background:radial-gradient(circle,rgba(109,40,217,.3) 0%,transparent 70%);pointer-events:none;"></div>
         <div class="bento-card-body" style="position:relative;z-index:1;">
           <div class="bento-eyebrow" style="color:#c4b5fd;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);border-radius:50px;display:inline-block;padding:3px 12px;">Revenue Intelligence</div>

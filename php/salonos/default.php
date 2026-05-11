@@ -477,7 +477,7 @@ require 'includes/nav.php';
   <div style="position:absolute;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(109,40,217,.18) 0%,transparent 70%);pointer-events:none;"></div>
   <div style="position:absolute;bottom:-100px;left:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(167,139,250,.1) 0%,transparent 70%);pointer-events:none;"></div>
 
-  <div class="container" style="position:relative;z-index:1;">
+  <div id="revenue-intelligence" class="container" style="position:relative;z-index:1;">
 
     <div style="text-align:center;margin-bottom:64px;">
       <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:50px;padding:6px 20px;margin-bottom:24px;">

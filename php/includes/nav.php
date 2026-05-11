@@ -23,6 +23,8 @@
             <a href="/payments"><span class="nav-dot"></span>Payment Solutions</a>
             <a href="/card-reader-pos"><span class="nav-dot"></span>Card Reader &amp; POS</a>
             <a href="/payment-processing"><span class="nav-dot"></span>Payment Processing</a>
+            <div class="dropdown-section" style="margin-top:10px;">Revenue &amp; Intelligence</div>
+            <a href="/revenue-intelligence" style="font-weight:600;"><span class="nav-dot" style="background:#a78bfa;"></span>Revenue Intelligence</a>
             <div class="dropdown-section" style="margin-top:10px;">Build Your Brand</div>
             <a href="/reserve-with-google"><span class="nav-dot"></span>Reserve With Google</a>
             <a href="/client-reviews"><span class="nav-dot"></span>Client Reviews</a>
