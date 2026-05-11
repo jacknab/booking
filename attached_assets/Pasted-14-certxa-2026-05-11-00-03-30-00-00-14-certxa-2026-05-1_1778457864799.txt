@@ -1,0 +1,33 @@
+14|certxa  | 2026-05-11 00:03:30 +00:00: }
+14|certxa  | 2026-05-11 00:03:30 +00:00: [ReviewSync] Scheduler — could not query googleBusinessLocations: t [Error]: Failed query: select "store_id" from "google_business_locations" where "google_business_locations"."is_selected" = $1
+14|certxa  | 2026-05-11 00:03:30 +00:00: params: true
+14|certxa  | 2026-05-11 00:03:30 +00:00:     at Lw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-11 00:03:30 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-11 00:03:30 +00:00:     at async /apps/certxa/dist/index.cjs:72:31707
+14|certxa  | 2026-05-11 00:03:30 +00:00:     at async Timeout.n [as _onTimeout] (/apps/certxa/dist/index.cjs:705:81561) {
+14|certxa  | 2026-05-11 00:03:30 +00:00:   query: 'select "store_id" from "google_business_locations" where "google_business_locations"."is_selected" = $1',
+14|certxa  | 2026-05-11 00:03:30 +00:00:   params: [ true ],
+14|certxa  | 2026-05-11 00:03:30 +00:00:   cause: error: relation "google_business_locations" does not exist
+14|certxa  | 2026-05-11 00:03:30 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:03:30 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:03:30 +00:00:     length: 124,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:03:30 +00:00:     code: '42P01',
+14|certxa  | 2026-05-11 00:03:30 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     position: '24',
+14|certxa  | 2026-05-11 00:03:30 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:03:30 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:03:30 +00:00:     line: '1392',
+14|certxa  | 2026-05-11 00:03:30 +00:00:     routine: 'parserOpenTable'
+14|certxa  | 2026-05-11 00:03:30 +00:00:   }
+14|certxa  | 2026-05-11 00:03:30 +00:00: }
+14|certxa  | 2026-05-11 00:03:30 +00:00: [ReviewSync] Scheduler — 0 store(s) to sync (0 new schema, 0 legacy)
+14|certxa  | 2026-05-11 00:03:30 +00:00: [ReviewSync] Scheduler — sweep complete in 38ms  success=0  failed=0
