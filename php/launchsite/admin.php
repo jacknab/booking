@@ -3,7 +3,7 @@ session_start();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/data/templates.php';
 
-define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: 'launchit-admin');
+define('ADMIN_PASSWORD', '1825Logan305!');
 
 // Logout
 if (isset($_GET['logout'])) {
