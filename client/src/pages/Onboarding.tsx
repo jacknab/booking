@@ -519,7 +519,7 @@ export default function Onboarding() {
                 Certxa<span style={{ color: "#F59E0B" }}>.</span>
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-[#3B0764] mb-3" data-testid="text-step1-title">Tell us a little about yourself</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-3" data-testid="text-step1-title">Tell us a little about yourself</h2>
             <p className="text-gray-500 text-sm mb-6">Let's tailor Certxa to you! Just a few quick questions</p>
             <p className="text-gray-800 font-semibold mb-5">Who do you need Certxa for?</p>
             <div className="flex flex-col gap-3">
@@ -568,7 +568,7 @@ export default function Onboarding() {
                     Certxa<span style={{ color: "#F59E0B" }}>.</span>
                   </span>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">How can Certxa help you better manage your business</h2>
+                <h2 className="text-xl font-bold text-gray-900 text-center mb-4">How can Certxa help you better manage your business</h2>
                 <p className="text-sm text-gray-500 mb-5 text-center">I want to....</p>
                 <div className="flex flex-col gap-1">
                   {goalOptions.map((g) => (
@@ -594,7 +594,7 @@ export default function Onboarding() {
                   onClick={() => setStep(1)}
                   className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors border-r border-gray-100"
                 >
-                  back
+                  Back
                 </button>
                 <button
                   onClick={() => setStep(3)}
@@ -960,96 +960,99 @@ export default function Onboarding() {
         })()}
 
         {step === 5 && (
-          <div>
-            <div className="text-center mb-4">
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "white", letterSpacing: "-0.02em", lineHeight: 1 }}>
-                Certxa<span style={{ color: "#F59E0B" }}>.</span>
-              </span>
-            </div>
-            <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step4-title">Add your team</h2>
-            <p className="text-sm text-white/45 text-center mb-6">Each member will get your services and hours by default</p>
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div className="px-6 pt-6 pb-2">
+              <div className="text-center mb-4">
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "#3B0764", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                  Certxa<span style={{ color: "#F59E0B" }}>.</span>
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-center text-gray-900 mb-1" data-testid="text-step4-title">Add your team</h2>
+              <p className="text-sm text-gray-400 text-center mb-5">Each member will get your services and hours by default</p>
 
-            <div className="bg-[#1a0533] border border-white/10 rounded-2xl p-6">
-              <div className="space-y-3">
-                {staffNames.map((name, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow"
-                        style={{ backgroundColor: staffColors[i % staffColors.length] }}
-                      >
-                        {(name.trim() || "?").charAt(0).toUpperCase()}
-                      </div>
-                      <Input
-                        value={name}
-                        onChange={(e) => updateStaffName(i, e.target.value)}
-                        placeholder={i === 0 ? "Owner name" : "Staff member name"}
-                        data-testid={`input-staff-name-${i}`}
-                        autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
-                        className={`bg-white/6 border-white/15 text-gray-900 placeholder:text-gray-400 focus:border-[#F59E0B]/50 h-11 rounded-xl ${name.trim() === "" ? "border-red-500/50" : ""}`}
-                      />
-                      {i > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newNames = staffNames.filter((_, idx) => idx !== i);
-                            setStaffNames(newNames);
-                            setStaffCount(newNames.length);
-                          }}
-                          className="w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 border border-white/10 transition-all shrink-0"
-                          title="Remove"
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
+                <div className="space-y-3">
+                  {staffNames.map((name, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow"
+                          style={{ backgroundColor: staffColors[i % staffColors.length] }}
                         >
-                          ×
-                        </button>
-                      )}
-                      {i === 0 && (
-                        <div className="w-9 h-9 shrink-0 flex items-center justify-center">
-                          <span className="text-[10px] text-[#F59E0B] font-bold border border-[#F59E0B]/30 rounded px-1.5 py-0.5 bg-[#F59E0B]/10">YOU</span>
+                          {(name.trim() || "?").charAt(0).toUpperCase()}
                         </div>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => updateStaffName(i, e.target.value)}
+                          placeholder={i === 0 ? "Owner name" : "Staff member name"}
+                          data-testid={`input-staff-name-${i}`}
+                          autoFocus={i === staffNames.length - 1 && staffNames.length > 1}
+                          className={`flex-1 h-11 px-4 rounded-xl border text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#3B0764] text-sm bg-white transition-colors ${name.trim() === "" ? "border-red-400" : "border-gray-200"}`}
+                        />
+                        {i > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newNames = staffNames.filter((_, idx) => idx !== i);
+                              setStaffNames(newNames);
+                              setStaffCount(newNames.length);
+                            }}
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-200 transition-all shrink-0"
+                            title="Remove"
+                          >
+                            ×
+                          </button>
+                        )}
+                        {i === 0 && (
+                          <div className="w-9 h-9 shrink-0 flex items-center justify-center">
+                            <span className="text-[10px] text-[#3B0764] font-bold border border-[#3B0764]/30 rounded px-1.5 py-0.5 bg-[#3B0764]/8">YOU</span>
+                          </div>
+                        )}
+                      </div>
+                      {name.trim() === "" && (
+                        <p className="text-xs text-red-500 ml-12">Name is required</p>
                       )}
                     </div>
-                    {name.trim() === "" && (
-                      <p className="text-xs text-red-400 ml-12">Name is required</p>
-                    )}
+                  ))}
+                </div>
+
+                {staffNames.length < 20 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStaffNames(prev => [...prev, ""]);
+                      setStaffCount(prev => prev + 1);
+                    }}
+                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-gray-300 text-gray-400 hover:border-[#3B0764] hover:text-[#3B0764] text-sm font-semibold transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Add staff member
+                  </button>
+                )}
+
+                {selectedType && (
+                  <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 mt-4">
+                    <p className="text-xs text-gray-400">
+                      Setting up as a <span className="font-semibold text-gray-600">{selectedType}</span> — you can add more staff and customize further in your dashboard.
+                    </p>
                   </div>
-                ))}
-              </div>
-
-              {/* Add staff member button */}
-              {staffNames.length < 20 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStaffNames(prev => [...prev, ""]);
-                    setStaffCount(prev => prev + 1);
-                  }}
-                  className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/20 text-white/50 hover:border-[#F59E0B]/40 hover:text-[#F59E0B] text-sm font-semibold transition-all"
-                >
-                  <Plus className="w-4 h-4" /> Add staff member
-                </button>
-              )}
-
-              <div className="bg-white/4 border border-white/8 rounded-xl px-4 py-3 mt-4">
-                <p className="text-xs text-white/40">
-                  Setting up as a <span className="font-semibold text-white/70">{selectedType}</span> — you can add more staff and customize further in your dashboard.
-                </p>
+                )}
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3">
+            <div className="flex border-t border-gray-100 mt-4">
               <button onClick={() => setStep(4)} data-testid="button-back-step"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
-                <ArrowLeft className="w-4 h-4" /> Back
+                className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors border-r border-gray-100">
+                Back
               </button>
               <button
                 onClick={handleComplete}
                 disabled={!canProceed(5) || onboardMutation.isPending}
                 data-testid="button-complete-setup"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-40"
+                className="flex-1 py-4 text-sm font-semibold text-white bg-[#3B0764] hover:bg-[#2d0552] transition-colors disabled:opacity-50"
               >
-                {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin inline mr-1" />}
                 {onboardMutation.isPending ? "Setting up…" : "Complete Setup"}
-                {!onboardMutation.isPending && <ArrowRight className="w-4 h-4" />}
               </button>
             </div>
           </div>
