@@ -111,6 +111,11 @@ if (strpos($uri, '/launchsite/') === 0) {
 // ── Main certxa.com site (everything else) ───────────────────────────────────
 $file = __DIR__ . $uri;
 
+// Also check php/public/ subdirectory as an alternate page root.
+// e.g. /SalonOS/ → php/public/SalonOS/default.php
+$public_root = __DIR__ . '/public';
+$public_file = $public_root . $uri;
+
 // Root → index.php
 if ($uri === '/') {
     require __DIR__ . '/index.php';
@@ -137,34 +142,63 @@ if (substr($uri, -4) === '.php') {
     }
 }
 
-// Static file (non-PHP)
+// Static file (non-PHP) — check main root first, then public/
 if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) !== 'php') {
     serve_static($file, $mime_map);
 }
+if (is_file($public_file) && pathinfo($public_file, PATHINFO_EXTENSION) !== 'php') {
+    serve_static($public_file, $mime_map);
+}
 
-// Directory → prefer default.php, fall back to index.php
+// Directory → prefer default.php, fall back to index.php (main root)
 if (is_dir($file)) {
     $base = rtrim($file, '/');
     if (is_file($base . '/default.php')) { require_page($base . '/default.php'); }
     if (is_file($base . '/index.php'))   { require_page($base . '/index.php'); }
 }
 
-// Strip trailing slash and retry as directory
+// Directory → prefer default.php, fall back to index.php (public/ root)
+if (is_dir($public_file)) {
+    $base = rtrim($public_file, '/');
+    if (is_file($base . '/default.php')) { require_page($base . '/default.php'); }
+    if (is_file($base . '/index.php'))   { require_page($base . '/index.php'); }
+}
+
+// Strip trailing slash and retry as directory (main root)
 $stripped = rtrim($file, '/');
 if ($stripped !== $file && is_dir($stripped)) {
     if (is_file($stripped . '/default.php')) { require_page($stripped . '/default.php'); }
     if (is_file($stripped . '/index.php'))   { require_page($stripped . '/index.php'); }
 }
 
-// Slug → directory/default.php (e.g. /overview → overview/default.php)
+// Strip trailing slash and retry as directory (public/ root)
+$stripped_public = rtrim($public_file, '/');
+if ($stripped_public !== $public_file && is_dir($stripped_public)) {
+    if (is_file($stripped_public . '/default.php')) { require_page($stripped_public . '/default.php'); }
+    if (is_file($stripped_public . '/index.php'))   { require_page($stripped_public . '/index.php'); }
+}
+
+// Slug → directory/default.php (main root)
 if (is_file($file . '/default.php')) {
     require $file . '/default.php';
     exit;
 }
 
-// Last resort: serve a .php file directly (only hits PHP internals not covered above)
+// Slug → directory/default.php (public/ root)
+if (is_file($public_file . '/default.php')) {
+    require $public_file . '/default.php';
+    exit;
+}
+
+// Last resort: serve a .php file directly (main root, only PHP internals)
 if (is_file($file) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
     require $file;
+    exit;
+}
+
+// Last resort: serve a .php file directly (public/ root)
+if (is_file($public_file) && pathinfo($public_file, PATHINFO_EXTENSION) === 'php') {
+    require $public_file;
     exit;
 }
 

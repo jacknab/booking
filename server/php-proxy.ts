@@ -155,15 +155,19 @@ export function isPhpRoute(reqPath: string): boolean {
   if (reqPath === "/") return true;
 
   // Dynamic check: any clean-URL path that has a matching directory in php/
-  // with a default.php or index.php inside it is a PHP marketing page.
+  // (or php/public/) with a default.php or index.php inside it is a PHP page.
   // This automatically covers every page without a manual allowlist.
   const slug = reqPath.replace(/\/+$/, ""); // strip trailing slash
   if (slug && !slug.includes(".")) {
     const dir = path.join(phpDir, slug);
+    const publicDir = path.join(phpDir, "public", slug);
     if (
       fs.existsSync(path.join(dir, "default.php")) ||
       fs.existsSync(path.join(dir, "index.php")) ||
-      fs.existsSync(path.join(phpDir, slug + ".php"))
+      fs.existsSync(path.join(phpDir, slug + ".php")) ||
+      fs.existsSync(path.join(publicDir, "default.php")) ||
+      fs.existsSync(path.join(publicDir, "index.php")) ||
+      fs.existsSync(path.join(phpDir, "public", slug + ".php"))
     ) {
       return true;
     }
