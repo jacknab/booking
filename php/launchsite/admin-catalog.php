@@ -132,6 +132,11 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
             <span class="admin-card__title">All Templates</span>
             <div style="display:flex;gap:8px;align-items:center;">
                 <a href="#scraper" class="btn-admin btn-admin--primary btn-admin--sm">🌐 Import from URL</a>
+                <form method="POST" action="<?php echo BASE_PATH; ?>/admin-regen-all-thumbs.php" style="display:inline;"
+                      onsubmit="return confirm('Regenerate thumbnails for all React templates? This may take several minutes.')">
+                    <input type="hidden" name="filter" value="react">
+                    <button type="submit" class="btn-admin btn-admin--ghost btn-admin--sm">🖼️ Regen All Thumbs</button>
+                </form>
                 <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--orange btn-admin--sm">+ Upload New</a>
             </div>
         </div>
