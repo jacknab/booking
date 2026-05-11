@@ -510,13 +510,23 @@ $artifacts_dir  = $workspace_root . '/artifacts';
 $thumbs_dir     = __DIR__ . '/assets/img/thumbs';
 
 $pnpm = trim(shell_exec('which pnpm 2>/dev/null') ?: '');
-if (!$pnpm || !file_exists($pnpm)) $pnpm = '/home/runner/.nix-profile/bin/pnpm';
-if (!file_exists($pnpm)) $pnpm = 'pnpm';
+if (!$pnpm || !file_exists($pnpm)) $pnpm = '';
+
+$npm  = trim(shell_exec('which npm 2>/dev/null') ?: '');
+if (!$npm || !file_exists($npm)) $npm = 'npm';
 
 $env_prefix = 'HOME=' . escapeshellarg(getenv('HOME') ?: '/home/runner')
-            . ' PATH=' . escapeshellarg(getenv('PATH') ?: '/home/runner/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin');
+            . ' PATH=' . escapeshellarg(getenv('PATH') ?: '/nix/store/1lagpgadaybvs1n2312gysg2phjk89y8-nodejs-20.20.0-wrapped/bin:/usr/local/bin:/usr/bin:/bin');
 
 // ── Begin streaming output ────────────────────────────────────────────────────
+
+// Disable proxy/CDN buffering so each step appears in the browser immediately.
+// Without these headers, nginx / Express compression / Cloudflare would hold
+// the chunked response until the full body is ready.
+header('Content-Type: text/html; charset=utf-8');
+header('X-Accel-Buffering: no');
+header('Cache-Control: no-cache');
+header('Transfer-Encoding: chunked');
 
 ob_implicit_flush(true);
 @ob_end_flush();
@@ -695,16 +705,25 @@ function run_cmd_progress(string $cmd, string $cwd = ''): array {
     return ['output' => $out, 'code' => $code];
 }
 
-$r = run_cmd_progress("$env_prefix " . escapeshellarg($pnpm) . " install --no-frozen-lockfile", $workspace_root);
+// Install dependencies directly in the template directory.
+// We do NOT run in the workspace root — there is no pnpm-workspace.yaml and
+// running a full workspace install would reinstall thousands of packages and
+// take many minutes. Installing in the template dir is fast and self-contained.
+if ($pnpm) {
+    $r = run_cmd_progress("$env_prefix " . escapeshellarg($pnpm) . " install --no-frozen-lockfile", $dest_dir);
+} else {
+    // pnpm not found — fall back to npm
+    $r = run_cmd_progress("$env_prefix " . escapeshellarg($npm) . " install --legacy-peer-deps", $dest_dir);
+}
 
 if ($r['code'] !== 0) {
-    step_log('⚠️', 'Workspace install had issues — trying local install as fallback…', $r['output']);
-    $r2 = run_cmd("$env_prefix " . escapeshellarg($pnpm) . " install --ignore-workspace", $dest_dir);
+    // Last-ditch npm fallback
+    $r2 = run_cmd("$env_prefix " . escapeshellarg($npm) . " install --legacy-peer-deps", $dest_dir);
     if ($r2['code'] !== 0) {
-        step_log('❌', 'Dependency installation failed', $r2['output']);
+        step_log('❌', 'Dependency installation failed', $r['output'] . "\n" . ($r2['output'] ?? ''));
         abort('Could not install dependencies. Check that your <code>package.json</code> is valid and all package names are correct.');
     }
-    step('✅', 'Dependencies installed (local fallback)');
+    step('✅', 'Dependencies installed (npm fallback)');
 } else {
     step('✅', 'Dependencies installed');
 }
@@ -712,7 +731,16 @@ if ($r['code'] !== 0) {
 // ── 6. Vite build ────────────────────────────────────────────────────────────
 step('🔨', 'Building the React app (<code>vite build</code>)…');
 
-$r = run_cmd("$env_prefix " . escapeshellarg($pnpm) . " exec vite build", $dest_dir);
+// Run vite build using the locally-installed binary so it works whether
+// pnpm or npm was used for install, and without requiring workspace context.
+$vite_bin = $dest_dir . '/node_modules/.bin/vite';
+if (file_exists($vite_bin)) {
+    $r = run_cmd("$env_prefix " . escapeshellarg($vite_bin) . " build", $dest_dir);
+} elseif ($pnpm) {
+    $r = run_cmd("$env_prefix " . escapeshellarg($pnpm) . " exec vite build", $dest_dir);
+} else {
+    $r = run_cmd("$env_prefix " . escapeshellarg($npm) . " run build", $dest_dir);
+}
 
 if ($r['code'] !== 0 || !file_exists($built_dir . '/index.html')) {
     step_log('❌', 'Build failed', $r['output']);

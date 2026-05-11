@@ -51,7 +51,7 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
-import { startPhpServer, phpMiddleware, isPhpReady } from "./php-proxy";
+import { startPhpServer, phpMiddleware, isPhpReady, isPhpRoute } from "./php-proxy";
 import { pool } from "./db";
 import { createRequire } from "module";
 // esbuild injects __filename as a real global in CJS output (same as __dirname).
@@ -216,7 +216,16 @@ app.use((req, res, next) => {
 });
 
 // --- Middleware ---
-app.use(compression());
+// Skip compression for PHP-proxied routes — the PHP built-in server streams
+// chunked HTML (e.g. admin-install.php progress steps) and gzip buffering
+// prevents that output from reaching the browser until the full response
+// is complete, making streaming pages appear frozen.
+app.use(compression({
+  filter: (req: Request, _res: Response) => {
+    if (isPhpRoute(req.path)) return false;
+    return compression.filter(req, _res);
+  },
+}));
 app.use(cookieParser());
 app.use(
   express.json({

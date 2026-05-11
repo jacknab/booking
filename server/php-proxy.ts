@@ -68,6 +68,7 @@ export function startPhpServer(): void {
     "-d", "upload_max_filesize=55M",
     "-d", "post_max_size=60M",
     "-d", "memory_limit=256M",
+    "-d", "output_buffering=Off",
     "-S", `${PHP_HOST}:${PHP_PORT}`,
     "router.php",
   ], {
