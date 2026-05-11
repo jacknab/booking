@@ -1,38 +1,30 @@
 -- Migration: Add Stripe Subscription Tables
--- This migration adds tables for Stripe subscription management
 
--- Create enum for subscription status
-CREATE TYPE stripe_subscription_status AS ENUM (
-    'not_started',
-    'incomplete',
-    'incomplete_expired',
-    'trialing',
-    'active',
-    'past_due',
-    'canceled',
-    'unpaid',
-    'paused'
-);
+-- Create enum for subscription status (idempotent)
+DO $$ BEGIN
+  CREATE TYPE stripe_subscription_status AS ENUM (
+    'not_started', 'incomplete', 'incomplete_expired', 'trialing',
+    'active', 'past_due', 'canceled', 'unpaid', 'paused'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create enum for order status
-CREATE TYPE stripe_order_status AS ENUM (
-    'pending',
-    'completed',
-    'canceled'
-);
+-- Create enum for order status (idempotent)
+DO $$ BEGIN
+  CREATE TYPE stripe_order_status AS ENUM ('pending', 'completed', 'canceled');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Stripe customers table - Links users to Stripe customers
 CREATE TABLE IF NOT EXISTS stripe_customers (
   id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL, -- References users.id (string UUID)
+  user_id TEXT NOT NULL,
   customer_id TEXT NOT NULL UNIQUE,
-  store_number INTEGER UNIQUE, -- References locations.id
+  store_number INTEGER UNIQUE,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   deleted_at TIMESTAMP DEFAULT NULL
 );
 
--- Stripe subscriptions table - Manages subscription data
 CREATE TABLE IF NOT EXISTS stripe_subscriptions (
   id SERIAL PRIMARY KEY,
   customer_id TEXT UNIQUE NOT NULL,
@@ -49,7 +41,6 @@ CREATE TABLE IF NOT EXISTS stripe_subscriptions (
   deleted_at TIMESTAMP DEFAULT NULL
 );
 
--- Stripe orders table - Stores order/purchase information
 CREATE TABLE IF NOT EXISTS stripe_orders (
     id SERIAL PRIMARY KEY,
     checkout_session_id TEXT NOT NULL,
@@ -65,7 +56,6 @@ CREATE TABLE IF NOT EXISTS stripe_orders (
     deleted_at TIMESTAMP DEFAULT NULL
 );
 
--- Billing plans table - Available subscription plans
 CREATE TABLE IF NOT EXISTS billing_plans (
   id SERIAL PRIMARY KEY,
   code TEXT UNIQUE NOT NULL,
@@ -81,7 +71,6 @@ CREATE TABLE IF NOT EXISTS billing_plans (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Subscriptions table - Links stores to billing plans
 CREATE TABLE IF NOT EXISTS subscriptions (
   id SERIAL PRIMARY KEY,
   store_number INTEGER NOT NULL REFERENCES locations(id),
@@ -99,7 +88,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Scheduled plan changes table - For handling subscription upgrades/downgrades
 CREATE TABLE IF NOT EXISTS scheduled_plan_changes (
   id SERIAL PRIMARY KEY,
   stripe_subscription_id TEXT NOT NULL,
@@ -110,14 +98,12 @@ CREATE TABLE IF NOT EXISTS scheduled_plan_changes (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Insert default billing plans
 INSERT INTO billing_plans (code, name, description, price_cents, contacts_min, contacts_max, interval, sms_credits) VALUES
 ('starter', 'Starter Plan', 'Perfect for small businesses', 2900, 0, 100, 'month', 500),
 ('professional', 'Professional Plan', 'Great for growing businesses', 4900, 101, 500, 'month', 1500),
 ('enterprise', 'Enterprise Plan', 'For large businesses', 8900, 501, 9999, 'month', 5000)
 ON CONFLICT (code) DO NOTHING;
 
--- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_stripe_customers_user_id ON stripe_customers(user_id);
 CREATE INDEX IF NOT EXISTS idx_stripe_customers_customer_id ON stripe_customers(customer_id);
 CREATE INDEX IF NOT EXISTS idx_stripe_customers_store_number ON stripe_customers(store_number);
