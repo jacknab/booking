@@ -3,11 +3,11 @@ session_start();
 require_once __DIR__ . '/config.php';
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -19,7 +19,7 @@ $template_id = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['templat
 
 if (!$template_id || !isset($all_templates[$template_id])) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Template not found.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -120,7 +120,7 @@ if (!str_contains($lint, 'No syntax errors')) {
         'type' => 'error',
         'msg'  => 'Could not save — generated entry has a syntax error. No changes were made. Please check for special characters.',
     ];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -130,5 +130,5 @@ $_SESSION['flash'] = [
     'type' => 'success',
     'msg'  => '"' . htmlspecialchars($name) . '" (' . $template_id . ') updated successfully.',
 ];
-header('Location: ' . BASE_PATH . '/admin.php');
+header('Location: ' . BASE_PATH . '/admin-catalog.php');
 exit;

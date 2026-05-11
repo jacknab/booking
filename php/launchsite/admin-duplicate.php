@@ -3,11 +3,11 @@ session_start();
 require_once __DIR__ . '/config.php';
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -34,7 +34,7 @@ if (!$new_id) {
 
 if ($errors) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => implode(' ', $errors)];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -61,7 +61,7 @@ if ($type === 'react') {
         exec('cp -r ' . escapeshellarg($src_built) . ' ' . escapeshellarg($new_built), $out, $code);
         if ($code !== 0) {
             $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Failed to copy built template files.'];
-            header('Location: ' . BASE_PATH . '/admin.php');
+            header('Location: ' . BASE_PATH . '/admin-catalog.php');
             exit;
         }
         $copied_files = true;
@@ -131,7 +131,7 @@ if (!str_contains($lint, 'No syntax errors')) {
         file_get_contents($templates_file)
     );
     file_put_contents($templates_file, $tpl_content);
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -146,5 +146,5 @@ $_SESSION['flash'] = [
     'msg'  => '"' . $new_name . '" (' . $new_id . ') duplicated from "' . $src_name . '".' . $detail,
 ];
 
-header('Location: ' . BASE_PATH . '/admin.php');
+header('Location: ' . BASE_PATH . '/admin-catalog.php');
 exit;

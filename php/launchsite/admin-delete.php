@@ -5,11 +5,11 @@ require_once __DIR__ . '/config.php';
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: 'launchit-admin');
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -42,7 +42,7 @@ if ($errors) {
 <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/assets/css/admin.css">
 </head><body class="admin-body">
 <header class="admin-header">
-    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin.php">
+    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin-catalog.php">
         <div class="admin-header__logo">🚀</div> Launchit Admin
     </a>
 </header>
@@ -54,7 +54,7 @@ if ($errors) {
         </ul>
     </div>
     <div class="result-actions">
-        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin-catalog.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
     </div>
 </div></body></html><?php
     exit;
@@ -106,7 +106,7 @@ $deleted[] = 'Catalog entry in <code>data/templates.php</code>';
 </head>
 <body class="admin-body">
 <header class="admin-header">
-    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin.php">
+    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin-catalog.php">
         <div class="admin-header__logo">🚀</div>
         Launchit Admin
         <span class="admin-header__tag">Certxa</span>
@@ -139,7 +139,7 @@ $deleted[] = 'Catalog entry in <code>data/templates.php</code>';
     </div>
 
     <div class="result-actions" style="margin-top:24px;">
-        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--primary">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin-catalog.php" class="btn-admin btn-admin--primary">← Back to Admin</a>
     </div>
 </div>
 </body>

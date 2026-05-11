@@ -5,11 +5,11 @@ require_once __DIR__ . '/config.php';
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: 'launchit-admin');
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -19,7 +19,7 @@ $template_id = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['templat
 
 if (!$template_id || !isset($all_templates[$template_id])) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Template not found: ' . htmlspecialchars($template_id)];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -147,7 +147,7 @@ if ($type !== 'react') {
     $_SESSION['flash'] = $ok
         ? ['type' => 'success', 'msg' => 'Thumbnail regenerated for "' . $t['name'] . '"']
         : ['type' => 'error',   'msg' => 'Could not regenerate thumbnail — GD library unavailable.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -179,7 +179,7 @@ $name_safe = htmlspecialchars($t['name']);
 </head>
 <body class="admin-body">
 <header class="admin-header">
-    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin.php">
+    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin-catalog.php">
         <div class="admin-header__logo">🚀</div>
         Launchit Admin
     </a>
@@ -213,7 +213,7 @@ $env_prefix   = 'HOME=' . escapeshellarg(getenv('HOME') ?: '/home/runner')
 if (!file_exists($screenshot_script)) {
     step_t('❌', "Screenshot script not found at <code>scripts/screenshot-template.mjs</code>");
     echo "</ul></div><div class='result-actions' style='margin-top:24px;'>"
-       . "<a href='" . BASE_PATH . "/admin.php' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
+       . "<a href='" . BASE_PATH . "/admin-catalog.php' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
        . "</div></div></body></html>";
     exit;
 }
@@ -291,7 +291,7 @@ if ($screenshot_ok) {
     </div>
 
     <div class="result-actions" style="margin-top:24px;">
-        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--primary">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin-catalog.php" class="btn-admin btn-admin--primary">← Back to Admin</a>
         <a href="<?php echo BASE_PATH; ?>/preview.php?id=<?php echo urlencode($template_id); ?>"
            class="btn-admin btn-admin--orange">Preview Template ↗</a>
     </div>

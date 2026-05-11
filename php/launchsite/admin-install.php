@@ -33,7 +33,7 @@ function abort(string $msg): void {
        . "<div class='result-box result-box--error'><div class='result-box__title'>Installation failed</div>"
        . "<p style='color:rgba(255,255,255,0.6);font-size:0.875rem;'>$msg</p></div>"
        . "<div class='result-actions'>"
-       . "<a href='" . BASE_PATH . "/admin.php#upload' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
+       . "<a href='" . BASE_PATH . "/admin.php' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
        . "</div></div></body></html>";
     exit;
 }
@@ -558,7 +558,7 @@ ob_implicit_flush(true);
         </ul>
     </div>
     <div class="result-actions">
-        <a href="<?php echo BASE_PATH; ?>/admin.php#upload" class="btn-admin btn-admin--ghost">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
     </div>
 </div></body></html>
 <?php exit; endif; ?>

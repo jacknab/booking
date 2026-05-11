@@ -11,11 +11,11 @@ require_once __DIR__ . '/config.php';
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: 'launchit-admin');
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -25,7 +25,7 @@ $template_id = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['templat
 
 if (!$template_id || !isset($all_templates[$template_id])) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Template not found: ' . $template_id];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -40,7 +40,7 @@ if (!is_dir($source_dir) || !file_exists($source_dir . '/package.json')) {
         'type' => 'error',
         'msg'  => 'Source not found at artifacts/template-' . $template_id . '/. Use Replace to upload a new ZIP.',
     ];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -393,5 +393,5 @@ $_SESSION['flash'] = [
             . '. Accent: ' . $accent . ' · Hero: "' . mb_substr($hero_tagline, 0, 60) . '"',
 ];
 
-header('Location: ' . BASE_PATH . '/admin.php');
+header('Location: ' . BASE_PATH . '/admin-catalog.php');
 exit;

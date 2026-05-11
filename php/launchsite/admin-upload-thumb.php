@@ -5,11 +5,11 @@ require_once __DIR__ . '/config.php';
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: 'launchit-admin');
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -19,7 +19,7 @@ $template_id = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['templat
 
 if (!$template_id || !isset($all_templates[$template_id])) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Template not found: ' . htmlspecialchars($template_id)];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -40,7 +40,7 @@ $upload_err_map = [
 $upload_code = $_FILES['thumbimage']['error'] ?? UPLOAD_ERR_NO_FILE;
 if ($upload_code !== UPLOAD_ERR_OK) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => $upload_err_map[$upload_code] ?? "Upload error (code $upload_code)."];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -50,7 +50,7 @@ $allowed = ['image/jpeg', 'image/png', 'image/webp'];
 
 if (!in_array($mime, $allowed)) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Only JPG, PNG, and WebP images are accepted.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -58,7 +58,7 @@ if (!in_array($mime, $allowed)) {
 
 if (!function_exists('imagecreatetruecolor')) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'GD library is not available on this server.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -71,7 +71,7 @@ $src = match ($mime) {
 
 if (!$src) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Could not read the uploaded image. It may be corrupt.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -121,5 +121,5 @@ if ($ok) {
     ];
 }
 
-header('Location: ' . BASE_PATH . '/admin.php');
+header('Location: ' . BASE_PATH . '/admin-catalog.php');
 exit;

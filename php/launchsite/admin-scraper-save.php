@@ -3,12 +3,12 @@ session_start();
 require_once __DIR__ . '/config.php';
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -31,20 +31,20 @@ $valid_categories = ['Hair Salon', 'Barbershop', 'Nail Salon'];
 
 if (!$uuid || !$name || !$template_id || !in_array($category, $valid_categories)) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Missing required fields. Please go back and fill everything in.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
 if (isset($all_templates[$template_id])) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Template ID "' . htmlspecialchars($template_id) . '" already exists. Choose a different ID.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
 $tmpDir = __DIR__ . '/scraped-tmp/' . $uuid;
 if (!is_dir($tmpDir) || !file_exists($tmpDir . '/index.html')) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Scraped session not found or expired. Please re-scrape the URL.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -77,7 +77,7 @@ if (!rename($tmpDir, $destDir)) {
 
 if (!is_dir($destDir) || !file_exists($destDir . '/index.html')) {
     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Failed to move scraped files into templates directory. Check server permissions.'];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -144,7 +144,7 @@ if (!str_contains((string) $lint, 'No syntax errors')) {
         'type' => 'error',
         'msg'  => 'Template entry generated a PHP syntax error — check for special characters in the name. No changes were saved.',
     ];
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -282,7 +282,7 @@ function step_log(string $icon, string $msg, string $log): void {
 </head>
 <body class="admin-body">
 <header class="admin-header">
-    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin.php">
+    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin-catalog.php">
         <div class="admin-header__logo">🚀</div>
         Launchit Admin
     </a>
@@ -410,7 +410,7 @@ if (!$screenshot_ok) {
     </div>
 
     <div class="result-actions" style="margin-top:24px;">
-        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--primary">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin-catalog.php" class="btn-admin btn-admin--primary">← Back to Admin</a>
         <a href="<?php echo BASE_PATH; ?>/preview.php?id=<?php echo urlencode($template_id); ?>"
            class="btn-admin btn-admin--orange" target="_blank">Preview Template ↗</a>
         <form method="POST" action="<?php echo BASE_PATH; ?>/admin-thumb.php"

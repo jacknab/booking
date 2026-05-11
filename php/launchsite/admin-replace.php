@@ -5,11 +5,11 @@ require_once __DIR__ . '/config.php';
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: 'launchit-admin');
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . '/admin.php');
+    header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
 
@@ -32,7 +32,7 @@ function abort(string $msg): void {
        . "<div class='result-box result-box--error'><div class='result-box__title'>Rebuild failed</div>"
        . "<p style='color:rgba(255,255,255,0.6);font-size:0.875rem;'>$msg</p></div>"
        . "<div class='result-actions'>"
-       . "<a href='" . BASE_PATH . "/admin.php' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
+       . "<a href='" . BASE_PATH . "/admin-catalog.php' class='btn-admin btn-admin--ghost'>← Back to Admin</a>"
        . "</div></div></body></html>";
     exit;
 }
@@ -352,7 +352,7 @@ ob_end_flush();
 </head>
 <body class="admin-body">
 <header class="admin-header">
-    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin.php">
+    <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin-catalog.php">
         <div class="admin-header__logo">🚀</div>
         Launchit Admin
     </a>
@@ -375,7 +375,7 @@ ob_end_flush();
         </ul>
     </div>
     <div class="result-actions">
-        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin-catalog.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
     </div>
 </div></body></html>
 <?php exit; endif; ?>
@@ -608,7 +608,7 @@ $preview_url = BASE_PATH . '/preview.php?id=' . urlencode($template_id);
 
     <div class="result-actions">
         <a href="<?php echo $preview_url; ?>" target="_blank" class="btn-admin btn-admin--orange">Preview Updated Template ↗</a>
-        <a href="<?php echo BASE_PATH; ?>/admin.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
+        <a href="<?php echo BASE_PATH; ?>/admin-catalog.php" class="btn-admin btn-admin--ghost">← Back to Admin</a>
     </div>
 </div>
 </body>
