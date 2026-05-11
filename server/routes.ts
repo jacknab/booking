@@ -6197,10 +6197,10 @@ If you have any questions, please contact your administrator.
     // Tables and the columns we care about verifying
     const CHECKS: { table: string; columns: string[] }[] = [
       { table: "locations",           columns: ["sms_allowance", "sms_credits", "weekly_digest_opt_out", "is_training_sandbox", "pos_enabled"] },
-      { table: "users",               columns: ["role", "staff_id", "trial_started_at", "trial_ends_at", "subscription_status"] },
+      { table: "users",               columns: ["role", "staff_id", "trial_started_at", "trial_ends_at", "subscription_status", "permissions", "password_changed"] },
       { table: "staff",               columns: ["password", "permissions", "status", "employment_type", "invite_token", "password_changed"] },
       { table: "services",            columns: ["deposit_required", "deposit_amount", "category_id"] },
-      { table: "appointments",        columns: ["deposit_required", "deposit_amount", "deposit_paid", "gift_card_id", "loyalty_points_earned", "loyalty_points_redeemed", "recurrence_rule"] },
+      { table: "appointments",        columns: ["deposit_required", "deposit_amount", "deposit_paid", "gift_card_id", "loyalty_points_earned", "loyalty_points_redeemed", "recurrence_rule", "started_at", "completed_at", "tip_amount", "cancellation_reason"] },
       { table: "customers",           columns: ["loyalty_points", "allergies"] },
       { table: "billing_plans",       columns: ["code", "price_cents", "features_json", "active"] },
       { table: "subscriptions",       columns: ["store_number", "plan_code", "stripe_subscription_id"] },
@@ -6232,8 +6232,21 @@ If you have any questions, please contact your administrator.
       { table: "training_user_state", columns: ["user_id", "category_id", "help_level"] },
       { table: "training_user_profile", columns: ["user_id", "enrolled_at", "graduated_at"] },
       { table: "training_settings",   columns: ["store_id", "enabled"] },
-      { table: "conversations",       columns: ["id", "title"] },
-      { table: "messages",            columns: ["conversation_id", "role", "content"] },
+      { table: "client_intelligence", columns: ["store_id", "customer_id", "churn_risk_score", "is_drifting", "is_at_risk"] },
+      { table: "staff_intelligence",  columns: ["store_id", "staff_id", "rebooking_rate_pct", "trend"] },
+      { table: "intelligence_interventions", columns: ["store_id", "customer_id", "intervention_type", "sent_at"] },
+      { table: "growth_score_snapshots",  columns: ["store_id", "overall_score", "snapshot_date"] },
+      { table: "dead_seat_patterns",      columns: ["store_id", "day_of_week", "hour_start"] },
+      { table: "campaigns",           columns: ["store_id", "name", "status", "channel"] },
+      { table: "api_keys",            columns: ["store_id", "key_hash", "is_active"] },
+      { table: "sms_conversations",   columns: ["store_id", "client_phone", "direction"] },
+      { table: "google_review_responses", columns: ["google_review_id", "store_id", "response_text"] },
+      { table: "pro_crews",           columns: ["store_id", "name", "active"] },
+      { table: "pro_service_orders",  columns: ["store_id", "order_number", "status"] },
+      { table: "clients",             columns: ["store_id", "full_name", "client_status"] },
+      { table: "client_tags",         columns: ["store_id", "tag_name"] },
+      { table: "waitlist",            columns: ["store_id", "status"] },
+      { table: "reviews",             columns: ["store_id", "rating"] },
     ];
 
     try {
