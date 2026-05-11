@@ -116,67 +116,59 @@ process.on("exit", stopPhpServer);
 process.on("SIGINT", () => { stopPhpServer(); process.exit(); });
 process.on("SIGTERM", () => { stopPhpServer(); process.exit(); });
 
-// ── Routes that belong to the PHP site ──────────────────────────────────────
-// Exact paths served by the main certxa.com PHP site
-const PHP_EXACT_PATHS = new Set([
-  "/",
-  "/sitemap.xml",
-  "/robots.txt",
-  "/favicon.svg",
-  // Legal & marketing clean-URL pages (router.php maps these → *.php)
-  "/privacy",
-  "/terms",
-  "/about",
-  "/contact",
-  "/pricing",
-  "/overview",
-  "/salonos",
-  "/launchsite",
-  "/blog",
-  "/careers",
-]);
-
-// Path prefixes that belong to PHP (main site + launchsite catalog)
-const PHP_PREFIXES = [
-  "/assets/",   // main certxa site CSS/JS/images
-  "/videos/",   // main site product videos
-  "/launchsite/", // entire LaunchSite template catalog
-  "/editor/",   // template editor
-  "/templates/", // main certxa site templates pages
-];
-
-// Express/booking-app paths — must never be forwarded to PHP
+// ── Routes that must NEVER go to PHP ────────────────────────────────────────
+// Express/booking-app paths — always handled by the Node.js server
 const BOOKING_APP_PREFIXES = [
-  "/api/auth",
-  "/api/stores",
-  "/api/appointments",
-  "/api/staff",
-  "/api/services",
-  "/api/customers",
-  "/api/payments",
-  "/api/stripe",
-  "/api/twilio",
-  "/api/google",
-  "/api/reports",
-  "/api/admin",
-  "/api/queue",
-  "/api/pos",
-  "/api/webhooks",
+  "/api/",
   "/vite-hmr",
   "/src/",
   "/node_modules/",
   "/@",
 ];
 
+// Path prefixes that always belong to PHP regardless of filesystem check
+const PHP_PREFIXES = [
+  "/assets/",    // main certxa site CSS/JS/images
+  "/videos/",    // main site product videos
+  "/launchsite/",// entire LaunchSite template catalog
+  "/editor/",    // template editor
+  "/templates/", // main certxa site templates pages
+];
+
+// Static root-level PHP files
+const PHP_ROOT_FILES = new Set(["/sitemap.xml", "/robots.txt", "/favicon.svg"]);
+
 export function isPhpRoute(reqPath: string): boolean {
+  // Never send booking/API/Vite paths to PHP
   for (const prefix of BOOKING_APP_PREFIXES) {
     if (reqPath.startsWith(prefix)) return false;
   }
+
+  // Always-PHP prefixes and static root files
   if (reqPath.endsWith(".php")) return true;
-  if (PHP_EXACT_PATHS.has(reqPath)) return true;
+  if (PHP_ROOT_FILES.has(reqPath)) return true;
   for (const prefix of PHP_PREFIXES) {
     if (reqPath.startsWith(prefix)) return true;
   }
+
+  // Root
+  if (reqPath === "/") return true;
+
+  // Dynamic check: any clean-URL path that has a matching directory in php/
+  // with a default.php or index.php inside it is a PHP marketing page.
+  // This automatically covers every page without a manual allowlist.
+  const slug = reqPath.replace(/\/+$/, ""); // strip trailing slash
+  if (slug && !slug.includes(".")) {
+    const dir = path.join(phpDir, slug);
+    if (
+      fs.existsSync(path.join(dir, "default.php")) ||
+      fs.existsSync(path.join(dir, "index.php")) ||
+      fs.existsSync(path.join(phpDir, slug + ".php"))
+    ) {
+      return true;
+    }
+  }
+
   return false;
 }
 
