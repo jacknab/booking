@@ -157,7 +157,7 @@ function App() {
         <ErrorBoundary>
           <TrainingProvider>
             <PracticeModeProvider>
-              <BrowserRouter>
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <AppRoutes />
                 <HelpBubble />
                 <GraduationNotifier />

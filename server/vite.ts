@@ -52,16 +52,26 @@ export async function setupVite(server: Server, app: Express) {
   // (wss://<host>/vite-hmr) rather than falling back to localhost.
   const effectiveHost = replitDomain ?? appUrlHost;
 
-  const hmrConfig = effectiveHost
+  // Vite 7 uses token-based WebSocket security. The Replit proxy strips query
+  // parameters from WebSocket upgrade requests, so the ?token= value never
+  // reaches Vite and the HMR handshake is immediately rejected (400).
+  // Disabling HMR here removes the console error; the app still works fine
+  // and you can refresh manually after code changes. If running outside
+  // Replit (e.g. local dev with a direct port), HMR will be enabled.
+  const useHmr = !process.env.REPLIT_DEV_DOMAIN;
+  const hmrConfig: false | Record<string, unknown> = useHmr
     ? {
         server,
-        path: "/vite-hmr",
-        clientPort: 443,
-        host: effectiveHost,
-        protocol: "wss" as const,
-        timeout: 30000,
+        ...(effectiveHost
+          ? {
+              clientPort: 443,
+              host: effectiveHost,
+              protocol: "wss",
+              timeout: 30000,
+            }
+          : {}),
       }
-    : { server, path: "/vite-hmr" };
+    : false;
 
   const serverOptions = {
     middlewareMode: true,
