@@ -13,6 +13,10 @@ externalPort = 80
 localPort = 24678
 externalPort = 3001
 
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
 [env]
 PORT = "5000"
 
@@ -55,12 +59,12 @@ name = "Production Preview"
 author = "agent"
 
 [workflows.workflow.metadata]
-outputType = "webview"
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run build && NODE_ENV=production node dist/index.cjs"
-waitForPort = 5000
+args = "npm run build && PORT=3000 NODE_ENV=production node dist/index.cjs"
+waitForPort = 3000
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0", "javascript_openai_ai_integrations:2.0.0"]
