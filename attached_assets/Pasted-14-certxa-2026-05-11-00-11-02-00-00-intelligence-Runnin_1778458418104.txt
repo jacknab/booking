@@ -1,0 +1,166 @@
+14|certxa  | 2026-05-11 00:11:02 +00:00: [intelligence] Running for 0 stores
+14|certxa  | 2026-05-11 00:12:14 +00:00: 12:12:14 AM [express] GET /api/auth/user 401 in 10ms :: {"message":"Unauthorized"}
+14|certxa  | 2026-05-11 00:12:19 +00:00: 12:12:19 AM [express] GET /api/auth/user 401 in 2ms :: {"message":"Unauthorized"}
+14|certxa  | 2026-05-11 00:12:20 +00:00: [PHP] [Mon May 11 00:12:20 2026] 127.0.0.1:47064 Accepted
+14|certxa  | 2026-05-11 00:12:20 +00:00: [PHP] [Mon May 11 00:12:20 2026] 127.0.0.1:47064 Closing
+14|certxa  | 2026-05-11 00:12:24 +00:00: [Google Login OAuth] OAuth URL generated — initiating authentication flow
+14|certxa  | 2026-05-11 00:12:24 +00:00: [Google Login OAuth]   callback_url (sent to Google): https://certxa.com/api/auth/google/callback
+14|certxa  | 2026-05-11 00:12:24 +00:00: Google OAuth: Initiating authentication...
+14|certxa  | 2026-05-11 00:12:24 +00:00: 12:12:24 AM [express] GET /api/auth/google 302 in 30ms
+14|certxa  | 2026-05-11 00:12:25 +00:00: [Google Login OAuth] Callback — profile returned for: jacknabvoip@gmail.com
+14|certxa  | 2026-05-11 00:12:25 +00:00: [Google Login OAuth] Strategy error: t [Error]: Failed query: select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."google_id" = $1
+14|certxa  | 2026-05-11 00:12:25 +00:00: params: 102906033081773240550
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at Lw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at async /apps/certxa/dist/index.cjs:72:31707
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at async Tf.findUserByGoogleId (/apps/certxa/dist/index.cjs:72:45700)
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at async Strategy._verify (/apps/certxa/dist/index.cjs:85:2681) {
+14|certxa  | 2026-05-11 00:12:25 +00:00:   query: 'select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."google_id" = $1',
+14|certxa  | 2026-05-11 00:12:25 +00:00:   params: [ '102906033081773240550' ],
+14|certxa  | 2026-05-11 00:12:25 +00:00:   cause: error: column "permissions" does not exist
+14|certxa  | 2026-05-11 00:12:25 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:12:25 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:12:25 +00:00:     length: 112,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     code: '42703',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     position: '128',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     line: '3665',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     routine: 'errorMissingColumn'
+14|certxa  | 2026-05-11 00:12:25 +00:00:   }
+14|certxa  | 2026-05-11 00:12:25 +00:00: }
+14|certxa  | 2026-05-11 00:12:25 +00:00: Internal Server Error: t [Error]: Failed query: select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."google_id" = $1
+14|certxa  | 2026-05-11 00:12:25 +00:00: params: 102906033081773240550
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at Lw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at async /apps/certxa/dist/index.cjs:72:31707
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at async Tf.findUserByGoogleId (/apps/certxa/dist/index.cjs:72:45700)
+14|certxa  | 2026-05-11 00:12:25 +00:00:     at async Strategy._verify (/apps/certxa/dist/index.cjs:85:2681) {
+14|certxa  | 2026-05-11 00:12:25 +00:00:   query: 'select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."google_id" = $1',
+14|certxa  | 2026-05-11 00:12:25 +00:00:   params: [ '102906033081773240550' ],
+14|certxa  | 2026-05-11 00:12:25 +00:00:   cause: error: column "permissions" does not exist
+14|certxa  | 2026-05-11 00:12:25 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:12:25 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:12:25 +00:00:     length: 112,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     code: '42703',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     position: '128',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:12:25 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     line: '3665',
+14|certxa  | 2026-05-11 00:12:25 +00:00:     routine: 'errorMissingColumn'
+14|certxa  | 2026-05-11 00:12:25 +00:00:   }
+14|certxa  | 2026-05-11 00:12:25 +00:00: }
+14|certxa  | 2026-05-11 00:12:25 +00:00: 12:12:25 AM [express] GET /api/auth/google/callback 500 in 211ms :: {"message":"Failed query: select \"id\", \"email\", \"password\", \"google_id\", \"first_name\", \"last_name\", \"profile_image_url\", \"role\", \"is_admin\", \"staff_id\", \"permissions\", \"onboarding_completed\", \"password_changed\", \"created_at\", \"updated_at\", \"subscription_status\", \"trial_started_at\", \"trial_ends_at\" from \"users\" where \"users\".\"google_id\" = $1\nparams: 102906033081773240550"}
+14|certxa  | 2026-05-11 00:12:29 +00:00: Registration error: t [Error]: Failed query: select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."email" = $1
+14|certxa  | 2026-05-11 00:12:29 +00:00: params: toby@me.com
+14|certxa  | 2026-05-11 00:12:29 +00:00:     at Lw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-11 00:12:29 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-11 00:12:29 +00:00:     at async /apps/certxa/dist/index.cjs:72:31707
+14|certxa  | 2026-05-11 00:12:29 +00:00:     at async /apps/certxa/dist/index.cjs:85:13196 {
+14|certxa  | 2026-05-11 00:12:29 +00:00:   query: 'select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."email" = $1',
+14|certxa  | 2026-05-11 00:12:29 +00:00:   params: [ 'toby@me.com' ],
+14|certxa  | 2026-05-11 00:12:29 +00:00:   cause: error: column "permissions" does not exist
+14|certxa  | 2026-05-11 00:12:29 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:12:29 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:12:29 +00:00:     length: 112,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:12:29 +00:00:     code: '42703',
+14|certxa  | 2026-05-11 00:12:29 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     position: '128',
+14|certxa  | 2026-05-11 00:12:29 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:12:29 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:12:29 +00:00:     line: '3665',
+14|certxa  | 2026-05-11 00:12:29 +00:00:     routine: 'errorMissingColumn'
+14|certxa  | 2026-05-11 00:12:29 +00:00:   }
+14|certxa  | 2026-05-11 00:12:29 +00:00: }
+14|certxa  | 2026-05-11 00:12:29 +00:00: 12:12:29 AM [express] POST /api/auth/register 500 in 5ms :: {"message":"Registration failed"}
+14|certxa  | 2026-05-11 00:12:41 +00:00: Login error: t [Error]: Failed query: select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."email" = $1
+14|certxa  | 2026-05-11 00:12:41 +00:00: params: toby@me.com
+14|certxa  | 2026-05-11 00:12:41 +00:00:     at Lw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-11 00:12:41 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-11 00:12:41 +00:00:     at async /apps/certxa/dist/index.cjs:72:31707
+14|certxa  | 2026-05-11 00:12:41 +00:00:     at async /apps/certxa/dist/index.cjs:85:14037 {
+14|certxa  | 2026-05-11 00:12:41 +00:00:   query: 'select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."email" = $1',
+14|certxa  | 2026-05-11 00:12:41 +00:00:   params: [ 'toby@me.com' ],
+14|certxa  | 2026-05-11 00:12:41 +00:00:   cause: error: column "permissions" does not exist
+14|certxa  | 2026-05-11 00:12:41 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:12:41 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:12:41 +00:00:     length: 112,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:12:41 +00:00:     code: '42703',
+14|certxa  | 2026-05-11 00:12:41 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     position: '128',
+14|certxa  | 2026-05-11 00:12:41 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:12:41 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:12:41 +00:00:     line: '3665',
+14|certxa  | 2026-05-11 00:12:41 +00:00:     routine: 'errorMissingColumn'
+14|certxa  | 2026-05-11 00:12:41 +00:00:   }
+14|certxa  | 2026-05-11 00:12:41 +00:00: }
+14|certxa  | 2026-05-11 00:12:41 +00:00: 12:12:41 AM [express] POST /api/auth/login 500 in 17ms :: {"message":"Login failed"}
+14|certxa  | 2026-05-11 00:13:11 +00:00: Login error: t [Error]: Failed query: select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."email" = $1
+14|certxa  | 2026-05-11 00:13:11 +00:00: params: toby@me.com
+14|certxa  | 2026-05-11 00:13:11 +00:00:     at Lw.queryWithCache (/apps/certxa/dist/index.cjs:58:37335)
+14|certxa  | 2026-05-11 00:13:11 +00:00:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+14|certxa  | 2026-05-11 00:13:11 +00:00:     at async /apps/certxa/dist/index.cjs:72:31707
+14|certxa  | 2026-05-11 00:13:11 +00:00:     at async /apps/certxa/dist/index.cjs:85:14037 {
+14|certxa  | 2026-05-11 00:13:11 +00:00:   query: 'select "id", "email", "password", "google_id", "first_name", "last_name", "profile_image_url", "role", "is_admin", "staff_id", "permissions", "onboarding_completed", "password_changed", "created_at", "updated_at", "subscription_status", "trial_started_at", "trial_ends_at" from "users" where "users"."email" = $1',
+14|certxa  | 2026-05-11 00:13:11 +00:00:   params: [ 'toby@me.com' ],
+14|certxa  | 2026-05-11 00:13:11 +00:00:   cause: error: column "permissions" does not exist
+14|certxa  | 2026-05-11 00:13:11 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:13:11 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:13:11 +00:00:     length: 112,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:13:11 +00:00:     code: '42703',
+14|certxa  | 2026-05-11 00:13:11 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     position: '128',
+14|certxa  | 2026-05-11 00:13:11 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:13:11 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:13:11 +00:00:     line: '3665',
+14|certxa  | 2026-05-11 00:13:11 +00:00:     routine: 'errorMissingColumn'
+14|certxa  | 2026-05-11 00:13:11 +00:00:   }
+14|certxa  | 2026-05-11 00:13:11 +00:00: }
+14|certxa  | 2026-05-11 00:13:11 +00:00: 12:13:11 AM [express] POST /api/auth/login 500 in 4ms :: {"message":"Login failed"}
