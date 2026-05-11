@@ -7775,6 +7775,16 @@ If you have any questions, please contact your administrator.
       );
       if (!store) return res.status(403).json({ message: "Store not found or not owned by you" });
 
+      // Solo plan subscribers cannot add additional staff members
+      const { checkStaffLimit } = await import("./middleware/plan-middleware");
+      const staffCheck = await checkStaffLimit(storeId);
+      if (!staffCheck.allowed) {
+        return res.status(403).json({
+          message: "Your Solo plan includes only 1 staff member (you). Upgrade to Professional to add team members.",
+          code: "SOLO_STAFF_LIMIT",
+        });
+      }
+
       // Generate invite token
       const inviteToken = crypto.randomBytes(32).toString("hex");
       const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days

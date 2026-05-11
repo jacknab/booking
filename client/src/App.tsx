@@ -7,6 +7,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StoreProvider } from "@/components/StoreProvider";
+import { useSelectedStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TrainingProvider } from "@/contexts/TrainingContext";
@@ -154,6 +155,24 @@ const authenticatedPaths = [
   "/multi-location",
 ];
 
+function SoloGuard({ children }: { children: React.ReactNode }) {
+  const { selectedStore } = useSelectedStore();
+  const { data: subscription } = useQuery<any>({
+    queryKey: ["/api/billing/subscription", selectedStore?.id],
+    queryFn: async () => {
+      if (!selectedStore?.id) return null;
+      const res = await fetch(`/api/billing/subscription/${selectedStore.id}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!selectedStore?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isSolo = (selectedStore as any)?.teamSize === "myself" || !!subscription?.planCode?.toLowerCase().includes("solo");
+  if (isSolo) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function App() {
   useTheme();
 
@@ -238,8 +257,8 @@ function AppRoutes() {
       {/* Core booking system */}
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/services" element={<Services />} />
-      <Route path="/staff" element={<Staff />} />
-      <Route path="/staff/:id" element={<StaffDetail />} />
+      <Route path="/staff" element={<SoloGuard><Staff /></SoloGuard>} />
+      <Route path="/staff/:id" element={<SoloGuard><StaffDetail /></SoloGuard>} />
       <Route path="/customers" element={<Customers />} />
       <Route path="/calendar" element={<Calendar />} />
       <Route path="/appointments" element={<Calendar />} />

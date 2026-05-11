@@ -65,7 +65,7 @@ export async function checkStaffLimit(storeId: number): Promise<{ allowed: boole
   const { count, eq } = await import("drizzle-orm");
   const [{ value }] = await db.select({ value: count() }).from(staff).where(eq(staff.storeId, storeId));
   const current = Number(value);
-  const limit = tier === "solo" || tier === "free" ? 3 : 999;
+  const limit = tier === "solo" ? 1 : tier === "free" ? 3 : 999;
   return { allowed: current < limit, limit, current };
 }
 

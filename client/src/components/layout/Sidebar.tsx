@@ -144,7 +144,6 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   const { selectedStore } = useSelectedStore();
   const { can, canAny, isStaff } = usePermissions();
   const posEnabled = (selectedStore as any)?.posEnabled !== false;
-  const isSolo = (selectedStore as any)?.teamSize === "myself";
 
   const { data: subscription } = useQuery<any>({
     queryKey: ["/api/billing/subscription", selectedStore?.id],
@@ -158,6 +157,7 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
     staleTime: 5 * 60 * 1000,
   });
   const isElite = subscription?.planCode === "elite";
+  const isSolo = (selectedStore as any)?.teamSize === "myself" || !!subscription?.planCode?.toLowerCase().includes("solo");
 
   const { data: smsConversations } = useQuery<any[]>({
     queryKey: ["/api/sms-inbox/conversations", selectedStore?.id],

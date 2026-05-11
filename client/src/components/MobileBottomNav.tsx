@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
+import { useSelectedStore } from "@/hooks/use-store";
+import { useQuery } from "@tanstack/react-query";
 
 const TABS = [
   { icon: CalendarDays, to: "/calendar", label: "Calendar" },
@@ -70,6 +72,20 @@ export function MobileBottomNav() {
   const navigate = useNavigate();
   const { logoutAsync } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { selectedStore } = useSelectedStore();
+
+  const { data: subscription } = useQuery<any>({
+    queryKey: ["/api/billing/subscription", selectedStore?.id],
+    queryFn: async () => {
+      if (!selectedStore?.id) return null;
+      const res = await fetch(`/api/billing/subscription/${selectedStore.id}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!selectedStore?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isSolo = (selectedStore as any)?.teamSize === "myself" || !!subscription?.planCode?.toLowerCase().includes("solo");
 
   return (
     <>
@@ -165,7 +181,10 @@ export function MobileBottomNav() {
                     <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                       {section.label}
                     </p>
-                    {section.items.map(({ to, label, icon: Icon }) => {
+                    {section.items.filter(({ to }) => {
+                      if (isSolo && to === "/staff") return false;
+                      return true;
+                    }).map(({ to, label, icon: Icon }) => {
                       const active = pathname === to || pathname.startsWith(to + "/");
                       return (
                         <Link
