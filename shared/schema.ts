@@ -1474,7 +1474,7 @@ export const launchsiteTemplates = pgTable("launchsite_templates", {
   name:         text("name").notNull(),
   category:     text("category").notNull(),
   style:        text("style").notNull().default("Modern"),
-  desc:         text("desc").notNull().default("").name("desc"),
+  desc:         text("desc").notNull().default(""),
   badge:        text("badge").notNull().default(""),
   features:     jsonb("features").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   accent:       text("accent").notNull().default("#a855f7"),
