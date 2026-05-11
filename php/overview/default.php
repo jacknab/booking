@@ -328,7 +328,7 @@ require 'includes/nav.php';
 <!-- ══════════════ IMPACT MARQUEE ══════════════ -->
 <div class="impact-marquee">
   <?php
-  $items = ['Online Booking','Automated Reminders','Card Payments','No-Show Deposits','Client Profiles','Reserve with Google','Google Reviews','Website Builder','Gift Cards','Memberships','POS System','SMS Notifications','Colour Formulas','Multi-Staff Calendar','Instant Payouts'];
+  $items = ['Online Booking','Automated Reminders','Card Payments','No-Show Deposits','Client Drift Engine','Revenue Leakage Report','Dead Seat Intelligence','No-Show Prediction','Client Profiles','Reserve with Google','Google Reviews','Website Builder','Gift Cards','Memberships','POS System','Rebooking Rate by Stylist','LTV + Churn Risk Score','Growth Score','SMS Notifications','Colour Formulas','Multi-Staff Calendar','Instant Payouts'];
   // duplicate for seamless loop
   $all = array_merge($items, $items);
   ?>
@@ -476,6 +476,40 @@ require 'includes/nav.php';
         </div>
       </a>
 
+      <!-- wide card: Revenue Intelligence -->
+      <a href="/salonos#revenue-intelligence" class="bento-card bento-wide" style="background:linear-gradient(135deg,#0d0017,#1a0035,#0d001f);border:1px solid rgba(167,139,250,.3);position:relative;overflow:hidden;text-decoration:none;">
+        <div style="position:absolute;top:-60px;right:-60px;width:250px;height:250px;background:radial-gradient(circle,rgba(109,40,217,.3) 0%,transparent 70%);pointer-events:none;"></div>
+        <div class="bento-card-body" style="position:relative;z-index:1;">
+          <div class="bento-eyebrow" style="color:#c4b5fd;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);border-radius:50px;display:inline-block;padding:3px 12px;">Revenue Intelligence</div>
+          <h3 class="bento-title" style="color:#fff;">Revenue Co-Pilot</h3>
+          <p class="bento-text" style="color:#9ca3af;">Finds your quietly drifting clients, calculates how much revenue you're losing, and automatically brings them back. No other salon platform does this.</p>
+          <span class="bento-link" style="color:#a78bfa;">See how it works →</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;padding:0 24px 24px;position:relative;z-index:1;">
+          <div style="background:rgba(0,0,0,.4);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:.72rem;">
+              <div style="color:#a78bfa;font-weight:700;margin-bottom:2px;">📡 Client Drift Engine</div>
+              <div style="color:#6b7280;">Sarah G. is 7 weeks past her cadence</div>
+            </div>
+            <div style="background:rgba(167,139,250,.2);color:#c4b5fd;font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:50px;white-space:nowrap;">SMS sent ✓</div>
+          </div>
+          <div style="background:rgba(0,0,0,.4);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:.72rem;">
+              <div style="color:#fbbf24;font-weight:700;margin-bottom:2px;">💸 Revenue Leakage</div>
+              <div style="color:#6b7280;">8 lapsed clients · est. $3,200/yr lost</div>
+            </div>
+            <div style="background:rgba(251,191,36,.15);color:#fbbf24;font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:50px;white-space:nowrap;">Recover →</div>
+          </div>
+          <div style="background:rgba(0,0,0,.4);border:1px solid rgba(74,222,128,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:.72rem;">
+              <div style="color:#4ade80;font-weight:700;margin-bottom:2px;">📈 Growth Score</div>
+              <div style="color:#6b7280;">74 / 100 · ↑ +6 from last month</div>
+            </div>
+            <div style="font-size:1.8rem;font-weight:800;color:#a78bfa;line-height:1;">74</div>
+          </div>
+        </div>
+      </a>
+
     </div>
   </div>
 </section>
@@ -484,10 +518,10 @@ require 'includes/nav.php';
 <section class="statement-section">
   <div class="container">
     <h2 class="statement-headline reveal">
-      The salon platform that actually <em>grows</em> your business — not just manages it.
+      The only salon platform that tells you <em>exactly</em> where your revenue is leaking — and automatically goes to get it back.
     </h2>
     <p class="statement-sub reveal">
-      Built for beauty professionals who want more clients, fewer no-shows, and a business that runs beautifully — with or without them in the room.
+      Every other platform manages your calendar. SalonOS watches your data 24/7, catches clients going quiet before you do, fills dead seats, predicts no-shows, and recovers cancelled appointments — automatically.
     </p>
     <div class="statement-pills reveal">
       <?php foreach ([
@@ -606,6 +640,97 @@ require 'includes/nav.php';
           <span>⚡</span>
           <div><strong>Instant Payout</strong><small>Money in your bank today</small></div>
         </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════ REVENUE CO-PILOT SPOTLIGHT ══════════════ -->
+<section style="background:linear-gradient(160deg,#0d0017 0%,#130025 60%,#0d001f 100%);padding:96px 0;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:-150px;right:-150px;width:500px;height:500px;background:radial-gradient(circle,rgba(109,40,217,.2) 0%,transparent 70%);pointer-events:none;"></div>
+  <div style="position:absolute;bottom:-80px;left:-80px;width:350px;height:350px;background:radial-gradient(circle,rgba(167,139,250,.1) 0%,transparent 70%);pointer-events:none;"></div>
+  <div class="container" style="position:relative;z-index:1;">
+
+    <div class="spotlight" style="align-items:center;">
+      <div class="spotlight-copy">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:50px;padding:5px 16px;margin-bottom:20px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #a78bfa;display:inline-block;"></span>
+          <span style="font-size:.68rem;font-weight:700;color:#c4b5fd;letter-spacing:.12em;text-transform:uppercase;">Revenue Co-Pilot · Exclusive to SalonOS</span>
+        </div>
+        <h2 style="font-family:'Instrument Sans',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:800;line-height:1.1;letter-spacing:-.04em;color:#fff;margin-bottom:20px;">
+          The only salon platform<br>
+          that finds your<br>
+          <em style="font-style:normal;color:#a78bfa;">missing revenue for you.</em>
+        </h2>
+        <p style="font-size:1rem;color:#9ca3af;line-height:1.75;margin-bottom:24px;">
+          Every other platform manages your bookings. SalonOS also watches your data 24/7, spots clients going quiet before you do, and automatically reaches out to bring them back. Then it tells you exactly where every dollar is going and where it's leaking out.
+        </p>
+        <ul style="list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:10px;">
+          <?php foreach ([
+            ['📡', 'Client Drift Engine — auto-texts clients drifting past their personal cadence'],
+            ['💸', 'Revenue Leakage Report — shows exactly which clients lapsed and how much it costs'],
+            ['💺', 'Dead Seat Intelligence — fills your chronically slow time slots with one tap'],
+            ['⚠️', 'No-Show Prediction — flags high-risk appointments every morning'],
+            ['🎯', 'LTV + Churn Risk — surfaces your most valuable at-risk clients before you lose them'],
+            ['📈', 'Growth Score — one 0–100 health number updated every day'],
+          ] as [$icon, $label]): ?>
+          <li style="display:flex;align-items:flex-start;gap:10px;font-size:.88rem;color:#d1d5db;">
+            <span style="font-size:1rem;line-height:1.5;flex-shrink:0;"><?= $icon ?></span>
+            <span><?= $label ?></span>
+          </li>
+          <?php endforeach; ?>
+        </ul>
+        <a href="/salonos" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;margin-right:12px;">See Revenue Intelligence →</a>
+        <a href="/auth?mode=register" style="color:#a78bfa;font-size:.88rem;font-weight:600;text-decoration:underline;text-underline-offset:3px;">Start free trial</a>
+      </div>
+
+      <!-- UI Visual -->
+      <div class="spotlight-visual" style="background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.2);border-radius:20px;padding:24px;min-height:400px;">
+
+        <!-- Growth Score widget -->
+        <div style="background:rgba(0,0,0,.4);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:20px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Business Growth Score</div>
+              <div style="font-family:'Instrument Sans',sans-serif;font-size:3.5rem;font-weight:800;color:#a78bfa;line-height:1;">74</div>
+              <div style="font-size:.72rem;color:#4ade80;margin-top:4px;">↑ +6 from last month</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:.65rem;color:#6b7280;margin-bottom:8px;">Components</div>
+              <?php foreach ([['Retention','88%','#4ade80'],['Rebooking','54%','#f87171'],['Utilization','71%','#fbbf24'],['Avg Ticket','↑ 12%','#60a5fa']] as [$l,$v,$c]): ?>
+              <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:3px;font-size:.72rem;">
+                <span style="color:#6b7280;"><?= $l ?></span><span style="color:<?= $c ?>;font-weight:700;"><?= $v ?></span>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+
+        <!-- At-risk alert -->
+        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+          <div style="font-size:.65rem;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">⚠️ At-Risk This Week</div>
+          <?php foreach ([['Emma Clarke','$1,240 LTV','High risk'],['Priya Shah','$890 LTV','Critical'],['Ava Liu','$2,100 LTV','High risk']] as [$n,$ltv,$risk]): ?>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.78rem;">
+            <span style="color:#e5e7eb;"><?= $n ?></span>
+            <span style="color:#fbbf24;"><?= $ltv ?></span>
+            <span style="color:#f87171;font-size:.65rem;background:rgba(239,68,68,.15);padding:2px 8px;border-radius:50px;"><?= $risk ?></span>
+          </div>
+          <?php endforeach; ?>
+          <div style="margin-top:10px;font-size:.72rem;color:#a78bfa;font-weight:600;cursor:pointer;">→ Send winback SMS to all 3 &nbsp;<span style="background:rgba(167,139,250,.2);padding:2px 8px;border-radius:50px;">One tap</span></div>
+        </div>
+
+        <!-- Revenue leakage summary -->
+        <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:14px 16px;">
+          <div style="font-size:.65rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">💸 Revenue Leakage · This Month</div>
+          <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:4px;">
+            <span style="color:#9ca3af;">Lapsed clients</span><span style="color:#e5e7eb;font-weight:600;">8 clients</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.82rem;">
+            <span style="color:#9ca3af;">Est. lost annual revenue</span><span style="color:#fbbf24;font-weight:700;">$3,200</span>
+          </div>
+        </div>
+
       </div>
     </div>
 

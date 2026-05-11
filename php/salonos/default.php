@@ -211,7 +211,7 @@ require 'includes/nav.php';
       Stop juggling seven different tools. SalonOS brings booking, your front desk, POS, loyalty, check-in, waitlist, and Google reviews into one beautifully unified platform.
     </p>
 
-    <!-- 7 module pills -->
+    <!-- module pills -->
     <div class="sos-pills">
       <span class="sos-pill"><span class="sos-pill-dot" style="background:#7c3aed;"></span>Online Booking</span>
       <span class="sos-pill"><span class="sos-pill-dot" style="background:#0f766e;"></span>Front Desk Calendar</span>
@@ -220,6 +220,7 @@ require 'includes/nav.php';
       <span class="sos-pill"><span class="sos-pill-dot" style="background:#059669;"></span>Client Check-In</span>
       <span class="sos-pill"><span class="sos-pill-dot" style="background:#2563eb;"></span>Waitlist</span>
       <span class="sos-pill"><span class="sos-pill-dot" style="background:#d97706;"></span>Google Reviews</span>
+      <span class="sos-pill" style="background:linear-gradient(135deg,#1a0033,#2d0066);border-color:#6d28d9;"><span class="sos-pill-dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa;"></span><span style="color:#e9d5ff;font-weight:700;">Revenue Co-Pilot ✦</span></span>
     </div>
 
     <div class="sos-actions">
@@ -465,6 +466,191 @@ require 'includes/nav.php';
       </div>
     </div>
     <?php endforeach; ?>
+
+  </div>
+</section>
+
+<!-- ── REVENUE CO-PILOT ───────────────────────────────────── -->
+<section style="background:linear-gradient(160deg,#0d0017 0%,#130025 60%,#0d001f 100%);padding:100px 0;position:relative;overflow:hidden;">
+
+  <!-- background decoration -->
+  <div style="position:absolute;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(109,40,217,.18) 0%,transparent 70%);pointer-events:none;"></div>
+  <div style="position:absolute;bottom:-100px;left:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(167,139,250,.1) 0%,transparent 70%);pointer-events:none;"></div>
+
+  <div class="container" style="position:relative;z-index:1;">
+
+    <div style="text-align:center;margin-bottom:64px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:50px;padding:6px 20px;margin-bottom:24px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #a78bfa;display:inline-block;"></span>
+        <span style="font-size:.72rem;font-weight:700;color:#c4b5fd;letter-spacing:.12em;text-transform:uppercase;">Revenue Intelligence · Built In</span>
+      </div>
+      <h2 style="font-family:'Instrument Sans',sans-serif;font-size:clamp(2.2rem,5vw,4rem);font-weight:800;line-height:1.08;letter-spacing:-.04em;color:#fff;margin-bottom:20px;">
+        While everyone else says<br>
+        <em style="font-style:normal;color:#a78bfa;">"we grow your business"</em><br>
+        <span style="color:#f9fafb;">we actually show you how.</span>
+      </h2>
+      <p style="font-size:clamp(.95rem,1.6vw,1.15rem);color:#9ca3af;max-width:580px;margin:0 auto;line-height:1.75;">
+        SalonOS mines your own booking data 24/7 and tells you exactly where revenue is leaking — then takes action to recover it automatically. No other salon platform does this.
+      </p>
+    </div>
+
+    <!-- 8 intelligence cards grid -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:60px;">
+
+      <!-- 1. Client Drift Engine -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(167,139,250,.3),rgba(109,40,217,.3));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📡</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Client Drift Engine</div>
+            <div style="font-size:.78rem;color:#6b7280;">Biggest direct revenue impact</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">Every client has a visit cadence — every 5 weeks, every 8 weeks. SalonOS learns it. When someone drifts 20% past their personal cadence without rebooking, it fires a personalized SMS at exactly the right moment.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:.78rem;">
+          <div style="color:#6b7280;margin-bottom:4px;">📱 Auto-sent SMS</div>
+          <div style="color:#e5e7eb;font-style:italic;">"Hi Sarah, it's been 7 weeks since your balayage — time for a refresh? Book now: [link]"</div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ Recovers 10–15% of quietly drifting clients</div>
+      </div>
+
+      <!-- 2. Revenue Leakage Report -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(251,191,36,.25),rgba(180,83,9,.25));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">💸</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Revenue Leakage Report</div>
+            <div style="font-size:.78rem;color:#6b7280;">Monthly, delivered automatically</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">Cold hard numbers, monthly. Which clients haven't booked since, what they used to spend, and exactly how much annual revenue you're on track to lose. Not a dashboard stat — an action item with one tap to reach them.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;">
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;"><span style="color:#9ca3af;">Lapsed clients this month</span><span style="color:#f87171;font-weight:700;">8 clients</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;"><span style="color:#9ca3af;">Est. lost annual revenue</span><span style="color:#fbbf24;font-weight:700;">$3,200</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ One-tap winback campaign included</div>
+      </div>
+
+      <!-- 3. Dead Seat Intelligence -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(16,185,129,.25),rgba(5,150,105,.25));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">💺</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#34d399;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Dead Seat Intelligence</div>
+            <div style="font-size:.78rem;color:#6b7280;">Turn slow hours into revenue</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">Tuesday 2–4pm is consistently 20% booked. SalonOS finds that pattern, identifies clients who've booked Tuesdays before and are overdue, then gives you a one-click "fill those seats" campaign.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:.78rem;">
+          <div style="color:#9ca3af;margin-bottom:4px;">📊 Detected pattern</div>
+          <div style="color:#e5e7eb;">Tue 2–4pm · <span style="color:#f87171;">22% fill rate</span> · <span style="color:#34d399;">6 eligible clients to target</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ Estimates lost revenue per dead slot</div>
+      </div>
+
+      <!-- 4. No-Show Prediction -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(239,68,68,.25),rgba(185,28,28,.25));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">⚠️</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">No-Show Prediction</div>
+            <div style="font-size:.78rem;color:#6b7280;">Know before they don't show</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">Every upcoming appointment gets scored for no-show risk using booking lead time, client history, day of week, and service type. High-risk appointments surface every morning so you can send a targeted confirmation.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:.78rem;">
+          <div style="color:#9ca3af;margin-bottom:4px;">Tomorrow's risk alerts</div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:#e5e7eb;">3 high-risk appointments</span><span style="color:#f87171;font-weight:700;">Send confirmations →</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ Risk scored by booking lead time + history</div>
+      </div>
+
+      <!-- 5. Rebooking Rate by Stylist -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(59,130,246,.25),rgba(37,99,235,.25));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">✂️</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Rebooking Rate by Stylist</div>
+            <div style="font-size:.78rem;color:#6b7280;">The number that changes behavior</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">The data is sitting in your system right now. SalonOS surfaces it. "Ashley rebooks 78% of her colour clients. Jake rebooks 39%." That number changes behavior — and your bottom line — overnight.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:.78rem;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#e5e7eb;">Ashley M.</span><div style="display:flex;align-items:center;gap:8px;"><div style="width:80px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;"><div style="width:78%;height:100%;background:#4ade80;border-radius:3px;"></div></div><span style="color:#4ade80;font-weight:700;">78%</span></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#e5e7eb;">Jake T.</span><div style="display:flex;align-items:center;gap:8px;"><div style="width:80px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;"><div style="width:39%;height:100%;background:#f87171;border-radius:3px;"></div></div><span style="color:#f87171;font-weight:700;">39%</span></div></div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ With trend vs prior 90-day period</div>
+      </div>
+
+      <!-- 6. Smart Cancellation Recovery -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(236,72,153,.25),rgba(190,24,93,.25));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">⚡</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#f472b6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Smart Cancellation Recovery</div>
+            <div style="font-size:.78rem;color:#6b7280;">Turns dead revenue into filled seats</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">The moment a cancellation hits, SalonOS instantly scans your waitlist, lapsed clients at-cadence, and clients who've taken that same service. It fires a targeted "slot just opened" text to the top 3 candidates.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:.78rem;">
+          <div style="color:#9ca3af;margin-bottom:4px;">Slot just opened — 3 candidates found</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="color:#e5e7eb;">1. Emma C. — waitlist + overdue 3w</div>
+            <div style="color:#e5e7eb;">2. Priya S. — same service, lapsed 5w</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ Automated — no manual work needed</div>
+      </div>
+
+      <!-- 7. LTV + Churn Risk Score -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.08)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(255,255,255,.04)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(180,83,9,.25));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🎯</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">LTV + Churn Risk Score</div>
+            <div style="font-size:.78rem;color:#6b7280;">Know who you can't afford to lose</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">Every client gets two numbers: their lifetime value and a churn risk score. High LTV + rising churn risk is the most dangerous combination. SalonOS surfaces those clients prominently so you can act before it's too late.</p>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:.78rem;">
+          <div style="color:#f87171;margin-bottom:4px;font-weight:600;">⚠️ At-risk this week</div>
+          <div style="color:#e5e7eb;">8 high-LTV clients · <span style="color:#fbbf24;font-weight:700;">$11,400 annual revenue at stake</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ Multi-factor score: cadence, visits, no-shows</div>
+      </div>
+
+      <!-- 8. Growth Score -->
+      <div style="background:linear-gradient(135deg,rgba(109,40,217,.15),rgba(167,139,250,.08));border:1px solid rgba(167,139,250,.35);border-radius:16px;padding:28px;transition:.2s;" onmouseenter="this.style.borderColor='rgba(167,139,250,.6)'" onmouseleave="this.style.borderColor='rgba(167,139,250,.35)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(167,139,250,.4),rgba(109,40,217,.4));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📈</div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Business Growth Score</div>
+            <div style="font-size:.78rem;color:#6b7280;">One number to rule them all</div>
+          </div>
+        </div>
+        <p style="font-size:.88rem;color:#d1d5db;line-height:1.65;margin-bottom:14px;">A single 0–100 health score on your dashboard every day — composed of retention rate, rebooking rate, seat utilization, avg ticket trend, and new client conversion. When it moves, you know exactly why.</p>
+        <div style="background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-family:'Instrument Sans',sans-serif;font-size:3rem;font-weight:800;color:#a78bfa;line-height:1;">74</div>
+          <div style="font-size:.72rem;color:#9ca3af;margin-bottom:8px;">Business Health Score</div>
+          <div style="display:flex;justify-content:center;gap:12px;font-size:.65rem;">
+            <span style="color:#4ade80;">↑ Retention 88%</span>
+            <span style="color:#fbbf24;">→ Utilization 71%</span>
+            <span style="color:#f87171;">↓ Rebook 54%</span>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:.72rem;font-weight:700;color:#4ade80;">✓ 30-day trend history included</div>
+      </div>
+
+    </div>
+
+    <!-- bottom CTA bar -->
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(167,139,250,.25);border-radius:16px;padding:32px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+      <div>
+        <div style="font-family:'Instrument Sans',sans-serif;font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:6px;">Revenue Intelligence is included in every SalonOS plan.</div>
+        <div style="font-size:.88rem;color:#9ca3af;">No add-ons. No extra tier. The entire co-pilot layer runs automatically from day one.</div>
+      </div>
+      <a href="/auth?mode=register" class="sos-btn-primary" style="white-space:nowrap;flex-shrink:0;">Start Free — See It Working</a>
+    </div>
 
   </div>
 </section>
