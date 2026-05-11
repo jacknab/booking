@@ -197,3 +197,9 @@ id = "TZzQHFcsTIKQxrqofsNX_"
 uri = "file://SCHEMA_REVIEW.md"
 type = "text"
 title = "Schema & Code Review Notes"
+
+[[outputs]]
+id = "Dt8mmMeWMDHwbpbposnwn"
+uri = "file://docs/intelligence-demo-testing.md"
+type = "text"
+title = "Revenue Intelligence — Demo Testing Guide"
