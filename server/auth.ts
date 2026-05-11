@@ -80,6 +80,21 @@ export function setupAuth(app: Express) {
   const cookieDomain =
     !isReplitDev && process.env.COOKIE_DOMAIN ? process.env.COOKIE_DOMAIN : undefined;
 
+  // SameSite strategy:
+  //   "none"  — required for Replit's proxied iframe (cookie crosses origins)
+  //   "lax"   — correct for VPS / direct HTTPS; doesn't require Secure flag,
+  //             works for all same-origin API calls and top-level navigations.
+  const sameSitePolicy: "none" | "lax" = isReplit ? "none" : "lax";
+
+  // Secure strategy:
+  //   "auto"  — express-session sets the Secure flag only when req.secure is
+  //             true, but ALWAYS writes the Set-Cookie header. This fixes VPS
+  //             setups where nginx terminates TLS but doesn't forward
+  //             X-Forwarded-Proto, which causes `secure: true` to silently skip
+  //             the cookie entirely — leaving users perpetually logged out.
+  //   false   — development (plain HTTP, no proxy).
+  const securePolicy: boolean | "auto" = secureCookies ? "auto" : false;
+
   app.use(
     session({
       secret: process.env.SESSION_SECRET!,
@@ -89,8 +104,8 @@ export function setupAuth(app: Express) {
       rolling: true, // Refresh cookie expiration on every request — keeps active devices signed in
       cookie: {
         httpOnly: true,
-        secure: secureCookies,
-        sameSite: secureCookies ? "none" : "lax",
+        secure: securePolicy,
+        sameSite: sameSitePolicy,
         maxAge: 1000 * 60 * 60 * 24 * 7, // Default: 7 days (overridden to 10 years for kiosk-mode logins)
         domain: cookieDomain,
       },
