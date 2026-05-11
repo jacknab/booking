@@ -1,0 +1,233 @@
+/**
+ * reset-nail-demo.ts
+ *
+ * Removes every record created by seed-nail-demo.ts, identified by:
+ *   Email : nail-demo@certxa.com
+ *   Slug  : luxe-nails-spa-demo
+ *
+ * Safe to run when the demo account doesn't exist — it exits cleanly.
+ * Safe to run multiple times — fully idempotent.
+ *
+ * Run: npx tsx scripts/reset-nail-demo.ts
+ */
+
+import "dotenv/config";
+import { db, pool } from "../server/db";
+import { users } from "../shared/models/auth";
+import {
+  locations,
+  businessHours,
+  staff,
+  staffServices,
+  staffAvailability,
+  staffSettings,
+  serviceCategories,
+  services,
+  addons,
+  serviceAddons,
+  appointmentAddons,
+  appointments,
+  customers,
+  calendarSettings,
+  cashDrawerSessions,
+  drawerActions,
+  smsSettings,
+  smsLog,
+  smsOptOuts,
+  mailSettings,
+  stripeSettings,
+  permissions,
+  roles,
+  apps,
+  storeSettings,
+  products,
+  waitlist,
+  giftCards,
+  giftCardTransactions,
+  intakeForms,
+  intakeFormFields,
+  intakeFormResponses,
+  loyaltyTransactions,
+  googleBusinessProfiles,
+  googleBusinessAccounts,
+  googleBusinessLocations,
+  googleBusinessSyncLogs,
+  googleReviews,
+  googleReviewResponses,
+} from "../shared/schema";
+import { eq, inArray } from "drizzle-orm";
+
+const EMAIL = "nail-demo@certxa.com";
+const SLUG  = "luxe-nails-spa-demo";
+
+async function reset() {
+  console.log("\n╔══════════════════════════════════════════════════════════╗");
+  console.log("║       Luxe Nails & Spa — Demo Reset                     ║");
+  console.log("╚══════════════════════════════════════════════════════════╝\n");
+
+  // ── Find the store ───────────────────────────────────────────────────────
+  const [store] = await db
+    .select({ id: locations.id, name: locations.name })
+    .from(locations)
+    .where(eq(locations.bookingSlug, SLUG));
+
+  const [user] = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.email, EMAIL));
+
+  if (!store && !user) {
+    console.log("ℹ️  Demo account does not exist — nothing to reset.\n");
+    process.exit(0);
+  }
+
+  const storeId = store?.id;
+
+  if (storeId) {
+    console.log(`Found store: "${store.name}" (id=${storeId})`);
+
+    // ── Collect dependent IDs first ──────────────────────────────────────
+
+    const apptIds = (
+      await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.storeId, storeId))
+    ).map(r => r.id);
+
+    const customerIds = (
+      await db.select({ id: customers.id }).from(customers).where(eq(customers.storeId, storeId))
+    ).map(r => r.id);
+
+    const serviceIds = (
+      await db.select({ id: services.id }).from(services).where(eq(services.storeId, storeId))
+    ).map(r => r.id);
+
+    const staffIds = (
+      await db.select({ id: staff.id }).from(staff).where(eq(staff.storeId, storeId))
+    ).map(r => r.id);
+
+    const catIds = (
+      await db.select({ id: serviceCategories.id }).from(serviceCategories).where(eq(serviceCategories.storeId, storeId))
+    ).map(r => r.id);
+
+    const formIds = (
+      await db.select({ id: intakeForms.id }).from(intakeForms).where(eq(intakeForms.storeId, storeId))
+    ).map(r => r.id);
+
+    const giftCardIds = (
+      await db.select({ id: giftCards.id }).from(giftCards).where(eq(giftCards.storeId, storeId))
+    ).map(r => r.id);
+
+    const cashSessionIds = (
+      await db.select({ id: cashDrawerSessions.id }).from(cashDrawerSessions).where(eq(cashDrawerSessions.storeId, storeId))
+    ).map(r => r.id);
+
+    const reviewIds = (
+      await db.select({ id: googleReviews.id }).from(googleReviews).where(eq(googleReviews.storeId, storeId))
+    ).map(r => r.id);
+
+    // ── Delete in dependency order (deepest first) ───────────────────────
+
+    // Appointment-level children
+    if (apptIds.length) {
+      await db.delete(appointmentAddons).where(inArray(appointmentAddons.appointmentId, apptIds));
+    }
+    const apptDel = await db.delete(appointments).where(eq(appointments.storeId, storeId));
+    console.log(`  ✓ Deleted appointments`);
+
+    // Customer-level children
+    if (customerIds.length) {
+      await db.delete(loyaltyTransactions).where(inArray(loyaltyTransactions.customerId, customerIds));
+      await db.delete(intakeFormResponses).where(inArray(intakeFormResponses.customerId, customerIds));
+    }
+    await db.delete(customers).where(eq(customers.storeId, storeId));
+    console.log(`  ✓ Deleted customers`);
+
+    // Staff-level children
+    if (staffIds.length) {
+      await db.delete(staffServices).where(inArray(staffServices.staffId, staffIds));
+      await db.delete(staffAvailability).where(inArray(staffAvailability.staffId, staffIds));
+      await db.delete(staffSettings).where(inArray(staffSettings.staffId, staffIds));
+    }
+    await db.delete(staff).where(eq(staff.storeId, storeId));
+    console.log(`  ✓ Deleted staff`);
+
+    // Service-level children
+    if (serviceIds.length) {
+      await db.delete(serviceAddons).where(inArray(serviceAddons.serviceId, serviceIds));
+    }
+    await db.delete(services).where(eq(services.storeId, storeId));
+    await db.delete(addons).where(eq(addons.storeId, storeId));
+    await db.delete(serviceCategories).where(eq(serviceCategories.storeId, storeId));
+    console.log(`  ✓ Deleted services, addons & categories`);
+
+    // Intake forms
+    if (formIds.length) {
+      await db.delete(intakeFormFields).where(inArray(intakeFormFields.formId, formIds));
+    }
+    await db.delete(intakeForms).where(eq(intakeForms.storeId, storeId));
+
+    // Gift cards
+    if (giftCardIds.length) {
+      await db.delete(giftCardTransactions).where(inArray(giftCardTransactions.giftCardId, giftCardIds));
+    }
+    await db.delete(giftCards).where(eq(giftCards.storeId, storeId));
+
+    // Cash drawer
+    if (cashSessionIds.length) {
+      await db.delete(drawerActions).where(inArray(drawerActions.sessionId, cashSessionIds));
+    }
+    await db.delete(cashDrawerSessions).where(eq(cashDrawerSessions.storeId, storeId));
+
+    // Google Business
+    if (reviewIds.length) {
+      await db.delete(googleReviewResponses).where(inArray(googleReviewResponses.reviewId, reviewIds));
+    }
+    await db.delete(googleReviews).where(eq(googleReviews.storeId, storeId));
+    await db.delete(googleBusinessSyncLogs).where(eq(googleBusinessSyncLogs.storeId, storeId));
+    await db.delete(googleBusinessLocations).where(eq(googleBusinessLocations.storeId, storeId));
+    await db.delete(googleBusinessAccounts).where(eq(googleBusinessAccounts.storeId, storeId));
+    await db.delete(googleBusinessProfiles).where(eq(googleBusinessProfiles.storeId, storeId));
+    console.log(`  ✓ Deleted Google Business data`);
+
+    // Remaining store-level tables
+    await db.delete(businessHours).where(eq(businessHours.storeId, storeId));
+    await db.delete(calendarSettings).where(eq(calendarSettings.storeId, storeId));
+    await db.delete(smsSettings).where(eq(smsSettings.storeId, storeId));
+    await db.delete(smsLog).where(eq(smsLog.storeId, storeId));
+    await db.delete(smsOptOuts).where(eq(smsOptOuts.storeId, storeId));
+    await db.delete(mailSettings).where(eq(mailSettings.storeId, storeId));
+    await db.delete(stripeSettings).where(eq(stripeSettings.storeId, storeId));
+    await db.delete(permissions).where(eq(permissions.storeId, storeId));
+    await db.delete(roles).where(eq(roles.storeId, storeId));
+    await db.delete(apps).where(eq(apps.storeId, storeId));
+    await db.delete(storeSettings).where(eq(storeSettings.storeId, storeId));
+    await db.delete(products).where(eq(products.storeId, storeId));
+    await db.delete(waitlist).where(eq(waitlist.storeId, storeId));
+    console.log(`  ✓ Deleted store settings & config`);
+
+    // Delete the store itself
+    await db.delete(locations).where(eq(locations.id, storeId));
+    console.log(`  ✓ Deleted store record`);
+  }
+
+  // ── Delete the user ──────────────────────────────────────────────────────
+  if (user) {
+    // Clean up user-scoped tables
+    const { passwordResetTokens } = await import("../shared/schema");
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+
+    await db.delete(users).where(eq(users.id, user.id));
+    console.log(`  ✓ Deleted user: ${user.email}`);
+  }
+
+  await pool.end();
+
+  console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("✅  Reset complete — demo account fully removed.");
+  console.log("   Run seed-nail-demo.ts to re-seed fresh demo data.\n");
+  process.exit(0);
+}
+
+reset().catch(err => {
+  console.error("\n❌ Reset failed:", err.message ?? err);
+  process.exit(1);
+});
