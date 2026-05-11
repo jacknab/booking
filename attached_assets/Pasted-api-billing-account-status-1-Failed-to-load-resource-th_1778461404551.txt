@@ -1,0 +1,417 @@
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/login:1  Failed to load resource: the server responded with a status of 429 ()
+api/auth/login:1  Failed to load resource: the server responded with a status of 429 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/state:1  Failed to load resource: the server responded with a status of 401 ()
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/onboarding:1  Failed to load resource: the server responded with a status of 401 ()
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8  GET https://certxa.com/api/auth/user 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8 Fetch finished loading: POST "https://certxa.com/api/auth/login".
+an @ index--1EPYNgK.js:8
+mutationFn @ index--1EPYNgK.js:14
+fn @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+execute @ index--1EPYNgK.js:8
+await in execute
+mutate @ index--1EPYNgK.js:8
+X @ index--1EPYNgK.js:441
+Xl @ index--1EPYNgK.js:5
+ft @ index--1EPYNgK.js:5
+Ut @ index--1EPYNgK.js:5
+Og @ index--1EPYNgK.js:5
+Ig @ index--1EPYNgK.js:5
+(anonymous) @ index--1EPYNgK.js:5
+u_ @ index--1EPYNgK.js:8
+al @ index--1EPYNgK.js:5
+f @ index--1EPYNgK.js:5
+Dm @ index--1EPYNgK.js:5
+n2 @ index--1EPYNgK.js:5
+index--1EPYNgK.js:8  GET https://certxa.com/api/training/state 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+setOptions @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+Vb @ index--1EPYNgK.js:8
+ip @ index--1EPYNgK.js:8
+Use @ index--1EPYNgK.js:8
+Xm @ index--1EPYNgK.js:8
+aD @ index--1EPYNgK.js:8
+Eu @ index--1EPYNgK.js:6
+(anonymous) @ index--1EPYNgK.js:8
+setTimeout
+Xie @ index--1EPYNgK.js:8
+o @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+#l @ index--1EPYNgK.js:8
+setData @ index--1EPYNgK.js:8
+setQueryData @ index--1EPYNgK.js:8
+onSuccess @ index--1EPYNgK.js:14
+execute @ index--1EPYNgK.js:8
+await in execute
+mutate @ index--1EPYNgK.js:8
+X @ index--1EPYNgK.js:441
+Xl @ index--1EPYNgK.js:5
+ft @ index--1EPYNgK.js:5
+Ut @ index--1EPYNgK.js:5
+Og @ index--1EPYNgK.js:5
+Ig @ index--1EPYNgK.js:5
+(anonymous) @ index--1EPYNgK.js:5
+u_ @ index--1EPYNgK.js:8
+al @ index--1EPYNgK.js:5
+f @ index--1EPYNgK.js:5
+Dm @ index--1EPYNgK.js:5
+n2 @ index--1EPYNgK.js:5
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+onSubscribe @ index--1EPYNgK.js:8
+subscribe @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+cR @ index--1EPYNgK.js:6
+Vb @ index--1EPYNgK.js:8
+ip @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+C @ index--1EPYNgK.js:1
+z @ index--1EPYNgK.js:1
+postMessage
+X @ index--1EPYNgK.js:1
+Q @ index--1EPYNgK.js:1
+t.unstable_scheduleCallback @ index--1EPYNgK.js:1
+fD @ index--1EPYNgK.js:8
+Aa @ index--1EPYNgK.js:8
+gl @ index--1EPYNgK.js:8
+kse @ index--1EPYNgK.js:6
+(anonymous) @ index--1EPYNgK.js:8
+Zn.startTransition @ index--1EPYNgK.js:1
+(anonymous) @ index--1EPYNgK.js:8
+x @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+z @ index--1EPYNgK.js:441
+X @ index--1EPYNgK.js:441
+await in X
+Xl @ index--1EPYNgK.js:5
+ft @ index--1EPYNgK.js:5
+Ut @ index--1EPYNgK.js:5
+Og @ index--1EPYNgK.js:5
+Ig @ index--1EPYNgK.js:5
+(anonymous) @ index--1EPYNgK.js:5
+u_ @ index--1EPYNgK.js:8
+al @ index--1EPYNgK.js:5
+f @ index--1EPYNgK.js:5
+Dm @ index--1EPYNgK.js:5
+n2 @ index--1EPYNgK.js:5
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+onSubscribe @ index--1EPYNgK.js:8
+subscribe @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+cR @ index--1EPYNgK.js:6
+Vb @ index--1EPYNgK.js:8
+ip @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+C @ index--1EPYNgK.js:1
+z @ index--1EPYNgK.js:1
+postMessage
+X @ index--1EPYNgK.js:1
+Q @ index--1EPYNgK.js:1
+t.unstable_scheduleCallback @ index--1EPYNgK.js:1
+fD @ index--1EPYNgK.js:8
+Aa @ index--1EPYNgK.js:8
+gl @ index--1EPYNgK.js:8
+kse @ index--1EPYNgK.js:6
+(anonymous) @ index--1EPYNgK.js:8
+Zn.startTransition @ index--1EPYNgK.js:1
+(anonymous) @ index--1EPYNgK.js:8
+x @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+z @ index--1EPYNgK.js:441
+X @ index--1EPYNgK.js:441
+await in X
+Xl @ index--1EPYNgK.js:5
+ft @ index--1EPYNgK.js:5
+Ut @ index--1EPYNgK.js:5
+Og @ index--1EPYNgK.js:5
+Ig @ index--1EPYNgK.js:5
+(anonymous) @ index--1EPYNgK.js:5
+u_ @ index--1EPYNgK.js:8
+al @ index--1EPYNgK.js:5
+f @ index--1EPYNgK.js:5
+Dm @ index--1EPYNgK.js:5
+n2 @ index--1EPYNgK.js:5
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8

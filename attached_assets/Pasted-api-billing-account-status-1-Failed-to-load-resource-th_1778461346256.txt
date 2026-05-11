@@ -1,0 +1,199 @@
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/login:1  Failed to load resource: the server responded with a status of 429 ()
+api/auth/login:1  Failed to load resource: the server responded with a status of 429 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/state:1  Failed to load resource: the server responded with a status of 401 ()
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/onboarding:1  Failed to load resource: the server responded with a status of 401 ()
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+index--1EPYNgK.js:467 Fetch finished loading: GET "https://ipapi.co/json/".
+(anonymous) @ index--1EPYNgK.js:467
+(anonymous) @ index--1EPYNgK.js:467
+Vb @ index--1EPYNgK.js:8
+ip @ index--1EPYNgK.js:8
+Use @ index--1EPYNgK.js:8
+Xm @ index--1EPYNgK.js:8
+aD @ index--1EPYNgK.js:8
+Eu @ index--1EPYNgK.js:6
+(anonymous) @ index--1EPYNgK.js:8
+setTimeout
+Xie @ index--1EPYNgK.js:8
+o @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+#l @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+await in fetch
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:14
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index--1EPYNgK.js:535
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index--1EPYNgK.js:8
+i @ index--1EPYNgK.js:8
+j @ index--1EPYNgK.js:8
+start @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
+index--1EPYNgK.js:467 Fetch finished loading: GET "https://ipapi.co/json/".
+(anonymous) @ index--1EPYNgK.js:467
+(anonymous) @ index--1EPYNgK.js:467
+Vb @ index--1EPYNgK.js:8
+ip @ index--1EPYNgK.js:8
+Use @ index--1EPYNgK.js:8
+Xm @ index--1EPYNgK.js:8
+aD @ index--1EPYNgK.js:8
+Eu @ index--1EPYNgK.js:6
+(anonymous) @ index--1EPYNgK.js:8
+setTimeout
+Xie @ index--1EPYNgK.js:8
+o @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+#l @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+await in fetch
+#h @ index--1EPYNgK.js:8
+fetch @ index--1EPYNgK.js:8
+refetch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+batch @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+await in (anonymous)
+(anonymous) @ index--1EPYNgK.js:8
+onFocus @ index--1EPYNgK.js:8
+(anonymous) @ index--1EPYNgK.js:8
+n @ index--1EPYNgK.js:8
