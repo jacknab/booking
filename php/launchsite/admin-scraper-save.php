@@ -299,23 +299,26 @@ function step_log(string $icon, string $msg, string $log): void {
 step('✅', "Template <strong>$name_safe</strong> saved to catalog as <code>$id_safe</code>");
 step('🗂️', "Files moved to <code>templates/$id_safe/</code>");
 
-// ── Screenshot attempt ─────────────────────────────────────────────────────────
+// ── Screenshot: real browser shot of the original source URL ──────────────────
 
 $workspace_root    = dirname(dirname(__DIR__));
-$screenshot_script = $workspace_root . '/scripts/screenshot-template.mjs';
+$screenshot_script = $workspace_root . '/scripts/screenshot-url.mjs';
 $thumbs_dir        = __DIR__ . '/assets/img/thumbs';
 
 $node = trim((string) shell_exec('which node 2>/dev/null'));
 if (!$node || !file_exists($node)) $node = '/home/runner/.nix-profile/bin/node';
 
 $chromium_env = getenv('REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE') ?: '';
-$env_prefix   = 'HOME=' . escapeshellarg(getenv('HOME') ?: '/home/runner')
-              . ' PATH=' . escapeshellarg(getenv('PATH') ?: '/home/runner/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin')
+$env_prefix   = 'HOME='  . escapeshellarg(getenv('HOME')  ?: '/home/runner')
+              . ' PATH=' . escapeshellarg(getenv('PATH')  ?: '/home/runner/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin')
               . ($chromium_env ? ' REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE=' . escapeshellarg($chromium_env) : '');
 
 $screenshot_ok = false;
+$snap_url      = $actualSrc ?: $source_url;   // original website URL
 
-if (!file_exists($screenshot_script)) {
+if (!$snap_url) {
+    step('⚠️', 'No source URL available — skipping screenshot, falling back to generated thumbnail');
+} elseif (!file_exists($screenshot_script)) {
     step('⚠️', 'Screenshot script not found — falling back to generated thumbnail');
 } elseif (!$node || !file_exists($node)) {
     step('⚠️', 'Node.js not found — falling back to generated thumbnail');
@@ -325,13 +328,12 @@ if (!file_exists($screenshot_script)) {
 
     $cmd = "$env_prefix " . escapeshellarg($node)
          . " " . escapeshellarg($screenshot_script)
-         . " --id=" . escapeshellarg($template_id)
+         . " --url=" . escapeshellarg($snap_url)
          . " --out=" . escapeshellarg($tmp_jpg)
-         . " --port=8104"
          . " 2>&1";
 
-    step('🌐', "Template URL: <code>http://127.0.0.1:8104/launchsite/templates/$id_safe/</code>");
-    step('🖥️', 'Launching headless browser at 1280×800 viewport…'
+    $snap_url_safe = htmlspecialchars($snap_url);
+    step('🌐', "Navigating to <code>$snap_url_safe</code> in headless browser…"
         . ' <span id="ss-tick" style="color:rgba(255,255,255,0.4);font-family:monospace;margin-left:6px;"></span>');
 
     $desc   = [['pipe','r'],['pipe','w'],['pipe','w']];
@@ -366,14 +368,14 @@ if (!file_exists($screenshot_script)) {
 
     if ($screenshot_ok) {
         rename($tmp_jpg, $out_jpg);
-        step('📸', 'Real browser screenshot captured — header &amp; hero at 1280×800');
+        step('📸', 'Live screenshot captured at 1280×800 — header &amp; hero of the original site');
         step('✅', "Thumbnail saved → <code>assets/img/thumbs/$id_safe.jpg</code>");
 
         $v = time();
         echo "<li class='result-step' style='display:block;padding:16px 0 4px;'>"
            . "<img src='" . BASE_PATH . "/assets/img/thumbs/" . urlencode($template_id) . ".jpg?v=$v' "
            . "style='width:100%;max-width:560px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);display:block;' "
-           . "alt='Auto-generated thumbnail'>"
+           . "alt='Screenshot thumbnail'>"
            . "</li>\n";
         @ob_flush(); flush();
     } else {
