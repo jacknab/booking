@@ -23,7 +23,8 @@
     "db:reset": "node_modules/.bin/tsx scripts/reset.ts",
     "db:check": "node_modules/.bin/tsx scripts/check-db.ts",
     "db:seed:nail-demo": "node_modules/.bin/tsx scripts/seed-nail-demo.ts",
-    "db:reset:nail-demo": "node_modules/.bin/tsx scripts/reset-nail-demo.ts"
+    "db:reset:nail-demo": "node_modules/.bin/tsx scripts/reset-nail-demo.ts",
+    "db:reseed:nail-demo": "node_modules/.bin/tsx scripts/reseed-nail-demo.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
