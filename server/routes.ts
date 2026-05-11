@@ -8146,6 +8146,9 @@ If you have any questions, please contact your administrator.
   const { default: intelligenceRouter } = await import("./routes/intelligence.js");
   app.use("/api/intelligence", intelligenceRouter);
 
+  const { default: intelligenceDemoRouter } = await import("./routes/intelligence-demo.js");
+  app.use("/api/intelligence/demo", intelligenceDemoRouter);
+
   const { startIntelligenceScheduler } = await import("./intelligence/orchestrator.js");
   startIntelligenceScheduler();
 

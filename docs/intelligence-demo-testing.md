@@ -12,6 +12,27 @@ This guide covers everything you need to spin up the Luxe Nails & Spa test accou
 | Wipe and re-seed from scratch | `npm run db:reseed:nail-demo` |
 | Wipe only (no re-seed) | `npm run db:reset:nail-demo` |
 
+## Starting the Engines (Mission Control)
+
+After seeding, go to `/intelligence/launch` while logged in as `nail-demo@certxa.com`.
+
+You will see the **Mission Control** page — 8 engine cards all showing OFFLINE in a dark control-room UI. Press **"Initiate Intelligence Engines"** to start the sequence. Each engine wakes up one by one with live animations:
+
+1. **Appointment History Scanner** — indexes all booking records
+2. **Client Profile Engine** — builds cadence + LTV for every client
+3. **Churn Risk Scoring** — classifies retention risk across the client base
+4. **Staff Intelligence** — rebooking rates and revenue per tech
+5. **Dead Seat Detector** — finds chronically underbooked time slots
+6. **Growth Score Engine** — computes the 0–100 business health score
+7. **Revenue Leakage Scanner** — maps lapsed clients to estimated lost revenue
+8. **Drift Recovery Engine** — identifies win-back candidates
+
+An activity log panel streams each engine's output in real time. When all 8 show **ONLINE**, a green "Open Intelligence Dashboard" button appears.
+
+The full launch sequence takes approximately **20–40 seconds**.
+
+> The launch page is locked to the `nail-demo@certxa.com` account. Any other logged-in user sees an access-restricted screen.
+
 ---
 
 ## Demo Account Credentials
@@ -29,9 +50,9 @@ This guide covers everything you need to spin up the Luxe Nails & Spa test accou
 
 Running `npm run db:seed:nail-demo` creates a fully populated nail salon account with approximately **400 clients** and **6 months of appointment history** (~2,800 bookings). It is designed to trigger every Revenue Intelligence module with realistic, varied data.
 
-After all data is inserted, the script automatically runs the Intelligence engine on the store so every tab is pre-populated when you log in. No manual refresh is needed.
+After seeding, the Intelligence engines are **not** started automatically. Instead, you launch them from the Mission Control page at `/intelligence/launch` — see the next section.
 
-The entire seed takes approximately **2–3 minutes** to complete.
+The seed itself takes approximately **1–2 minutes** to complete.
 
 ---
 

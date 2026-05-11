@@ -98,6 +98,7 @@ import BillingPage from "@/pages/manage/BillingPage";
 import DashboardBilling from "@/pages/DashboardBilling";
 import AccountOverview from "@/pages/AccountOverview";
 import Intelligence from "@/pages/Intelligence";
+import DemoLaunchEngines from "@/pages/DemoLaunchEngines";
 import WebsiteDesigns from "@/pages/WebsiteDesigns";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
@@ -301,6 +302,7 @@ function AppRoutes() {
       <Route path="/billing" element={<DashboardBilling />} />
       <Route path="/account" element={<AccountOverview />} />
       <Route path="/intelligence" element={<Intelligence />} />
+      <Route path="/intelligence/launch" element={<DemoLaunchEngines />} />
       <Route path="/website-designs" element={<WebsiteDesigns />} />
       <Route path="/marketing" element={<Navigate to="/campaigns" replace />} />
 
