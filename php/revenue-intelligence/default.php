@@ -798,7 +798,7 @@ require 'includes/nav.php';
   <div class="container">
     <div class="text-center" style="margin-bottom:48px;">
       <div class="ri-section-label">How Certxa Compares</div>
-      <h2 class="ri-section-title">No other salon platform<br>does this.</h2>
+      <h2 class="ri-section-title" style="white-space:nowrap;">No other salon platform does this.</h2>
     </div>
     <div style="overflow-x:auto;border-radius:16px;border:1px solid #ede9f7;box-shadow:0 8px 40px rgba(59,7,100,.06);">
       <table class="ri-compare">
