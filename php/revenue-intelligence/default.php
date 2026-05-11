@@ -24,7 +24,7 @@ define('PAGE_SCHEMA', json_encode([
       ['@type'=>'Question','name'=>'Does Revenue Intelligence cost extra?','acceptedAnswer'=>['@type'=>'Answer','text'=>'No. Revenue Intelligence is included in every SalonOS plan at no additional cost. There are no add-ons, no extra tiers, and no setup fees.']],
       ['@type'=>'Question','name'=>'How does the Client Drift Engine work?','acceptedAnswer'=>['@type'=>'Answer','text'=>'SalonOS learns each client\'s visit cadence — how often they typically come in. When a client goes 20% past their personal cadence without rebooking, the system automatically fires a personalized SMS to bring them back. This alone recovers 10–15% of quietly drifting clients.']],
       ['@type'=>'Question','name'=>'What is the Business Growth Score?','acceptedAnswer'=>['@type'=>'Answer','text'=>'The Growth Score is a single 0–100 number that measures your salon\'s health across five dimensions: client retention rate, rebooking rate, seat utilization, average ticket trend, and new client conversion. It updates daily and tells you exactly which component moved and why.']],
-      ['@type'=>'Question','name'=>'How does no-show prediction work?','acceptedAnswer'=>['@type'=>'Answer','text'=>'Every upcoming appointment is scored for no-show risk using multiple factors: the client\'s personal no-show history, how far in advance they booked, the day of week, and the service type. High-risk appointments are surfaced every morning so you can send a targeted confirmation with one tap.']],
+      ['@type'=>'Question','name'=>'How does no-show prediction work?','acceptedAnswer'=>['@type'=>'Answer','text'=>'Every upcoming appointment is scored for no-show risk using multiple factors: the client\'s personal no-show history, how far in advance they booked, the day of week, and the service type. High-risk appointments are surfaced every morning, and automated confirmation reminders are sent to at-risk clients so you never have to chase them yourself.']],
     ],
   ],
 ]));
@@ -525,12 +525,12 @@ require 'includes/nav.php';
         </div>
         <h2 class="ri-feature-title">Cold hard numbers, monthly.<br>Not stats — action items.</h2>
         <p class="ri-feature-body">
-          Every month SalonOS calculates exactly how much revenue slipped through your fingers — from no-shows, cancellations, and lapsed clients. It doesn't bury this in a chart. It shows you the names, the dollars, and gives you a one-tap win-back campaign to go get them back.
+          Every month SalonOS calculates exactly how much revenue slipped through your fingers — from no-shows, cancellations, and lapsed clients. It doesn't bury this in a chart. It shows you the names, the dollars, and automatically sends personalized win-back messages to recover them — no action required from you.
         </p>
         <ul class="ri-feature-checks">
           <li>Breaks down losses by no-shows, cancellations, and lapsed clients separately</li>
           <li>Shows estimated annual revenue impact per lapsed client</li>
-          <li>One-tap win-back campaign to message all lapsed clients at once</li>
+          <li>Win-back messages sent automatically to all lapsed clients who opted in</li>
           <li>90-day rolling trend so you can see if things are improving</li>
           <li>Delivered automatically every Monday with your weekly digest</li>
         </ul>
@@ -558,12 +558,12 @@ require 'includes/nav.php';
             </div>
             <div style="font-size:1.3rem;font-weight:800;color:#ef4444;">$5,200</div>
           </div>
-          <div style="margin-top:14px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+          <div style="margin-top:14px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
             <div>
-              <div style="font-size:.75rem;font-weight:700;color:#fff;">Launch Win-Back Campaign</div>
-              <div style="font-size:.65rem;color:rgba(255,255,255,.7);">Message all 8 lapsed clients — one tap</div>
+              <div style="font-size:.75rem;font-weight:700;color:#059669;">✓ Win-back campaign auto-sent</div>
+              <div style="font-size:.65rem;color:#6b7280;">8 personalised messages sent automatically · no action needed</div>
             </div>
-            <span style="color:#fff;font-size:1rem;">→</span>
+            <span style="font-size:.72rem;font-weight:700;color:#10b981;">Running</span>
           </div>
         </div>
       </div>
@@ -643,9 +643,9 @@ require 'includes/nav.php';
       <div class="ri-feat-card">
         <div class="ri-feat-icon" style="background:linear-gradient(135deg,rgba(251,191,36,.25),rgba(180,83,9,.25));">💸</div>
         <div class="ri-feat-label" style="color:#fbbf24;">Revenue Leakage Report</div>
-        <div class="ri-feat-subline">Monthly, delivered automatically</div>
-        <p class="ri-feat-body">Calculates exactly how much revenue was lost to no-shows, cancellations, and lapsed clients — with names, dollars, and a one-tap campaign to recover it.</p>
-        <div class="ri-feat-proof">✓ One-tap win-back campaign included</div>
+        <div class="ri-feat-subline">Monthly, fully automated</div>
+        <p class="ri-feat-body">Calculates exactly how much revenue was lost to no-shows, cancellations, and lapsed clients — with names, dollars, and automated win-back messages sent without you lifting a finger.</p>
+        <div class="ri-feat-proof">✓ Win-back messages sent automatically</div>
       </div>
 
       <div class="ri-feat-card">
@@ -660,7 +660,7 @@ require 'includes/nav.php';
         <div class="ri-feat-icon" style="background:linear-gradient(135deg,rgba(239,68,68,.25),rgba(185,28,28,.25));">⚠️</div>
         <div class="ri-feat-label" style="color:#f87171;">No-Show Prediction</div>
         <div class="ri-feat-subline">Know before they don't show</div>
-        <p class="ri-feat-body">Every upcoming appointment is scored for risk using lead time, client history, day of week, and service type. High-risk appointments surface every morning with one-tap confirmation.</p>
+        <p class="ri-feat-body">Every upcoming appointment is scored for risk using lead time, client history, day of week, and service type. High-risk appointments surface every morning and automated reminders fire to at-risk clients.</p>
         <div class="ri-feat-proof">✓ Risk scored on 4 independent factors</div>
       </div>
 
@@ -858,7 +858,7 @@ require 'includes/nav.php';
         ],
         [
           'PS','Priya S.','Owner, Glow Nail Studio',
-          '"The no-show predictor is eerie — it flags clients I already had a gut feeling about. The one-tap confirmation feature has cut my no-show rate from 18% to under 6%. The dead seat intelligence found patterns in my calendar I never would have spotted myself."',
+          '"The no-show predictor is eerie — it flags clients I already had a gut feeling about. The automated reminders have cut my no-show rate from 18% to under 6% without me chasing anyone. The dead seat intelligence found patterns in my calendar I never would have spotted myself."',
         ],
       ] as [$init,$name,$role,$quote]): ?>
       <div class="ri-testimonial">
