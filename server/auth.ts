@@ -12,6 +12,41 @@ import passport from "./passport";
 import { computePermissions, normalizeRole } from "@shared/permissions";
 import { TrialService } from "./services/trial-service";
 import { checkGoogleLoginRateLimit } from "./rate-limits";
+import { clientIntelligence } from "../shared/schema/intelligence";
+import { runIntelligenceForStore } from "./intelligence/orchestrator";
+
+/**
+ * Boot the intelligence engine for a store on first login if it has never
+ * been computed before. Runs entirely in the background — the login response
+ * is NOT delayed by this work.
+ */
+async function maybeBootstrapIntelligence(userId: string): Promise<void> {
+  try {
+    const [store] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(eq(locations.userId, userId))
+      .limit(1);
+
+    if (!store) return;
+
+    const [existing] = await db
+      .select({ id: clientIntelligence.id })
+      .from(clientIntelligence)
+      .where(eq(clientIntelligence.storeId, store.id))
+      .limit(1);
+
+    if (!existing) {
+      console.log(`[intelligence] First login for store ${store.id} — bootstrapping intelligence in background`);
+      runIntelligenceForStore(store.id).catch(err =>
+        console.error("[intelligence] Bootstrap error:", err)
+      );
+    }
+  } catch (err) {
+    // Non-fatal — never block login
+    console.error("[intelligence] maybeBootstrapIntelligence error:", err);
+  }
+}
 
 export function setupAuth(app: Express) {
   // Trust exactly 1 proxy hop — required for Replit (proxied HTTPS) and
@@ -255,6 +290,7 @@ export function setupAuth(app: Express) {
               console.error("Session save error after login:", err);
               return res.status(500).json({ message: "Session could not be saved" });
             }
+            maybeBootstrapIntelligence(user.id);
             return res.json(safeUser);
           });
         }

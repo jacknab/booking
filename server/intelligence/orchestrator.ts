@@ -39,15 +39,16 @@ export async function runIntelligenceForStore(storeId: number): Promise<void> {
         ]);
 
         // Get no-show rate for this customer
-        const [nsResult] = await db.execute(
+        const nsData = await db.execute(
           sql`SELECT 
             COUNT(*) as total,
             SUM(CASE WHEN status = 'no-show' THEN 1 ELSE 0 END) as no_shows
           FROM appointments
           WHERE store_id = ${storeId} AND customer_id = ${customer.id}`
         );
-        const totalAppts = Number((nsResult as any)?.total || 0);
-        const noShows = Number((nsResult as any)?.no_shows || 0);
+        const nsResult = (nsData.rows as any[])[0];
+        const totalAppts = Number(nsResult?.total || 0);
+        const noShows = Number(nsResult?.no_shows || 0);
         const noShowRate = totalAppts > 0 ? noShows / totalAppts : 0;
         const noShowCount = noShows;
 
@@ -125,37 +126,28 @@ export async function runIntelligenceForStore(storeId: number): Promise<void> {
     try {
       const staffRates = await computeRebookingRates(storeId);
       for (const s of staffRates) {
-        await db
-          .insert(staffIntelligence)
-          .values({
-            storeId,
-            staffId: s.staffId,
-            totalAppointments: s.totalCompleted,
-            completedAppointments: s.totalCompleted,
-            noShowCount: s.noShowCount,
-            rebookedCount: s.rebookedWithin30Days,
-            rebookingRatePct: s.rebookingRatePct.toFixed(2),
-            avgTicketValue: s.avgTicket.toFixed(2),
-            totalRevenue: s.totalRevenue.toFixed(2),
-            uniqueClientsServed: s.uniqueClients,
-            trend: s.trend,
-            computedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: [staffIntelligence.storeId, staffIntelligence.staffId],
-            set: {
-              totalAppointments: s.totalCompleted,
-              completedAppointments: s.totalCompleted,
-              noShowCount: s.noShowCount,
-              rebookedCount: s.rebookedWithin30Days,
-              rebookingRatePct: s.rebookingRatePct.toFixed(2),
-              avgTicketValue: s.avgTicket.toFixed(2),
-              totalRevenue: s.totalRevenue.toFixed(2),
-              uniqueClientsServed: s.uniqueClients,
-              trend: s.trend,
-              computedAt: new Date(),
-            },
-          });
+        await db.execute(sql`
+          INSERT INTO staff_intelligence
+            (store_id, staff_id, total_appointments, completed_appointments,
+             no_show_count, rebooked_count, rebooking_rate_pct, avg_ticket_value,
+             total_revenue, unique_clients_served, trend, computed_at)
+          VALUES
+            (${storeId}, ${s.staffId}, ${s.totalCompleted}, ${s.totalCompleted},
+             ${s.noShowCount}, ${s.rebookedWithin30Days}, ${s.rebookingRatePct.toFixed(2)},
+             ${s.avgTicket.toFixed(2)}, ${s.totalRevenue.toFixed(2)}, ${s.uniqueClients},
+             ${s.trend}, NOW())
+          ON CONFLICT (store_id, staff_id) DO UPDATE SET
+            total_appointments     = EXCLUDED.total_appointments,
+            completed_appointments = EXCLUDED.completed_appointments,
+            no_show_count          = EXCLUDED.no_show_count,
+            rebooked_count         = EXCLUDED.rebooked_count,
+            rebooking_rate_pct     = EXCLUDED.rebooking_rate_pct,
+            avg_ticket_value       = EXCLUDED.avg_ticket_value,
+            total_revenue          = EXCLUDED.total_revenue,
+            unique_clients_served  = EXCLUDED.unique_clients_served,
+            trend                  = EXCLUDED.trend,
+            computed_at            = NOW()
+        `);
       }
 
       totalRebookingRate = staffRates.reduce((sum, s) => sum + s.rebookingRatePct, 0);
@@ -219,11 +211,12 @@ async function runRebookingNudges(storeId: number): Promise<void> {
 
     const APP_URL = process.env.APP_URL || "https://certxa.com";
 
-    const [locationRow] = await db.execute(
-      sql`SELECT name, slug FROM locations WHERE id = ${storeId} LIMIT 1`
+    const locationData = await db.execute(
+      sql`SELECT name, booking_slug FROM locations WHERE id = ${storeId} LIMIT 1`
     );
-    const storeName = (locationRow as any)?.name || "us";
-    const bookingSlug = (locationRow as any)?.slug || null;
+    const locationRow = (locationData.rows as any[])[0];
+    const storeName = locationRow?.name || "us";
+    const bookingSlug = locationRow?.booking_slug || null;
     const bookingLink = bookingSlug ? `${APP_URL}/book/${bookingSlug}` : APP_URL;
 
     // Find clients whose next expected visit is in 3-7 days and haven't received a nudge in 14 days

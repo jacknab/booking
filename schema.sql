@@ -1452,9 +1452,11 @@ CREATE TABLE IF NOT EXISTS staff_intelligence (
   total_revenue DECIMAL(10,2) DEFAULT 0.00,
   unique_clients_served INTEGER DEFAULT 0,
   client_retention_rate DECIMAL(5,2) DEFAULT 0.00,
+  trend TEXT DEFAULT 'stable',
   computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT si_store_staff_uidx UNIQUE (store_id, staff_id)
 );
+ALTER TABLE staff_intelligence ADD COLUMN IF NOT EXISTS trend TEXT DEFAULT 'stable';
 CREATE INDEX IF NOT EXISTS si_store_id_idx ON staff_intelligence(store_id);
 CREATE INDEX IF NOT EXISTS si_staff_id_idx ON staff_intelligence(staff_id);
 
