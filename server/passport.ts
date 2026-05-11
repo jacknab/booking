@@ -12,10 +12,11 @@ const loginClientId     = process.env.GOOGLE_LOGIN_CLIENT_ID     ?? process.env.
 const loginClientSecret = process.env.GOOGLE_LOGIN_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 
 if (loginClientId && loginClientSecret) {
+  // Replit dev domain takes priority so the callback lands back on the correct host.
   const callbackURL =
-    process.env.GOOGLE_LOGIN_CALLBACK_URL ??
-    process.env.GOOGLE_AUTH_CALLBACK_URL  ??
-    "https://certxa.com/api/auth/google/callback";
+    process.env.REPLIT_DEV_DOMAIN
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
+      : (process.env.GOOGLE_LOGIN_CALLBACK_URL ?? process.env.GOOGLE_AUTH_CALLBACK_URL ?? "https://certxa.com/api/auth/google/callback");
 
   console.log("[Google Login OAuth] Configuring passport strategy");
   console.log("[Google Login OAuth]   client_id   :", `${loginClientId.slice(0, 12)}…`);

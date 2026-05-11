@@ -69,13 +69,23 @@ export function setupAuth(app: Express) {
   // Registered immediately after session middleware so the session is
   // guaranteed to be populated before the OAuth callback handler runs.
 
+  // Derive the correct Google OAuth callback URL for the current environment.
+  // Replit dev domain always wins so the callback lands back on the right host.
+  // Priority: Replit dev domain → explicit env var → production fallback.
+  function resolveGoogleCallbackURL(): string {
+    if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
+    if (process.env.GOOGLE_LOGIN_CALLBACK_URL) return process.env.GOOGLE_LOGIN_CALLBACK_URL;
+    if (process.env.GOOGLE_AUTH_CALLBACK_URL)  return process.env.GOOGLE_AUTH_CALLBACK_URL;
+    return "https://certxa.com/api/auth/google/callback";
+  }
+
   app.get("/api/auth/google", (req: Request, res: Response, next: NextFunction) => {
     // Uses GOOGLE_LOGIN_CLIENT_ID / GOOGLE_LOGIN_CLIENT_SECRET (login-only OAuth).
     // Falls back to legacy GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET if new vars are not set.
     const loginClientId     = process.env.GOOGLE_LOGIN_CLIENT_ID     ?? process.env.GOOGLE_CLIENT_ID;
     const loginClientSecret = process.env.GOOGLE_LOGIN_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
     if (!loginClientId || !loginClientSecret) {
-      return res.status(500).send("Google login is not configured on the server. Set GOOGLE_LOGIN_CLIENT_ID and GOOGLE_LOGIN_CLIENT_SECRET.");
+      return res.redirect("/auth?error=google_not_configured");
     }
 
     // Per-IP rate limit: 5 attempts per 10 minutes (state lives in server/rate-limits.ts)
@@ -84,12 +94,9 @@ export function setupAuth(app: Express) {
     if (!allowed) {
       const retryMins = Math.ceil(retryAfterSecs / 60);
       console.warn(`[Google Login OAuth] Rate limit hit for IP ${ip}`);
-      return res.status(429).send(`Too many sign-in attempts. Please wait ${retryMins} minute${retryMins !== 1 ? "s" : ""} and try again.`);
+      return res.redirect(`/auth?error=rate_limited&retry=${retryMins}`);
     }
-    const loginCallbackURL =
-      process.env.GOOGLE_LOGIN_CALLBACK_URL ??
-      process.env.GOOGLE_AUTH_CALLBACK_URL  ??
-      "https://certxa.com/api/auth/google/callback";
+    const loginCallbackURL = resolveGoogleCallbackURL();
 
     console.log("[Google Login OAuth] OAuth URL generated — initiating authentication flow");
     console.log("[Google Login OAuth]   callback_url (sent to Google):", loginCallbackURL);
@@ -108,18 +115,13 @@ export function setupAuth(app: Express) {
     });
   });
 
-  const googleCallbackURL =
-    process.env.GOOGLE_LOGIN_CALLBACK_URL ??
-    process.env.GOOGLE_AUTH_CALLBACK_URL  ??
-    "https://certxa.com/api/auth/google/callback";
-
   app.get(
     "/api/auth/google/callback",
     (req, res, next) => {
       passport.authenticate("google", {
         session:         false,
         failureRedirect: "/auth?error=google_failed",
-        callbackURL:     googleCallbackURL,
+        callbackURL:     resolveGoogleCallbackURL(),
       })(req, res, next);
     },
     async (req: Request, res: Response) => {

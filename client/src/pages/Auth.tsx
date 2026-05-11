@@ -68,6 +68,19 @@ export default function Auth() {
   const cfg = group ? GROUP_CONFIG[group] : null;
   const redirectTo = searchParams.get("redirect") ?? null;
 
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (!error) return;
+    const messages: Record<string, string> = {
+      google_not_configured: "Google sign-in is not available right now. Please use email and password.",
+      google_failed: "Google sign-in failed. Please try again or use email and password.",
+      google_no_user: "Could not retrieve your Google account. Please try again.",
+      rate_limited: `Too many sign-in attempts. Please wait ${searchParams.get("retry") ?? "a few"} minute(s) and try again.`,
+    };
+    const description = messages[error] ?? "An unexpected error occurred. Please try again.";
+    toast({ title: "Sign-in error", description, variant: "destructive" });
+  }, []);
+
   const [email, setEmail]         = useState("");
   const [password, setPassword]   = useState("");
   const [firstName, setFirstName] = useState("");
