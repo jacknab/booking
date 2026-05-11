@@ -122,29 +122,35 @@ function GrowthScoreWidget({ storeId }: { storeId: number }) {
           <div className="flex-1 min-w-0">
             {score ? (
               <div className="space-y-1.5">
-                {Object.entries(score.components).map(([key, comp]: [string, any]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <div className="w-16 flex-shrink-0">
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${comp.score}%`,
-                            backgroundColor: comp.score >= 75 ? "#10b981" : comp.score >= 50 ? "#f59e0b" : "#ef4444"
-                          }}
-                        />
+                {Object.entries(score.components).map(([key, comp]: [string, any]) => {
+                  const labelMap: Record<string, string> = {
+                    retention: "Retention", rebooking: "Rebooking",
+                    utilization: "Utilization", revenue: "Revenue", newClients: "New clients",
+                  };
+                  return (
+                    <div key={key} className="flex items-center gap-2.5">
+                      <div className="w-14 flex-shrink-0">
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${comp.score}%`,
+                              backgroundColor: comp.score >= 75 ? "#10b981" : comp.score >= 50 ? "#f59e0b" : "#ef4444"
+                            }}
+                          />
+                        </div>
                       </div>
+                      <span className="text-[11px] text-white/50">{labelMap[key] ?? key}</span>
                     </div>
-                    <span className="text-[11px] text-white/50 capitalize truncate">{key}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="space-y-1.5">
-                {["retention","rebooking","utilization","revenue","new clients"].map((k) => (
-                  <div key={k} className="flex items-center gap-2">
-                    <div className="w-16 h-1.5 bg-white/10 rounded-full" />
-                    <span className="text-[11px] text-white/30 capitalize">{k}</span>
+                {["Retention","Rebooking","Utilization","Revenue","New clients"].map((k) => (
+                  <div key={k} className="flex items-center gap-2.5">
+                    <div className="w-14 h-1.5 bg-white/10 rounded-full" />
+                    <span className="text-[11px] text-white/30">{k}</span>
                   </div>
                 ))}
               </div>
@@ -677,8 +683,8 @@ export default function Dashboard() {
       {/* Revenue Co-pilot — single most urgent action */}
       {selectedStore?.id && <RevenueCopilotWidget storeId={selectedStore.id} />}
 
-      {/* Stat Cards — 4-column on md+, 2×2 on mobile */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {/* Stat Cards — 5-column on md+, 2×2 on mobile (Business Health spans 2) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {/* Revenue this month */}
         <div className="rounded-2xl p-5 bg-[#18103a] text-white shadow-lg col-span-2 md:col-span-1">
           <p className="text-xs text-white/60 mb-3 font-medium">Revenue this month</p>
@@ -726,11 +732,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Growth Score widget — 4th card */}
+        {/* Growth Score widget — spans 2 cols for legibility */}
         {selectedStore?.id ? (
-          <GrowthScoreWidget storeId={selectedStore.id} />
+          <div className="col-span-2 md:col-span-2">
+            <GrowthScoreWidget storeId={selectedStore.id} />
+          </div>
         ) : (
-          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
+          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm col-span-2 md:col-span-2">
             <p className="text-xs text-muted-foreground mb-3 font-medium">Business Health</p>
             <p className="text-2xl font-bold font-display text-muted-foreground/40">—</p>
           </div>
