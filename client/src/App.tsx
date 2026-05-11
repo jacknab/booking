@@ -145,6 +145,11 @@ const authenticatedPaths = [
   // Staff portal — needs StoreProvider for hooks (useAppointments, useStaffList, etc.)
   "/staff-calendar",
   "/staff-dashboard",
+  "/intelligence",
+  "/api-keys",
+  "/elite-api-docs",
+  "/elite-details",
+  "/multi-location",
 ];
 
 function App() {
