@@ -97,6 +97,12 @@ $rows = [
   </div>
 </section>
 
+<?php
+$competitor_name = 'Vagaro';
+$competitor_slug = 'vagaro';
+require 'includes/ri-spotlight.php';
+?>
+
 <section class="section section-alt">
   <div class="container" style="max-width:900px;">
     <div class="section-header">

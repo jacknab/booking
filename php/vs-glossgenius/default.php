@@ -101,6 +101,12 @@ $rows = [
   </div>
 </section>
 
+<?php
+$competitor_name = 'GlossGenius';
+$competitor_slug = 'glossgenius';
+require 'includes/ri-spotlight.php';
+?>
+
 <!-- 3 KEY WINS -->
 <section class="section section-alt">
   <div class="container" style="max-width:900px;">
