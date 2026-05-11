@@ -708,7 +708,7 @@ require 'includes/nav.php';
         <div class="ri-section-label">Weekly Digest Email</div>
         <h2 class="ri-feature-title">Your business report,<br>every Monday at 9am.</h2>
         <p class="ri-feature-body">
-          Every Monday morning SalonOS sends you a plain-English email digest — growth score, retention rate, revenue for the week, who's drifting, who's at risk, and the three most important things to do that day. No logging in required.
+          Every Monday morning SalonOS sends you a clear, concise email digest — growth score, retention rate, revenue for the week, who's drifting, who's at risk, and the three most important things to do that day. No logging in required.
         </p>
         <ul class="ri-feature-checks">
           <li>Weekly revenue vs prior week comparison</li>
@@ -891,7 +891,7 @@ require 'includes/nav.php';
         ['What is Revenue Intelligence and how is it different from analytics?','Regular analytics shows you what happened in a chart. Revenue Intelligence takes action on that data automatically — it sends the win-back SMS, flags the high-risk appointments, and queues the dead seat campaigns. You don\'t have to log in and do anything. It works while you\'re cutting hair.'],
         ['Does Revenue Intelligence cost extra?','No. Revenue Intelligence is included in every SalonOS plan at no additional cost. There are no add-ons, no premium tiers, and no per-feature fees. The entire intelligence layer is part of SalonOS from day one.'],
         ['How does the Client Drift Engine know when to send a win-back SMS?','SalonOS learns each individual client\'s visit cadence from their appointment history. When they go 20% past their personal average without a new booking, the SMS fires. It won\'t send if the client already has an upcoming booking or received a similar message in the last 14 days.'],
-        ['What is the Business Growth Score made of?','The Growth Score is a 0–100 composite of five components: client retention rate (weight: 30%), rebooking rate (25%), seat utilization (20%), average ticket trend (15%), and new client conversion (10%). Each component gets its own sub-score and a plain-English explanation of what moved and why.'],
+        ['What is the Business Growth Score made of?','The Growth Score is a 0–100 composite of five components: client retention rate (weight: 30%), rebooking rate (25%), seat utilization (20%), average ticket trend (15%), and new client conversion (10%). Each component gets its own sub-score and a clear explanation of what moved and why.'],
         ['Will clients feel spammed by the automated messages?','No. Every automated SMS is personalized with the client\'s name and context. Rate limiting ensures no client receives more than one intelligence-triggered message per 14 days. Clients can opt out with a STOP reply at any time, which is respected instantly across the entire platform.'],
         ['How much data does the system need to get started?','Revenue Intelligence starts working with as few as 10 completed appointments. Cadence data becomes more accurate after 3+ visits per client. The Growth Score and Leakage Report are meaningful from the first month of use.'],
         ['Can I see which automated messages were sent?','Yes. Every automated SMS triggered by the intelligence system is logged in your SMS Activity tab with the client name, message content, timestamp, and whether it led to a booking. You have full visibility into every action the system took.'],

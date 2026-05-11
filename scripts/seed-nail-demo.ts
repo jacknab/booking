@@ -39,6 +39,7 @@ import {
   appointments,
 } from "../shared/schema";
 import { businessTemplates } from "../server/onboarding-data";
+import { runIntelligenceForStore } from "../server/intelligence/orchestrator";
 import { eq, and } from "drizzle-orm";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -601,9 +602,20 @@ async function seed() {
   console.log("     • LTV / Churn Risk       — power, regular, occasional, and churned clients");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
+  // ── 9. Auto-run Intelligence engine ─────────────────────────────────────
+  console.log("  🧠 Running Revenue Intelligence engine on seeded data...");
+  console.log("     (this takes ~20–40 seconds)");
+  try {
+    await runIntelligenceForStore(store.id);
+    console.log("  ✅ Intelligence engine complete — all modules populated\n");
+  } catch (err: any) {
+    console.warn(`  ⚠️  Intelligence engine encountered an error: ${err.message}`);
+    console.warn("     You can trigger it manually from the dashboard.\n");
+  }
+
   console.log("  Next steps:");
   console.log("  1. Log in at /auth with the credentials above");
-  console.log("  2. Go to Revenue Intelligence → click 'Refresh Now'");
+  console.log("  2. Open Revenue Intelligence — all tabs are pre-populated");
   console.log("  3. Explore every tab — all modules will have meaningful data\n");
 
   process.exit(0);
