@@ -1,0 +1,160 @@
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/auth/user:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/state:1  Failed to load resource: the server responded with a status of 401 ()
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/training/notifications:1  Failed to load resource: the server responded with a status of 401 ()
+api/stores:1  Failed to load resource: the server responded with a status of 401 ()
+api/billing/account-status:1  Failed to load resource: the server responded with a status of 401 ()
+api/onboarding:1  Failed to load resource: the server responded with a status of 401 ()
+api/onboarding:1  Failed to load resource: the server responded with a status of 401 ()
+index-Cn4okfAw.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index-Cn4okfAw.js:8
+i @ index-Cn4okfAw.js:8
+j @ index-Cn4okfAw.js:8
+start @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+#h @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+Fetch failed loading: GET "<URL>".
+index-Cn4okfAw.js:14  GET https://certxa.com/api/auth/user 401 (Unauthorized)
+cfe @ index-Cn4okfAw.js:14
+i @ index-Cn4okfAw.js:8
+j @ index-Cn4okfAw.js:8
+start @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+#h @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+refetch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+await in (anonymous)
+(anonymous) @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+n @ index-Cn4okfAw.js:8
+index-Cn4okfAw.js:8  GET https://certxa.com/api/training/notifications 401 (Unauthorized)
+(anonymous) @ index-Cn4okfAw.js:8
+i @ index-Cn4okfAw.js:8
+j @ index-Cn4okfAw.js:8
+start @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+#h @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+refetch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+await in (anonymous)
+(anonymous) @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+n @ index-Cn4okfAw.js:8
+index-Cn4okfAw.js:14  GET https://certxa.com/api/stores 401 (Unauthorized)
+queryFn @ index-Cn4okfAw.js:14
+i @ index-Cn4okfAw.js:8
+j @ index-Cn4okfAw.js:8
+start @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+#h @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+refetch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+await in (anonymous)
+(anonymous) @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+n @ index-Cn4okfAw.js:8
+index-Cn4okfAw.js:535  GET https://certxa.com/api/billing/account-status 401 (Unauthorized)
+queryFn @ index-Cn4okfAw.js:535
+i @ index-Cn4okfAw.js:8
+j @ index-Cn4okfAw.js:8
+start @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+#h @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+refetch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+await in (anonymous)
+(anonymous) @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+n @ index-Cn4okfAw.js:8
+index-Cn4okfAw.js:467 Fetch finished loading: GET "https://ipapi.co/json/".
+(anonymous) @ index-Cn4okfAw.js:467
+(anonymous) @ index-Cn4okfAw.js:467
+Vb @ index-Cn4okfAw.js:8
+ip @ index-Cn4okfAw.js:8
+qse @ index-Cn4okfAw.js:8
+Xm @ index-Cn4okfAw.js:8
+aD @ index-Cn4okfAw.js:8
+Eu @ index-Cn4okfAw.js:6
+(anonymous) @ index-Cn4okfAw.js:8
+setTimeout
+Qie @ index-Cn4okfAw.js:8
+o @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+#l @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+await in fetch
+#h @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+refetch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+await in (anonymous)
+(anonymous) @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+n @ index-Cn4okfAw.js:8
+index-Cn4okfAw.js:14  GET https://certxa.com/api/auth/user 401 (Unauthorized)
+cfe @ index-Cn4okfAw.js:14
+i @ index-Cn4okfAw.js:8
+j @ index-Cn4okfAw.js:8
+start @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+#h @ index-Cn4okfAw.js:8
+fetch @ index-Cn4okfAw.js:8
+refetch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+batch @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+await in (anonymous)
+(anonymous) @ index-Cn4okfAw.js:8
+onFocus @ index-Cn4okfAw.js:8
+(anonymous) @ index-Cn4okfAw.js:8
+n @ index-Cn4okfAw.js:8

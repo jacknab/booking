@@ -625,9 +625,10 @@ router.get("/daily-digest", async (req, res) => {
       ),
       // 1b. No-show revenue at stake
       db.execute(
-        sql`SELECT COALESCE(SUM(CAST(a.price AS DECIMAL)), 0)::float AS rev
+        sql`SELECT COALESCE(SUM(CAST(s.price AS DECIMAL)), 0)::float AS rev
             FROM appointments a
             JOIN client_intelligence ci ON ci.customer_id = a.customer_id AND ci.store_id = a.store_id
+            LEFT JOIN services s ON s.id = a.service_id
             WHERE a.store_id = ${storeId}
               AND a.date >= ${todayStart.toISOString()}
               AND a.date <= ${todayEnd.toISOString()}
@@ -661,8 +662,9 @@ router.get("/daily-digest", async (req, res) => {
       ),
       // 3b. Cancellation revenue at stake
       db.execute(
-        sql`SELECT COALESCE(SUM(CAST(a.price AS DECIMAL)), 0)::float AS rev
+        sql`SELECT COALESCE(SUM(CAST(s.price AS DECIMAL)), 0)::float AS rev
             FROM appointments a
+            LEFT JOIN services s ON s.id = a.service_id
             WHERE a.store_id = ${storeId}
               AND a.date >= ${todayStart.toISOString()}
               AND a.date <= ${todayEnd.toISOString()}

@@ -235,7 +235,7 @@ export default function Onboarding() {
   // ── All hooks must be declared before any conditional return ──
   const [step, setStep] = useState(1);
   const [teamSize, setTeamSize] = useState<"myself" | "team" | null>(null);
-  const totalSteps = 5;
+  const totalSteps = teamSize === "team" ? 5 : 4;
   const [goals, setGoals] = useState<string[]>([]);
   const [showBusinessTypePanel, setShowBusinessTypePanel] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -455,7 +455,10 @@ export default function Onboarding() {
   };
 
   const handleComplete = () => {
-    if (!selectedType || !businessName.trim()) return;
+    if (!selectedType || !businessName.trim()) {
+      toast({ title: "Missing business info", description: "Please go back and fill in your business name and type.", variant: "destructive" });
+      return;
+    }
     const validStaff = staffNames.filter(n => n.trim()).map((name, i) => ({
       name: name.trim(),
       color: staffColors[i % staffColors.length],
