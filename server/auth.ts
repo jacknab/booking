@@ -87,13 +87,13 @@ export function setupAuth(app: Express) {
   const sameSitePolicy: "none" | "lax" = isReplit ? "none" : "lax";
 
   // Secure strategy:
-  //   "auto"  — express-session sets the Secure flag only when req.secure is
-  //             true, but ALWAYS writes the Set-Cookie header. This fixes VPS
-  //             setups where nginx terminates TLS but doesn't forward
-  //             X-Forwarded-Proto, which causes `secure: true` to silently skip
-  //             the cookie entirely — leaving users perpetually logged out.
+  //   true    — Replit always serves HTTPS so we can unconditionally set the
+  //             Secure flag. Required when sameSite is "none" — browsers reject
+  //             cookies that have sameSite=none without Secure.
+  //   "auto"  — VPS setups where nginx terminates TLS; express-session sets
+  //             Secure only when req.secure is true (via X-Forwarded-Proto).
   //   false   — development (plain HTTP, no proxy).
-  const securePolicy: boolean | "auto" = secureCookies ? "auto" : false;
+  const securePolicy: boolean | "auto" = isReplit ? true : secureCookies ? "auto" : false;
 
   app.use(
     session({
