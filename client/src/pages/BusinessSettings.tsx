@@ -69,9 +69,9 @@ const CATEGORIES = [
   "Nail Salon",
   "Spa",
   "Barbershop",
-  "Beauty Salon",
-  "Massage",
-  "Wellness Center",
+  "Esthetician",
+  "Pet Groomer",
+  "Tattoo Studio",
   "Other",
 ];
 

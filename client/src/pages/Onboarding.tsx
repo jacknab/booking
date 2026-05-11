@@ -609,9 +609,8 @@ export default function Onboarding() {
 
         {step === 3 && (() => {
           const allBusinessTypes = [
-            "Barbershop", "Beauty Salon", "Esthetician", "Hair Removal",
-            "Hair Salon", "Massage Therapist", "Nail Salon", "Pet Groomer",
-            "Spa", "Tattoo Studio", "Other",
+            "Barbershop", "Esthetician", "Hair Salon", "Nail Salon",
+            "Pet Groomer", "Spa", "Tattoo Studio", "Other",
           ];
           return showBusinessTypePanel ? (
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
