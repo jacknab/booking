@@ -3,29 +3,6 @@ session_start();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/data/templates.php';
 
-define('ADMIN_PASSWORD', '1825Logan305!');
-
-// Logout
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: ' . BASE_PATH . '/admin.php');
-    exit;
-}
-
-// Login POST
-$login_error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
-    if ($_POST['password'] === ADMIN_PASSWORD) {
-        $_SESSION['admin_logged_in'] = true;
-        header('Location: ' . BASE_PATH . '/admin.php');
-        exit;
-    } else {
-        $login_error = 'Incorrect password. Please try again.';
-    }
-}
-
-$is_authed = true;
-
 // Flash messages from redirects
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
@@ -102,27 +79,6 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
 </head>
 <body class="admin-body">
 
-<?php if (!$is_authed): ?>
-<!-- ── Login ── -->
-<div class="admin-login-wrap">
-    <div class="admin-login-box">
-        <div class="admin-login-logo">🚀</div>
-        <div class="admin-login-title">Launchit Admin</div>
-        <div class="admin-login-sub">Sign in to manage templates</div>
-        <?php if ($login_error): ?>
-        <div class="admin-login-error"><?php echo htmlspecialchars($login_error); ?></div>
-        <?php endif; ?>
-        <form method="POST" action="">
-            <input type="password" name="password" class="form-input" placeholder="Admin password" autofocus required>
-            <button type="submit" class="btn-admin btn-admin--primary" style="width:100%;justify-content:center;">Sign In</button>
-        </form>
-        <p style="margin-top:18px;font-size:0.75rem;color:rgba(255,255,255,0.2);">
-            Set the <code>ADMIN_PASSWORD</code> environment variable to change the password.
-        </p>
-    </div>
-</div>
-
-<?php else: ?>
 <!-- ── Dashboard ── -->
 <header class="admin-header">
     <a class="admin-header__brand" href="<?php echo BASE_PATH; ?>/admin.php">
@@ -134,7 +90,6 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
         <span class="admin-header__user">Catalog Manager</span>
         <a href="<?php echo BASE_PATH; ?>/blocks.php" class="admin-logout">🧩 Block Library</a>
         <a href="<?php echo BASE_PATH; ?>/" target="_blank" class="admin-logout">View Catalog ↗</a>
-        <a href="?logout=1" class="admin-logout">Sign Out</a>
     </div>
 </header>
 
@@ -1535,6 +1490,5 @@ document.getElementById('scraperUrl')?.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); startScrape(); }
 });
 </script>
-<?php endif; ?>
 </body>
 </html>
