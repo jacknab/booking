@@ -633,11 +633,11 @@ export default function Intelligence() {
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Growth Score</p>
-              <p className={`text-2xl font-bold ${score ? GradeColor(score.grade) : ""}`}>
-                {score ? `${score.overallScore}/100` : "—"}
+              <p className={`text-2xl font-bold ${score?.hasData ? GradeColor(score.grade) : ""}`}>
+                {score?.hasData ? `${score.overallScore}/100` : "—"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Grade: <span className={`font-bold ${score ? GradeColor(score.grade) : ""}`}>{score?.grade ?? "—"}</span>
+                Grade: <span className={`font-bold ${score?.hasData ? GradeColor(score.grade) : ""}`}>{score?.hasData ? score.grade : "—"}</span>
               </p>
             </CardContent>
           </Card>
@@ -829,6 +829,14 @@ export default function Intelligence() {
                   {growthLoading ? (
                     <div className="flex items-center justify-center h-40">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : score && !score.hasData ? (
+                    <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
+                      <span className="text-4xl">📊</span>
+                      <div>
+                        <p className="text-sm font-medium">No activity yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">Your health score will appear here once you start booking clients and completing appointments.</p>
+                      </div>
                     </div>
                   ) : score ? (
                     <div className="space-y-4">

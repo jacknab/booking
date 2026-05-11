@@ -3,6 +3,7 @@ import { appointments, customers } from "@shared/schema";
 import { eq, and, gte, sql, inArray } from "drizzle-orm";
 
 export interface GrowthScoreBreakdown {
+  hasData: boolean;
   overallScore: number;
   grade: "A" | "B" | "C" | "D" | "F";
   components: {
@@ -127,6 +128,33 @@ export async function computeGrowthScore(
   const noShowCount = Number(noShowStats?.noShows || 0);
   const noShowRate = totalAppts > 0 ? noShowCount / totalAppts : 0;
 
+  // ── No-data early return ─────────────────────────────────────────────────
+  // If the store has no clients, no appointments, and no revenue, every score
+  // defaults to an artificial non-zero value due to the tiered scoring logic.
+  // Return a clean "no data" result so the UI can show an appropriate state.
+  if (totalClientCount === 0 && totalAppts === 0 && monthlyRevenue === 0) {
+    const zeroComponent = { score: 0, label: "No data", detail: "No activity yet" };
+    return {
+      hasData: false,
+      overallScore: 0,
+      grade: "F",
+      components: {
+        retention:   zeroComponent,
+        rebooking:   zeroComponent,
+        utilization: zeroComponent,
+        revenue:     zeroComponent,
+        newClients:  zeroComponent,
+      },
+      insights: [],
+      activeClients: 0,
+      driftingClients: 0,
+      atRiskClients: 0,
+      monthlyRevenue: 0,
+      avgRebookingRate: 0,
+      seatUtilizationPct: 0,
+    };
+  }
+
   // Retention score — based on drifting/at-risk ratios
   const activeClients = clientIntelligenceData?.activeClients || totalClientCount;
   const driftingClients = clientIntelligenceData?.driftingClients || 0;
@@ -209,6 +237,7 @@ export async function computeGrowthScore(
     );
 
   return {
+    hasData: true,
     overallScore,
     grade,
     components: {

@@ -27,11 +27,11 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2, CheckCircle2, ChevronRight, DollarSign, BellOff } from "lucide-react";
 
 function GradeColorClass(grade: string) {
-  if (grade === "A") return "text-emerald-400";
-  if (grade === "B") return "text-blue-400";
-  if (grade === "C") return "text-amber-400";
-  if (grade === "D") return "text-orange-400";
-  return "text-red-400";
+  if (grade === "A") return "text-emerald-600";
+  if (grade === "B") return "text-blue-600";
+  if (grade === "C") return "text-amber-600";
+  if (grade === "D") return "text-orange-600";
+  return "text-red-600";
 }
 
 function GrowthScoreWidget({ storeId }: { storeId: number }) {
@@ -81,103 +81,98 @@ function GrowthScoreWidget({ storeId }: { storeId: number }) {
     );
   }
 
+  const hasData = score?.hasData !== false;
+
   return (
     <Link to="/intelligence" className="block group">
-      <div className="rounded-2xl p-5 bg-[#18103a] text-white shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-[1.01]">
+      <div className="rounded-2xl p-5 bg-card border border-border/60 shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200 group-hover:scale-[1.01]">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-violet-300" />
-            <p className="text-sm text-white/70 font-medium">Business Health</p>
+            <Brain className="h-4 w-4 text-violet-500" />
+            <p className="text-sm text-muted-foreground font-medium">Business Health</p>
           </div>
-          <ArrowRight className="h-4 w-4 text-white/30 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all" />
+          <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Score ring */}
-          <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-            <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={7} />
-              <circle
-                cx={size / 2} cy={size / 2} r={r}
-                fill="none"
-                stroke={strokeColor}
-                strokeWidth={7}
-                strokeDasharray={`${dash} ${circ - dash}`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              {score ? (
-                <>
-                  <span className={`text-2xl font-bold leading-none ${GradeColorClass(score.grade)}`}>{score.grade}</span>
-                  <span className="text-[10px] text-white/50 mt-0.5">{score.overallScore}/100</span>
-                </>
-              ) : (
-                <span className="text-white/40 text-xs text-center px-1">No data</span>
-              )}
+        {/* No-data empty state */}
+        {(!score || !hasData) && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-3 gap-1.5 text-center">
+            <span className="text-2xl">📊</span>
+            <p className="text-xs font-medium text-foreground">No data yet</p>
+            <p className="text-[11px] text-muted-foreground">Start booking clients to see your health score</p>
+          </div>
+        )}
+
+        {/* Score display */}
+        {score && hasData && (
+          <div className="flex items-center gap-4">
+            {/* Score ring */}
+            <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+              <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth={7} />
+                <circle
+                  cx={size / 2} cy={size / 2} r={r}
+                  fill="none"
+                  stroke={strokeColor}
+                  strokeWidth={7}
+                  strokeDasharray={`${dash} ${circ - dash}`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-2xl font-bold leading-none ${GradeColorClass(score.grade)}`}>{score.grade}</span>
+                <span className="text-[10px] text-muted-foreground mt-0.5">{score.overallScore}/100</span>
+              </div>
+            </div>
+
+            {/* Breakdown bars */}
+            <div className="flex-1 min-w-0 space-y-1.5">
+              {Object.entries(score.components).map(([key, comp]: [string, any]) => {
+                const labelMap: Record<string, string> = {
+                  retention: "Retention", rebooking: "Rebooking",
+                  utilization: "Utilization", revenue: "Revenue", newClients: "New clients",
+                };
+                return (
+                  <div key={key} className="flex items-center gap-2.5">
+                    <div className="w-14 flex-shrink-0">
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${comp.score}%`,
+                            backgroundColor: comp.score >= 75 ? "#10b981" : comp.score >= 50 ? "#f59e0b" : "#ef4444"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">{labelMap[key] ?? key}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
+        )}
 
-          {/* Breakdown */}
-          <div className="flex-1 min-w-0">
-            {score ? (
-              <div className="space-y-1.5">
-                {Object.entries(score.components).map(([key, comp]: [string, any]) => {
-                  const labelMap: Record<string, string> = {
-                    retention: "Retention", rebooking: "Rebooking",
-                    utilization: "Utilization", revenue: "Revenue", newClients: "New clients",
-                  };
-                  return (
-                    <div key={key} className="flex items-center gap-2.5">
-                      <div className="w-14 flex-shrink-0">
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${comp.score}%`,
-                              backgroundColor: comp.score >= 75 ? "#10b981" : comp.score >= 50 ? "#f59e0b" : "#ef4444"
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-white/50">{labelMap[key] ?? key}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {["Retention","Rebooking","Utilization","Revenue","New clients"].map((k) => (
-                  <div key={k} className="flex items-center gap-2.5">
-                    <div className="w-14 h-1.5 bg-white/10 rounded-full" />
-                    <span className="text-[11px] text-white/30">{k}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Alert strip */}
-        {summary && (summary.driftingClients > 0 || summary.atRiskClients > 0) && (
-          <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-            <p className="text-xs text-white/60">
+        {/* Alert / insight strip */}
+        {score && hasData && summary && (summary.driftingClients > 0 || summary.atRiskClients > 0) && (
+          <div className="mt-3 pt-3 border-t border-border/50 flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
               {summary.driftingClients > 0 && (
-                <span className="text-amber-400 font-medium">{summary.driftingClients} drifting</span>
+                <span className="text-amber-600 font-medium">{summary.driftingClients} drifting</span>
               )}
               {summary.driftingClients > 0 && summary.atRiskClients > 0 && " · "}
               {summary.atRiskClients > 0 && (
-                <span className="text-orange-400 font-medium">{summary.atRiskClients} at risk</span>
+                <span className="text-orange-600 font-medium">{summary.atRiskClients} at risk</span>
               )}
               <span> — tap to act</span>
             </p>
           </div>
         )}
 
-        {(!summary || (summary.driftingClients === 0 && summary.atRiskClients === 0)) && score && (
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-xs text-white/40">
+        {score && hasData && (!summary || (summary.driftingClients === 0 && summary.atRiskClients === 0)) && (
+          <div className="mt-3 pt-3 border-t border-border/50">
+            <p className="text-xs text-muted-foreground">
               {score.insights?.[0] || "All client metrics look healthy"}
             </p>
           </div>
@@ -397,7 +392,7 @@ function RevenueGoalTracker({ currentRevenue, storageKey }: { currentRevenue: nu
     return (
       <button
         onClick={() => { setDraft(""); setEditing(true); }}
-        className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors"
+        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         <Target className="h-3.5 w-3.5" />
         Set a monthly goal
@@ -409,7 +404,7 @@ function RevenueGoalTracker({ currentRevenue, storageKey }: { currentRevenue: nu
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <Target className={`h-3.5 w-3.5 flex-shrink-0 ${isHit ? "text-emerald-400" : "text-amber-400"}`} />
+          <Target className={`h-3.5 w-3.5 flex-shrink-0 ${isHit ? "text-emerald-600" : "text-amber-500"}`} />
           {editing ? (
             <div className="flex items-center gap-2">
               <input
@@ -419,38 +414,38 @@ function RevenueGoalTracker({ currentRevenue, storageKey }: { currentRevenue: nu
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
                 placeholder="e.g. 5000"
-                className="w-24 text-xs border border-white/20 rounded px-2 py-0.5 bg-white/10 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
+                className="w-24 text-xs border border-border rounded px-2 py-0.5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
               />
-              <button onClick={handleSave} className="text-emerald-400 hover:text-emerald-300 text-xs font-medium">Save</button>
-              <button onClick={() => setEditing(false)} className="text-white/40 hover:text-white/70 text-xs">×</button>
+              <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-700 text-xs font-medium">Save</button>
+              <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground text-xs">×</button>
             </div>
           ) : (
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs text-white/50 truncate">
-                Goal: <span className="text-white/80 font-semibold">${goal.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground truncate">
+                Goal: <span className="text-foreground font-semibold">${goal.toLocaleString()}</span>
               </span>
-              <button onClick={() => { setDraft(String(goal)); setEditing(true); }} className="text-white/30 hover:text-white/60 flex-shrink-0">
+              <button onClick={() => { setDraft(String(goal)); setEditing(true); }} className="text-muted-foreground/50 hover:text-muted-foreground flex-shrink-0">
                 <Edit2 className="h-3 w-3" />
               </button>
             </div>
           )}
         </div>
         {!editing && (
-          <span className={`text-xs font-bold flex-shrink-0 ${isHit ? "text-emerald-400" : "text-amber-400"}`}>
+          <span className={`text-xs font-bold flex-shrink-0 ${isHit ? "text-emerald-600" : "text-amber-500"}`}>
             {isHit ? "🎯" : `${progress}%`}
           </span>
         )}
       </div>
       {!editing && goal > 0 && (
         <>
-          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
             <div
-              className={`h-1.5 rounded-full transition-all duration-700 ${isHit ? "bg-emerald-400" : "bg-amber-400"}`}
+              className={`h-1.5 rounded-full transition-all duration-700 ${isHit ? "bg-emerald-500" : "bg-amber-500"}`}
               style={{ width: `${progress}%` }}
             />
           </div>
           {!isHit && remaining > 0 && (
-            <p className="text-[10px] text-white/40 mt-1">
+            <p className="text-[10px] text-muted-foreground mt-1">
               ${remaining.toLocaleString()} to go
             </p>
           )}
@@ -686,20 +681,20 @@ export default function Dashboard() {
       {/* Stat Cards — 5-column on md+, 2×2 on mobile (Business Health spans 2) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {/* Revenue this month */}
-        <div className="rounded-2xl p-5 bg-[#18103a] text-white shadow-lg col-span-2 md:col-span-1">
-          <p className="text-xs text-white/60 mb-3 font-medium">Revenue this month</p>
-          <p className="text-2xl font-bold font-display mb-1.5">
+        <div className="rounded-2xl p-5 bg-card border border-border/60 shadow-sm col-span-2 md:col-span-1">
+          <p className="text-xs text-muted-foreground mb-3 font-medium">Revenue this month</p>
+          <p className="text-2xl font-bold font-display mb-1.5 text-foreground">
             ${thisMonthRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </p>
           {lastMonthRevenue > 0 ? (
-            <p className={`text-xs font-medium flex items-center gap-1 ${monthRevenueChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <p className={`text-xs font-medium flex items-center gap-1 ${monthRevenueChange >= 0 ? "text-emerald-600" : "text-red-500"}`}>
               {monthRevenueChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               {Math.abs(monthRevenueChange)}% vs last month
             </p>
           ) : (
-            <p className="text-xs text-white/40">First month</p>
+            <p className="text-xs text-muted-foreground">First month</p>
           )}
-          <div className="mt-3 pt-3 border-t border-white/10">
+          <div className="mt-3 pt-3 border-t border-border/50">
             <RevenueGoalTracker
               currentRevenue={thisMonthRevenue}
               storageKey={`revenue-goal-${selectedStore?.id || "default"}`}
