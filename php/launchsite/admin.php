@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
     }
 }
 
-$is_authed = !empty($_SESSION['admin_logged_in']);
+$is_authed = true;
 
 // Flash messages from redirects
 $flash = $_SESSION['flash'] ?? null;

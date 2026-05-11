@@ -38,6 +38,55 @@ const pool = new Pool({
   connectionTimeoutMillis: 10_000,
 });
 
+// ── SQL statement splitter (comment-aware) ─────────────────────────────────
+// Splits a SQL script on semicolons while ignoring semicolons inside
+// single-line (--) and block (/* */) comments.
+function splitSqlStatements(sql) {
+  const statements = [];
+  let current = "";
+  let i = 0;
+  while (i < sql.length) {
+    // Single-line comment: skip to end of line
+    if (sql[i] === "-" && sql[i + 1] === "-") {
+      const end = sql.indexOf("\n", i);
+      if (end === -1) { current += sql.slice(i); i = sql.length; }
+      else { current += sql.slice(i, end + 1); i = end + 1; }
+      continue;
+    }
+    // Block comment: skip to */
+    if (sql[i] === "/" && sql[i + 1] === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      if (end === -1) { current += sql.slice(i); i = sql.length; }
+      else { current += sql.slice(i, end + 2); i = end + 2; }
+      continue;
+    }
+    // String literal: skip to closing quote
+    if (sql[i] === "'") {
+      let j = i + 1;
+      while (j < sql.length) {
+        if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue; }
+        if (sql[j] === "'") { j++; break; }
+        j++;
+      }
+      current += sql.slice(i, j);
+      i = j;
+      continue;
+    }
+    // Statement boundary
+    if (sql[i] === ";") {
+      const stmt = current.trim();
+      if (stmt) statements.push(stmt);
+      current = "";
+      i++;
+      continue;
+    }
+    current += sql[i++];
+  }
+  const last = current.trim();
+  if (last) statements.push(last);
+  return statements;
+}
+
 // ── Step 1: Apply schema.sql ───────────────────────────────────────────────
 async function applySchema(client) {
   const schemaPath = join(ROOT, "schema.sql");
@@ -116,11 +165,8 @@ async function runMigrations(pool) {
       try {
         if (needsNoTx) {
           // Run each CONCURRENTLY statement individually, outside any transaction.
-          // Split on semicolons (simple split — works for these migration files).
-          const statements = sql
-            .split(";")
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0);
+          // Use a comment-aware splitter so semicolons inside -- comments don't break parsing.
+          const statements = splitSqlStatements(sql);
           for (const stmt of statements) {
             await client.query(stmt);
           }
