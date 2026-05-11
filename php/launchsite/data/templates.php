@@ -1,6 +1,12 @@
 <?php
 /**
- * Central template data — used by preview.php and category pages.
- * Each template is keyed by its ID.
+ * Template catalog loader.
+ *
+ * Reads all templates from the launchsite_templates PostgreSQL table and
+ * provides $all_templates as an associative array keyed by template ID.
+ * This replaces the old flat-file PHP array approach.
  */
-$all_templates = [];
+
+require_once __DIR__ . '/../api/db-templates.php';
+
+$all_templates = launchit_all_templates();

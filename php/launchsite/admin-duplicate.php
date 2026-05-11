@@ -47,7 +47,6 @@ $new_thumb    = $thumbs_dir . '/' . $new_id    . '.jpg';
 $templates_dir = __DIR__ . '/templates';
 $src_built    = $templates_dir . '/' . $source_id;
 $new_built    = $templates_dir . '/' . $new_id;
-$templates_file = __DIR__ . '/data/templates.php';
 
 // ── Copy built React files (if react) ────────────────────────────────────────
 
@@ -82,51 +81,13 @@ if ($type === 'react') {
     $new_entry['react_path'] = '/launchsite/templates/' . $new_id . '/';
 }
 
-// ── Serialise the entry as PHP source ─────────────────────────────────────────
+// ── Save duplicated entry to database ────────────────────────────────────────
 
-function format_php_value(mixed $v, int $indent = 2): string {
-    if (is_array($v)) {
-        $items = array_map(fn($i) => "'" . addslashes($i) . "'", $v);
-        return '[' . implode(', ', $items) . ']';
-    }
-    return "'" . addslashes((string)$v) . "'";
-}
-
-$lines   = [];
-$lines[] = "    '$new_id' => [";
-$fields  = ['id','name','category','style','desc','badge','features',
-            'accent','dark','light','url_slug','hero_tagline','hero_sub',
-            'business_name','type','react_path'];
-foreach ($fields as $f) {
-    if (!array_key_exists($f, $new_entry)) continue;
-    $pad   = str_pad("'$f'", 16);
-    $lines[] = "        $pad=> " . format_php_value($new_entry[$f]) . ',';
-}
-$lines[] = '    ],';
-$block   = "\n" . implode("\n", $lines) . "\n";
-
-// ── Inject before closing `];` ────────────────────────────────────────────────
-
-$tpl_content = file_get_contents($templates_file);
-$tpl_content = preg_replace('/\n\];\s*$/', $block . '];', $tpl_content);
-file_put_contents($templates_file, $tpl_content);
-
-// ── Validate the file didn't break ───────────────────────────────────────────
-
-$lint = shell_exec('php -l ' . escapeshellarg($templates_file) . ' 2>&1');
-if (!str_contains($lint, 'No syntax errors')) {
-    // Restore from backup and report
+if (!launchit_insert_template($new_entry)) {
     $_SESSION['flash'] = [
         'type' => 'error',
-        'msg'  => 'Template entry was generated but caused a PHP syntax error. The file was not saved. Please report this bug.',
+        'msg'  => 'Database error — could not duplicate template. Please try again.',
     ];
-    // Revert by removing the bad block
-    $tpl_content = preg_replace(
-        "/\n    '" . preg_quote($new_id, '/') . "' => \[.*?\n    \],\n/s",
-        "\n",
-        file_get_contents($templates_file)
-    );
-    file_put_contents($templates_file, $tpl_content);
     header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }

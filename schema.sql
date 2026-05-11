@@ -1533,3 +1533,31 @@ CREATE TABLE IF NOT EXISTS messages (
 -- These add columns that were introduced after the initial schema was written.
 -- Using IF NOT EXISTS ensures they are safe to run on any database (new or existing).
 ALTER TABLE locations ADD COLUMN IF NOT EXISTS weekly_digest_opt_out BOOLEAN NOT NULL DEFAULT false;
+
+-- ── LaunchSite Template Catalog ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS launchsite_templates (
+  id            TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  category      TEXT NOT NULL,
+  style         TEXT NOT NULL DEFAULT 'Modern',
+  "desc"        TEXT NOT NULL DEFAULT '',
+  badge         TEXT NOT NULL DEFAULT '',
+  features      JSONB NOT NULL DEFAULT '[]'::jsonb,
+  accent        TEXT NOT NULL DEFAULT '#a855f7',
+  dark          TEXT NOT NULL DEFAULT '#0a0b15',
+  light         TEXT NOT NULL DEFAULT '#1c1d27',
+  url_slug      TEXT NOT NULL,
+  hero_tagline  TEXT NOT NULL DEFAULT '',
+  hero_sub      TEXT NOT NULL DEFAULT '',
+  business_name TEXT NOT NULL DEFAULT '',
+  type          TEXT NOT NULL DEFAULT 'php',
+  react_path    TEXT,
+  scraped_path  TEXT,
+  source_url    TEXT,
+  sort_order    INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS launchsite_templates_category_idx ON launchsite_templates(category);
+CREATE INDEX IF NOT EXISTS launchsite_templates_sort_idx ON launchsite_templates(sort_order, created_at);

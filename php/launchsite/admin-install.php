@@ -508,7 +508,6 @@ if ($upload_code !== UPLOAD_ERR_OK && $upload_code !== 0) {
 $workspace_root = dirname(__DIR__);
 $artifacts_dir  = $workspace_root . '/artifacts';
 $thumbs_dir     = __DIR__ . '/assets/img/thumbs';
-$templates_file = __DIR__ . '/data/templates.php';
 
 $pnpm = trim(shell_exec('which pnpm 2>/dev/null') ?: '');
 if (!$pnpm || !file_exists($pnpm)) $pnpm = '/home/runner/.nix-profile/bin/pnpm';
@@ -721,35 +720,27 @@ if ($r['code'] !== 0 || !file_exists($built_dir . '/index.html')) {
 }
 step('✅', "Build complete → <code>launchsite-php/templates/$tid/index.html</code>");
 
-// ── 7. Register in templates.php ─────────────────────────────────────────────
+// ── 7. Register in database catalog ───────────────────────────────────────────
 step('📝', 'Registering template in the catalog…');
 
-$esc = fn(string $s) => addslashes($s);
-$entry = <<<PHP
-
-    '$tid' => [
-        'id'            => '$tid',
-        'name'          => '{$esc($meta['name'])}',
-        'category'      => '$category',
-        'style'         => '{$esc($meta['style'])}',
-        'desc'          => '{$esc($meta['desc'])}',
-        'badge'         => 'new',
-        'features'      => ['Services', 'Gallery', 'Booking'],
-        'accent'        => '{$meta['accent']}',
-        'dark'          => '{$meta['dark']}',
-        'light'         => '{$meta['light']}',
-        'url_slug'      => '$tid',
-        'hero_tagline'  => '{$esc($meta['hero_tagline'])}',
-        'hero_sub'      => '{$esc($meta['hero_sub'])}',
-        'business_name' => '{$esc($meta['business_name'])}',
-        'type'          => 'react',
-        'react_path'    => '$base_path_url',
-    ],
-PHP;
-
-$tpl_content = file_get_contents($templates_file);
-$tpl_content = preg_replace('/(\n\];\s*)$/', $entry . "\n];", $tpl_content);
-file_put_contents($templates_file, $tpl_content);
+launchit_insert_template([
+    'id'            => $tid,
+    'name'          => $meta['name'],
+    'category'      => $category,
+    'style'         => $meta['style'] ?? 'Modern',
+    'desc'          => $meta['desc'] ?? '',
+    'badge'         => 'new',
+    'features'      => ['Services', 'Gallery', 'Booking'],
+    'accent'        => $meta['accent'],
+    'dark'          => $meta['dark'],
+    'light'         => $meta['light'],
+    'url_slug'      => $tid,
+    'hero_tagline'  => $meta['hero_tagline'],
+    'hero_sub'      => $meta['hero_sub'],
+    'business_name' => $meta['business_name'],
+    'type'          => 'react',
+    'react_path'    => $base_path_url,
+]);
 
 step('✅', "Registered — will appear immediately in the <strong>" . htmlspecialchars($category) . "</strong> catalog page");
 

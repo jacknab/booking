@@ -25,7 +25,6 @@ $name         = $template['name'] ?? $template_id;
 
 $workspace_root  = dirname(__DIR__);
 $artifacts_dir   = $workspace_root . '/artifacts';
-$templates_file  = __DIR__ . '/data/templates.php';
 $built_dir       = __DIR__ . '/templates/' . $template_id;
 $source_dir      = $artifacts_dir . '/template-' . $template_id;
 $thumb_file      = __DIR__ . '/assets/img/thumbs/' . $template_id . '.jpg';
@@ -55,16 +54,8 @@ if ($errors) {
     exit;
 }
 
-// ── Remove entry from templates.php ──────────────────────────────────────────
-$tpl_content = file_get_contents($templates_file);
-// Match the full entry block: key opens with `[`, closes with a `],` on its own
-// line at 4-space indent (not the nested `features => ['...'],` which is inline).
-$tpl_content = preg_replace(
-    "/\n    '" . preg_quote($template_id, '/') . "' => \[.*?\n    \],\n/s",
-    "\n",
-    $tpl_content
-);
-file_put_contents($templates_file, $tpl_content);
+// ── Remove entry from database ────────────────────────────────────────────────
+launchit_delete_template($template_id);
 
 $deleted  = [];
 $skipped  = [];
@@ -89,7 +80,7 @@ if (file_exists($thumb_file)) {
     else                     $skipped[] = 'Thumbnail (unlink failed)';
 }
 
-$deleted[] = 'Catalog entry in <code>data/templates.php</code>';
+$deleted[] = 'Catalog entry from database';
 ?>
 <!DOCTYPE html>
 <html lang="en">

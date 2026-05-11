@@ -27,7 +27,6 @@ if (!$template_id || !isset($all_templates[$template_id])) {
 $existing       = $all_templates[$template_id];
 $workspace_root = dirname(__DIR__);
 $source_dir     = $workspace_root . '/artifacts/template-' . $template_id;
-$templates_file = __DIR__ . '/data/templates.php';
 $thumbs_dir     = __DIR__ . '/assets/img/thumbs';
 
 if (!is_dir($source_dir) || !file_exists($source_dir . '/package.json')) {
@@ -233,45 +232,19 @@ $accent = rd_detect_accent($source_dir, $all_src, $category);
 $dark   = rd_detect_dark($source_dir, $all_src);
 $light  = rd_adjust_hex($dark, 18);
 
-// ── Update templates.php entry ────────────────────────────────────────────────
+// ── Update database entry with fresh metadata ─────────────────────────────────
 
-$esc      = fn(string $s) => addslashes($s);
-$style    = $existing['style']    ?? 'Modern';
-$desc     = $existing['desc']     ?? '';
-$badge    = $existing['badge']    ?? 'new';
-$feat_arr = $existing['features'] ?? ['Services', 'Gallery', 'Booking'];
-$feat_str = "['" . implode("', '", array_map('addslashes', $feat_arr)) . "']";
-$react_path = $existing['react_path'] ?? '/launchsite/templates/' . $template_id . '/';
+$detect_updates = [
+    'name'          => $name,
+    'accent'        => $accent,
+    'dark'          => $dark,
+    'light'         => $light,
+    'hero_tagline'  => $hero_tagline,
+    'hero_sub'      => $hero_sub,
+    'business_name' => $business_name,
+];
 
-$new_entry = <<<PHP
-
-    '$template_id' => [
-        'id'            => '$template_id',
-        'name'          => '{$esc($name)}',
-        'category'      => '$category',
-        'style'         => '{$esc($style)}',
-        'desc'          => '{$esc($desc)}',
-        'badge'         => '$badge',
-        'features'      => $feat_str,
-        'accent'        => '$accent',
-        'dark'          => '$dark',
-        'light'         => '$light',
-        'url_slug'      => '$template_id',
-        'hero_tagline'  => '{$esc($hero_tagline)}',
-        'hero_sub'      => '{$esc($hero_sub)}',
-        'business_name' => '{$esc($business_name)}',
-        'type'          => 'react',
-        'react_path'    => '$react_path',
-    ],
-PHP;
-
-$tpl_content = file_get_contents($templates_file);
-$tpl_content = preg_replace(
-    "/\n    '" . preg_quote($template_id, '/') . "' => \[.*?\],\n/s",
-    $new_entry . "\n",
-    $tpl_content
-);
-file_put_contents($templates_file, $tpl_content);
+launchit_update_template($template_id, $detect_updates);
 
 // ── Regenerate thumbnail ──────────────────────────────────────────────────────
 

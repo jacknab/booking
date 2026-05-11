@@ -64,63 +64,16 @@ $updated['hero_tagline']  = $hero_tagline;
 $updated['hero_sub']      = $hero_sub;
 $updated['business_name'] = $business_name;
 
-// ── Serialise to PHP source ────────────────────────────────────────────────────
+// ── Save to database ──────────────────────────────────────────────────────────
 
-function fmt_val(mixed $v): string {
-    if (is_array($v)) {
-        $items = array_map(fn($i) => "'" . addslashes($i) . "'", $v);
-        return '[' . implode(', ', $items) . ']';
-    }
-    return "'" . addslashes((string)$v) . "'";
-}
-
-$field_order = ['id','name','category','style','desc','badge','features',
-                'accent','dark','light','url_slug','hero_tagline','hero_sub',
-                'business_name','type','react_path'];
-
-$lines   = [];
-$lines[] = "    '$template_id' => [";
-foreach ($field_order as $f) {
-    if (!array_key_exists($f, $updated)) continue;
-    $pad     = str_pad("'$f'", 16);
-    $lines[] = "        $pad=> " . fmt_val($updated[$f]) . ',';
-}
-$lines[] = '    ],';
-$new_block = "\n" . implode("\n", $lines) . "\n";
-
-// ── Remove old entry, inject updated one ──────────────────────────────────────
-
-$templates_file = __DIR__ . '/data/templates.php';
-$content        = file_get_contents($templates_file);
-
-// Back up before writing
-$backup = $content;
-
-$content = preg_replace(
-    "/\n    '" . preg_quote($template_id, '/') . "' => \[.*?\n    \],\n/s",
-    "\n",
-    $content
-);
-// Inject before closing `];`
-$content = preg_replace('/\n\];\s*$/', $new_block . '];', $content);
-
-// ── Lint before saving ────────────────────────────────────────────────────────
-
-$tmp  = tempnam(sys_get_temp_dir(), 'tpl');
-file_put_contents($tmp, $content);
-$lint = shell_exec('php -l ' . escapeshellarg($tmp) . ' 2>&1');
-unlink($tmp);
-
-if (!str_contains($lint, 'No syntax errors')) {
+if (!launchit_update_template($template_id, $updated)) {
     $_SESSION['flash'] = [
         'type' => 'error',
-        'msg'  => 'Could not save — generated entry has a syntax error. No changes were made. Please check for special characters.',
+        'msg'  => 'Database error — could not save changes. Please try again.',
     ];
     header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
-
-file_put_contents($templates_file, $content);
 
 $_SESSION['flash'] = [
     'type' => 'success',

@@ -281,7 +281,7 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
                 <div id="deleteReactNote" class="modal-delete-note" style="display:none;">
                     The following will be deleted:
                     <ul class="modal-delete-list">
-                        <li>Catalog registration in <code>data/templates.php</code></li>
+                        <li>Catalog registration in the database</li>
                         <li>Built site files in <code>launchsite/templates/{id}/</code></li>
                         <li>Source files in <code>artifacts/template-{id}/</code></li>
                         <li>Thumbnail image</li>
@@ -290,7 +290,7 @@ unset($_tmp_dir, $_te, $_tdi, $_tf, $_e2);
                 <div id="deletePhpNote" class="modal-delete-note" style="display:none;">
                     The following will be deleted:
                     <ul class="modal-delete-list">
-                        <li>Catalog registration in <code>data/templates.php</code></li>
+                        <li>Catalog registration in the database</li>
                         <li>Thumbnail image</li>
                     </ul>
                     <p style="margin-top:8px;color:rgba(255,255,255,0.3);font-size:0.75rem;">

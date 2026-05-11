@@ -321,7 +321,6 @@ $artifacts_dir  = $workspace_root . '/artifacts';
 $dest_dir       = $artifacts_dir . '/template-' . $template_id;
 $built_dir      = __DIR__ . '/templates/' . $template_id;
 $thumbs_dir     = __DIR__ . '/assets/img/thumbs';
-$templates_file = __DIR__ . '/data/templates.php';
 $base_path_url  = '/launchsite/templates/' . $template_id . '/';
 $vite_out_rel   = '../../launchsite/templates/' . $template_id;
 
@@ -493,47 +492,21 @@ if ($r['code'] !== 0 || !file_exists($built_dir . '/index.html')) {
 }
 step('✅', "Build complete → <code>launchsite-php/templates/$template_id/</code>");
 
-// ── 7. Update templates.php entry ─────────────────────────────────────────────
+// ── 7. Update database catalog entry ──────────────────────────────────────────
 step('📝', 'Updating catalog entry with fresh metadata…');
 
-$esc      = fn(string $s) => addslashes($s);
-$category = $existing['category'];
-$style    = $existing['style'] ?? 'Modern';
-$desc     = $existing['desc'] ?? '';
-$badge    = $existing['badge'] ?? 'new';
-$feat_arr = $existing['features'] ?? ['Services', 'Gallery', 'Booking'];
-$feat_str = "['" . implode("', '", array_map('addslashes', $feat_arr)) . "']";
-
-$new_entry = <<<PHP
-
-    '$template_id' => [
-        'id'            => '$template_id',
-        'name'          => '{$esc($meta['name'])}',
-        'category'      => '$category',
-        'style'         => '{$esc($style)}',
-        'desc'          => '{$esc($desc)}',
-        'badge'         => '$badge',
-        'features'      => $feat_str,
-        'accent'        => '{$meta['accent']}',
-        'dark'          => '{$meta['dark']}',
-        'light'         => '{$meta['light']}',
-        'url_slug'      => '$template_id',
-        'hero_tagline'  => '{$esc($meta['hero_tagline'])}',
-        'hero_sub'      => '{$esc($meta['hero_sub'])}',
-        'business_name' => '{$esc($meta['business_name'])}',
-        'type'          => 'react',
-        'react_path'    => '$base_path_url',
-    ],
-PHP;
-
-$tpl_content = file_get_contents($templates_file);
-// Replace old entry for this ID
-$tpl_content = preg_replace(
-    "/\n    '$template_id' => \[.*?\],\n/s",
-    $new_entry . "\n",
-    $tpl_content
-);
-file_put_contents($templates_file, $tpl_content);
+launchit_update_template($template_id, [
+    'name'          => $meta['name'],
+    'accent'        => $meta['accent'],
+    'dark'          => $meta['dark'],
+    'light'         => $meta['light'],
+    'url_slug'      => $template_id,
+    'hero_tagline'  => $meta['hero_tagline'],
+    'hero_sub'      => $meta['hero_sub'],
+    'business_name' => $meta['business_name'],
+    'type'          => 'react',
+    'react_path'    => $base_path_url,
+]);
 
 step('✅', "Catalog entry updated — changes are live immediately");
 

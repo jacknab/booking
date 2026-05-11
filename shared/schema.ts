@@ -1467,3 +1467,31 @@ export type {
   GrowthScoreSnapshot,
   DeadSeatPattern,
 } from "./schema/intelligence";
+
+// ── LaunchSite Template Catalog ───────────────────────────────────────────────
+export const launchsiteTemplates = pgTable("launchsite_templates", {
+  id:           text("id").primaryKey(),
+  name:         text("name").notNull(),
+  category:     text("category").notNull(),
+  style:        text("style").notNull().default("Modern"),
+  desc:         text("desc").notNull().default("").name("desc"),
+  badge:        text("badge").notNull().default(""),
+  features:     jsonb("features").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  accent:       text("accent").notNull().default("#a855f7"),
+  dark:         text("dark").notNull().default("#0a0b15"),
+  light:        text("light").notNull().default("#1c1d27"),
+  urlSlug:      text("url_slug").notNull(),
+  heroTagline:  text("hero_tagline").notNull().default(""),
+  heroSub:      text("hero_sub").notNull().default(""),
+  businessName: text("business_name").notNull().default(""),
+  type:         text("type").notNull().default("php"),
+  reactPath:    text("react_path"),
+  scrapedPath:  text("scraped_path"),
+  sourceUrl:    text("source_url"),
+  sortOrder:    integer("sort_order").notNull().default(0),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type LaunchsiteTemplate = typeof launchsiteTemplates.$inferSelect;
+export type InsertLaunchsiteTemplate = typeof launchsiteTemplates.$inferInsert;

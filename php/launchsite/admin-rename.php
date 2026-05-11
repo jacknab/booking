@@ -27,33 +27,10 @@ if (strlen($name) > 100) {
     exit;
 }
 
-$templates_file = __DIR__ . '/data/templates.php';
-$content = file_get_contents($templates_file);
-
-// Replace the 'name' field within this template's block only
-$content = preg_replace_callback(
-    "/(\n    '" . preg_quote($template_id, '/') . "' => \[.*?\n    \],)/s",
-    function (array $m) use ($name): string {
-        return preg_replace(
-            "/'name'\s*=>\s*'[^']*'/",
-            "'name'          => '" . addslashes($name) . "'",
-            $m[0]
-        );
-    },
-    $content
-);
-
-// Lint before saving
-$tmp = tempnam(sys_get_temp_dir(), 'tpl');
-file_put_contents($tmp, $content);
-$lint = shell_exec('php -l ' . escapeshellarg($tmp) . ' 2>&1');
-unlink($tmp);
-
-if (!str_contains($lint, 'No syntax errors')) {
-    echo json_encode(['ok' => false, 'error' => 'Syntax check failed. Avoid unusual characters like single quotes.']);
+if (!launchit_update_template($template_id, ['name' => $name])) {
+    echo json_encode(['ok' => false, 'error' => 'Database error — could not rename template.']);
     exit;
 }
 
-file_put_contents($templates_file, $content);
 echo json_encode(['ok' => true]);
 exit;

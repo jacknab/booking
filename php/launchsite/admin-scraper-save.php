@@ -102,48 +102,16 @@ $new_entry = [
     'source_url'    => $actualSrc,
 ];
 
-// ── Serialise to PHP source ────────────────────────────────────────────────────
+// ── Save to database ───────────────────────────────────────────────────────────
 
-function sc_fmt_val(mixed $v): string {
-    if (is_array($v)) {
-        $items = array_map(fn($i) => "'" . addslashes((string) $i) . "'", $v);
-        return '[' . implode(', ', $items) . ']';
-    }
-    return "'" . addslashes((string) $v) . "'";
-}
-
-$field_order = ['id', 'name', 'category', 'style', 'desc', 'badge', 'features',
-                'accent', 'dark', 'light', 'url_slug', 'hero_tagline', 'hero_sub',
-                'business_name', 'type', 'scraped_path', 'source_url'];
-
-$lines   = ["    '$template_id' => ["];
-foreach ($field_order as $f) {
-    if (!array_key_exists($f, $new_entry)) continue;
-    $pad     = str_pad("'$f'", 16);
-    $lines[] = "        $pad=> " . sc_fmt_val($new_entry[$f]) . ',';
-}
-$lines[]   = '    ],';
-$new_block = "\n" . implode("\n", $lines) . "\n";
-
-$tpl_file = __DIR__ . '/data/templates.php';
-$content  = file_get_contents($tpl_file);
-$content  = preg_replace('/\n\];\s*$/', $new_block . '];', $content);
-
-$tmp  = tempnam(sys_get_temp_dir(), 'tpl_sc_');
-file_put_contents($tmp, $content);
-$lint = shell_exec('php -l ' . escapeshellarg($tmp) . ' 2>&1');
-unlink($tmp);
-
-if (!str_contains((string) $lint, 'No syntax errors')) {
+if (!launchit_insert_template($new_entry)) {
     $_SESSION['flash'] = [
         'type' => 'error',
-        'msg'  => 'Template entry generated a PHP syntax error — check for special characters in the name. No changes were saved.',
+        'msg'  => 'Database error — could not save the scraped template. Please try again.',
     ];
     header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
 }
-
-file_put_contents($tpl_file, $content);
 
 // ── GD fallback thumbnail (synthetic, no browser required) ────────────────────
 
