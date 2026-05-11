@@ -58,6 +58,7 @@ import { AdminDashboard } from "@/pages/Admin/AdminDashboard";
 import SeoRegionsAdmin from "@/pages/admin/SeoRegionsAdmin";
 import AccountsAdmin from "@/pages/admin/AccountsAdmin";
 import RateLimitsPage from "@/pages/admin/RateLimitsPage";
+import DbHealthPage from "@/pages/admin/DbHealthPage";
 import Auth from "@/pages/Auth";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -221,6 +222,7 @@ function AppRoutes() {
       <Route path="/admin/seo-regions" element={<SeoRegionsAdmin />} />
       <Route path="/admin/accounts" element={<AccountsAdmin />} />
       <Route path="/admin/rate-limits" element={<RateLimitsPage />} />
+      <Route path="/admin/db-health" element={<DbHealthPage />} />
 
       {/* Onboarding */}
       <Route path="/onboarding" element={<Onboarding />} />

@@ -1,0 +1,32 @@
+mpleted_at" >= $5 and "appointments"."completed_at" <= $6 and "appointments"."status" = $7)',
+14|certxa  | 2026-05-11 00:10:57 +00:00:   params: [
+14|certxa  | 2026-05-11 00:10:57 +00:00:     1,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     1,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     1,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     1,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     '2026-05-10T22:40:57.055Z',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     '2026-05-10T23:40:57.055Z',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     'completed'
+14|certxa  | 2026-05-11 00:10:57 +00:00:   ],
+14|certxa  | 2026-05-11 00:10:57 +00:00:   cause: error: column appointments.started_at does not exist
+14|certxa  | 2026-05-11 00:10:57 +00:00:       at /apps/certxa/dist/index.cjs:72:15261
+14|certxa  | 2026-05-11 00:10:57 +00:00:       at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+14|certxa  | 2026-05-11 00:10:57 +00:00:     length: 122,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     severity: 'ERROR',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     code: '42703',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     detail: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     hint: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     position: '291',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     internalPosition: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     internalQuery: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     where: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     schema: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     table: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     column: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     dataType: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     constraint: undefined,
+14|certxa  | 2026-05-11 00:10:57 +00:00:     file: 'parse_relation.c',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     line: '3665',
+14|certxa  | 2026-05-11 00:10:57 +00:00:     routine: 'errorMissingColumn'
+14|certxa  | 2026-05-11 00:10:57 +00:00:   }
+14|certxa  | 2026-05-11 00:10:57 +00:00: }

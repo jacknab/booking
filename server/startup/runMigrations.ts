@@ -5,10 +5,12 @@
  * Tracks applied migrations in the schema_migrations table — each file only
  * ever runs once. Safe to call on every boot.
  *
- * First-run behaviour on an existing database:
- *   If schema_migrations is empty AND core tables already exist, all current
- *   migration files are recorded as applied WITHOUT being re-run (baseline seed).
- *   Only migrations added after this baseline will actually execute.
+ * First-run behaviour:
+ *   - Fresh database (no tables at all): applies schema.sql to create the full
+ *     base schema, then records all migration files as baseline (no re-run).
+ *   - Existing database with no migration history: records all current migration
+ *     files as baseline (assumes schema was already set up manually or via VPS).
+ *   - Normal run: only executes migration files not yet in schema_migrations.
  */
 
 import pg from "pg";
@@ -21,6 +23,10 @@ const _cjsDirname: string | undefined = (globalThis as any).__dirname;
 const MIGRATIONS_DIR = _cjsDirname
   ? path.resolve(_cjsDirname, "..", "migrations")
   : path.resolve(process.cwd(), "migrations");
+
+const SCHEMA_SQL = _cjsDirname
+  ? path.resolve(_cjsDirname, "..", "schema.sql")
+  : path.resolve(process.cwd(), "schema.sql");
 
 async function ensureTrackingTable(client: pg.PoolClient): Promise<void> {
   await client.query(`
@@ -60,6 +66,15 @@ function getMigrationFiles(): string[] {
     .sort();
 }
 
+async function seedBaseline(client: pg.PoolClient, allFiles: string[]): Promise<void> {
+  for (const filename of allFiles) {
+    await client.query(
+      "INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING",
+      [filename]
+    );
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   const client = await pool.connect();
   try {
@@ -67,21 +82,44 @@ export async function runMigrations(): Promise<void> {
 
     const allFiles = getMigrationFiles();
     const appliedCount = await getAppliedCount(client);
+    const hasCoreSchema = await dbHasCoreSchema(client);
 
-    // First-run on an existing database: record all current migrations as
-    // already applied so we don't re-run SQL that was already in schema.sql.
-    if (appliedCount === 0 && (await dbHasCoreSchema(client))) {
-      console.log(`[migrations] First run on existing DB — seeding ${allFiles.length} migration(s) as baseline…`);
-      for (const filename of allFiles) {
-        await client.query(
-          "INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING",
-          [filename]
-        );
+    // ── Case 1: Totally fresh database — apply schema.sql first ──────────
+    if (!hasCoreSchema) {
+      if (fs.existsSync(SCHEMA_SQL)) {
+        console.log("[migrations] Fresh database detected — applying schema.sql…");
+        const schemaSql = fs.readFileSync(SCHEMA_SQL, "utf-8").trim();
+        if (schemaSql) {
+          await client.query("BEGIN");
+          try {
+            await client.query(schemaSql);
+            await client.query("COMMIT");
+            console.log("[migrations] ✓ schema.sql applied");
+          } catch (err: any) {
+            await client.query("ROLLBACK");
+            throw new Error(`schema.sql failed: ${err.message}`);
+          }
+        }
+      } else {
+        console.warn("[migrations] WARNING: Fresh database but no schema.sql found — migrations may fail");
       }
+
+      // Record all current migration files as baseline so they don't re-run
+      console.log(`[migrations] Seeding ${allFiles.length} migration(s) as baseline…`);
+      await seedBaseline(client, allFiles);
       console.log("[migrations] ✓ Baseline seeded. Future migrations will run automatically.");
       return;
     }
 
+    // ── Case 2: Existing DB, no migration history — seed baseline ─────────
+    if (appliedCount === 0) {
+      console.log(`[migrations] First run on existing DB — seeding ${allFiles.length} migration(s) as baseline…`);
+      await seedBaseline(client, allFiles);
+      console.log("[migrations] ✓ Baseline seeded. Future migrations will run automatically.");
+      return;
+    }
+
+    // ── Case 3: Normal run — apply only pending migrations ────────────────
     const applied = await getApplied(client);
     const pending = allFiles.filter((f) => !applied.has(f));
 

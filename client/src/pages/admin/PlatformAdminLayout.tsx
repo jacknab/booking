@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { label: "Accounts",     href: "/admin/accounts",       icon: "👥" },
   { label: "SEO Pages",    href: "/admin/seo-regions",    icon: "🔍" },
   { label: "Rate Limits",  href: "/admin/rate-limits",    icon: "🔒" },
+  { label: "DB Health",    href: "/admin/db-health",      icon: "🗄️" },
 ];
 
 interface AdminLayoutProps {

@@ -6189,6 +6189,108 @@ If you have any questions, please contact your administrator.
    */
 
   // GET dashboard statistics
+  // ── DB Health check endpoint ─────────────────────────────────────────────
+  app.get("/api/admin/db-health", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    // Tables and the columns we care about verifying
+    const CHECKS: { table: string; columns: string[] }[] = [
+      { table: "locations",           columns: ["sms_allowance", "sms_credits", "weekly_digest_opt_out", "is_training_sandbox", "pos_enabled"] },
+      { table: "users",               columns: ["role", "staff_id", "trial_started_at", "trial_ends_at", "subscription_status"] },
+      { table: "staff",               columns: ["password", "permissions", "status", "employment_type", "invite_token", "password_changed"] },
+      { table: "services",            columns: ["deposit_required", "deposit_amount", "category_id"] },
+      { table: "appointments",        columns: ["deposit_required", "deposit_amount", "deposit_paid", "gift_card_id", "loyalty_points_earned", "loyalty_points_redeemed", "recurrence_rule"] },
+      { table: "customers",           columns: ["loyalty_points", "allergies"] },
+      { table: "billing_plans",       columns: ["code", "price_cents", "features_json", "active"] },
+      { table: "subscriptions",       columns: ["store_number", "plan_code", "stripe_subscription_id"] },
+      { table: "stripe_customers",    columns: ["user_id", "customer_id", "store_number"] },
+      { table: "stripe_subscriptions",columns: ["customer_id", "subscription_id", "status"] },
+      { table: "stripe_orders",       columns: ["checkout_session_id", "payment_intent_id", "customer_id"] },
+      { table: "stripe_webhook_events",columns: ["stripe_event_id", "event_type", "processed"] },
+      { table: "customer_billing_profiles", columns: ["user_id", "salon_id", "account_status", "suspended_at", "stripe_customer_id"] },
+      { table: "invoice_records",     columns: ["stripe_invoice_id", "salon_id", "paid"] },
+      { table: "payment_transactions",columns: ["stripe_charge_id", "salon_id", "amount_cents"] },
+      { table: "billing_activity_logs",columns: ["salon_id", "event_type", "severity"] },
+      { table: "refunds",             columns: ["stripe_refund_id", "salon_id", "amount_cents"] },
+      { table: "subscription_plan_changes", columns: ["salon_id", "old_plan_id", "new_plan_id"] },
+      { table: "scheduled_plan_changes", columns: ["stripe_subscription_id", "new_plan_code", "effective_at"] },
+      { table: "mail_settings",       columns: ["store_id", "mailgun_api_key", "booking_confirmation_enabled"] },
+      { table: "sms_settings",        columns: ["store_id", "booking_confirmation_enabled", "reminder_enabled"] },
+      { table: "sms_log",             columns: ["store_id", "phone", "status", "sms_source"] },
+      { table: "google_business_profiles", columns: ["store_id", "is_connected", "location_address"] },
+      { table: "google_business_accounts", columns: ["store_id", "user_id", "google_account_id"] },
+      { table: "google_business_locations", columns: ["store_id", "user_id", "location_resource_name", "is_selected"] },
+      { table: "google_business_sync_logs", columns: ["store_id", "sync_type", "status"] },
+      { table: "google_reviews",      columns: ["store_id", "google_review_id", "rating", "gb_location_id"] },
+      { table: "schema_migrations",   columns: ["filename", "applied_at"] },
+      { table: "sessions",            columns: ["sid", "sess", "expire"] },
+      { table: "calendar_settings",   columns: ["store_id", "auto_mark_no_shows"] },
+      { table: "cash_drawer_sessions",columns: ["store_id", "status", "opening_balance"] },
+      { table: "gift_cards",          columns: ["store_id", "code", "is_active"] },
+      { table: "training_action_categories", columns: ["slug", "title", "high_risk"] },
+      { table: "training_user_state", columns: ["user_id", "category_id", "help_level"] },
+      { table: "training_user_profile", columns: ["user_id", "enrolled_at", "graduated_at"] },
+      { table: "training_settings",   columns: ["store_id", "enabled"] },
+      { table: "conversations",       columns: ["id", "title"] },
+      { table: "messages",            columns: ["conversation_id", "role", "content"] },
+    ];
+
+    try {
+      const client = await pool.connect();
+      try {
+        const results = await Promise.all(CHECKS.map(async ({ table, columns }) => {
+          // Check table existence
+          const tableRes = await client.query<{ exists: boolean }>(
+            `SELECT EXISTS (
+              SELECT 1 FROM information_schema.tables
+              WHERE table_schema = 'public' AND table_name = $1
+            ) AS exists`,
+            [table]
+          );
+          const tableExists = tableRes.rows[0].exists;
+
+          // Check each column
+          const colChecks = await Promise.all(columns.map(async (col) => {
+            if (!tableExists) return { column: col, exists: false };
+            const colRes = await client.query<{ exists: boolean }>(
+              `SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2
+              ) AS exists`,
+              [table, col]
+            );
+            return { column: col, exists: colRes.rows[0].exists };
+          }));
+
+          // Row count (only for existing tables)
+          let rowCount: number | null = null;
+          if (tableExists) {
+            try {
+              const countRes = await client.query<{ count: string }>(`SELECT COUNT(*)::int AS count FROM "${table}"`);
+              rowCount = Number(countRes.rows[0].count);
+            } catch { /* ignore */ }
+          }
+
+          return { table, exists: tableExists, columns: colChecks, rowCount };
+        }));
+
+        const missing      = results.filter(t => !t.exists).length;
+        const missingCols  = results.reduce((n, t) => n + t.columns.filter(c => !c.exists).length, 0);
+
+        res.json({
+          checkedAt: new Date().toISOString(),
+          tables: results,
+          summary: { total: results.length, ok: results.filter(t => t.exists).length, missing, missingColumns: missingCols },
+        });
+      } finally {
+        client.release();
+      }
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // ── Rate-limit admin endpoints ───────────────────────────────────────────
   app.get("/api/admin/rate-limits", (req, res) => {
     const userId = (req.session as any)?.userId;
