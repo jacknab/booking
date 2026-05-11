@@ -270,7 +270,8 @@ require 'includes/nav.php';
 
 /* ── Comparison table ────────────────────────────────── */
 .ri-compare { width: 100%; border-collapse: collapse; }
-.ri-compare th { padding: 14px 20px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9ca3af; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.ri-compare thead th { position: sticky; top: 0; z-index: 2; background: #faf8ff; padding: 14px 20px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9ca3af; text-align: left; border-bottom: 2px solid #e5e7eb; box-shadow: 0 2px 0 #e5e7eb; }
+.ri-compare thead th:first-child { border-radius: 0; }
 .ri-compare td { padding: 14px 20px; font-size: .88rem; border-bottom: 1px solid #f3f4f6; }
 .ri-compare tr:last-child td { border-bottom: none; }
 .ri-compare .feature-col { color: #374151; font-weight: 500; }
@@ -800,7 +801,7 @@ require 'includes/nav.php';
       <div class="ri-section-label">How Certxa Compares</div>
       <h2 class="ri-section-title" style="white-space:nowrap;">No other salon platform does this.</h2>
     </div>
-    <div style="overflow-x:auto;border-radius:16px;border:1px solid #ede9f7;box-shadow:0 8px 40px rgba(59,7,100,.06);">
+    <div style="max-height:560px;overflow-x:auto;overflow-y:auto;border-radius:16px;border:1px solid #ede9f7;box-shadow:0 8px 40px rgba(59,7,100,.06);">
       <table class="ri-compare">
         <thead>
           <tr style="background:#faf8ff;">
