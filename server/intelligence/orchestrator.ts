@@ -7,6 +7,7 @@ import { computeChurnRisk } from "./churn";
 import { computeDeadSeats } from "./dead-seats";
 import { computeRebookingRates } from "./rebooking-rates";
 import { computeGrowthScore } from "./growth-score";
+import { runDriftRecovery } from "./drift-recovery";
 import { sendSms } from "../sms";
 import { eq, and, sql, gte, lte, isNotNull, inArray } from "drizzle-orm";
 
@@ -303,6 +304,89 @@ async function runRebookingNudges(storeId: number): Promise<void> {
   }
 }
 
+/**
+ * Automatically sends win-back SMS to clients who no-showed or cancelled in the
+ * last 7 days, have opted in to marketing, have a phone number, and haven't
+ * received any automated message in the last 30 days.
+ * Rate-limited to 50 per store per run. Runs silently — errors never crash the orchestrator.
+ */
+async function runAutoLeakageRecovery(storeId: number): Promise<void> {
+  try {
+    const locationData = await db.execute(
+      sql`SELECT name, booking_slug FROM locations WHERE id = ${storeId} LIMIT 1`
+    );
+    const locationRow = (locationData.rows as any[])[0];
+    const storeName = locationRow?.name || "us";
+    const bookingSlug = locationRow?.booking_slug || null;
+    const APP_URL = process.env.APP_URL || "https://certxa.com";
+    const bookingLink = bookingSlug ? `${APP_URL}/book/${bookingSlug}` : APP_URL;
+
+    const sevenDaysAgo  = new Date(Date.now() - 7  * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // Find customers who no-showed or cancelled recently
+    const leakageAppts = await db.execute(sql`
+      SELECT DISTINCT a.customer_id
+      FROM appointments a
+      JOIN customers c ON c.id = a.customer_id
+      WHERE a.store_id = ${storeId}
+        AND a.status IN ('no-show', 'cancelled')
+        AND a.date >= ${sevenDaysAgo.toISOString()}
+        AND c.marketing_opt_in = true
+        AND c.phone IS NOT NULL AND c.phone <> ''
+        AND a.customer_id NOT IN (
+          SELECT customer_id FROM intelligence_interventions
+          WHERE store_id = ${storeId}
+            AND sent_at >= ${thirtyDaysAgo.toISOString()}
+        )
+      LIMIT 50
+    `);
+
+    const customerIds = (leakageAppts.rows as any[]).map((r) => r.customer_id as number);
+    if (customerIds.length === 0) return;
+
+    for (const customerId of customerIds) {
+      try {
+        const [customer] = await db
+          .select({ name: customers.name, phone: customers.phone })
+          .from(customers)
+          .where(eq(customers.id, customerId));
+
+        if (!customer?.phone) continue;
+
+        const firstName = customer.name.split(" ")[0];
+        const message = `Hi ${firstName}! We missed you at ${storeName}. We'd love to have you back — book your next visit here: ${bookingLink}\n\nReply STOP to opt out.`;
+
+        await sendSms(storeId, customer.phone, message, "winback", undefined, customerId);
+
+        await db.insert(intelligenceInterventions).values({
+          storeId,
+          customerId,
+          interventionType: "winback",
+          channel: "sms",
+          messageBody: message,
+          status: "sent",
+          triggeredBy: "auto",
+        });
+
+        // Update last winback timestamp in client intelligence if the record exists
+        await db
+          .update(clientIntelligence)
+          .set({ lastWinbackSentAt: new Date(), winbackSentCount: sql`COALESCE(winback_sent_count, 0) + 1` })
+          .where(and(eq(clientIntelligence.storeId, storeId), eq(clientIntelligence.customerId, customerId)));
+
+        console.log(`[intelligence] Auto leakage win-back sent to customer ${customerId}`);
+      } catch (err) {
+        console.error(`[intelligence] Auto leakage win-back error for customer ${customerId}:`, err);
+      }
+    }
+
+    console.log(`[intelligence] Auto leakage recovery complete for store ${storeId}: ${customerIds.length} contacted`);
+  } catch (err) {
+    console.error(`[intelligence] Auto leakage recovery error for store ${storeId}:`, err);
+  }
+}
+
 export async function runIntelligenceForAllStores(): Promise<void> {
   try {
     const stores = await db.execute(sql`SELECT DISTINCT id FROM locations`);
@@ -310,8 +394,12 @@ export async function runIntelligenceForAllStores(): Promise<void> {
     console.log(`[intelligence] Running for ${storeIds.length} stores`);
     for (const storeId of storeIds) {
       await runIntelligenceForStore(storeId);
-      // After intelligence is fresh, run rebooking nudges
+      // Automated outreach — runs every 6 hours, all rate-limited
       await runRebookingNudges(storeId);
+      await runDriftRecovery(storeId).catch((err) =>
+        console.error(`[intelligence] Drift recovery error for store ${storeId}:`, err)
+      );
+      await runAutoLeakageRecovery(storeId);
     }
   } catch (err) {
     console.error(`[intelligence] Fatal error running all stores:`, err);

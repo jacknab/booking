@@ -196,7 +196,7 @@ export default function Intelligence() {
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
-    enabled: !!storeId && activeTab === "leakage",
+    enabled: !!storeId,
     staleTime: 10 * 60 * 1000,
   });
 
@@ -976,16 +976,22 @@ export default function Intelligence() {
                     </CardTitle>
                     <CardDescription>{dashboard.atRiskClients.length} clients with elevated churn risk</CardDescription>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => winbackCampaignMutation.mutate()}
-                    disabled={winbackCampaignMutation.isPending}
-                    className="gap-2"
-                  >
-                    <Send className="h-4 w-4" />
-                    {winbackCampaignMutation.isPending ? "Sending..." : "Win-Back All"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="gap-1.5 border-emerald-300 text-emerald-700 bg-emerald-50 text-xs">
+                      <Zap className="h-3 w-3" />
+                      Auto-pilot on
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => winbackCampaignMutation.mutate()}
+                      disabled={winbackCampaignMutation.isPending}
+                      className="gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      {winbackCampaignMutation.isPending ? "Sending..." : "Run Now"}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -1046,7 +1052,11 @@ export default function Intelligence() {
                   <CardTitle>At-Risk Clients</CardTitle>
                   <CardDescription>Ranked by LTV × churn risk — highest value first</CardDescription>
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="gap-1.5 border-emerald-300 text-emerald-700 bg-emerald-50 text-xs">
+                    <Zap className="h-3 w-3" />
+                    Auto-pilot on · runs every 6h
+                  </Badge>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1058,12 +1068,13 @@ export default function Intelligence() {
                   </Button>
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => winbackCampaignMutation.mutate()}
                     disabled={winbackCampaignMutation.isPending}
                     className="gap-2"
                   >
                     <Send className="h-4 w-4" />
-                    {winbackCampaignMutation.isPending ? "Sending..." : "Win-Back Campaign"}
+                    {winbackCampaignMutation.isPending ? "Sending..." : "Run Now"}
                   </Button>
                 </div>
               </CardHeader>
@@ -1125,12 +1136,26 @@ export default function Intelligence() {
 
           {/* ── REVENUE LEAKAGE TAB ── */}
           <TabsContent value="leakage" className="mt-6 space-y-4">
+            {/* Auto-pilot banner — always shown */}
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 px-4 py-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex-shrink-0">
+                <Zap className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Recovery auto-pilot is on</p>
+                <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70">
+                  Every 6 hours SalonOS scans for no-shows, cancellations, and drifting clients — and automatically sends personalised win-back messages to anyone who opted in. You don't have to lift a finger.
+                </p>
+              </div>
+            </div>
+
             {leakageLoading ? (
               <div className="flex items-center justify-center h-40">
                 <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : leakageData ? (
               <>
+                {/* KPI row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card className="border-red-200 dark:border-red-900/50">
                     <CardContent className="p-5">
@@ -1143,7 +1168,7 @@ export default function Intelligence() {
                     <CardContent className="p-5">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Recovery Potential</p>
                       <p className="text-3xl font-bold text-emerald-600">${leakageData.recoveryPotential.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Estimated 40% realistic recovery</p>
+                      <p className="text-xs text-muted-foreground mt-1">Realistic 40% recovery estimate</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -1171,10 +1196,60 @@ export default function Intelligence() {
                   </Card>
                 </div>
 
+                {/* What SalonOS does automatically */}
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      What SalonOS is doing automatically
+                    </CardTitle>
+                    <CardDescription>No action needed — these run every 6 hours in the background</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 text-sm">
+                        <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">No-show & cancellation win-backs</p>
+                          <p className="text-muted-foreground text-xs mt-0.5">
+                            Within 7 days of a no-show or cancellation, opted-in clients automatically receive a personalised message with a direct booking link. Rate-limited to once every 30 days per client.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 text-sm">
+                        <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Drifting client recovery</p>
+                          <p className="text-muted-foreground text-xs mt-0.5">
+                            Clients whose visit interval is 20%+ overdue are automatically identified and messaged — before they fully lapse and become hard to recover.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 text-sm">
+                        <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Rebooking nudges</p>
+                          <p className="text-muted-foreground text-xs mt-0.5">
+                            Clients whose next expected visit is 3–7 days away and have no upcoming appointment are nudged automatically with a booking link.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* No-shows by service */}
                 {leakageData.topLeakageServices?.length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">No-Shows by Service</CardTitle>
+                      <CardDescription>Where you're losing the most bookings</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -1184,7 +1259,7 @@ export default function Intelligence() {
                             <div className="flex-1">
                               <div className="flex justify-between mb-1">
                                 <span className="text-sm">{s.serviceName}</span>
-                                <span className="text-sm font-medium text-red-600">${s.estimatedLoss}</span>
+                                <span className="text-sm font-medium text-red-600">${s.estimatedLoss.toLocaleString()}</span>
                               </div>
                               <Progress value={Math.min(100, (s.noShowCount / (leakageData.breakdown.noShowCount || 1)) * 100)} className="h-1.5 bg-red-100" />
                             </div>
@@ -1196,10 +1271,12 @@ export default function Intelligence() {
                   </Card>
                 )}
 
+                {/* Action items (was Recommendations) */}
                 {leakageData.recommendations?.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-base">Recommendations</CardTitle>
+                      <CardTitle className="text-base">Action Items</CardTitle>
+                      <CardDescription>Things you can do to plug these leaks further</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
@@ -1229,10 +1306,10 @@ export default function Intelligence() {
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Based on your 90-day rate of ${leakageData.totalLeakage.toLocaleString()}.{" "}
-                          Recovering even 40% adds{" "}
+                          With auto-recovery active, SalonOS is already working to recover{" "}
                           <span className="font-semibold text-emerald-600">
                             ${Math.round(leakageData.recoveryPotential * (365 / 90)).toLocaleString()}/year
-                          </span>{" "}back to your revenue.
+                          </span>{" "}of that back.
                         </p>
                       </div>
                     </CardContent>
@@ -1240,8 +1317,8 @@ export default function Intelligence() {
                 )}
               </>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Click Refresh to compute revenue leakage</p>
+              <div className="flex items-center justify-center h-40">
+                <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             )}
           </TabsContent>
