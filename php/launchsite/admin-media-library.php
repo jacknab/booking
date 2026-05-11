@@ -7,12 +7,6 @@
 session_start();
 require_once __DIR__ . '/config.php';
 
-if (empty($_SESSION['admin_logged_in'])) {
-    http_response_code(403);
-    echo '<p style="color:#f87171;padding:20px;">Not authenticated.</p>';
-    exit;
-}
-
 $categories = [
     'Nail Salon' => 'nail_salon',
     'Hair Salon' => 'hair_salon',

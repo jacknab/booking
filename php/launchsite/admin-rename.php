@@ -4,10 +4,6 @@ require_once __DIR__ . '/config.php';
 
 header('Content-Type: application/json');
 
-if (empty($_SESSION['admin_logged_in'])) {
-    echo json_encode(['ok' => false, 'error' => 'Not authenticated.']);
-    exit;
-}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['ok' => false, 'error' => 'POST required.']);
     exit;

@@ -4,8 +4,6 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/data/templates.php';
 
 // Ensure session is authenticated
-$_SESSION['admin_logged_in'] = true;
-
 // Flash messages from redirects
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);

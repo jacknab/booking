@@ -3,8 +3,6 @@ session_start();
 require_once __DIR__ . '/config.php';
 
 // Mark session as authenticated so all action files work correctly
-$_SESSION['admin_logged_in'] = true;
-
 // Flash messages from redirects
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);

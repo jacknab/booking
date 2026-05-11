@@ -2,11 +2,6 @@
 session_start();
 require_once __DIR__ . '/config.php';
 
-if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_PATH . '/admin-catalog.php');
-    exit;
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ' . BASE_PATH . '/admin-catalog.php');
     exit;
