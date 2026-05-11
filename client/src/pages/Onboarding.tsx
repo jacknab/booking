@@ -235,7 +235,7 @@ export default function Onboarding() {
   // ── All hooks must be declared before any conditional return ──
   const [step, setStep] = useState(1);
   const [teamSize, setTeamSize] = useState<"myself" | "team" | null>(null);
-  const totalSteps = teamSize === "myself" ? 4 : 5;
+  const totalSteps = 5;
   const [goals, setGoals] = useState<string[]>([]);
   const [showBusinessTypePanel, setShowBusinessTypePanel] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -830,127 +830,126 @@ export default function Onboarding() {
           const dayAbbr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
           return (
-            <div>
-              <div className="text-center mb-4">
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "white", letterSpacing: "-0.02em", lineHeight: 1 }}>
-                  Certxa<span style={{ color: "#F59E0B" }}>.</span>
-                </span>
-              </div>
-              <h2 className="text-2xl font-extrabold text-center mb-1 text-white" data-testid="text-step3-title">Set your business hours</h2>
-              <p className="text-sm text-white/45 text-center mb-6">These will be your default staff hours too</p>
-
-              {/* Builder card */}
-              {!allDaysSet && (
-                <div className="bg-[#1a0533] border border-white/10 rounded-2xl p-5 mb-4">
-                  <p className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Add hours</p>
-
-                  {/* Time inputs */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 space-y-1">
-                      <label className="text-xs text-white/50 font-semibold uppercase tracking-wider">Open</label>
-                      <input
-                        type="time"
-                        value={addOpenTime}
-                        onChange={e => setAddOpenTime(e.target.value)}
-                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#F59E0B]/50"
-                        style={{ colorScheme: "dark" }}
-                      />
-                    </div>
-                    <span className="text-white/30 text-sm mt-5">to</span>
-                    <div className="flex-1 space-y-1">
-                      <label className="text-xs text-white/50 font-semibold uppercase tracking-wider">Close</label>
-                      <input
-                        type="time"
-                        value={addCloseTime}
-                        onChange={e => setAddCloseTime(e.target.value)}
-                        className="w-full bg-white/6 border border-white/15 text-white rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#F59E0B]/50"
-                        style={{ colorScheme: "dark" }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Day toggles */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {dayAbbr.map((abbr, idx) => {
-                      const alreadySet = openDayIndices.includes(idx);
-                      const selected = addDays.includes(idx);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          disabled={alreadySet}
-                          onClick={() => toggleAddDay(idx)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                            alreadySet
-                              ? "bg-white/4 border-white/8 text-white/20 cursor-not-allowed"
-                              : selected
-                              ? "bg-[#F59E0B] border-[#F59E0B] text-[#3B0764]"
-                              : "bg-white/6 border-white/15 text-white/70 hover:bg-white/10"
-                          }`}
-                        >
-                          {abbr}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Add button */}
-                  <button
-                    type="button"
-                    onClick={handleAddHours}
-                    disabled={addDays.length === 0}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-30"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add {addDays.length > 0 ? `${addDays.length} day${addDays.length > 1 ? "s" : ""}` : "days"}
-                  </button>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <div className="text-center mb-4">
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2.1rem", fontWeight: 700, color: "#3B0764", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                    Certxa<span style={{ color: "#F59E0B" }}>.</span>
+                  </span>
                 </div>
-              )}
+                <h2 className="text-xl font-bold text-center text-gray-900 mb-1" data-testid="text-step3-title">Set your business hours</h2>
+                <p className="text-sm text-gray-400 text-center mb-5">These will be your default staff hours too</p>
 
-              {/* Schedule preview — always Sun–Sat order */}
-              <div className="bg-[#1a0533] border border-white/10 rounded-2xl overflow-hidden">
-                <p className="text-xs text-white/50 font-semibold uppercase tracking-wider px-5 pt-4 pb-2">Your schedule</p>
-                {hours.map((day, i) => (
-                  <div key={i} className="flex items-center justify-between px-5 py-3 border-t border-white/6 first:border-0" data-testid={`row-day-${i}`}>
-                    <span className={`text-sm font-semibold w-24 ${day.isClosed ? "text-white/30" : "text-white"}`}>
-                      {dayNames[i]}
-                    </span>
-                    {day.isClosed ? (
-                      <span className="text-sm text-white/25 italic flex-1">Closed</span>
-                    ) : (
-                      <span className="text-sm text-[#F59E0B] flex-1 font-medium">
-                        {formatTime(day.openTime)} – {formatTime(day.closeTime)}
-                      </span>
-                    )}
-                    {!day.isClosed && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDay(i)}
-                        className="ml-3 w-6 h-6 rounded-full flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/10 transition-all text-xs"
-                        title="Remove"
-                      >
-                        ×
-                      </button>
-                    )}
+                {/* Builder card */}
+                {!allDaysSet && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-4">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Add hours</p>
+
+                    {/* Time inputs */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Open</label>
+                        <input
+                          type="time"
+                          value={addOpenTime}
+                          onChange={e => setAddOpenTime(e.target.value)}
+                          className="w-full bg-white border border-gray-200 text-gray-800 rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#3B0764]"
+                        />
+                      </div>
+                      <span className="text-gray-400 text-sm mt-5">to</span>
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Close</label>
+                        <input
+                          type="time"
+                          value={addCloseTime}
+                          onChange={e => setAddCloseTime(e.target.value)}
+                          className="w-full bg-white border border-gray-200 text-gray-800 rounded-xl h-11 px-3 text-sm focus:outline-none focus:border-[#3B0764]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Day toggles */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {dayAbbr.map((abbr, idx) => {
+                        const alreadySet = openDayIndices.includes(idx);
+                        const selected = addDays.includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            disabled={alreadySet}
+                            onClick={() => toggleAddDay(idx)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                              alreadySet
+                                ? "bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed"
+                                : selected
+                                ? "bg-[#F59E0B] border-[#F59E0B] text-[#3B0764]"
+                                : "bg-white border-gray-200 text-gray-600 hover:border-[#3B0764] hover:text-[#3B0764]"
+                            }`}
+                          >
+                            {abbr}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Add button */}
+                    <button
+                      type="button"
+                      onClick={handleAddHours}
+                      disabled={addDays.length === 0}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-30"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add {addDays.length > 0 ? `${addDays.length} day${addDays.length > 1 ? "s" : ""}` : "days"}
+                    </button>
                   </div>
-                ))}
+                )}
+
+                {/* Schedule preview — always Sun–Sat order */}
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden mb-4">
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider px-5 pt-4 pb-2">Your schedule</p>
+                  {hours.map((day, i) => (
+                    <div key={i} className="flex items-center justify-between px-5 py-3 border-t border-gray-100 first:border-0" data-testid={`row-day-${i}`}>
+                      <span className={`text-sm font-semibold w-24 ${day.isClosed ? "text-gray-300" : "text-gray-800"}`}>
+                        {dayNames[i]}
+                      </span>
+                      {day.isClosed ? (
+                        <span className="text-sm text-gray-300 italic flex-1">Closed</span>
+                      ) : (
+                        <span className="text-sm text-[#3B0764] flex-1 font-medium">
+                          {formatTime(day.openTime)} – {formatTime(day.closeTime)}
+                        </span>
+                      )}
+                      {!day.isClosed && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDay(i)}
+                          className="ml-3 w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all text-xs"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between gap-3">
+              <div className="flex border-t border-gray-100">
                 <button onClick={() => setStep(3)} data-testid="button-back-step"
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:bg-white/8 text-sm font-semibold transition-all">
-                  <ArrowLeft className="w-4 h-4" /> Back
+                  className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors border-r border-gray-100">
+                  Back
                 </button>
                 <button
                   onClick={() => teamSize === "myself" ? handleComplete() : setStep(5)}
                   disabled={!canProceed(4) || onboardMutation.isPending}
                   data-testid="button-next-step"
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F59E0B] text-[#3B0764] font-bold text-sm transition-all disabled:opacity-40">
-                  {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  className="flex-1 py-4 text-sm font-semibold text-white bg-[#3B0764] hover:bg-[#2d0552] transition-colors disabled:opacity-50">
+                  {onboardMutation.isPending && <Loader2 className="w-4 h-4 animate-spin inline mr-1" />}
                   {teamSize === "myself"
                     ? (onboardMutation.isPending ? "Setting up…" : "Complete Setup")
-                    : "Next"}
-                  {!onboardMutation.isPending && <ArrowRight className="w-4 h-4" />}
+                    : "Continue"}
                 </button>
               </div>
             </div>
