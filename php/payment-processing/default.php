@@ -1,8 +1,8 @@
 <?php
 define('BRAND_NAME',    'Certxa');
-define('PAGE_TITLE',    'Salon Payment Processing | HMS Merchant Services & Djavoo Terminals — Certxa');
-define('PAGE_DESC',     'Certxa partners with HMS (Host Merchant Services) for transparent interchange-plus payment processing and Djavoo for reliable salon terminals. See all rates, fees, and hardware options.');
-define('PAGE_KEYWORDS', 'salon payment processing, HMS merchant services salon, Djavoo terminal salon, interchange plus salon payments, salon credit card processing rates, beauty salon POS payment, hair salon card reader fees');
+define('PAGE_TITLE',    'Salon Payment Processing | CertxaPay Merchant Services & Djavoo Terminals — Certxa');
+define('PAGE_DESC',     'Certxa partners with CertxaPay (Host Merchant Services) for transparent interchange-plus payment processing and Djavoo for reliable salon terminals. See all rates, fees, and hardware options.');
+define('PAGE_KEYWORDS', 'salon payment processing, CertxaPay merchant services salon, Djavoo terminal salon, interchange plus salon payments, salon credit card processing rates, beauty salon POS payment, hair salon card reader fees');
 define('PAGE_CANONICAL','https://certxa.com/payment-processing');
 define('PAGE_BREADCRUMBS', json_encode([
   ['name'=>'Home','url'=>'https://certxa.com/overview'],
@@ -10,11 +10,11 @@ define('PAGE_BREADCRUMBS', json_encode([
 ]));
 define('PAGE_SCHEMA', json_encode([
   ['@type'=>'FAQPage','mainEntity'=>[
-    ['@type'=>'Question','name'=>'What payment processor does Certxa use?','acceptedAnswer'=>['@type'=>'Answer','text'=>'Certxa partners with HMS (Host Merchant Services), one of the most trusted merchant services providers in the US. HMS uses interchange-plus pricing — the most transparent pricing model available — so you always know exactly what you\'re paying and why.']],
+    ['@type'=>'Question','name'=>'What payment processor does Certxa use?','acceptedAnswer'=>['@type'=>'Answer','text'=>'Certxa partners with CertxaPay (Host Merchant Services), one of the most trusted merchant services providers in the US. CertxaPay uses interchange-plus pricing — the most transparent pricing model available — so you always know exactly what you\'re paying and why.']],
     ['@type'=>'Question','name'=>'What is interchange-plus pricing?','acceptedAnswer'=>['@type'=>'Answer','text'=>'Interchange-plus pricing separates the card network\'s base rate (set by Visa/Mastercard/Discover/Amex) from the processor\'s markup. You pay the actual interchange rate plus a small fixed markup. This is more transparent and typically cheaper than flat-rate or tiered pricing.']],
     ['@type'=>'Question','name'=>'What terminals does Certxa support?','acceptedAnswer'=>['@type'=>'Answer','text'=>'Certxa supports Djavoo payment terminals, which accept chip, swipe, tap (NFC), Apple Pay, and Google Pay. Djavoo terminals are EMV-compliant, PCI-certified, and built for high-volume salon environments.']],
   ]],
-  ['@type'=>'Service','name'=>'Certxa Salon Payment Processing','serviceType'=>'Payment Processing','provider'=>['@id'=>'https://certxa.com/#organization'],'description'=>'Transparent interchange-plus payment processing through HMS, with Djavoo hardware for salon card payments.'],
+  ['@type'=>'Service','name'=>'Certxa Salon Payment Processing','serviceType'=>'Payment Processing','provider'=>['@id'=>'https://certxa.com/#organization'],'description'=>'Transparent interchange-plus payment processing through CertxaPay, with Djavoo hardware for salon card payments.'],
 ]));
 require 'includes/header.php';
 require 'includes/nav.php';
@@ -25,13 +25,13 @@ require 'includes/nav.php';
   <div class="orb orb-1"></div><div class="orb orb-2"></div>
   <div class="container" style="max-width:900px;text-align:center;">
     <div class="hero-stars-row" style="justify-content:center;margin-bottom:20px;">
-      <span class="stars-badge"><span>💳</span><span>Powered by HMS · Hardware by Djavoo</span></span>
+      <span class="stars-badge"><span>💳</span><span>Powered by CertxaPay · Hardware by Djavoo</span></span>
     </div>
     <h1 class="hero-dark-headline" style="font-size:clamp(2.4rem,5vw,3.8rem);text-align:center;">
       Payment processing<br>that's actually<br><em>transparent.</em>
     </h1>
     <p class="hero-dark-sub" style="max-width:620px;margin:0 auto 36px;">
-      Certxa partners with HMS (Host Merchant Services) — the only major processor that uses 100% interchange-plus pricing. No surprise fees, no tiered confusion, no flat-rate overcharge.
+      Certxa partners with CertxaPay (Host Merchant Services) — the only major processor that uses 100% interchange-plus pricing. No surprise fees, no tiered confusion, no flat-rate overcharge.
     </p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
       <a href="/auth?mode=register" class="btn btn-gold btn-lg">Get Started Free</a>
@@ -46,7 +46,7 @@ require 'includes/nav.php';
     <div style="text-align:center;font-size:.75rem;font-weight:700;color:var(--mid-grey);text-transform:uppercase;letter-spacing:.12em;margin-bottom:24px;">Trusted Payment Partners</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap;">
       <div style="text-align:center;">
-        <div style="font-size:1.4rem;font-weight:900;color:#1a1a2e;letter-spacing:-0.02em;">HMS</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#1a1a2e;letter-spacing:-0.02em;">CertxaPay</div>
         <div style="font-size:.72rem;color:var(--mid-grey);margin-top:2px;">Host Merchant Services</div>
         <div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:3px 10px;">
           <span style="font-size:.65rem;font-weight:700;color:#059669;">PROCESSOR</span>
@@ -92,9 +92,9 @@ require 'includes/nav.php';
         </div>
       </div>
       <div>
-        <h3 style="font-size:1.05rem;font-weight:700;color:var(--charcoal);margin:0 0 12px;">✅ Interchange-plus pricing (HMS)</h3>
+        <h3 style="font-size:1.05rem;font-weight:700;color:var(--charcoal);margin:0 0 12px;">✅ Interchange-plus pricing (CertxaPay)</h3>
         <div style="background:#fff;border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:24px;">
-          <p style="font-size:.88rem;color:var(--mid-grey);line-height:1.65;margin:0 0 16px;">HMS passes through the exact interchange rate set by the card network, then adds a small, fixed markup. You see exactly what the interchange costs and exactly what HMS charges.</p>
+          <p style="font-size:.88rem;color:var(--mid-grey);line-height:1.65;margin:0 0 16px;">CertxaPay passes through the exact interchange rate set by the card network, then adds a small, fixed markup. You see exactly what the interchange costs and exactly what CertxaPay charges.</p>
           <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:14px 16px;">
             <div style="font-size:.78rem;font-weight:700;color:#059669;margin-bottom:4px;">You pay actual interchange + 0.25% + $0.10</div>
             <div style="font-size:.78rem;color:var(--mid-grey);">No hidden margin. No surprise tiers.</div>
@@ -109,9 +109,9 @@ require 'includes/nav.php';
 <section class="section" style="background:#fff;" id="rates">
   <div class="container" style="max-width:860px;">
     <div class="section-header">
-      <span class="tag tag-plum">HMS Rate Schedule</span>
+      <span class="tag tag-plum">CertxaPay Rate Schedule</span>
       <h2 class="section-title">Your exact rates.<br><em>Nothing hidden.</em></h2>
-      <p class="section-sub">HMS uses interchange-plus pricing. Your rate = Visa/MC/Discover/Amex interchange rate + HMS markup below. Interchange rates are set by card networks and fluctuate; HMS markup is fixed.</p>
+      <p class="section-sub">CertxaPay uses interchange-plus pricing. Your rate = Visa/MC/Discover/Amex interchange rate + CertxaPay markup below. Interchange rates are set by card networks and fluctuate; CertxaPay markup is fixed.</p>
     </div>
 
     <div style="overflow-x:auto;margin-top:40px;">
@@ -119,7 +119,7 @@ require 'includes/nav.php';
         <thead>
           <tr style="background:var(--plum-dark);color:#fff;">
             <th style="text-align:left;padding:14px 18px;font-weight:700;border-radius:12px 0 0 0;">Business Type</th>
-            <th style="text-align:center;padding:14px 18px;font-weight:700;">HMS Markup</th>
+            <th style="text-align:center;padding:14px 18px;font-weight:700;">CertxaPay Markup</th>
             <th style="text-align:center;padding:14px 18px;font-weight:700;">Per-Transaction Fee</th>
             <th style="text-align:center;padding:14px 18px;font-weight:700;border-radius:0 12px 0 0;">Example: $100 Sale</th>
           </tr>
@@ -165,17 +165,17 @@ require 'includes/nav.php';
         </div>
         <?php endforeach; ?>
       </div>
-      <p style="font-size:.75rem;color:var(--mid-grey);margin:14px 0 0;line-height:1.5;">* Interchange rates are set by Visa, Mastercard, Discover, and Amex. They vary by card type, industry, and whether the card is present. These are representative figures — your actual interchange will appear on your monthly statement. HMS does not mark up interchange.</p>
+      <p style="font-size:.75rem;color:var(--mid-grey);margin:14px 0 0;line-height:1.5;">* Interchange rates are set by Visa, Mastercard, Discover, and Amex. They vary by card type, industry, and whether the card is present. These are representative figures — your actual interchange will appear on your monthly statement. CertxaPay does not mark up interchange.</p>
     </div>
   </div>
 </section>
 
-<!-- HMS FEES BREAKDOWN -->
+<!-- CertxaPay FEES BREAKDOWN -->
 <section class="section" style="background:#fafafa;">
   <div class="container" style="max-width:860px;">
     <div class="section-header">
       <span class="tag tag-plum">Complete Fee Schedule</span>
-      <h2 class="section-title">Every HMS fee.<br><em>Listed clearly.</em></h2>
+      <h2 class="section-title">Every CertxaPay fee.<br><em>Listed clearly.</em></h2>
     </div>
     <div style="overflow-x:auto;margin-top:40px;">
       <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
@@ -189,7 +189,7 @@ require 'includes/nav.php';
         <tbody>
           <?php
           $fees = [
-            ['Monthly account fee', '$0', 'No monthly fee from HMS'],
+            ['Monthly account fee', '$0', 'No monthly fee from CertxaPay'],
             ['Setup / activation fee', '$0', 'No setup or onboarding fees'],
             ['Cancellation fee', '$0', 'No long-term contracts, cancel anytime'],
             ['Chargeback fee', '$25', 'Per disputed transaction, if chargeback is filed'],
@@ -212,7 +212,7 @@ require 'includes/nav.php';
     </div>
     <div style="margin-top:16px;padding:14px 18px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;">
       <p style="font-size:.8rem;color:#92400e;margin:0;line-height:1.5;">
-        <strong>Note:</strong> All rates shown are HMS's standard rates for salon and beauty businesses. Your specific rates may vary based on processing volume, card mix, and account setup. Contact us for a personalized rate quote. Rates current as of 2025 — contact HMS directly for the most up-to-date schedule.
+        <strong>Note:</strong> All rates shown are CertxaPay's standard rates for salon and beauty businesses. Your specific rates may vary based on processing volume, card mix, and account setup. Contact us for a personalized rate quote. Rates current as of 2025 — contact CertxaPay directly for the most up-to-date schedule.
       </p>
     </div>
   </div>
@@ -266,7 +266,7 @@ require 'includes/nav.php';
     </div>
     <div style="margin-top:28px;background:rgba(37,99,235,.05);border:1px solid rgba(37,99,235,.15);border-radius:14px;padding:22px 24px;">
       <p style="font-size:.84rem;color:#1d4ed8;margin:0;line-height:1.6;">
-        <strong>Terminal pricing:</strong> Djavoo terminal hardware pricing is set by your merchant services provider (HMS) and may include purchase, lease, or free-placement options depending on your processing volume and account terms. Contact us to get hardware pricing specific to your account.
+        <strong>Terminal pricing:</strong> Djavoo terminal hardware pricing is set by your merchant services provider (CertxaPay) and may include purchase, lease, or free-placement options depending on your processing volume and account terms. Contact us to get hardware pricing specific to your account.
       </p>
     </div>
   </div>
@@ -300,11 +300,11 @@ require 'includes/nav.php';
   </div>
 </section>
 
-<!-- WHY HMS VS OTHERS -->
+<!-- WHY CertxaPay VS OTHERS -->
 <section class="section" style="background:#fff;">
   <div class="container" style="max-width:860px;">
     <div class="section-header">
-      <span class="tag tag-plum">Why HMS?</span>
+      <span class="tag tag-plum">Why CertxaPay?</span>
       <h2 class="section-title">Not all processors are<br><em>created equal.</em></h2>
     </div>
     <div style="overflow-x:auto;margin-top:40px;">
@@ -312,7 +312,7 @@ require 'includes/nav.php';
         <thead>
           <tr style="border-bottom:2px solid #f0f0f2;">
             <th style="text-align:left;padding:12px 16px;color:var(--mid-grey);font-size:.75rem;text-transform:uppercase;font-weight:600;">Feature</th>
-            <th style="text-align:center;padding:12px 16px;color:#5b21b6;font-weight:700;">HMS</th>
+            <th style="text-align:center;padding:12px 16px;color:#5b21b6;font-weight:700;">CertxaPay</th>
             <th style="text-align:center;padding:12px 16px;color:var(--mid-grey);font-weight:600;">Square</th>
             <th style="text-align:center;padding:12px 16px;color:var(--mid-grey);font-weight:600;">Stripe Terminal</th>
           </tr>
@@ -348,7 +348,7 @@ require 'includes/nav.php';
   <div class="container" style="max-width:680px;text-align:center;">
     <span class="tag" style="background:rgba(245,158,11,.15);color:#FCD34D;border-color:rgba(245,158,11,.3);margin-bottom:20px;display:inline-flex;">Get started today</span>
     <h2 class="section-title" style="color:#fff;">Ready for transparent<br><em style="color:#F59E0B;">payment processing?</em></h2>
-    <p style="color:rgba(255,255,255,.65);font-size:1rem;line-height:1.65;margin-bottom:36px;">Start your 60-day free trial and get access to HMS payment processing, Djavoo terminal integration, and the full Certxa platform — all in one place.</p>
+    <p style="color:rgba(255,255,255,.65);font-size:1rem;line-height:1.65;margin-bottom:36px;">Start your 60-day free trial and get access to CertxaPay payment processing, Djavoo terminal integration, and the full Certxa platform — all in one place.</p>
     <a href="/auth?mode=register" class="btn btn-gold btn-lg">Start 60-Day Free Trial</a>
     <div style="margin-top:16px;font-size:.82rem;color:rgba(255,255,255,.4);">No credit card to start · Contact us for custom rate quotes</div>
   </div>
