@@ -905,7 +905,8 @@ export default function Intelligence() {
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Clients</p>
               <p className="text-2xl font-bold">{summary?.totalClients ?? "—"}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                <span className="text-amber-600 font-medium">{summary?.driftingClients ?? 0}</span> drifting
+                <span className="text-amber-600 font-medium">{summary?.driftingClients ?? 0}</span>{" "}
+                {autoEngageEnabled ? "drifting · being messaged" : "drifting · needs attention"}
               </p>
             </CardContent>
           </Card>
@@ -913,7 +914,9 @@ export default function Intelligence() {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">At Risk</p>
               <p className="text-2xl font-bold text-orange-600">{summary?.atRiskClients ?? "—"}</p>
-              <p className="text-xs text-muted-foreground mt-1">High churn probability</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {autoEngageEnabled ? "Win-back SMS initiated" : "Win-back campaign needed"}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -1100,7 +1103,9 @@ export default function Intelligence() {
                   icon: <DollarSign className="h-4 w-4 text-red-500" />,
                   color: "border-red-200 bg-red-50/50 dark:bg-red-950/10",
                   action: `$${leakageData.totalLeakage.toLocaleString()} in revenue leakage (90d)`,
-                  value: `$${leakageData.recoveryPotential.toLocaleString()} recoverable`,
+                  value: autoEngageEnabled
+                    ? `$${leakageData.recoveryPotential.toLocaleString()} actively being recovered`
+                    : `$${leakageData.recoveryPotential.toLocaleString()} recoverable`,
                   tab: "leakage",
                 });
               }
@@ -1109,7 +1114,9 @@ export default function Intelligence() {
                   icon: <AlertCircle className="h-4 w-4 text-amber-500" />,
                   color: "border-amber-200 bg-amber-50/50 dark:bg-amber-950/10",
                   action: `${noShowData.upcomingRisks.length} high-risk no-shows upcoming`,
-                  value: "Confirm appointments to reduce losses",
+                  value: autoEngageEnabled
+                    ? "System monitoring · confirm slots to eliminate risk"
+                    : "Confirm appointments to reduce losses",
                   tab: "noshow",
                 });
               }
@@ -1121,7 +1128,9 @@ export default function Intelligence() {
                       <Zap className="h-4 w-4 text-primary" />
                       Quick Wins
                     </CardTitle>
-                    <CardDescription>Highest-impact actions available right now</CardDescription>
+                    <CardDescription>
+                      {autoEngageEnabled ? "System actions in progress — plus things you can do" : "Highest-impact actions available right now"}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
@@ -1467,15 +1476,35 @@ export default function Intelligence() {
           {/* ── REVENUE LEAKAGE TAB ── */}
           <TabsContent value="leakage" className="mt-6 space-y-4">
             {/* Auto-pilot banner — always shown */}
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex-shrink-0">
-                <Zap className="h-4 w-4 text-emerald-600" />
+            <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+              autoEngageEnabled
+                ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+                : "border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/20"
+            }`}>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${
+                autoEngageEnabled ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-amber-100 dark:bg-amber-900/40"
+              }`}>
+                {autoEngageEnabled
+                  ? <Zap className="h-4 w-4 text-emerald-600" />
+                  : <BotOff className="h-4 w-4 text-amber-600" />
+                }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Recovery auto-pilot is on</p>
-                <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70">
-                  Every 6 hours SalonOS scans for no-shows, cancellations, and drifting clients — and automatically sends personalised win-back messages to anyone who opted in. You don't have to lift a finger.
-                </p>
+                {autoEngageEnabled ? (
+                  <>
+                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Recovery auto-pilot is on</p>
+                    <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70">
+                      Every 6 hours SalonOS scans for no-shows, cancellations, and drifting clients — and automatically sends personalised win-back messages to anyone who opted in. You don't have to lift a finger.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Recovery auto-pilot is paused</p>
+                    <p className="text-xs text-amber-700/70 dark:text-amber-400/70">
+                      Leakage is still tracked and scored below — but no automated win-back SMS are being sent. Enable Autonomous Mode at the top of this page to activate recovery.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1527,46 +1556,68 @@ export default function Intelligence() {
                 </div>
 
                 {/* What SalonOS does automatically */}
-                <Card className="border-primary/20 bg-primary/5">
+                <Card className={`border-primary/20 ${autoEngageEnabled ? "bg-primary/5" : "bg-muted/30"}`}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" />
-                      What SalonOS is doing automatically
+                      {autoEngageEnabled
+                        ? <Zap className="h-4 w-4 text-primary" />
+                        : <BotOff className="h-4 w-4 text-muted-foreground" />
+                      }
+                      {autoEngageEnabled ? "What SalonOS is doing automatically" : "What SalonOS will do when auto-pilot is on"}
                     </CardTitle>
-                    <CardDescription>No action needed — these run every 6 hours in the background</CardDescription>
+                    <CardDescription>
+                      {autoEngageEnabled
+                        ? "No action needed — these run every 6 hours in the background"
+                        : "Enable Autonomous Mode above to activate these recovery actions"}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3 text-sm">
-                        <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        <div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${autoEngageEnabled ? "bg-emerald-100" : "bg-muted"}`}>
+                          {autoEngageEnabled
+                            ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            : <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          }
                         </div>
                         <div>
                           <p className="font-medium">No-show & cancellation win-backs</p>
                           <p className="text-muted-foreground text-xs mt-0.5">
-                            Within 7 days of a no-show or cancellation, opted-in clients automatically receive a personalised message with a direct booking link. Rate-limited to once every 30 days per client.
+                            {autoEngageEnabled
+                              ? "Within 7 days of a no-show or cancellation, opted-in clients automatically receive a personalised message with a direct booking link. Rate-limited to once every 30 days per client."
+                              : "Win-back SMS would be sent within 7 days of a no-show or cancellation, with a direct booking link."}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 text-sm">
-                        <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        <div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${autoEngageEnabled ? "bg-emerald-100" : "bg-muted"}`}>
+                          {autoEngageEnabled
+                            ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            : <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          }
                         </div>
                         <div>
                           <p className="font-medium">Drifting client recovery</p>
                           <p className="text-muted-foreground text-xs mt-0.5">
-                            Clients whose visit interval is 20%+ overdue are automatically identified and messaged — before they fully lapse and become hard to recover.
+                            {autoEngageEnabled
+                              ? "Clients whose visit interval is 20%+ overdue are automatically identified and messaged — before they fully lapse and become hard to recover."
+                              : "Clients overdue by 20%+ would be automatically identified and messaged before they fully lapse."}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 text-sm">
-                        <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        <div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${autoEngageEnabled ? "bg-emerald-100" : "bg-muted"}`}>
+                          {autoEngageEnabled
+                            ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            : <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          }
                         </div>
                         <div>
                           <p className="font-medium">Rebooking nudges</p>
                           <p className="text-muted-foreground text-xs mt-0.5">
-                            Clients whose next expected visit is 3–7 days away and have no upcoming appointment are nudged automatically with a booking link.
+                            {autoEngageEnabled
+                              ? "Clients whose next expected visit is 3–7 days away and have no upcoming appointment are nudged automatically with a booking link."
+                              : "Clients due in 3–7 days with no upcoming booking would receive an automatic nudge with a booking link."}
                           </p>
                         </div>
                       </div>
@@ -1636,10 +1687,21 @@ export default function Intelligence() {
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Based on your 90-day rate of ${leakageData.totalLeakage.toLocaleString()}.{" "}
-                          With auto-recovery active, SalonOS is already working to recover{" "}
-                          <span className="font-semibold text-emerald-600">
-                            ${Math.round(leakageData.recoveryPotential * (365 / 90)).toLocaleString()}/year
-                          </span>{" "}of that back.
+                          {autoEngageEnabled ? (
+                            <>
+                              Auto-recovery is active — SalonOS is already working to recover{" "}
+                              <span className="font-semibold text-emerald-600">
+                                ${Math.round(leakageData.recoveryPotential * (365 / 90)).toLocaleString()}/year
+                              </span>{" "}of that back.
+                            </>
+                          ) : (
+                            <>
+                              Enabling auto-recovery could recover an estimated{" "}
+                              <span className="font-semibold text-emerald-600">
+                                ${Math.round(leakageData.recoveryPotential * (365 / 90)).toLocaleString()}/year
+                              </span>{" "}of that back.
+                            </>
+                          )}
                         </p>
                       </div>
                     </CardContent>
@@ -1971,11 +2033,23 @@ export default function Intelligence() {
                         <TrendingUp className="h-5 w-5 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">Win-back revenue opportunity</p>
+                        <p className="font-semibold text-sm">
+                          {autoEngageEnabled ? "Win-back campaign is running" : "Win-back revenue opportunity"}
+                        </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Running a win-back campaign for your drifting clients could add{" "}
-                          <span className="font-bold text-emerald-600">${forecastData.recoveryAddon.toLocaleString()}/month</span>{" "}
-                          by recovering 40% of lapsed clients.
+                          {autoEngageEnabled ? (
+                            <>
+                              The autonomous win-back campaign has been initiated for your drifting clients and is targeting{" "}
+                              <span className="font-bold text-emerald-600">${forecastData.recoveryAddon.toLocaleString()}/month</span>{" "}
+                              in additional revenue by recovering lapsed clients.
+                            </>
+                          ) : (
+                            <>
+                              Running a win-back campaign for your drifting clients could add{" "}
+                              <span className="font-bold text-emerald-600">${forecastData.recoveryAddon.toLocaleString()}/month</span>{" "}
+                              by recovering 40% of lapsed clients.
+                            </>
+                          )}
                         </p>
                         <Button
                           size="sm"
