@@ -189,6 +189,66 @@ router.get("/status", async (req: any, res) => {
   return res.json({ status: "ready" });
 });
 
+// ── Reseed synchronously inside an SSE stream ────────────────────────────────
+// Runs the reseed script for the given email and streams its output as seed
+// phase log lines. Resolves when the child exits (success or failure).
+// If there is no reseed script (tester accounts) it resolves immediately.
+function reseedForLaunch(
+  email: string,
+  send: (data: object) => void
+): Promise<void> {
+  const script = RESEED_SCRIPTS[email];
+  if (!script) {
+    send({ phase: "seed", status: "done", logLine: "[SEED] No reseed script — using existing data." });
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    send({ phase: "seed", status: "start", logLine: "[SEED] ══════════════════════════════════════" });
+    send({ phase: "seed", status: "start", logLine: "[SEED] Resetting & reseeding demo store data..." });
+    send({ phase: "seed", status: "start", logLine: "[SEED] ══════════════════════════════════════" });
+
+    const child = spawn(TSX, [path.join(ROOT, script)], {
+      cwd: ROOT,
+      stdio: "pipe",
+      env: { ...process.env },
+    });
+
+    let buf = "";
+    child.stdout?.on("data", (chunk: Buffer) => {
+      buf += chunk.toString();
+      const lines = buf.split("\n");
+      buf = lines.pop() ?? "";
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        // Skip pure progress-counter lines (e.g. "  3261 / 3261 inserted")
+        if (/^\d+\s*\/\s*\d+/.test(line)) continue;
+        send({ phase: "seed", status: "progress", logLine: `[SEED] ${line}` });
+      }
+    });
+
+    child.stderr?.on("data", (chunk: Buffer) => {
+      const line = chunk.toString().trim();
+      if (line) send({ phase: "seed", status: "progress", logLine: `[SEED:warn] ${line}` });
+    });
+
+    child.on("close", (code: number | null) => {
+      if (code === 0) {
+        send({ phase: "seed", status: "done", logLine: "[SEED] ✓ Demo data ready — launching intelligence engines..." });
+      } else {
+        send({ phase: "seed", status: "done", logLine: `[SEED] ⚠ Reseed exited with code ${code} — proceeding with existing data` });
+      }
+      resolve(); // Always proceed to engines
+    });
+
+    child.on("error", (err: Error) => {
+      send({ phase: "seed", status: "done", logLine: `[SEED] ⚠ Reseed spawn error: ${err.message} — proceeding` });
+      resolve();
+    });
+  });
+}
+
 // ── GET /launch (SSE) ─────────────────────────────────────────────────────────
 router.get("/launch", async (req: any, res) => {
   const user = await getSessionUser(req);
@@ -219,6 +279,13 @@ router.get("/launch", async (req: any, res) => {
 
   let enginesCompleted = false;
   try {
+    // ── Step 1: reseed the store with fresh demo data ──────────────────────
+    await reseedForLaunch(user.email, send);
+
+    // ── Step 2: short pause so the UI can transition to "launching" ────────
+    await new Promise<void>((r) => setTimeout(r, 800));
+
+    // ── Step 3: run all 8 intelligence engines ─────────────────────────────
     await runDemoEngines(storeId, (event) => send(event));
     enginesCompleted = true;
     send({ phase: "complete", status: "done", label: "All Systems Online" });

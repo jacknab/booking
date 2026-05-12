@@ -90,7 +90,7 @@ export default function DemoLaunchEngines() {
   const { selectedStore } = useSelectedStore();
   const navigate = useNavigate();
 
-  const [phase, setPhase] = useState<"idle" | "launching" | "complete">("idle");
+  const [phase, setPhase] = useState<"idle" | "seeding" | "launching" | "complete">("idle");
   const [engines, setEngines] = useState<Record<string, EngineState>>(
     () => Object.fromEntries(ENGINES.map((e) => [e.id, defaultState()]))
   );
@@ -106,7 +106,7 @@ export default function DemoLaunchEngines() {
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    if (phase !== "launching") return;
+    if (phase !== "launching" && phase !== "seeding") return;
     const iv = setInterval(() => setDots((d) => (d.length >= 3 ? "." : d + ".")), 400);
     return () => clearInterval(iv);
   }, [phase]);
@@ -166,12 +166,11 @@ export default function DemoLaunchEngines() {
 
   function handleLaunch() {
     if (!selectedStore?.id) return;
-    setPhase("launching");
+    setPhase("seeding");
     appendLog("[SYSTEM] ═══════════════════════════════════════════════════");
     appendLog("[SYSTEM] Certxa Revenue Intelligence — Engine Boot Sequence");
     appendLog("[SYSTEM] ═══════════════════════════════════════════════════");
     appendLog("[SYSTEM] Establishing secure data pipeline...");
-    appendLog("[SYSTEM] 8 engines standing by for initialisation.");
 
     const url = `/api/intelligence/demo/launch?storeId=${selectedStore.id}`;
     const es = new EventSource(url);
@@ -181,6 +180,19 @@ export default function DemoLaunchEngines() {
       try {
         const data = JSON.parse(ev.data);
 
+        // ── Seed pre-phase ─────────────────────────────────────────────────
+        if (data.phase === "seed") {
+          if (data.logLine) appendLog(data.logLine);
+          if (data.status === "done") {
+            // Seed finished — transition to engine launch phase
+            setPhase("launching");
+            appendLog("[SYSTEM] ───────────────────────────────────────────────");
+            appendLog("[SYSTEM] 8 engines standing by for initialisation.");
+          }
+          return;
+        }
+
+        // ── Engine complete ────────────────────────────────────────────────
         if (data.phase === "complete") {
           appendLog("[SYSTEM] ───────────────────────────────────────────────");
           appendLog("[SYSTEM] ✅ ALL 8 ENGINES ONLINE — Intelligence stack ready");
@@ -197,12 +209,10 @@ export default function DemoLaunchEngines() {
           return;
         }
 
+        // ── Per-engine events ──────────────────────────────────────────────
         const { phase: p, status, result, progress, logLine } = data;
 
-        // Append log line from server if available
-        if (logLine) {
-          appendLog(logLine);
-        }
+        if (logLine) appendLog(logLine);
 
         if (status === "starting") {
           setEngine(p, { status: "initializing", progress: 0, result: "" });
@@ -283,6 +293,7 @@ export default function DemoLaunchEngines() {
         .log-line-system  { color: #a78bfa; }
         .log-line-boot    { color: #fbbf24; }
         .log-line-run     { color: #60a5fa; }
+        .log-line-seed    { color: #22d3ee; }
         .log-line-default { color: #64748b; }
       `}</style>
 
@@ -404,6 +415,38 @@ export default function DemoLaunchEngines() {
                 <p className="text-slate-400 text-base max-w-md mx-auto">
                   All engines are offline. Press the button below to initialise the full intelligence stack against your live demo data.
                 </p>
+              </div>
+            )}
+            {phase === "seeding" && (
+              <div style={{ animation: "slide-up 0.4s ease both" }}>
+                <p className="text-xs font-mono tracking-widest text-cyan-400 uppercase mb-3">
+                  preparing demo data
+                </p>
+                <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">
+                  Loading Store{dots}
+                </h1>
+                <p className="text-slate-400 text-sm max-w-sm mx-auto">
+                  Resetting &amp; seeding fresh demo data. Engines will launch automatically when ready.
+                </p>
+                {/* Indeterminate seed progress bar */}
+                <div className="mt-6 mx-auto max-w-xs h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+                  <div
+                    style={{
+                      height: "100%",
+                      width: "40%",
+                      borderRadius: 100,
+                      background: "linear-gradient(90deg, #22d3ee, #67e8f9)",
+                      boxShadow: "0 0 10px #22d3ee88",
+                      animation: "slide-indeterminate 1.6s ease-in-out infinite",
+                    }}
+                  />
+                </div>
+                <style>{`
+                  @keyframes slide-indeterminate {
+                    0%   { transform: translateX(-150%); }
+                    100% { transform: translateX(450%); }
+                  }
+                `}</style>
               </div>
             )}
             {phase === "launching" && (
@@ -563,9 +606,9 @@ export default function DemoLaunchEngines() {
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{
-                      background: phase === "complete" ? "#34d399" : "#fbbf24",
-                      boxShadow: phase === "complete" ? "0 0 8px #34d399" : "0 0 8px #fbbf24",
-                      animation: phase === "launching" ? "blink-dot 1s infinite" : undefined,
+                      background: phase === "complete" ? "#34d399" : phase === "seeding" ? "#22d3ee" : "#fbbf24",
+                      boxShadow: phase === "complete" ? "0 0 8px #34d399" : phase === "seeding" ? "0 0 8px #22d3ee" : "0 0 8px #fbbf24",
+                      animation: (phase === "launching" || phase === "seeding") ? "blink-dot 1s infinite" : undefined,
                     }}
                   />
                   <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">
@@ -587,6 +630,7 @@ export default function DemoLaunchEngines() {
                     : line.startsWith("[SYSTEM]") ? "log-line-system"
                     : line.startsWith("[BOOT]") ? "log-line-boot"
                     : line.startsWith("[RUN]") ? "log-line-run"
+                    : line.startsWith("[SEED]") ? "log-line-seed"
                     : "log-line-default";
                   return (
                     <div key={i} className={cls}>
@@ -594,8 +638,11 @@ export default function DemoLaunchEngines() {
                     </div>
                   );
                 })}
-                {phase === "launching" && (
-                  <div className="log-line-system" style={{ animation: "blink-dot 1s infinite" }}>
+                {(phase === "seeding" || phase === "launching") && (
+                  <div
+                    className={phase === "seeding" ? "log-line-seed" : "log-line-system"}
+                    style={{ animation: "blink-dot 1s infinite" }}
+                  >
                     ▋
                   </div>
                 )}
