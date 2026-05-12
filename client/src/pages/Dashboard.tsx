@@ -12,6 +12,7 @@ import {
   endOfMonth,
   isWithinInterval,
   format,
+  addMinutes,
 } from "date-fns";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
@@ -24,8 +25,9 @@ import {
   LabelList,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2, CheckCircle2, ChevronRight, DollarSign, BellOff } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { AlertTriangle, ArrowRight, Brain, TrendingUp, TrendingDown, Users, Zap, AlertCircle, Clock, UserX, CalendarX, Target, Edit2, CheckCircle2, ChevronRight, DollarSign, BellOff, X, Calendar, Scissors, User, CreditCard, FileText, Receipt } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 function GradeColorClass(grade: string) {
   if (grade === "A") return "text-emerald-600";
@@ -533,6 +535,9 @@ export default function Dashboard() {
   const { selectedStore } = useSelectedStore();
   const timezone = selectedStore?.timezone || "UTC";
   const storeNow = getNowInTimezone(timezone);
+  const navigate = useNavigate();
+
+  const [selectedApt, setSelectedApt] = useState<any | null>(null);
 
   const { data: appointments } = useAppointments();
   const { data: staffList } = useStaffList();
@@ -785,7 +790,8 @@ export default function Dashboard() {
               return (
                 <div
                   key={apt.id}
-                  className="flex items-center gap-4 py-3 px-2 rounded-xl hover:bg-muted/50 transition-colors"
+                  onClick={() => setSelectedApt(apt)}
+                  className="flex items-center gap-4 py-3 px-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   {/* Time */}
                   <span className="text-sm text-muted-foreground w-12 shrink-0 font-medium">
@@ -824,6 +830,183 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Appointment Detail Drawer ──────────────────────────────────────── */}
+      <Sheet open={!!selectedApt} onOpenChange={(open) => { if (!open) setSelectedApt(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+          {selectedApt && (() => {
+            const apt = selectedApt;
+            const customerName = apt.customer?.name || apt.customerName || "Guest";
+            const serviceName = apt.service?.name || "Service";
+            const staffName = apt.staff?.name || "—";
+            const status = (apt.status || "pending").toLowerCase();
+            const isCompleted = status === "completed";
+            const price = parseFloat(apt.totalPaid || apt.price || "0");
+            const initials = getInitials(customerName);
+            const avatarGrad = getAvatarColor(customerName);
+            const aptDate = new Date(apt.date);
+            const endDate = addMinutes(aptDate, apt.duration || 30);
+            const dateStr = formatInTz(apt.date, timezone, "EEEE, d MMM yyyy");
+            const timeStr = `${formatInTz(apt.date, timezone, "h:mm a")} – ${formatInTz(endDate.toISOString(), timezone, "h:mm a")}`;
+            const paymentMethod = apt.paymentMethod
+              ? apt.paymentMethod.charAt(0).toUpperCase() + apt.paymentMethod.slice(1)
+              : null;
+
+            const statusColors: Record<string, string> = {
+              completed: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+              confirmed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+              pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+              "no-show": "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+              cancelled: "bg-gray-100 text-gray-500",
+            };
+
+            return (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-white text-sm font-bold shrink-0`}>
+                      {initials}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground leading-tight">{customerName}</p>
+                      <p className="text-xs text-muted-foreground">{serviceName}</p>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${statusColors[status] || statusColors["pending"]}`}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </span>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+                  {/* Date / Time / Duration */}
+                  <div className="rounded-xl border border-border bg-muted/30 divide-y divide-border">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Date</p>
+                        <p className="text-sm font-medium text-foreground">{dateStr}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Time</p>
+                        <p className="text-sm font-medium text-foreground">{timeStr}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <Scissors className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Service</p>
+                        <p className="text-sm font-medium text-foreground">{serviceName}{apt.duration ? ` · ${apt.duration} min` : ""}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Staff</p>
+                        <p className="text-sm font-medium text-foreground">{staffName}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  {apt.notes && (
+                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 flex items-start gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                        <p className="text-sm text-foreground">{apt.notes}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Receipt section — completed only */}
+                  {isCompleted && (
+                    <div className="rounded-xl border border-border overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-3 bg-muted/40 border-b border-border">
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Receipt</p>
+                      </div>
+
+                      {/* Monospace receipt body */}
+                      <div className="px-4 py-4 space-y-1 font-mono text-sm bg-card">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground truncate mr-4">{serviceName}</span>
+                          <span className="text-foreground font-semibold shrink-0">
+                            ${parseFloat(apt.service?.price || apt.price || "0").toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Addons if present */}
+                        {apt.addons?.map((addon: any) => (
+                          <div key={addon.id} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground truncate mr-4">+ {addon.name}</span>
+                            <span className="text-foreground">${parseFloat(addon.price || "0").toFixed(2)}</span>
+                          </div>
+                        ))}
+
+                        <div className="border-t border-dashed border-border my-2" />
+
+                        {/* Tip if price > service price */}
+                        {(() => {
+                          const servicePrice = parseFloat(apt.service?.price || apt.price || "0");
+                          const tip = price - servicePrice;
+                          if (tip > 0.01) return (
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Tip</span>
+                              <span>${tip.toFixed(2)}</span>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex justify-between font-bold text-foreground pt-1">
+                          <span>Total</span>
+                          <span>${price.toFixed(2)}</span>
+                        </div>
+
+                        {paymentMethod && (
+                          <div className="flex items-center gap-2 pt-3 text-xs text-muted-foreground">
+                            <CreditCard className="h-3 w-3 shrink-0" />
+                            <span>Paid by {paymentMethod}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending / confirmed price */}
+                  {!isCompleted && price > 0 && (
+                    <div className="rounded-xl border border-border bg-muted/30 flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-muted-foreground">Price</span>
+                      <span className="text-sm font-bold text-foreground">${price.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer actions */}
+                <div className="px-6 py-4 border-t border-border flex gap-3">
+                  <button
+                    onClick={() => { setSelectedApt(null); navigate(`/booking/new?editId=${apt.id}`); }}
+                    className="flex-1 text-sm font-medium rounded-xl border border-border py-2.5 hover:bg-muted transition-colors"
+                  >
+                    Edit Booking
+                  </button>
+                  <button
+                    onClick={() => { setSelectedApt(null); navigate("/calendar"); }}
+                    className="flex-1 text-sm font-medium rounded-xl bg-primary text-primary-foreground py-2.5 hover:bg-primary/90 transition-colors"
+                  >
+                    Open in Calendar
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }
