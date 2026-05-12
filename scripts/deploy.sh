@@ -1297,7 +1297,10 @@ ok "At commit $COMMIT (was $PREV_COMMIT) — $BUILD_TIME"
 # ── Step 4: Install dependencies ──────────────────────────────────────────────
 step "Step 4/9 — Installing dependencies"
 
-npm ci --prefer-offline --loglevel=warn 2>&1 | grep -v "^npm warn" | tail -5
+# NODE_ENV=production (loaded from .env) causes npm to skip devDependencies,
+# which means tsx, esbuild, vite and other build tools never get installed.
+# Override it to development for this step only so ALL dependencies are installed.
+NODE_ENV=development npm ci --prefer-offline --loglevel=warn 2>&1 | grep -v "^npm warn" | tail -5
 ok "npm ci complete"
 
 # ── Step 5: Database migrations ───────────────────────────────────────────────
