@@ -577,13 +577,186 @@ fi
 
 PREV_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
-# ── Step 3: Git pull ──────────────────────────────────────────────────────────
-step "Step 3/9 — Pulling latest code"
+# ── Step 3: Smart git pull ────────────────────────────────────────────────────
+step "Step 3/9 — Pulling latest code (smart pull)"
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  smart_git_pull — always succeeds in getting the latest code from origin/main
+#
+#  Handles every common failure mode, in order:
+#    1. Removes stale git lock files                 (.git/*.lock)
+#    2. Aborts any in-progress git operations        (merge, rebase, cherry-pick, bisect)
+#    3. Stashes local changes so they don't block    (saves to git stash)
+#    4. Ensures we are ON the correct branch         (main)
+#    5. Fetches from origin with retry + backoff     (up to 4 attempts)
+#    6. Hard-resets to origin/main                   (always matches remote exactly)
+#    7. Prunes deleted remote branches + tags
+#
+#  The fetch+hard-reset approach is the only method that is guaranteed to work
+#  regardless of diverged commits, merge conflicts, or any other local state.
+# ══════════════════════════════════════════════════════════════════════════════
+smart_git_pull() {
+  local remote="${GIT_REMOTE:-origin}"
+  local branch="${GIT_BRANCH:-main}"
+  local fetch_attempts=4
+  local fetch_delay=5
+
+  info "Remote: $remote  |  Branch: $branch"
+  echo ""
+
+  # ── 1. Remove stale lock files ─────────────────────────────────────────────
+  local lock_files
+  lock_files="$(find .git -name "*.lock" 2>/dev/null || true)"
+  if [[ -n "$lock_files" ]]; then
+    warn "Stale git lock file(s) found — removing:"
+    echo "$lock_files" | while read -r f; do
+      warn "  Removing: $f"
+      rm -f "$f"
+    done
+    ok "Lock files cleared"
+  fi
+
+  # ── 2. Abort any in-progress git operations ────────────────────────────────
+  if [[ -f ".git/MERGE_HEAD" ]]; then
+    warn "In-progress merge detected — aborting."
+    git merge --abort 2>/dev/null || git reset --hard HEAD 2>/dev/null || true
+    ok "Merge aborted"
+  fi
+
+  if [[ -d ".git/rebase-merge" || -d ".git/rebase-apply" ]]; then
+    warn "In-progress rebase detected — aborting."
+    git rebase --abort 2>/dev/null || true
+    ok "Rebase aborted"
+  fi
+
+  if [[ -f ".git/CHERRY_PICK_HEAD" ]]; then
+    warn "In-progress cherry-pick detected — aborting."
+    git cherry-pick --abort 2>/dev/null || true
+    ok "Cherry-pick aborted"
+  fi
+
+  if [[ -f ".git/BISECT_LOG" ]]; then
+    warn "Git bisect in progress — resetting."
+    git bisect reset 2>/dev/null || true
+    ok "Bisect reset"
+  fi
+
+  # ── 3. Stash any local modifications ──────────────────────────────────────
+  local git_status
+  git_status="$(git status --porcelain 2>/dev/null || true)"
+  if [[ -n "$git_status" ]]; then
+    warn "Local changes detected — stashing to avoid conflicts:"
+    echo "$git_status" | head -10 | while read -r line; do dim "  $line"; done
+    local stash_result
+    stash_result="$(git stash push -u -m "deploy-script-auto-stash-$(date +%Y%m%d-%H%M%S)" 2>&1 || true)"
+    if echo "$stash_result" | grep -q "Saved working directory"; then
+      ok "Local changes stashed (restore later with: git stash pop)"
+    else
+      # Stash failed — force-clean instead (local changes in dist/ etc. are disposable)
+      warn "Stash failed — force-cleaning working tree."
+      git checkout -- . 2>/dev/null || true
+      git clean -fd --exclude='.env' --exclude='logs/' --exclude='node_modules/' 2>/dev/null || true
+      ok "Working tree force-cleaned (your .env and logs are preserved)"
+    fi
+  else
+    ok "Working tree is clean"
+  fi
+
+  # ── 4. Ensure we are on the correct branch ─────────────────────────────────
+  local current_branch
+  current_branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo 'DETACHED')"
+
+  if [[ "$current_branch" == "DETACHED" ]]; then
+    warn "Repository is in detached HEAD state — checking out $branch."
+    git checkout "$branch" 2>/dev/null || \
+    git checkout -b "$branch" "$remote/$branch" 2>/dev/null || \
+    git checkout -B "$branch" "$remote/$branch" 2>/dev/null || {
+      fail "Could not check out branch $branch."
+      fail "Try manually: git checkout -B main origin/main"
+      return 1
+    }
+    ok "Checked out branch: $branch"
+  elif [[ "$current_branch" != "$branch" ]]; then
+    warn "On branch '$current_branch' — switching to '$branch'."
+    git checkout "$branch" 2>/dev/null || {
+      fail "Could not switch to branch $branch."
+      return 1
+    }
+    ok "Switched to branch: $branch"
+  else
+    ok "On correct branch: $branch"
+  fi
+
+  # ── 5. Fetch from remote (with retry + backoff) ────────────────────────────
+  local attempt=1
+  local fetched=0
+  while [[ "$attempt" -le "$fetch_attempts" ]]; do
+    info "Fetching from $remote (attempt $attempt / $fetch_attempts)…"
+    if git fetch "$remote" --prune --tags --force 2>&1; then
+      ok "Fetch succeeded"
+      fetched=1
+      break
+    else
+      local fetch_exit=$?
+      if [[ "$attempt" -lt "$fetch_attempts" ]]; then
+        warn "Fetch failed (exit $fetch_exit) — retrying in ${fetch_delay}s…"
+        sleep "$fetch_delay"
+        fetch_delay="$((fetch_delay * 2))"  # exponential backoff: 5s → 10s → 20s
+      fi
+    fi
+    attempt="$((attempt + 1))"
+  done
+
+  if [[ "$fetched" -eq 0 ]]; then
+    fail "Fetch from $remote failed after $fetch_attempts attempts."
+    fail ""
+    fail "Possible causes:"
+    fail "  • No internet / DNS resolution failure"
+    fail "  • GitHub is down or rate-limiting"
+    fail "  • SSH key or HTTPS token expired"
+    fail "  • Remote URL is wrong: $(git remote get-url "$remote" 2>/dev/null || echo 'unknown')"
+    fail ""
+    fail "Test manually: git fetch $remote"
+    return 1
+  fi
+
+  # ── 6. Hard-reset to origin/branch ─────────────────────────────────────────
+  info "Hard-resetting to $remote/$branch…"
+  if git reset --hard "$remote/$branch" 2>&1; then
+    ok "Hard reset to $remote/$branch complete"
+  else
+    fail "git reset --hard $remote/$branch failed."
+    fail "This is very unusual. Try manually: git reset --hard $remote/$branch"
+    return 1
+  fi
+
+  # ── 7. Show what changed ───────────────────────────────────────────────────
+  local new_commit prev_commit_full files_changed
+  new_commit="$(git rev-parse --short HEAD)"
+  prev_commit_full="$PREV_COMMIT"
+  files_changed="$(git diff --name-only "${prev_commit_full}..HEAD" 2>/dev/null | wc -l | tr -d ' ' || echo '?')"
+
+  if [[ "$new_commit" == "$prev_commit_full" ]]; then
+    ok "Already at the latest commit ($new_commit) — no new changes"
+  else
+    ok "Updated: $prev_commit_full → $new_commit  ($files_changed file(s) changed)"
+    dim "Changed files:"
+    git diff --name-only "${prev_commit_full}..HEAD" 2>/dev/null | head -20 | while read -r f; do
+      dim "  $f"
+    done
+  fi
+
+  return 0
+}
 
 if [[ "${SKIP_GIT_PULL:-0}" == "1" ]]; then
   warn "Skipping git pull (SKIP_GIT_PULL=1)"
 else
-  git pull --ff-only
+  if ! smart_git_pull; then
+    fail "Git pull failed after all recovery attempts."
+    fail "Fix the issue above and re-run: bash scripts/deploy.sh"
+    exit 1
+  fi
 fi
 
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
