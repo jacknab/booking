@@ -423,6 +423,26 @@ export default function Intelligence() {
 
   const autoEngageEnabled = autoEngageData?.enabled ?? true;
 
+  // ── SMS credit balance ────────────────────────────────────────────────────
+  const { data: smsStatus } = useQuery<{
+    smsAllowance: number;
+    smsCredits: number;
+    planMonthlyAllowance: number;
+    planName: string;
+  }>({
+    queryKey: ["/api/billing/sms-status", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/billing/sms-status/${storeId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 60 * 1000,
+  });
+
+  const totalSmsCredits = (smsStatus?.smsAllowance ?? 0) + (smsStatus?.smsCredits ?? 0);
+  const noSmsCredits = smsStatus !== undefined && smsStatus !== null && totalSmsCredits === 0;
+
   const digestPrefMutation = useMutation({
     mutationFn: async (optOut: boolean) => {
       const res = await fetch("/api/intelligence/digest-preferences", {
@@ -838,6 +858,49 @@ export default function Intelligence() {
             />
           </div>
         </div>
+
+        {/* ── No SMS credits warning ─────────────────────────────────────── */}
+        {noSmsCredits && (
+          <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/20 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm text-red-800 dark:text-red-300">No SMS credits remaining</p>
+                <p className="text-xs text-red-700/80 dark:text-red-400/80 mt-0.5 leading-relaxed">
+                  The intelligence system won't send any automated win-back, rebooking, or recovery messages until credits are topped up.
+                  {autoEngageEnabled ? " Autonomous Mode is on but paused until you add credits." : ""}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/manage/billing")}
+              className="shrink-0 text-sm font-semibold px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors whitespace-nowrap"
+            >
+              Buy SMS Credits
+            </button>
+          </div>
+        )}
+
+        {/* ── Low SMS credits soft warning ────────────────────────────────── */}
+        {!noSmsCredits && smsStatus && totalSmsCredits > 0 && totalSmsCredits <= 20 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20 px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                <span className="font-semibold">{totalSmsCredits} SMS credit{totalSmsCredits === 1 ? "" : "s"} left</span>
+                {" "}— the system will pause automated sends when they run out.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/manage/billing")}
+              className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 text-amber-800 dark:text-amber-300 transition-colors whitespace-nowrap"
+            >
+              Top up
+            </button>
+          </div>
+        )}
 
         {/* Demo — engines actively running banner */}
         {isDemoAccount && demoStatus === "running" && (

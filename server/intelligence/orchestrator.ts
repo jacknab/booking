@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { customers, appointments, smsSettings } from "@shared/schema";
+import { customers, appointments, smsSettings, locations } from "@shared/schema";
 import { clientIntelligence, staffIntelligence, growthScoreSnapshots, deadSeatPatterns, intelligenceInterventions } from "../../shared/schema/intelligence";
 import { computeClientCadence } from "./cadence";
 import { computeClientLtv } from "./ltv";
@@ -387,6 +387,20 @@ async function runAutoLeakageRecovery(storeId: number): Promise<void> {
   }
 }
 
+async function hasSmsCredits(storeId: number): Promise<boolean> {
+  try {
+    const [row] = await db
+      .select({ smsAllowance: locations.smsAllowance, smsCredits: locations.smsCredits })
+      .from(locations)
+      .where(eq(locations.id, storeId))
+      .limit(1);
+    if (!row) return false;
+    return (row.smsAllowance ?? 0) > 0 || (row.smsCredits ?? 0) > 0;
+  } catch {
+    return true; // fail open — never silently block on a DB error
+  }
+}
+
 async function isAutoEngageEnabled(storeId: number): Promise<boolean> {
   try {
     const [row] = await db
@@ -413,6 +427,13 @@ export async function runIntelligenceForAllStores(): Promise<void> {
       const autoEngaged = await isAutoEngageEnabled(storeId);
       if (!autoEngaged) {
         console.log(`[intelligence] Autonomous Mode OFF for store ${storeId} — skipping auto SMS sends`);
+        continue;
+      }
+
+      // Guard: skip all auto-SMS if the store has zero SMS credits in both buckets
+      const creditsAvailable = await hasSmsCredits(storeId);
+      if (!creditsAvailable) {
+        console.log(`[intelligence] Store ${storeId} has no SMS credits (allowance + purchased = 0) — skipping auto sends`);
         continue;
       }
 
