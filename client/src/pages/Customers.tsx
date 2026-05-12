@@ -264,7 +264,7 @@ export default function Customers() {
                 clients.map((client) => (
                   <tr key={client.id} className="hover:bg-muted/20 transition-colors group">
                     <td className="px-5 py-3">
-                      <Link to={`/client/${client.id}`} className="flex items-center gap-3">
+                      <Link to={`/clients/${client.id}`} className="flex items-center gap-3">
                         <ClientAvatar name={client.fullName} status={client.clientStatus} />
                         <div>
                           <p className="font-semibold text-sm group-hover:text-primary transition-colors">{client.fullName || "No name"}</p>
@@ -391,7 +391,7 @@ function ClientAvatar({ name, status }: { name: string; status: string }) {
 function ClientCard({ client }: { client: ClientListItem }) {
   return (
     <Link
-      to={`/client/${client.id}`}
+      to={`/clients/${client.id}`}
       className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors"
     >
       <ClientAvatar name={client.fullName} status={client.clientStatus} />

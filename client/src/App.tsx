@@ -26,6 +26,7 @@ import NewBooking from "@/pages/NewBooking";
 import ClientLookup from "@/pages/ClientLookup";
 import POSInterface from "@/pages/POSInterface";
 import ClientProfile from "@/pages/ClientProfile";
+import ClientDetail from "@/pages/ClientDetail";
 import StaffDetail from "@/pages/StaffDetail";
 import CalendarSettingsPage from "@/pages/CalendarSettings";
 import BusinessSettings from "@/pages/BusinessSettings";
@@ -271,6 +272,7 @@ function AppRoutes() {
       <Route path="/client-lookup" element={<ClientLookup />} />
       <Route path="/pos" element={<POSInterface />} />
       <Route path="/client/:id" element={<ClientProfile />} />
+      <Route path="/clients/:id" element={<ClientDetail />} />
       <Route path="/products" element={<Products />} />
       <Route path="/addons" element={<AddonsPage />} />
       <Route path="/analytics" element={<Analytics />} />

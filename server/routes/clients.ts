@@ -289,6 +289,18 @@ router.get("/:id", isAuthenticated, async (req, res) => {
         .where(eq(clientCustomFieldValues.clientId, clientId)),
     ]);
 
+    // Bridge to the old customers table via email so intelligence data can be fetched
+    let matchedCustomerId: number | null = null;
+    const primaryEmail = emails.find(e => e.isPrimary)?.emailAddress ?? emails[0]?.emailAddress;
+    if (primaryEmail && client.storeId) {
+      const match = await db.execute(sql`
+        SELECT id FROM customers WHERE LOWER(email) = ${primaryEmail} AND store_id = ${client.storeId} LIMIT 1
+      `);
+      if ((match.rows as any[]).length > 0) {
+        matchedCustomerId = Number((match.rows as any[])[0].id);
+      }
+    }
+
     return res.json({
       ...client,
       emails,
@@ -298,6 +310,9 @@ router.get("/:id", isAuthenticated, async (req, res) => {
       notes,
       marketingPreferences: mktPrefs[0] ?? null,
       customFields: customFieldValues.map((r) => ({ ...r.val, field: r.field })),
+      primaryEmail: primaryEmail ?? null,
+      primaryPhone: phones.find(p => p.isPrimary)?.displayPhone ?? phones[0]?.displayPhone ?? null,
+      matchedCustomerId,
     });
   } catch (err) {
     console.error("[clients] get error:", err);

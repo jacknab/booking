@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { customers, appointments, staff } from "@shared/schema";
+import { clientEmails } from "../../shared/schema/clients";
 import {
   clientIntelligence,
   staffIntelligence,
