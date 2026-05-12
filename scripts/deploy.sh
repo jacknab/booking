@@ -4,6 +4,9 @@
 #
 #  Usage:
 #    bash scripts/deploy.sh                    # full deploy
+#    bash scripts/deploy.sh --nginx-only       # audit + repair nginx only, no deploy
+#    bash scripts/deploy.sh --db-check         # audit + repair DB schema only, no deploy
+#    bash scripts/deploy.sh --db-migrate       # run pending migrations only, no deploy
 #    SKIP_GIT_PULL=1 bash scripts/deploy.sh   # skip git pull
 #    SKIP_MIGRATE=1  bash scripts/deploy.sh   # skip DB migrations
 #    SKIP_BUILD=1    bash scripts/deploy.sh   # skip build (use existing dist)
@@ -18,8 +21,9 @@
 #      • Missing node_modules         → npm ci, restart
 #      • dist/index.cjs missing       → npm run build, restart
 #      • PostgreSQL not running       → systemctl start postgresql, restart
+#      • Missing DB tables / columns  → re-run migrations automatically, restart
 #      • PM2 process in error/loop    → full delete + fresh start
-#      • nginx 502 (app OK internally)→ nginx config test + reload
+#      • nginx 502 (app OK internally)→ full nginx audit + repair + reload
 #      • Insufficient file descriptors→ ulimit bump, restart
 #      • Out of memory                → report + suggest swap
 #      • PHP binary missing           → apt install php, restart
@@ -711,7 +715,38 @@ except: print('unknown')
     fi
   fi
 
-  # ── Fix 12: Generic — PM2 shows errors but no known pattern matched ───────
+  # ── Fix 12: Missing DB tables or columns ──────────────────────────────────
+  # Catches PostgreSQL errors like:
+  #   ERROR: relation "X" does not exist  (missing table)
+  #   ERROR: column "X" does not exist    (missing column)
+  #   42P01 / 42703                       (PostgreSQL error codes)
+  if echo "$logs" | grep -qiE \
+       'relation "[^"]*" does not exist|column "[^"]*" does not exist|ERROR.*42P01|ERROR.*42703|table "[^"]*" does not exist|column [a-z_]+ of relation' && \
+     [[ -z "${APPLIED_FIXES[db_schema]:-}" ]]; then
+    APPLIED_FIXES[db_schema]=1
+
+    # Extract the offending object name for the message
+    local missing_obj
+    missing_obj="$(echo "$logs" | grep -oiE \
+      '(relation|column|table) "[^"]+"' | head -1 || echo "unknown")"
+
+    heal "DIAGNOSIS: Database schema mismatch — $missing_obj does not exist."
+    heal "FIX: Running database migrations to create missing tables/columns."
+
+    if check_db_schema; then
+      ok "Schema repaired — restarting app."
+      pm2_fresh_start
+      return 0
+    else
+      fail "Schema repair failed — migrations could not fix the problem."
+      fail "You may need to write a new migration file."
+      fail "  touch migrations/\$(date +%Y%m%d_%H%M%S)_fix_missing_schema.sql"
+      fail "  # Add the missing CREATE TABLE / ALTER TABLE SQL, then re-run deploy."
+      return 1
+    fi
+  fi
+
+  # ── Fix 13: Generic — PM2 shows errors but no known pattern matched ───────
   if [[ "$pm2_status" == "errored" || "$internal_status" == "000" ]] && \
      [[ -z "${APPLIED_FIXES[generic_restart]:-}" ]]; then
     APPLIED_FIXES[generic_restart]=1
@@ -798,6 +833,194 @@ show_diagnostics() {
   banner "══ END DIAGNOSTICS ═════════════════════════════════════════"
   echo ""
 }
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  DATABASE SCHEMA AUDIT & AUTO-REPAIR
+#
+#  Checks that all core tables exist and re-runs migrations if any are missing.
+#  Also detects missing columns reported in PM2 logs and patches via migrations.
+#
+#  Core tables checked:
+#    users, locations, staff, appointments, services, clients, categories,
+#    business_hours, schema_migrations
+#
+#  Returns 0 if schema is healthy (or was fixed), 1 if migration failed.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Core tables required for the app to function
+REQUIRED_TABLES=(
+  users locations staff appointments services clients
+  categories business_hours schema_migrations
+)
+
+check_db_schema() {
+  local db_url="${DATABASE_URL:-}"
+  local ran_migration=0
+
+  echo ""
+  echo -e "${CYAN}${BOLD}  ┌─ Database Schema Audit ─────────────────────────────────┐${NC}"
+  echo -e "${CYAN}  │  Checking ${#REQUIRED_TABLES[@]} required tables…${NC}"
+  echo -e "${CYAN}  └─────────────────────────────────────────────────────────${NC}"
+  echo ""
+
+  # ── Require DATABASE_URL ─────────────────────────────────────────────────────
+  if [[ -z "$db_url" ]]; then
+    fail "DATABASE_URL is not set — cannot audit DB schema."
+    fail "Make sure .env is loaded and DATABASE_URL is defined."
+    return 1
+  fi
+
+  # ── Can we reach the database? ───────────────────────────────────────────────
+  if ! psql "$db_url" -c "SELECT 1" &>/dev/null 2>&1; then
+    fail "Cannot connect to database: $db_url"
+    fail "Is PostgreSQL running?  sudo systemctl start postgresql"
+    return 1
+  fi
+  ok "Database connection: OK"
+
+  # ── Query existing tables ─────────────────────────────────────────────────────
+  local existing_tables
+  existing_tables="$(psql "$db_url" -t -A -c \
+    "SELECT table_name FROM information_schema.tables \
+     WHERE table_schema = 'public'" 2>/dev/null || true)"
+
+  # ── Find missing tables ───────────────────────────────────────────────────────
+  local missing_tables=()
+  for tbl in "${REQUIRED_TABLES[@]}"; do
+    if ! echo "$existing_tables" | grep -qx "$tbl"; then
+      missing_tables+=("$tbl")
+    fi
+  done
+
+  if [[ "${#missing_tables[@]}" -eq 0 ]]; then
+    ok "Schema: all ${#REQUIRED_TABLES[@]} required tables are present"
+
+    # Even when tables exist, check pending migrations and apply them
+    info "Checking for unapplied migrations…"
+    local pending_count
+    pending_count="$(DATABASE_URL="$db_url" \
+      node_modules/.bin/tsx scripts/migrate.ts --dry-run 2>/dev/null \
+      | grep -c 'pending\|would apply' || echo "0")"
+
+    if [[ "${pending_count:-0}" -gt 0 ]]; then
+      heal "Found $pending_count pending migration(s) — applying now."
+      if DATABASE_URL="$db_url" node_modules/.bin/tsx scripts/migrate.ts; then
+        ok "Pending migrations applied"
+        ran_migration=1
+      else
+        fail "Migration run failed — check migrate.ts output above."
+        return 1
+      fi
+    else
+      ok "Migrations: database is up to date"
+    fi
+
+    return 0
+  fi
+
+  # ── Auto-fix: run migrations ──────────────────────────────────────────────────
+  warn "Missing table(s): ${missing_tables[*]}"
+  heal "FIX: Re-running all pending migrations to create missing tables…"
+
+  if DATABASE_URL="$db_url" node_modules/.bin/tsx scripts/migrate.ts; then
+    ok "Migrations applied successfully"
+    ran_migration=1
+  else
+    fail "Migration failed — see output above."
+    fail "Common causes:"
+    fail "  • DATABASE_URL has wrong credentials"
+    fail "  • PostgreSQL user lacks CREATE TABLE permission"
+    fail "  • A migration file has a syntax error"
+    fail ""
+    fail "Check: psql \"\$DATABASE_URL\" -c 'SELECT NOW()'"
+    return 1
+  fi
+
+  # ── Re-verify after migration ─────────────────────────────────────────────────
+  existing_tables="$(psql "$db_url" -t -A -c \
+    "SELECT table_name FROM information_schema.tables \
+     WHERE table_schema = 'public'" 2>/dev/null || true)"
+
+  local still_missing=()
+  for tbl in "${missing_tables[@]}"; do
+    if ! echo "$existing_tables" | grep -qx "$tbl"; then
+      still_missing+=("$tbl")
+    fi
+  done
+
+  if [[ "${#still_missing[@]}" -eq 0 ]]; then
+    ok "All missing tables have been created: ${missing_tables[*]}"
+
+    # List all tables now present for visibility
+    info "Current public tables:"
+    echo "$existing_tables" | sort | while read -r t; do
+      [[ -n "$t" ]] && dim "  $t"
+    done
+    return 0
+  else
+    fail "Still missing after migration: ${still_missing[*]}"
+    fail ""
+    fail "These tables are not created by any migration file."
+    fail "You may need to write a new migration:"
+    fail "  touch migrations/$(date +%Y%m%d_%H%M%S)_add_missing_tables.sql"
+    return 1
+  fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  STANDALONE FLAG HANDLING
+#  --nginx-only  → audit + repair nginx, then exit  (no deploy)
+#  --db-check    → audit + repair DB schema, then exit  (no deploy)
+#  --db-migrate  → load .env and run pending migrations, then exit  (no deploy)
+# ══════════════════════════════════════════════════════════════════════════════
+DEPLOY_FLAG="${1:-}"
+
+if [[ "$DEPLOY_FLAG" == "--nginx-only" ]]; then
+  step "nginx-only mode — auditing and repairing nginx"
+  load_env
+  if check_and_fix_nginx; then
+    echo ""
+    ok "nginx audit complete."
+  else
+    echo ""
+    fail "nginx audit finished with errors — see output above."
+    exit 1
+  fi
+  exit 0
+fi
+
+if [[ "$DEPLOY_FLAG" == "--db-check" ]]; then
+  step "db-check mode — auditing and repairing database schema"
+  load_env
+  if check_db_schema; then
+    echo ""
+    ok "Database schema audit complete."
+  else
+    echo ""
+    fail "Database schema audit finished with errors — see output above."
+    exit 1
+  fi
+  exit 0
+fi
+
+if [[ "$DEPLOY_FLAG" == "--db-migrate" ]]; then
+  step "db-migrate mode — running pending migrations"
+  load_env
+  if [[ -z "${DATABASE_URL:-}" ]]; then
+    fail "DATABASE_URL is not set in .env"
+    exit 1
+  fi
+  info "Applying pending migrations against: $(echo "${DATABASE_URL}" | sed 's/:\/\/[^:]*:[^@]*@/:\/\/****:****@/')"
+  if DATABASE_URL="${DATABASE_URL}" node_modules/.bin/tsx scripts/migrate.ts; then
+    echo ""
+    ok "Migrations complete."
+  else
+    echo ""
+    fail "Migration failed — see output above."
+    exit 1
+  fi
+  exit 0
+fi
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ─────────────────────────────  DEPLOY STEPS  ────────────────────────────────
