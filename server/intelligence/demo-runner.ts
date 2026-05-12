@@ -86,8 +86,6 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Appointment History Scanner — ${allCustomers.length} clients · ${totalAppts.toLocaleString()} appointments indexed`,
   });
 
-  if (allCustomers.length === 0) return;
-
   await sleep(200);
 
   // ── Phase 2: Client Profile Engine ───────────────────────────────────────
