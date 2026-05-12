@@ -3,6 +3,7 @@ import { customers, appointments, smsSettings } from "@shared/schema";
 import { clientIntelligence, intelligenceInterventions } from "../../shared/schema/intelligence";
 import { sendSms } from "../sms";
 import { eq, and, gte, isNotNull, sql, lte } from "drizzle-orm";
+import { isWithinStoreBusinessHours, shouldSendReengagementSms } from "./sms-guard";
 
 const APP_URL = process.env.APP_URL || "https://certxa.com";
 
@@ -40,6 +41,16 @@ export async function runDriftRecovery(
   storeId: number,
   dryRun = false
 ): Promise<WinbackResult> {
+  const result: WinbackResult = { sent: 0, skipped: 0, errors: 0, details: [] };
+
+  if (!dryRun) {
+    const withinHours = await isWithinStoreBusinessHours(storeId);
+    if (!withinHours) {
+      console.log(`[DriftRecovery] Store ${storeId}: outside business hours — skipping automated SMS`);
+      return result;
+    }
+  }
+
   // Get store SMS settings
   const [smsSetting] = await db
     .select()
@@ -59,6 +70,7 @@ export async function runDriftRecovery(
   const storeName = (locationRow as any)?.name || "our salon";
 
   // Find drifting clients who haven't been contacted in the last 30 days
+  // Exclude one-time customers (total_visits <= 1) — a single visit doesn't establish a pattern
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const driftingClients = await db
@@ -67,18 +79,18 @@ export async function runDriftRecovery(
       avgCadenceDays: clientIntelligence.avgVisitCadenceDays,
       churnRiskScore: clientIntelligence.churnRiskScore,
       lastWinbackSentAt: clientIntelligence.lastWinbackSentAt,
+      totalVisits: clientIntelligence.totalVisits,
     })
     .from(clientIntelligence)
     .where(
       and(
         eq(clientIntelligence.storeId, storeId),
         eq(clientIntelligence.isDrifting, true),
-        sql`(last_winback_sent_at IS NULL OR last_winback_sent_at < ${thirtyDaysAgo.toISOString()})`
+        sql`(last_winback_sent_at IS NULL OR last_winback_sent_at < ${thirtyDaysAgo.toISOString()})`,
+        sql`COALESCE(total_visits, 0) > 1`
       )
     )
     .limit(50);
-
-  const result: WinbackResult = { sent: 0, skipped: 0, errors: 0, details: [] };
 
   for (const client of driftingClients) {
     const [customer] = await db
@@ -102,6 +114,16 @@ export async function runDriftRecovery(
       result.skipped++;
       result.details.push({ customerId: client.customerId, customerName: customer.name, status: "skipped", reason: "No phone number" });
       continue;
+    }
+
+    // Intelligent SMS guard — review last message sent to this client before sending
+    if (!dryRun) {
+      const guard = await shouldSendReengagementSms(storeId, client.customerId, "winback");
+      if (!guard.allowed) {
+        result.skipped++;
+        result.details.push({ customerId: client.customerId, customerName: customer.name, status: "skipped", reason: guard.reason });
+        continue;
+      }
     }
 
     const message = buildWinbackMessage(

@@ -4,37 +4,26 @@ import { sendEmail } from "./mail";
 import { customers, smsLog, locations } from "@shared/schema";
 import { clients } from "@shared/schema/clients";
 import { eq, and, sql, lt, isNotNull, isNull } from "drizzle-orm";
+import {
+  isWithinStoreBusinessHours,
+  shouldSendReengagementSms,
+} from "./intelligence/sms-guard";
 
 let lapsedIntervalId: ReturnType<typeof setInterval> | null = null;
 
 const DEFAULT_LAPSE_DAYS = 90;
-
-async function alreadySentLapsedMessage(
-  storeId: number,
-  customerId: number,
-  withinDays = 30
-): Promise<boolean> {
-  const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
-  const [existing] = await db
-    .select({ id: smsLog.id })
-    .from(smsLog)
-    .where(
-      and(
-        eq(smsLog.storeId, storeId),
-        eq(smsLog.customerId, customerId),
-        eq(smsLog.messageType, "lapsed_reengagement"),
-        sql`${smsLog.sentAt} >= ${cutoff}`
-      )
-    )
-    .limit(1);
-  return !!existing;
-}
 
 async function processLapsedCustomersForStore(store: {
   id: number;
   name: string;
   bookingSlug: string | null;
 }): Promise<void> {
+  const withinHours = await isWithinStoreBusinessHours(store.id);
+  if (!withinHours) {
+    console.log(`[LapsedClient] Store ${store.id}: outside business hours — skipping SMS send`);
+    return;
+  }
+
   const lapseCutoff = new Date(Date.now() - DEFAULT_LAPSE_DAYS * 24 * 60 * 60 * 1000);
 
   const lapsedCustomers = await db
@@ -57,8 +46,11 @@ async function processLapsedCustomersForStore(store: {
   for (const customer of lapsedCustomers) {
     if (!customer.id || !customer.phone) continue;
 
-    const alreadySent = await alreadySentLapsedMessage(store.id, customer.id);
-    if (alreadySent) continue;
+    const guard = await shouldSendReengagementSms(store.id, customer.id, "lapsed_reengagement");
+    if (!guard.allowed) {
+      console.log(`[LapsedClient] Store ${store.id}, customer ${customer.id}: skipped — ${guard.reason}`);
+      continue;
+    }
 
     const firstName = customer.name?.split(" ")[0] || "there";
     const body = `Hi ${firstName}, we miss you at ${store.name}! It's been a while — book your next visit: ${bookingUrl} Reply STOP to opt out.`;
@@ -107,6 +99,9 @@ async function processLapsedClientsTable(store: {
   name: string;
   bookingSlug: string | null;
 }): Promise<void> {
+  const withinHours = await isWithinStoreBusinessHours(store.id);
+  if (!withinHours) return;
+
   const lapseCutoff = new Date(Date.now() - DEFAULT_LAPSE_DAYS * 24 * 60 * 60 * 1000);
 
   const lapsedClients = await db
@@ -114,6 +109,7 @@ async function processLapsedClientsTable(store: {
       id: clients.id,
       firstName: clients.firstName,
       lastVisitAt: clients.lastVisitAt,
+      totalVisits: sql<number>`(SELECT COUNT(*) FROM appointments WHERE customer_id = ${clients.id} AND store_id = ${store.id} AND status IN ('completed','started'))`,
       primaryPhone: sql<string>`(SELECT phone_number_e164 FROM client_phones WHERE client_id = ${clients.id} AND is_primary = true AND sms_opt_in = true LIMIT 1)`,
       primaryEmail: sql<string>`(SELECT email_address FROM client_emails WHERE client_id = ${clients.id} AND is_primary = true LIMIT 1)`,
       smsOptIn: sql<boolean>`(SELECT sms_marketing_opt_in FROM client_marketing_preferences WHERE client_id = ${clients.id} LIMIT 1)`,
@@ -134,6 +130,8 @@ async function processLapsedClientsTable(store: {
 
   for (const client of lapsedClients) {
     if (!client.smsOptIn || !client.primaryPhone) continue;
+
+    if (Number(client.totalVisits) <= 1) continue;
 
     const firstName = client.firstName || "there";
     const body = `Hi ${firstName}, we miss you at ${store.name}! It's been a while — book your next visit: ${bookingUrl} Reply STOP to opt out.`;

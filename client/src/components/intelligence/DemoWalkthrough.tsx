@@ -23,14 +23,14 @@ const STEPS: Step[] = [
     tabLabel: "At-Risk Clients",
     title: "Clients likely to disappear — and exactly why",
     realityCheck: "Each churn score is built from that person's own history, not a population average.",
-    body: "Every client on this list has a score calculated from their individual visit cadence, how far past their normal window they are, their personal no-show rate, and time since last visit. Certxa compares where they are now against their own baseline — not an industry benchmark.",
+    body: "Every client in the system has a score calculated from their individual visit cadence, how far past their normal window they are, their personal no-show rate, and time since last visit. This list surfaces the ones whose scores signal the highest drift or churn risk right now. Certxa compares each person against their own baseline — not an industry benchmark.",
   },
   {
     tab: "leakage",
     tabLabel: "Revenue Leakage",
     title: "The exact revenue this business stopped receiving",
     realityCheck: "Each dollar is linked to a specific client. No estimates.",
-    body: "Every figure here is traced to a named client who was an active spender and stopped coming in. This is not a projection based on industry averages — it's the sum of what those exact people used to pay, calculated from their service history and last known visit.",
+    body: "Every figure here is traced to a returning client — someone with multiple visits — who was an active spender and stopped coming in. One-time visitors are excluded, since a single visit doesn't establish a pattern. This is not a projection based on industry averages — it's the sum of what those exact returning clients used to pay, calculated from their service history and last known visit.",
   },
   {
     tab: "seats",

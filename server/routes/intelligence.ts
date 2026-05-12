@@ -289,7 +289,8 @@ router.get("/at-risk-clients", async (req, res) => {
       .where(
         and(
           eq(clientIntelligence.storeId, storeId),
-          sql`churn_risk_score >= 25`
+          sql`churn_risk_score >= 25`,
+          sql`COALESCE(total_visits, 0) > 1`
         )
       )
       .orderBy(desc(clientIntelligence.ltv12Month), desc(clientIntelligence.churnRiskScore))

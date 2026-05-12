@@ -1,0 +1,18 @@
+Every client on this list has a score calculated from their individual visit cadence, how far past their normal window they are, their personal no-show rate, and time since last visit. Certxa compares where they are now against their own baseline — not an industry benchmark.
+
+the wording needs to be changed a bit - specifically where it says "Every client on this list has a score"  that's impling just clients in that list have a calculated score, when in fact every client has a calculated score. 
+
+
+
+Live Demo Tour
+· Step 3 of 8 — Revenue Leakage
+
+The exact revenue this business stopped receiving
+Each dollar is linked to a specific client. No estimates.
+
+Every figure here is traced to a named client who was an active spender and stopped coming in. This is not a projection based on industry averages — it's the sum of what those exact people used to pay, calculated from their service history and last known visit.
+
+*I have question about the Revenue Leakage, one time customers who have only been to the salon once, are they counted into the Revenue Leakage? because salons get a lot of just 1 time customers who could been from out of town etc. 
+
+Recovery auto-pilot is on
+Every 6 hours SalonOS scans data and sends sms messages automaticly.. this logic should be updated so that the system only sends sms's during the salons business hours - Also we really need to re-evalutate the entire auto sms setup, because we need to build an intelligent system which tracks every sms sent to a client, and before the system send out a sms review the last sms sent to the client, looking at the date it was sent and the message context. We never want to send out repeat sms message so there needs to be some guardrails... rules set in place so we never annoye any salons clients to were they reply stop - because as soon as a client replies stop its all over, now the salon has no communication outlet to that client. I highly suggest that we only allow a max of 2 sms messages per client with in 30 day period. And each message has to be 10 days apart from one another.  However these 3 types of SMS messages are excluded from the 2 sms message per 30 day period, they can be sent whenever needed. But must still follow the during salon business hour rule. 
