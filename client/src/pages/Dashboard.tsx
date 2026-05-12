@@ -240,7 +240,7 @@ function getSnoozedTypes(storeId: number): Set<string> {
   return snoozed;
 }
 
-function RevenueCopilotWidget({ storeId }: { storeId: number }) {
+function RevenueCopilotWidget({ storeId, hasAnyData }: { storeId: number; hasAnyData: boolean }) {
   const [snoozed, setSnoozed] = useState<Set<string>>(() => getSnoozedTypes(storeId));
   const [snoozeAnim, setSnoozeAnim] = useState(false);
 
@@ -274,6 +274,31 @@ function RevenueCopilotWidget({ storeId }: { storeId: number }) {
   };
 
   if (!topAction) {
+    // New account with no data yet — show an onboarding prompt instead of a false "all clear"
+    if (!hasAnyData) {
+      return (
+        <div className="rounded-2xl bg-gradient-to-br from-violet-950 to-indigo-950 border border-violet-700/40 p-5 mb-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-violet-800/50 flex items-center justify-center flex-shrink-0">
+            <Zap className="h-5 w-5 text-violet-300" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-violet-200">Ready to grow your business?</p>
+            <p className="text-xs text-violet-400 mt-0.5">
+              Add your first client and booking — your Revenue Co-pilot will start surfacing insights as your data builds up.
+            </p>
+          </div>
+          <Link
+            to="/clients/new"
+            className="flex items-center gap-1.5 bg-violet-700/60 hover:bg-violet-600/70 transition-colors text-violet-100 text-xs font-semibold px-3 py-2 rounded-xl flex-shrink-0"
+          >
+            Add client
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      );
+    }
+
+    // Established account, genuinely no urgent actions
     return (
       <div className="rounded-2xl bg-emerald-950 border border-emerald-800/40 p-5 mb-6 flex items-center gap-4">
         <div className="w-10 h-10 rounded-full bg-emerald-800/50 flex items-center justify-center flex-shrink-0">
@@ -676,7 +701,12 @@ export default function Dashboard() {
       </div>
 
       {/* Revenue Co-pilot — single most urgent action */}
-      {selectedStore?.id && <RevenueCopilotWidget storeId={selectedStore.id} />}
+      {selectedStore?.id && (
+        <RevenueCopilotWidget
+          storeId={selectedStore.id}
+          hasAnyData={!!(appointments && appointments.length > 0)}
+        />
+      )}
 
       {/* Stat Cards — 5-column on md+, 2×2 on mobile (Business Health spans 2) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
