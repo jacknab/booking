@@ -1,8 +1,9 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSelectedStore } from "@/hooks/use-store";
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   TrendingUp, TrendingDown, AlertTriangle, Users, DollarSign,
   Calendar, Zap, RefreshCw, Send, ChevronRight, BarChart3,
@@ -149,13 +150,18 @@ function BookingHeatmapGrid({ data }: { data: any }) {
   );
 }
 
+const DEMO_EMAIL = "nail-demo@certxa.com";
+
 export default function Intelligence() {
   const { selectedStore } = useSelectedStore();
   const storeId = selectedStore?.id;
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
+  const isDemoAccount = user?.email === DEMO_EMAIL;
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
@@ -510,6 +516,17 @@ export default function Intelligence() {
               <span className="text-xs text-muted-foreground hidden md:block">
                 Updated {formatDistanceToNow(new Date(summary.lastComputedAt), { addSuffix: true })}
               </span>
+            )}
+            {isDemoAccount && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/intelligence/launch")}
+                className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
+              >
+                <Zap className="h-4 w-4" />
+                Launch Engines
+              </Button>
             )}
             <TooltipProvider>
               <Tooltip>
