@@ -1,4 +1,4 @@
-import { CalendarDays, TrendingUp, Users, AlignJustify, X, LayoutDashboard, Calendar, Scissors, ShoppingBag, Banknote, Building2, FileText, Gift, Star, MessageSquare, Clock, ListOrdered, MapPin, ClipboardList, BarChart3, CreditCard, GraduationCap, Settings, LogOut } from "lucide-react";
+import { CalendarDays, TrendingUp, Users, AlignJustify, X, LayoutDashboard, Calendar, Scissors, ShoppingBag, Banknote, Building2, FileText, Star, MessageSquare, Clock, ListOrdered, MapPin, ClipboardList, BarChart3, GraduationCap, Settings, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -43,20 +43,19 @@ const NAV_SECTIONS = [
   {
     label: "Business",
     items: [
-      { to: "/services",    label: "Services",       icon: Scissors },
-      { to: "/staff",       label: "Team",           icon: Users },
-      { to: "/products",    label: "Products",       icon: ShoppingBag },
-      { to: "/intake-forms",label: "Intake Forms",   icon: ClipboardList },
+      { to: "/services",          label: "Services",       icon: Scissors },
+      { to: "/staff",             label: "Team",           icon: Users },
+      { to: "/dashboard/training",label: "Staff Training", icon: GraduationCap },
+      { to: "/products",          label: "Products",       icon: ShoppingBag },
+      { to: "/intake-forms",      label: "Intake Forms",   icon: ClipboardList },
     ],
   },
   {
     label: "Finance",
     items: [
       { to: "/reports",           label: "Reports",     icon: FileText },
-      { to: "/gift-cards",        label: "Gift Cards",  icon: Gift },
       { to: "/cash-drawer",       label: "Cash Drawer", icon: Banknote },
       { to: "/commission-report", label: "Commissions", icon: BarChart3 },
-      { to: "/billing",           label: "Billing",     icon: CreditCard },
     ],
   },
   {

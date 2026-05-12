@@ -10,7 +10,6 @@ import {
   UserCircle,
   Banknote,
   Settings,
-  Building2,
   BarChart3,
   Globe,
   MessageSquare,
@@ -19,21 +18,18 @@ import {
   Key,
   TrendingUp,
   Clock,
-  Gift,
   ClipboardList,
   Star,
   MapPin,
   FileText,
   ListOrdered,
   GraduationCap,
-  LayoutTemplate,
-  Palette,
   Rocket,
   ChevronDown,
   ChevronRight,
-  CreditCard,
   CircleUser,
   Brain,
+  Building2,
 } from "lucide-react";
 import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,7 +77,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered },
       { to: "/loyalty", label: "Loyalty Program", icon: Star, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/sms-inbox", label: "SMS Inbox", icon: MessageSquare, permission: PERMISSIONS.CUSTOMERS_VIEW },
-      { to: "/sms-activity", label: "SMS Activity", icon: MessageSquare, permission: PERMISSIONS.REPORTS_VIEW },
       { to: "/campaigns", label: "Campaigns", icon: Megaphone, permission: PERMISSIONS.CUSTOMERS_VIEW },
       { to: "/google-business", label: "Google Reviews", icon: MapPin, permission: PERMISSIONS.INTEGRATIONS_MANAGE },
     ],
@@ -92,7 +87,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { to: "/services", label: "Services", icon: Scissors, permission: PERMISSIONS.SERVICES_MANAGE, hideForStaff: true },
       { to: "/staff", label: "Team", icon: UserCircle, permission: PERMISSIONS.STAFF_MANAGE, hideForStaff: true, hideForSolo: true },
       { to: "/dashboard/training", label: "Staff Training", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE, hideForSolo: true },
-      { to: "/dashboard/training/settings", label: "Training Settings", icon: GraduationCap, permission: PERMISSIONS.STAFF_MANAGE, hideForSolo: true },
       { to: "/products", label: "Products", icon: ShoppingBag, permission: PERMISSIONS.PRODUCTS_MANAGE },
       { to: "/intake-forms", label: "Intake Forms", icon: ClipboardList, permission: PERMISSIONS.SERVICES_MANAGE },
     ],
@@ -101,7 +95,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Finance",
     items: [
       { to: "/reports", label: "Reports", icon: FileText, permission: PERMISSIONS.REPORTS_VIEW, hideForStaff: true },
-      { to: "/gift-cards", label: "Gift Cards", icon: Gift },
       { to: "/cash-drawer", label: "Cash Drawer", icon: Banknote, permission: PERMISSIONS.CASH_DRAWER_VIEW },
       {
         to: "/commission-report",
@@ -109,15 +102,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         icon: BarChart3,
         anyOf: [PERMISSIONS.COMMISSIONS_VIEW_ALL, PERMISSIONS.COMMISSIONS_VIEW_OWN],
       },
-      { to: "/billing", label: "Billing", icon: CreditCard, permission: PERMISSIONS.STORE_SETTINGS, hideForStaff: true },
     ],
   },
   {
     label: "Launchit!",
     items: [
       { to: "/website-designs", label: "Website Designs", icon: Globe },
-      { to: "/launchsite/", href: "/launchsite/", label: "Website Templates", icon: LayoutTemplate },
-      { to: "/launchsite/admin-edit.php", href: "/launchsite/admin-edit.php", label: "Website Editor", icon: Palette },
     ],
   },
   {
