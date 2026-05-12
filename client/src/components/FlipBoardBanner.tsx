@@ -131,7 +131,7 @@ export function FlipBoardBanner() {
         : <>Running low on SMS — {smsTotal} credit{smsTotal === 1 ? "" : "s"} left.</>,
       ctaLabel: smsTotal === 0 ? "Purchase SMS Package" : "Buy SMS Credits",
       ctaAction: () => smsBucketMutation.mutate(),
-      barBg: smsCritical ? "bg-red-800" : "bg-amber-700",
+      barBg: smsCritical ? "bg-slate-700" : "bg-slate-600",
       ctaBg: "bg-transparent hover:bg-white/10 border border-white/40 text-white",
       smsAction: true,
     });
