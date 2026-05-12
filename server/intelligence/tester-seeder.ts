@@ -248,15 +248,18 @@ export async function seedTesterStore(
     return c.id;
   }
 
-  // ── Archetype A: High-frequency loyal clients (50) ───────────────────────
-  log("[SEED] Seeding high-frequency loyal clients…");
+  // ── Archetype A: Loyal monthly-plus clients (50) ─────────────────────────
+  // Real-world: these are the best clients — hair colour every 6 weeks, massage
+  // every 3-4 weeks, waxing every 4 weeks. Nobody goes more than once in 3 weeks.
+  // Cadence: 21–30 days. Jitter: ±4 days max (floor enforced at 21 days).
+  log("[SEED] Seeding loyal frequent clients…");
   for (let i = 0; i < 50; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const bd = `${rng(1975,2000)}-${String(rng(1,12)).padStart(2,"0")}-${String(rng(1,28)).padStart(2,"0")}`;
     const cId = await mkCustomer(fn, ln, bd);
     const preferredStaff = staffIds[rng(0, Math.min(2, staffIds.length - 1))];
-    const cadenceDays = rng(14, 21);
-    const totalVisits = rng(8, 18);
+    const cadenceDays = rng(21, 30);
+    const totalVisits = rng(6, 12);
     let visitDate = daysAgo(cadenceDays * totalVisits + rng(0, 14));
     for (let v = 0; v < totalVisits; v++) {
       const svc = pick(highFreq);
@@ -264,23 +267,26 @@ export async function seedTesterStore(
       if (d > new Date()) { visitDate = addDays(visitDate, cadenceDays); continue; }
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, preferredStaff, cId, storeId,
         Math.random() < 0.05 ? "no-show" : "completed"));
-      visitDate = addDays(visitDate, cadenceDays + rng(-3, 5));
+      // Jitter: +0 to +9 days only — never negative, so gaps can't fall below cadence
+      visitDate = addDays(visitDate, cadenceDays + rng(0, 9));
     }
     if (Math.random() > 0.25) {
       const svc = pick(highFreq);
-      allAppts.push(makeAppt(withHour(daysFromNow(rng(3,18)), busyHour(), 0),
+      allAppts.push(makeAppt(withHour(daysFromNow(rng(3,21)), busyHour(), 0),
         svc.id, svc.price, svc.duration, preferredStaff, cId, storeId, "confirmed"));
     }
   }
 
   // ── Archetype B: Regular clients (80) ────────────────────────────────────
+  // Real-world: come every 5–7 weeks. Might shift a week either side.
+  // Cadence: 35–50 days. Jitter: -5 to +10 days (floor: 30 days).
   log("[SEED] Seeding regular clients…");
   for (let i = 0; i < 80; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const cId = await mkCustomer(fn, ln);
     const staffPref = staffIds[rng(0, staffIds.length - 1)];
-    const cadenceDays = rng(21, 30);
-    const totalVisits = rng(4, 12);
+    const cadenceDays = rng(35, 50);
+    const totalVisits = rng(4, 8);
     let visitDate = daysAgo(cadenceDays * totalVisits + rng(0, 21));
     for (let v = 0; v < totalVisits; v++) {
       const svc = pick(medFreq);
@@ -290,61 +296,73 @@ export async function seedTesterStore(
       const cn = !ns && Math.random() < 0.06;
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, staffPref, cId, storeId,
         ns ? "no-show" : cn ? "cancelled" : "completed"));
-      visitDate = addDays(visitDate, cadenceDays + rng(-4, 7));
+      // Allow ±5 days jitter but enforce minimum 30-day gap
+      const jitter = rng(-5, 10);
+      visitDate = addDays(visitDate, Math.max(30, cadenceDays + jitter));
     }
     if (Math.random() > 0.4) {
       const svc = pick(medFreq);
-      allAppts.push(makeAppt(withHour(daysFromNow(rng(2,25)), busyHour(), 0),
+      allAppts.push(makeAppt(withHour(daysFromNow(rng(5,35)), busyHour(), 0),
         svc.id, svc.price, svc.duration, staffPref, cId, storeId, "confirmed"));
     }
   }
 
-  // ── Archetype C: Monthly clients (60) ────────────────────────────────────
+  // ── Archetype C: True monthly clients (60) ───────────────────────────────
+  // Real-world: once a month, roughly. Sometimes 5 weeks, sometimes 7.
+  // Cadence: 30–45 days. Jitter: +0 to +14 days (never negative — they always
+  // stretch a bit, never come early).
   log("[SEED] Seeding monthly clients…");
   for (let i = 0; i < 60; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const bd = `${rng(1970,1995)}-${String(rng(1,12)).padStart(2,"0")}-${String(rng(1,28)).padStart(2,"0")}`;
     const cId = await mkCustomer(fn, ln, bd);
-    const cadenceDays = rng(28, 38);
-    const totalVisits = rng(3, 8);
-    let visitDate = daysAgo(cadenceDays * totalVisits + rng(0, 10));
+    const cadenceDays = rng(30, 45);
+    const totalVisits = rng(3, 7);
+    let visitDate = daysAgo(cadenceDays * totalVisits + rng(0, 14));
     for (let v = 0; v < totalVisits; v++) {
       const svc = pick(monthly);
       const d = withHour(new Date(visitDate), rng(10,16), 0);
       if (d > new Date()) { visitDate = addDays(visitDate, cadenceDays); continue; }
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, pick(staffIds), cId, storeId,
         Math.random() < 0.08 ? "no-show" : "completed"));
-      visitDate = addDays(visitDate, cadenceDays + rng(-5, 8));
+      // Monthly clients drift later, never earlier
+      visitDate = addDays(visitDate, cadenceDays + rng(0, 14));
     }
   }
 
   // ── Archetype D: Occasional clients (50) ─────────────────────────────────
+  // Real-world: every 2–3 months. Special occasions, seasonal.
+  // Cadence: 55–80 days. Jitter: ±10 days.
   log("[SEED] Seeding occasional clients…");
   for (let i = 0; i < 50; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const cId = await mkCustomer(fn, ln);
-    const cadenceDays = rng(42, 56);
-    const totalVisits = rng(2, 5);
-    let visitDate = daysAgo(cadenceDays * totalVisits + rng(0, 14));
+    const cadenceDays = rng(55, 80);
+    const totalVisits = rng(2, 4);
+    let visitDate = daysAgo(cadenceDays * totalVisits + rng(0, 21));
     for (let v = 0; v < totalVisits; v++) {
       const svc = pick(occ);
       const d = withHour(new Date(visitDate), rng(11,17), 0);
       if (d > new Date()) { visitDate = addDays(visitDate, cadenceDays); continue; }
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, pick(staffIds), cId, storeId,
         Math.random() < 0.1 ? "cancelled" : "completed"));
-      visitDate = addDays(visitDate, cadenceDays + rng(-7, 14));
+      visitDate = addDays(visitDate, cadenceDays + rng(-10, 15));
     }
   }
 
   // ── Archetype E: DRIFTING clients (40) ★ triggers drift + churn engines ──
+  // Real-world: used to come every 4–6 weeks on a reliable cadence, but their
+  // last visit was 1.5–2× their normal window ago. No future booking.
+  // Cadence: 28–42 days. Jitter: +0 to +5 days only (they were punctual before).
   log("[SEED] Seeding drifting clients (drift engine)…");
   for (let i = 0; i < 40; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const cId = await mkCustomer(fn, ln);
     const staffPref = staffIds[rng(0, staffIds.length - 1)];
-    const cadenceDays = pick([14,21,21,28,28,35]);
-    const regularVisits = rng(3, 8);
-    const lastVisitDaysAgo = Math.round(cadenceDays * (1 + rng(25,60) / 100 + 0.2));
+    const cadenceDays = pick([28, 28, 35, 35, 42, 42]);
+    const regularVisits = rng(3, 7);
+    // Last visit was 1.5–2× their normal cadence ago — that's what makes them "drifting"
+    const lastVisitDaysAgo = Math.round(cadenceDays * rng(15, 20) / 10);
     let visitDate = daysAgo(lastVisitDaysAgo + cadenceDays * (regularVisits - 1));
     for (let v = 0; v < regularVisits; v++) {
       const svc = pick(v < regularVisits - 1 ? highFreq : medFreq);
@@ -352,38 +370,47 @@ export async function seedTesterStore(
       if (d > new Date()) break;
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, staffPref, cId, storeId,
         Math.random() < 0.05 ? "no-show" : "completed"));
-      if (v < regularVisits - 1) visitDate = addDays(visitDate, cadenceDays + rng(-2,3));
+      if (v < regularVisits - 1) visitDate = addDays(visitDate, cadenceDays + rng(0, 5));
     }
-    // NO future appointment — they are drifting past their window
+    // NO future appointment — that's what defines drifting
   }
 
   // ── Archetype F: New clients (35) ─────────────────────────────────────────
+  // Real-world: 1–3 visits in the last 8 weeks. Each visit at least 3 weeks
+  // after the previous one. Cumulative dating prevents close-together visits.
   log("[SEED] Seeding new clients…");
   for (let i = 0; i < 35; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const cId = await mkCustomer(fn, ln);
     const numVisits = rng(1, 3);
+    // Work backwards from most recent visit, ensuring 21+ day spacing
+    const mostRecentDaysAgo = rng(3, 21);
+    let daysBack = mostRecentDaysAgo;
     for (let v = 0; v < numVisits; v++) {
       const svc = pick([...medFreq, ...occ]);
-      const daysBack = rng(v * 7, 42 - v * 7);
       const d = withHour(daysAgo(daysBack), busyHour(), 0);
       if (d > new Date()) continue;
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, pick(staffIds), cId, storeId, "completed"));
+      // Each prior visit was 21–35 days before the next one
+      daysBack += rng(21, 35);
     }
     if (Math.random() > 0.5) {
       const svc = pick(medFreq);
-      allAppts.push(makeAppt(withHour(daysFromNow(rng(1,14)), busyHour(), 0),
+      allAppts.push(makeAppt(withHour(daysFromNow(rng(7,21)), busyHour(), 0),
         svc.id, svc.price, svc.duration, pick(staffIds), cId, storeId, "confirmed"));
     }
   }
 
   // ── Archetype G: Lapsed / churned clients (35) ★ triggers leakage report ─
+  // Real-world: were monthly-ish clients (28–42 day cadence) but last visited
+  // 4–6 months ago. The engine flags them as revenue leakage.
+  // Cadence: 28–42 days. Jitter: +0 to +7 days (they were stretching before they left).
   log("[SEED] Seeding lapsed clients (revenue leakage engine)…");
   for (let i = 0; i < 35; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const cId = await mkCustomer(fn, ln);
-    const cadenceDays = pick([14,21,28]);
-    const totalVisits = rng(4, 10);
+    const cadenceDays = pick([28, 35, 42]);
+    const totalVisits = rng(4, 8);
     const lastVisitDaysAgo = rng(120, 180);
     let visitDate = daysAgo(lastVisitDaysAgo + cadenceDays * (totalVisits - 1));
     for (let v = 0; v < totalVisits; v++) {
@@ -391,25 +418,27 @@ export async function seedTesterStore(
       const d = withHour(new Date(visitDate), busyHour(), 0);
       if (d > new Date()) break;
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, pick(staffIds), cId, storeId, "completed"));
-      visitDate = addDays(visitDate, cadenceDays + rng(-2,4));
+      visitDate = addDays(visitDate, cadenceDays + rng(0, 7));
     }
   }
 
   // ── Archetype H: No-show prone (25) ★ triggers no-show risk engine ────────
+  // Real-world: book regularly (every 3–6 weeks) but miss 25–45% of bookings.
+  // Minimum advance between visits: 21 days.
   log("[SEED] Seeding no-show-prone clients (no-show risk engine)…");
   for (let i = 0; i < 25; i++) {
     const fn = pick(firstNames), ln = pick(LAST);
     const cId = await mkCustomer(fn, ln);
     const totalAppts = rng(4, 10);
     const nsRate = rng(25, 45) / 100;
-    let visitDate = daysAgo(rng(30, 150));
+    let visitDate = daysAgo(rng(60, 180));
     for (let v = 0; v < totalAppts; v++) {
       const svc = pick(occ);
       const d = withHour(new Date(visitDate), rng(9,18), 0);
-      if (d > new Date()) { visitDate = addDays(visitDate, rng(14,35)); continue; }
+      if (d > new Date()) { visitDate = addDays(visitDate, rng(21, 42)); continue; }
       allAppts.push(makeAppt(d, svc.id, svc.price, svc.duration, pick(staffIds), cId, storeId,
         Math.random() < nsRate ? "no-show" : "completed"));
-      visitDate = addDays(visitDate, rng(14, 42));
+      visitDate = addDays(visitDate, rng(21, 45));
     }
     if (Math.random() > 0.35) {
       const svc = pick(occ);
