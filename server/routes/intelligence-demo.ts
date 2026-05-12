@@ -13,6 +13,7 @@ import {
 import { users } from "../../shared/schema";
 import { runDemoEngines } from "../intelligence/demo-runner";
 import { runIntelligenceForStore } from "../intelligence/orchestrator";
+import { seedTesterStore } from "../intelligence/tester-seeder";
 
 // ── Helper: load the authenticated user from the session ──────────────────────
 async function getSessionUser(req: any) {
@@ -216,12 +217,18 @@ router.get("/status", async (req: any, res) => {
 // If there is no reseed script (tester accounts) it resolves immediately.
 function reseedForLaunch(
   email: string,
+  storeId: number,
   send: (data: object) => void
 ): Promise<void> {
   const script = RESEED_SCRIPTS[email];
+
+  // ── Tester accounts: seed demo data inline, no shell script needed ────────
   if (!script) {
-    send({ phase: "seed", status: "done", logLine: "[SEED] No reseed script — using existing data." });
-    return Promise.resolve();
+    return seedTesterStore(storeId, send).then(() => {
+      send({ phase: "seed", status: "done", logLine: "[SEED] ✓ Demo data ready — launching intelligence engines..." });
+    }).catch((err: Error) => {
+      send({ phase: "seed", status: "done", logLine: `[SEED] ⚠ Seed error: ${err.message} — proceeding` });
+    });
   }
 
   return new Promise<void>((resolve) => {
@@ -301,7 +308,7 @@ router.get("/launch", async (req: any, res) => {
   let enginesCompleted = false;
   try {
     // ── Step 1: reseed the store with fresh demo data ──────────────────────
-    await reseedForLaunch(user.email, send);
+    await reseedForLaunch(user.email, storeId, send);
 
     // ── Step 2: short pause so the UI can transition to "launching" ────────
     await new Promise<void>((r) => setTimeout(r, 800));
