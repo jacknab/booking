@@ -710,7 +710,7 @@ export default function Dashboard() {
         </div>
 
         {/* Fill rate */}
-        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm flex flex-col">
           <p className="text-xs text-muted-foreground mb-3 font-medium">Fill rate</p>
           <p className="text-2xl font-bold font-display mb-2 text-foreground">{fillRate}%</p>
           <div className="w-full bg-muted rounded-full h-1.5">
@@ -719,6 +719,9 @@ export default function Dashboard() {
               style={{ width: `${fillRate}%` }}
             />
           </div>
+          <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+            % of today's available staff slots that are booked. Higher is better — aim for 70%+.
+          </p>
         </div>
 
         {/* Growth Score widget — spans 2 cols for legibility */}
