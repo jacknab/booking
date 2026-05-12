@@ -35,7 +35,6 @@ const AUDIENCE_OPTIONS = [
   { value: "lapsed_30", label: "Lapsed 30+ days" },
   { value: "lapsed_60", label: "Lapsed 60+ days" },
   { value: "lapsed_90", label: "Lapsed 90+ days" },
-  { value: "birthday_month", label: "Birthday this month" },
 ];
 
 const CHANNEL_OPTIONS = [

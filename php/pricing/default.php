@@ -307,7 +307,6 @@ require 'includes/nav.php';
             [true,  'Automated review requests'],
             [true,  'Client re-engagement campaigns'],
             [true,  'Advanced revenue reporting'],
-            [true,  'Birthday & anniversary messages'],
             [true,  'Priority support'],
           ],
         ],
@@ -485,10 +484,6 @@ require 'includes/nav.php';
           <tr>
             <td>SMS &amp; email reminders</td>
             <td>200/month</td><td class="featured-col ct-text">Unlimited</td><td class="ct-text">Unlimited</td>
-          </tr>
-          <tr>
-            <td>Birthday & anniversary messages</td>
-            <td class="ct-cross">–</td><td class="ct-check featured-col">✓</td><td class="ct-check">✓</td>
           </tr>
           <tr>
             <td>Re-engagement campaigns</td>

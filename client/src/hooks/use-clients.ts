@@ -85,7 +85,6 @@ export interface ClientMarketingPreferences {
   emailMarketingOptIn: boolean;
   promotionalNotifications: boolean;
   appointmentReminders: boolean;
-  birthdayMessages: boolean;
   reviewRequests: boolean;
 }
 

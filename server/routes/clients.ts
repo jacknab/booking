@@ -504,14 +504,14 @@ router.get("/:id/marketing-preferences", isAuthenticated, async (req, res) => {
 router.put("/:id/marketing-preferences", isAuthenticated, async (req, res) => {
   try {
     const clientId = Number(req.params.id);
-    const { smsMarketingOptIn, emailMarketingOptIn, promotionalNotifications, appointmentReminders, birthdayMessages, reviewRequests } = req.body;
+    const { smsMarketingOptIn, emailMarketingOptIn, promotionalNotifications, appointmentReminders, reviewRequests } = req.body;
 
     const [prefs] = await db
       .insert(clientMarketingPreferences)
-      .values({ clientId, smsMarketingOptIn, emailMarketingOptIn, promotionalNotifications, appointmentReminders, birthdayMessages, reviewRequests })
+      .values({ clientId, smsMarketingOptIn, emailMarketingOptIn, promotionalNotifications, appointmentReminders, reviewRequests })
       .onConflictDoUpdate({
         target: clientMarketingPreferences.clientId,
-        set: { smsMarketingOptIn, emailMarketingOptIn, promotionalNotifications, appointmentReminders, birthdayMessages, reviewRequests, updatedAt: new Date() },
+        set: { smsMarketingOptIn, emailMarketingOptIn, promotionalNotifications, appointmentReminders, reviewRequests, updatedAt: new Date() },
       })
       .returning();
 
@@ -637,7 +637,6 @@ async function buildClientRows(storeId: number, filter: any = {}) {
     "Email": r.primaryEmail ?? "",
     "Mobile Phone": r.primaryPhone ?? "",
     "Alternate Phone": r.altPhone ?? "",
-    "Birthday": r.dateOfBirth ?? "",
     "Tags": r.tags ?? "",
     "Notes": r.notes ?? "",
     "Last Visit Date": r.lastVisitAt ? new Date(r.lastVisitAt).toISOString().split("T")[0] : "",
@@ -751,7 +750,6 @@ router.post("/import/preview", isAuthenticated, upload.single("file"), async (re
       email: ["email", "email address", "e-mail"],
       phone: ["phone", "mobile", "mobile phone", "cell", "phone number", "telephone"],
       altPhone: ["alternate phone", "alt phone", "home phone", "work phone"],
-      dateOfBirth: ["birthday", "dob", "date of birth", "birth date"],
       tags: ["tags", "labels", "categories"],
       notes: ["notes", "comments", "remarks"],
       city: ["city", "town"],
@@ -934,7 +932,7 @@ router.post("/migrate-from-customers", isAuthenticated, async (req, res) => {
       const fullName = cust.name ?? firstName;
       const [client] = await db
         .insert(clients)
-        .values({ storeId: storeIdNum, firstName, lastName, fullName, dateOfBirth: cust.birthday ?? null, source: "migration" })
+        .values({ storeId: storeIdNum, firstName, lastName, fullName, source: "migration" })
         .returning();
 
       if (cust.email) {

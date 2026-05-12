@@ -128,7 +128,7 @@ export default function Loyalty() {
               </div>
               <div>
                 <div className="font-medium">Bonus Points</div>
-                <div className="text-muted-foreground">Award manually for referrals, birthdays</div>
+                <div className="text-muted-foreground">Award manually for referrals and special occasions</div>
               </div>
             </div>
           </CardContent>
@@ -297,7 +297,7 @@ export default function Loyalty() {
             </div>
             <div>
               <Label>Note</Label>
-              <Input value={adjustNote} onChange={e => setAdjustNote(e.target.value)} placeholder="e.g., Birthday bonus, Referral reward" />
+              <Input value={adjustNote} onChange={e => setAdjustNote(e.target.value)} placeholder="e.g., Referral reward, Special occasion" />
             </div>
           </div>
           <DialogFooter>

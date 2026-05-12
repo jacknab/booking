@@ -19,8 +19,6 @@ interface Store {
   promo_trigger: number | null;
   sms_count: number;
   sms_plan: number;
-  birthday_promo: string | null;
-  birthday_sms: string | null;
   review_link?: string | null;
   created_at: string;
   month_count: number | null;
@@ -61,8 +59,6 @@ const StoreManager: React.FC<StoreManagerProps> = () => {
     promo_trigger: 10,
     sms_plan: 0,
     sms_count: 0,
-    birthday_promo: '',
-    birthday_sms: 'Happy Birthday! 🎉 Thank you for being our valued customer. We hope you have a wonderful day filled with joy and celebration!',
     month_count: 0,
     client_name: '',
     email: '',
@@ -306,7 +302,6 @@ const StoreManager: React.FC<StoreManagerProps> = () => {
               {renderTextarea('Checkout SMS Template', 'checkout_sms', 6)}
               
               {renderTextarea('Promo SMS Template', 'promo_sms', 6)}
-              {renderTextarea('Birthday SMS Template', 'birthday_sms', 6)}
             </div>
 
             <div className="flex justify-end space-x-2 border-t border-gray-100 pt-3 mt-4">

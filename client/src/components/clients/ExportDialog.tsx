@@ -182,7 +182,7 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
           {/* Info */}
           <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">What's included</p>
-            <p>Name, email, phone, address, birthday, tags, notes, visit history, lifetime spend, and marketing preferences.</p>
+            <p>Name, email, phone, address, tags, notes, visit history, lifetime spend, and marketing preferences.</p>
           </div>
         </div>
 

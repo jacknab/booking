@@ -58,7 +58,7 @@ const STEPS: Step[] = [
     tabLabel: "Campaigns",
     title: "Audiences built from real client data — not demographic guesses",
     realityCheck: "Every segment is live. Every message uses the client's actual name and history.",
-    body: "The segments shown here — lapsed clients, high-value clients drifting, birthdays this month — are generated from this store's real client list right now. When you send a campaign, each SMS is personalized with the client's name and relevant service context. No batch blasting.",
+    body: "The segments shown here — lapsed clients, high-value clients drifting, at-risk clients — are generated from this store's real client list right now. When you send a campaign, each SMS is personalized with the client's name and relevant service context. No batch blasting.",
   },
   {
     tab: "forecast",

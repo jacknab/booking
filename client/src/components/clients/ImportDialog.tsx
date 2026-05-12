@@ -23,7 +23,6 @@ const TARGET_FIELDS = [
   { value: "email", label: "Email" },
   { value: "phone", label: "Mobile Phone" },
   { value: "altPhone", label: "Alternate Phone" },
-  { value: "dateOfBirth", label: "Birthday" },
   { value: "tags", label: "Tags" },
   { value: "notes", label: "Notes" },
   { value: "city", label: "City" },

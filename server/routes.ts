@@ -3352,19 +3352,6 @@ If you have any questions, please contact your administrator.
           .where(eq(customers.storeId, storeId));
         // Filter to those with last appointment before cutoff
         // (simplified — could be done with a subquery in prod)
-      } else if (campaign.audience === "birthday_month") {
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        targetCustomers = await db.select({
-          name: customers.name,
-          phone: customers.phone,
-          email: customers.email,
-        }).from(customers)
-          .where(
-            and(
-              eq(customers.storeId, storeId),
-              sql`EXTRACT(MONTH FROM ${customers.birthday}) = ${parseInt(month)}`
-            )
-          );
       } else {
         targetCustomers = await baseQuery;
       }

@@ -50,7 +50,7 @@ require 'includes/nav.php';
             ['📅', 'Booking Confirmed', 'Emma Clarke confirmed for Balayage on Fri 16 May at 2pm', 'Just now', ''],
             ['⏰', 'Reminder Sent', '24-hour reminder sent to 3 clients for tomorrow', '2 min ago', 'gold-border'],
             ['⭐', 'Review Received', 'Lisa Tran left a 5-star review — "Absolutely stunning!"', '1 hr ago', 'green-border'],
-            ['🎂', 'Birthday Message', 'Happy Birthday message sent to 2 clients today', '3 hr ago', ''],
+            ['💬', 'Win-Back Sent', 'Re-engagement SMS sent to 5 lapsed clients', '3 hr ago', ''],
           ];
           foreach ($notifs as $n):
           ?>
@@ -156,14 +156,14 @@ require 'includes/nav.php';
 
     <div class="feature-block">
       <div class="feature-content">
-        <span class="tag tag-plum">Special Occasions</span>
-        <h3 class="feature-title">Make clients feel genuinely special</h3>
-        <p class="feature-text">Certxa remembers your clients' birthdays and important dates so you can send warm, personalised messages that make a real impression. Small touches that build lasting loyalty.</p>
+        <span class="tag tag-plum">Client Engagement</span>
+        <h3 class="feature-title">Keep clients coming back automatically</h3>
+        <p class="feature-text">Certxa sends the right message at the right moment — whether it's a thank-you after a visit, a rebooking nudge, or a seasonal offer. Small, timely touches that build lasting loyalty without any manual effort.</p>
         <ul class="feature-list">
-          <li>Automated birthday messages with optional offer</li>
-          <li>Anniversary of first visit celebration</li>
           <li>Post-visit thank-you and review request</li>
           <li>Seasonal campaigns and promotional messages</li>
+          <li>Lapsed client re-engagement nudges</li>
+          <li>Personalised rebooking reminders</li>
         </ul>
         <a href="#" class="btn btn-primary">Try It Free</a>
       </div>
@@ -171,9 +171,9 @@ require 'includes/nav.php';
         <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px;">
           <?php
           $occasions = [
-            ['🎂', 'Birthday Message', 'Happy Birthday, Emma! Enjoy 15% off your next visit. From all of us 💜', '#FEF3C7', '#78350F'],
             ['🌟', 'Post-Visit Thanks', 'Thank you for visiting today, Lisa! We loved having you. Please leave us a review — it means everything.', '#F0FDF4', '#14532D'],
-            ['🎉', '1-Year Anniversary', 'One year ago today you became part of the Certxa family, Rachel. Here\'s to many more! 🥂', '#F5F3FF', '#4C1D95'],
+            ['💬', 'Rebooking Nudge', 'Hey Sarah! It\'s been a little while — ready to book your next visit? Tap here to find a time that works for you.', '#F5F3FF', '#4C1D95'],
+            ['🎯', 'Win-Back Offer', 'We miss you, Emma! Come back this month and enjoy 10% off your next appointment. Book now 💜', '#FEF3C7', '#78350F'],
           ];
           foreach ($occasions as $o):
           ?>

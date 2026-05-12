@@ -897,40 +897,6 @@ router.get("/service-performance", async (req, res) => {
   }
 });
 
-// GET /api/intelligence/upcoming-birthdays
-// Returns clients with birthdays in the next 14 days
-router.get("/upcoming-birthdays", async (req, res) => {
-  const storeId = requireStoreId(req, res);
-  if (!storeId) return;
-
-  try {
-    const rows = await db
-      .select({ id: customers.id, name: customers.name, phone: customers.phone, birthday: customers.birthday })
-      .from(customers)
-      .where(and(eq(customers.storeId, storeId), isNotNull(customers.birthday)));
-
-    const now = new Date();
-    const upcoming = rows
-      .map(c => {
-        if (!c.birthday) return null;
-        const bday = new Date(c.birthday);
-        const thisYear = new Date(now.getFullYear(), bday.getMonth(), bday.getDate());
-        if (thisYear < now) thisYear.setFullYear(now.getFullYear() + 1);
-        const daysUntil = Math.round((thisYear.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-        if (daysUntil > 14) return null;
-        return { id: c.id, name: c.name, phone: c.phone, birthday: c.birthday, daysUntil };
-      })
-      .filter(Boolean)
-      .sort((a: any, b: any) => a.daysUntil - b.daysUntil)
-      .slice(0, 10);
-
-    res.json({ birthdays: upcoming });
-  } catch (err: any) {
-    console.error("[intelligence] upcoming-birthdays error:", err);
-    res.status(500).json({ error: "Failed to fetch birthdays" });
-  }
-});
-
 // GET /api/intelligence/campaigns/segments
 // Returns segment counts for campaign targeting
 router.get("/campaigns/segments", async (req, res) => {
@@ -977,27 +943,11 @@ router.get("/campaigns/segments", async (req, res) => {
         )
       );
 
-    // Upcoming birthdays this month
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const [birthdays] = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(customers)
-      .where(
-        and(
-          eq(customers.storeId, storeId),
-          isNotNull(customers.phone),
-          isNotNull(customers.birthday),
-          sql`EXTRACT(MONTH FROM CAST(birthday AS DATE)) = ${month}`
-        )
-      );
-
     res.json({
       segments: [
         { id: "at_risk", label: "At-Risk Clients", description: "High or critical churn risk", count: Number(atRisk?.count || 0), color: "red" },
         { id: "drifting", label: "Drifting Clients", description: "Visit frequency declining", count: Number(drifting?.count || 0), color: "amber" },
         { id: "high_ltv", label: "High-Value Clients", description: "LTV > $200 in last 12 months", count: Number(highLtv?.count || 0), color: "violet" },
-        { id: "birthday_month", label: "Birthday This Month", description: `Birthdays in ${now.toLocaleString("default", { month: "long" })}`, count: Number(birthdays?.count || 0), color: "pink" },
       ],
     });
   } catch (err: any) {
@@ -1030,16 +980,6 @@ router.get("/campaigns/export", async (req, res) => {
         .leftJoin(customers, eq(clientIntelligence.customerId, customers.id))
         .where(and(eq(clientIntelligence.storeId, storeId), condition));
       rows = data.map(r => ({ name: r.name!, phone: r.phone, email: r.email }));
-    } else if (segment === "birthday_month") {
-      const month = new Date().getMonth() + 1;
-      rows = await db
-        .select({ name: customers.name, phone: customers.phone, email: customers.email })
-        .from(customers)
-        .where(and(
-          eq(customers.storeId, storeId),
-          isNotNull(customers.birthday),
-          sql`EXTRACT(MONTH FROM CAST(birthday AS DATE)) = ${month}`
-        ));
     }
 
     const csv = ["Name,Phone,Email", ...rows.map(r =>
@@ -1108,21 +1048,6 @@ router.post("/campaigns/send", async (req, res) => {
           )
         );
       customerRows = rows.map(r => ({ id: r.id!, phone: r.phone, name: r.name! }));
-    } else if (segment === "birthday_month") {
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      customerRows = await db
-        .select({ id: customers.id, phone: customers.phone, name: customers.name })
-        .from(customers)
-        .where(
-          and(
-            eq(customers.storeId, storeId),
-            isNotNull(customers.phone),
-            isNotNull(customers.birthday),
-            sql`EXTRACT(MONTH FROM CAST(birthday AS DATE)) = ${month}`,
-            sql`(customers.marketing_opt_in IS NULL OR customers.marketing_opt_in = true)`
-          )
-        );
     } else {
       return res.status(400).json({ error: "Unknown segment" });
     }

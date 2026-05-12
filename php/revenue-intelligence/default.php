@@ -779,7 +779,7 @@ require 'includes/nav.php';
       <?php foreach ([
         ['📊','Booking Heatmap','A day-by-week grid showing exactly when your salon is busy and dead — so you know which dead slots to target with campaigns.'],
         ['💰','Price Optimization','Surfaces which services are underpriced for their demand, which have alarming no-show rates (and need deposits), and which are being ignored.'],
-        ['🎯','Targeted Campaigns','Segment your clients by churn risk, LTV, upcoming birthday, or last service — then send one SMS campaign to exactly the right people.'],
+        ['🎯','Targeted Campaigns','Segment your clients by churn risk, LTV, or last service — then send one SMS campaign to exactly the right people.'],
         ['🏆','Staff Performance','Full breakdown by stylist: revenue per appointment, rebooking rate, no-show rate, and unique clients served — all with 90-day trends.'],
         ['📅','Revenue Forecast','Projects your revenue for the next 30, 60, and 90 days based on confirmed bookings, historical patterns, and current growth trajectory.'],
         ['📅','Service Performance','Which services generate the most revenue per minute of chair time, which have the worst no-show rates, and which are worth promoting more.'],

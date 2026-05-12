@@ -2265,7 +2265,6 @@ export default function Intelligence() {
                           { label: "Win-back offer", text: "Hey {name}! We miss you — book this week and get 10% off. Reply STOP to opt out." },
                           { label: "Check-in", text: "Hi {name}, it's been a while! We'd love to see you again. Book at certxa.com. Reply STOP to opt out." },
                           { label: "VIP offer", text: "Hi {name}! As one of our valued clients, you get early access to our next open slots. Book now! Reply STOP to opt out." },
-                          { label: "Birthday", text: "🎂 Happy birthday {name}! Treat yourself — enjoy a complimentary add-on on your next visit. Reply STOP to opt out." },
                         ].map((tpl) => (
                           <button
                             key={tpl.label}

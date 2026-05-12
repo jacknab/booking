@@ -457,10 +457,6 @@ app.use((req, res, next) => {
   const { startTrialExpirationScheduler } = await import("./services/trial-expiration");
   startTrialExpirationScheduler();
 
-  // Start birthday & anniversary message scheduler (checks hourly, sends at 9am)
-  const { startBirthdayScheduler } = await import("./birthday-scheduler");
-  startBirthdayScheduler();
-
   // Start weekly revenue digest email scheduler (runs every Monday at 9am)
   const { startWeeklyDigestScheduler } = await import("./intelligence/weekly-digest-email");
   startWeeklyDigestScheduler();

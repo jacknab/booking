@@ -480,48 +480,6 @@ function RevenueGoalTracker({ currentRevenue, storageKey }: { currentRevenue: nu
   );
 }
 
-function UpcomingBirthdaysWidget({ storeId }: { storeId: number }) {
-  const { data, isLoading } = useQuery<any>({
-    queryKey: ["/api/intelligence/upcoming-birthdays", storeId],
-    queryFn: async () => {
-      const res = await fetch(`/api/intelligence/upcoming-birthdays?storeId=${storeId}`, { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: !!storeId,
-    staleTime: 60 * 60 * 1000,
-  });
-
-  if (isLoading || !data?.birthdays?.length) return null;
-
-  return (
-    <div className="rounded-2xl border border-pink-200 bg-pink-50/60 shadow-sm p-5 mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-base">🎂</span>
-        <span className="text-sm font-bold text-pink-800">Upcoming Birthdays</span>
-        <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-200 text-pink-700 text-[10px] font-bold">
-          {data.birthdays.length}
-        </span>
-      </div>
-      <div className="space-y-2">
-        {data.birthdays.slice(0, 4).map((b: any) => (
-          <div key={b.id} className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 text-xs font-bold flex-shrink-0">
-                {b.name[0].toUpperCase()}
-              </div>
-              <span className="text-sm font-medium text-pink-900 truncate">{b.name}</span>
-            </div>
-            <span className={`text-xs font-semibold flex-shrink-0 ${b.daysUntil === 0 ? "text-pink-600" : b.daysUntil <= 3 ? "text-pink-500" : "text-pink-400"}`}>
-              {b.daysUntil === 0 ? "Today! 🎉" : b.daysUntil === 1 ? "Tomorrow" : `In ${b.daysUntil}d`}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function SmartDigestWidget({ storeId }: { storeId: number }) {
   const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/intelligence/daily-digest", storeId],
@@ -769,9 +727,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {/* Upcoming Birthdays */}
-      {selectedStore?.id && <UpcomingBirthdaysWidget storeId={selectedStore.id} />}
 
       {/* Smart Daily Digest */}
       {selectedStore?.id && <SmartDigestWidget storeId={selectedStore.id} />}
