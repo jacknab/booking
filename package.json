@@ -33,7 +33,8 @@
     "db:reseed:spa-demo":  "node_modules/.bin/tsx scripts/reseed-spa-demo.ts",
     "db:seed:barber-demo":   "node_modules/.bin/tsx scripts/seed-barber-demo.ts",
     "db:reset:barber-demo":  "node_modules/.bin/tsx scripts/reset-barber-demo.ts",
-    "db:reseed:barber-demo": "node_modules/.bin/tsx scripts/reseed-barber-demo.ts"
+    "db:reseed:barber-demo": "node_modules/.bin/tsx scripts/reseed-barber-demo.ts",
+    "smoke-test": "node_modules/.bin/tsx scripts/smoke-test-demo.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
