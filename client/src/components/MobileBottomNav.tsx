@@ -163,7 +163,29 @@ export function MobileBottomNav() {
             >
               {/* Drawer header */}
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
-                <span className="text-base font-bold tracking-tight text-slate-800">Menu</span>
+                <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 group">
+                  <div className="relative">
+                    <div
+                      className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{
+                        background: "radial-gradient(circle, rgba(0,212,170,0.3) 0%, transparent 70%)",
+                        filter: "blur(8px)",
+                      }}
+                    />
+                    <img
+                      src="/web-app.png"
+                      alt="Certxa"
+                      className="relative w-7 h-7 rounded-xl shadow-md"
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  </div>
+                  <span
+                    className="text-slate-800 font-black text-[17px]"
+                    style={{ letterSpacing: "-0.025em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >
+                    Certxa
+                  </span>
+                </Link>
                 <button
                   onClick={() => setMenuOpen(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
