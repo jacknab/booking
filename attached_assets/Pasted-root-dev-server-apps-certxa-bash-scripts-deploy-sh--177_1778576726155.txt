@@ -1,0 +1,70 @@
+root@dev-server:/apps/certxa# bash scripts/deploy.sh
+
+╔══════════════════════════════════════════════════════════╗
+║       Certxa — Self-Healing VPS Deploy Script            ║
+╚══════════════════════════════════════════════════════════╝
+
+  App dir  : /apps/certxa
+  PM2 name : certxa
+  Port     : 8100
+  App URL  : https://certxa.com
+  Env file : .env
+  Log      : /apps/certxa/logs/deploy-20260512-083148.log
+
+
+── Step 1/9 — Pre-flight checks ──
+  ✅  .env file found
+  ✅  DATABASE_URL is set
+  ✅  SESSION_SECRET is set
+  ✅  APP_URL is set
+  ✅  node  →  /root/.nvm/versions/node/v20.20.0/bin/node
+  ✅  npm  →  /root/.nvm/versions/node/v20.20.0/bin/npm
+  ✅  pm2  →  /root/.nvm/versions/node/v20.20.0/bin/pm2
+  ✅  git  →  /usr/bin/git
+  ✅  lsof  →  /usr/bin/lsof
+  ✅  curl  →  /usr/bin/curl
+  ✅  Node.js v20.20.0
+  ✅  Disk space: 58230MB free
+  ✅  Database connection successful
+  ✅  All pre-flight checks passed
+
+── Step 2/9 — Backing up current dist/ for rollback ──
+  ✅  Backed up dist/ → /tmp/certxa-dist-backup
+
+── Step 3/9 — Pulling latest code (smart pull) ──
+  ▶  Remote: origin  |  Branch: main
+
+  ⚠️   Local changes detected — stashing to avoid conflicts:
+    D .env.bak
+    M attached_assets/salon_showcase/launchsite-php/data/templates.php
+    M logs/pm2-error.log
+    M logs/pm2-out.log
+    M php/data/templates.php
+    D php/launchsite/media/barber_shop/hero_images/project-bolt-sb1-rbun6lz6.jpg
+    D php/launchsite/media/nail_salon/hero_images/nail-salon-template-1.jpg
+    M php/launchsite/scraped-tmp/.last-cleanup
+    M scripts/db-push.mjs
+    ?? .env.bak.20260511052418
+  ✅  Local changes stashed (restore later with: git stash pop)
+  ✅  On correct branch: main
+  ▶  Fetching from origin (attempt 1 / 4)…
+  ✅  Fetch succeeded
+  ▶  Hard-resetting to origin/main…
+HEAD is now at 7c46d59 Streamline navigation by removing less frequently used and payment-related links
+  ✅  Hard reset to origin/main complete
+  ✅  Already at the latest commit (7c46d59) — no new changes
+  ✅  At commit 7c46d59 (was 7c46d59) — 2026-05-12T08:31:49Z
+
+── Step 4/9 — Installing dependencies ──
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  ✅  npm ci complete
+
+── Step 5/9 — Running database migrations ──
+  ▶  Applying pending SQL migrations…
+scripts/deploy.sh: line 1310: node_modules/.bin/tsx: No such file or directory
+  ❌  Migration FAILED — aborting to protect your data.
+  ❌  Fix the migration error above, then re-run.

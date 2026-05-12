@@ -1,0 +1,782 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  vps-install.sh — Certxa Complete First-Time VPS Setup
+#
+#  Runs on a fresh Ubuntu 22.04 / 24.04 VPS (or any Debian-based system).
+#  Safe to re-run — every step checks before acting.
+#
+#  What it does (fully unattended after the initial questions):
+#    1.  Install system packages (Node 20, PHP 8.3, PostgreSQL, nginx, certbot)
+#    2.  Install PM2 process manager
+#    3.  Create the PostgreSQL database and user
+#    4.  Write a complete .env file (SESSION_SECRET auto-generated)
+#    5.  Install npm dependencies
+#    6.  Build the production bundle (Vite + SSR + Express)
+#    7.  Write nginx config and reload
+#    8.  Issue a Let's Encrypt SSL certificate (certbot)
+#    9.  Start the app under PM2 (migrations run automatically on first boot)
+#    10. Health check and final summary
+#
+#  Usage:
+#    bash scripts/vps-install.sh
+#
+#  Skip SSL (if you handle SSL yourself / Cloudflare):
+#    SKIP_SSL=1 bash scripts/vps-install.sh
+#
+#  Skip git pull (code already on disk):
+#    SKIP_GIT=1 bash scripts/vps-install.sh
+# =============================================================================
+set -euo pipefail
+
+# ── Colour helpers ─────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
+
+ok()     { echo -e "${GREEN}  ✅  $*${NC}"; }
+info()   { echo -e "${CYAN}  ▶  $*${NC}"; }
+warn()   { echo -e "${YELLOW}  ⚠️   $*${NC}"; }
+fail()   { echo -e "${RED}  ❌  $*${NC}"; }
+step()   { echo ""; echo -e "${BOLD}${CYAN}━━  $*${NC}"; echo ""; }
+banner() { echo -e "${BOLD}$*${NC}"; }
+ask()    {
+  echo -e "${YELLOW}  ? $1${NC}"
+  read -r -p "    → " "$2"
+}
+ask_default() {
+  local prompt="$1" varname="$2" default="$3"
+  echo -e "${YELLOW}  ? $prompt ${DIM}[${default}]${NC}"
+  read -r -p "    → " _tmp
+  printf -v "$varname" '%s' "${_tmp:-$default}"
+}
+ask_secret() {
+  echo -e "${YELLOW}  ? $1 ${DIM}(blank = skip for now)${NC}"
+  read -r -s -p "    → " "$2"
+  echo ""
+}
+
+# ── Must run from the project root ────────────────────────────────────────────
+cd "$(dirname "$0")/.."
+APP_DIR="$(pwd)"
+
+if [[ ! -f "$APP_DIR/package.json" ]] || ! grep -q '"name"' "$APP_DIR/package.json"; then
+  fail "Run this script from the Certxa project root."
+  exit 1
+fi
+
+echo ""
+banner "╔══════════════════════════════════════════════════════════════╗"
+banner "║          Certxa — Complete VPS Setup Script                 ║"
+banner "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+warn "This installs system packages and configures nginx. Run as root or with sudo."
+echo ""
+
+# ── Collect everything up-front so the rest runs unattended ──────────────────
+echo "  Please answer a few questions. Press Enter to accept defaults."
+echo ""
+
+ask "Your domain (e.g. certxa.com — no https://, no www):" DOMAIN
+[[ -z "$DOMAIN" ]] && { fail "Domain is required."; exit 1; }
+
+ask_default "App port (the port Node listens on — nginx proxies this):" APP_PORT "8100"
+ask_default "PostgreSQL database name:" DB_NAME "certxa_db"
+ask_default "PostgreSQL user name:" DB_USER "certxa_user"
+
+echo -e "${YELLOW}  ? PostgreSQL password ${DIM}(blank = auto-generate)${NC}"
+read -r -s -p "    → " DB_PASS
+echo ""
+if [[ -z "$DB_PASS" ]]; then
+  DB_PASS="$(openssl rand -hex 24)"
+  warn "Generated DB password: ${BOLD}$DB_PASS${NC}  ← save this somewhere safe!"
+fi
+
+echo ""
+echo "  Now enter your API keys. All are optional — skip with Enter and add later."
+echo ""
+
+ask_secret "Google OAuth Client ID:" GOOGLE_CLIENT_ID
+ask_secret "Google OAuth Client Secret:" GOOGLE_CLIENT_SECRET
+ask_secret "Mailgun API Key:" MAILGUN_API_KEY
+ask_default "Mailgun domain (e.g. mg.${DOMAIN}):" MAILGUN_DOMAIN "mg.${DOMAIN}"
+ask_secret "Twilio Account SID:" TWILIO_SID
+ask_secret "Twilio Auth Token:" TWILIO_TOKEN
+ask_default "Twilio phone number:" TWILIO_PHONE "+18888147623"
+ask_secret "Stripe Secret Key:" STRIPE_KEY
+ask_secret "OpenAI API Key:" OPENAI_KEY
+
+echo ""
+info "All answers collected — starting fully automated setup."
+info "This will take 5-15 minutes depending on server speed."
+echo ""
+
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:5432/${DB_NAME}?sslmode=disable"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 1 — System packages
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 1/10 — System packages"
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq 2>&1 | grep -v "^W:" | tail -3 || true
+
+apt-get install -y -qq \
+  curl wget git build-essential lsof unzip gnupg ca-certificates \
+  software-properties-common 2>&1 | tail -3
+ok "Base packages ready"
+
+# ── Node.js 20 ────────────────────────────────────────────────────────────────
+if node --version 2>/dev/null | grep -q "^v20"; then
+  ok "Node.js $(node --version) already installed"
+else
+  info "Installing Node.js 20 via NodeSource..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null 2>&1
+  apt-get install -y -qq nodejs 2>&1 | tail -2
+  ok "Node.js $(node --version) installed"
+fi
+
+# ── PHP 8.3 (required — the marketing site runs via PHP built-in server) ──────
+if php --version 2>/dev/null | grep -q "^PHP 8"; then
+  ok "PHP $(php --version | head -1 | awk '{print $2}') already installed"
+else
+  info "Installing PHP 8.3..."
+  add-apt-repository ppa:ondrej/php -y >/dev/null 2>&1 || true
+  apt-get update -qq 2>&1 | tail -2 || true
+  apt-get install -y -qq php8.3 php8.3-cli php8.3-curl php8.3-mbstring \
+    php8.3-xml php8.3-zip php8.3-pgsql 2>&1 | tail -3
+  ok "PHP $(php --version | head -1 | awk '{print $2}') installed"
+fi
+
+# ── nginx ─────────────────────────────────────────────────────────────────────
+if ! command -v nginx &>/dev/null; then
+  apt-get install -y -qq nginx 2>&1 | tail -2
+  systemctl enable nginx >/dev/null 2>&1
+  ok "nginx installed"
+else
+  ok "nginx $(nginx -v 2>&1 | grep -oP '[\d.]+' | head -1) already installed"
+fi
+
+# ── certbot (Let's Encrypt SSL) ───────────────────────────────────────────────
+if [[ "${SKIP_SSL:-0}" != "1" ]]; then
+  if ! command -v certbot &>/dev/null; then
+    apt-get install -y -qq certbot python3-certbot-nginx 2>&1 | tail -2
+    ok "certbot installed"
+  else
+    ok "certbot already installed"
+  fi
+fi
+
+# ── PostgreSQL ────────────────────────────────────────────────────────────────
+if ! command -v psql &>/dev/null; then
+  apt-get install -y -qq postgresql postgresql-contrib 2>&1 | tail -2
+fi
+systemctl enable postgresql >/dev/null 2>&1
+systemctl start postgresql
+ok "PostgreSQL $(psql --version | awk '{print $3}') running"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 2 — PM2
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 2/10 — PM2 process manager"
+
+if pm2 --version >/dev/null 2>&1; then
+  ok "PM2 $(pm2 --version) already installed"
+else
+  npm install -g pm2 --quiet --no-progress
+  ok "PM2 installed"
+fi
+
+# Silently configure PM2 to start on boot (generates the systemd unit)
+PM2_STARTUP_CMD="$(pm2 startup --no-daemon 2>&1 | grep 'sudo' | tail -1 || true)"
+if [[ -n "$PM2_STARTUP_CMD" ]]; then
+  eval "$PM2_STARTUP_CMD" >/dev/null 2>&1 || true
+fi
+ok "PM2 startup configured"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 3 — PostgreSQL database and user
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 3/10 — PostgreSQL database and user"
+
+# Create user if it doesn't exist
+if sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" 2>/dev/null | grep -q 1; then
+  ok "DB user '$DB_USER' already exists"
+else
+  sudo -u postgres psql -c "CREATE USER \"$DB_USER\" WITH PASSWORD '$DB_PASS';" >/dev/null
+  ok "Created DB user: $DB_USER"
+fi
+
+# Create database if it doesn't exist
+if sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null | grep -q 1; then
+  ok "Database '$DB_NAME' already exists"
+else
+  sudo -u postgres psql -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\";" >/dev/null
+  ok "Created database: $DB_NAME"
+fi
+
+# Grant permissions
+sudo -u postgres psql -d "$DB_NAME" -c "
+  GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";
+  GRANT ALL ON SCHEMA public TO \"$DB_USER\";
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"$DB_USER\";
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"$DB_USER\";
+" >/dev/null 2>&1
+ok "Permissions granted to $DB_USER on $DB_NAME"
+
+# Test connection
+if psql "$DATABASE_URL" -c "SELECT 1" >/dev/null 2>&1; then
+  ok "Database connection verified"
+else
+  fail "Cannot connect to database. Check PostgreSQL is running and credentials are correct."
+  fail "URL tested: $DATABASE_URL"
+  exit 1
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 4 — .env file
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 4/10 — Environment file (.env)"
+
+SESSION_SECRET="$(openssl rand -hex 64)"
+
+if [[ -f "$APP_DIR/.env" ]]; then
+  cp "$APP_DIR/.env" "$APP_DIR/.env.bak.$(date +%Y%m%d%H%M%S)"
+  warn "Existing .env backed up as .env.bak.*"
+fi
+
+cat > "$APP_DIR/.env" << ENVFILE
+# ─── Node ─────────────────────────────────────────────────────────────────────
+NODE_ENV=production
+PORT=${APP_PORT}
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+DATABASE_URL=${DATABASE_URL}
+
+# ─── Session ──────────────────────────────────────────────────────────────────
+# Generated automatically — do not share this value
+SESSION_SECRET=${SESSION_SECRET}
+
+# ─── App URL ──────────────────────────────────────────────────────────────────
+APP_URL=https://${DOMAIN}
+
+# ─── CORS ─────────────────────────────────────────────────────────────────────
+CORS_ALLOW_ALL=false
+CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN},https://manage.${DOMAIN}
+
+# ─── Google OAuth (login + Business Profile) ──────────────────────────────────
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+GOOGLE_BUSINESS_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+GOOGLE_BUSINESS_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+GOOGLE_AUTH_CALLBACK_URL=https://${DOMAIN}/api/auth/google/callback
+GOOGLE_LOGIN_CALLBACK_URL=https://${DOMAIN}/api/auth/google/callback
+GOOGLE_REDIRECT_URI=https://${DOMAIN}/api/google-business/callback
+GOOGLE_BUSINESS_CALLBACK_URL=https://${DOMAIN}/api/google-business/callback
+
+# ─── Mailgun (email) ──────────────────────────────────────────────────────────
+MAILGUN_API_KEY=${MAILGUN_API_KEY:-}
+MAILGUN_DOMAIN=${MAILGUN_DOMAIN:-}
+MAILGUN_FROM_EMAIL=noreply@${DOMAIN}
+MAILGUN_SENDER_EMAIL=noreply@${DOMAIN}
+MAILGUN_FROM_NAME=Certxa
+
+# ─── Twilio (SMS) ─────────────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID=${TWILIO_SID:-}
+TWILIO_AUTH_TOKEN=${TWILIO_TOKEN:-}
+TWILIO_PHONE_NUMBER=${TWILIO_PHONE:-}
+
+# ─── Stripe (payments) ────────────────────────────────────────────────────────
+STRIPE_SECRET_KEY=${STRIPE_KEY:-}
+
+# ─── OpenAI (AI features) ─────────────────────────────────────────────────────
+OPENAI_API_KEY=${OPENAI_KEY:-}
+
+# ─── Feature flags ────────────────────────────────────────────────────────────
+TRIAL_PERIOD_DAYS=60
+ACTIVE_GROUPS=3
+ENVFILE
+
+chmod 600 "$APP_DIR/.env"
+ok ".env written (permissions: 600 — root-only)"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 5 — npm dependencies
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 5/10 — Installing npm dependencies"
+
+# Use npm install (not ci) so it works with or without a lockfile
+npm install --prefer-offline --loglevel=warn 2>&1 | grep -v "^npm warn" | tail -5
+ok "npm dependencies installed"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 6 — git pull (unless skipped)
+# ══════════════════════════════════════════════════════════════════════════════
+if [[ "${SKIP_GIT:-0}" != "1" ]] && git remote get-url origin &>/dev/null; then
+  step "Step 6/10 — Pulling latest code from git"
+  git fetch origin --prune --tags 2>&1 | tail -3
+  git reset --hard origin/main 2>&1 | tail -2
+  ok "Code is at latest commit: $(git rev-parse --short HEAD)"
+else
+  step "Step 6/10 — Skipping git pull (SKIP_GIT=1 or no remote configured)"
+  ok "Using code already on disk"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 7 — Production build
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 7/10 — Building production bundle"
+info "This step compiles the React frontend, SSR bundle, and Express server."
+info "It takes 2-5 minutes — please wait..."
+echo ""
+
+rm -rf "$APP_DIR/dist" "$APP_DIR/node_modules/.vite"
+
+if npm run build 2>&1; then
+  echo ""
+else
+  fail "Build failed — see output above."
+  fail "Common fix: check you have enough memory (1 GB minimum for the build)."
+  exit 1
+fi
+
+# Verify all three outputs exist
+BUILD_OK=1
+for required_file in \
+  "$APP_DIR/dist/index.cjs" \
+  "$APP_DIR/dist/public/index.html"; do
+  if [[ ! -f "$required_file" ]]; then
+    fail "Build output missing: $required_file"
+    BUILD_OK=0
+  fi
+done
+
+if [[ "$BUILD_OK" -eq 0 ]]; then
+  fail "Build output is incomplete. Run 'npm run build' manually to see full errors."
+  exit 1
+fi
+
+ASSET_COUNT="$(ls "$APP_DIR/dist/public/assets/"*.js 2>/dev/null | wc -l || echo 0)"
+ok "Build complete — $ASSET_COUNT JS asset(s) in dist/public/assets/"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 8 — nginx configuration
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 8/10 — nginx configuration"
+
+NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}"
+NGINX_ENABLED="/etc/nginx/sites-enabled/${DOMAIN}"
+
+# Write the nginx config (HTTP-only first so certbot can issue the cert)
+cat > "$NGINX_CONF" << NGINXCONF
+# ── Rate limiting ──────────────────────────────────────────────────────────────
+limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
+limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
+
+# ── HTTP server (also serves the ACME challenge for Let's Encrypt) ─────────────
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
+
+    # Let's Encrypt ACME challenge
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirect everything else to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# ── HTTPS server ───────────────────────────────────────────────────────────────
+# NOTE: If certbot hasn't run yet, comment out this block until SSL is issued.
+#       Uncomment it after running: certbot --nginx -d ${DOMAIN} -d www.${DOMAIN}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers (app also sets these — belt and suspenders)
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    # Client upload limit (profile photos, import files)
+    client_max_body_size 55M;
+
+    # Proxy everything to Node
+    location / {
+        proxy_pass         http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+
+        # WebSocket support (Vite HMR in dev + internal WS connections)
+        proxy_set_header Upgrade    \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Pass real client info through
+        proxy_set_header Host              \$host;
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host  \$host;
+
+        # Timeouts — long for AI/PDF generation requests
+        proxy_connect_timeout 60s;
+        proxy_send_timeout    120s;
+        proxy_read_timeout    120s;
+    }
+
+    # Rate-limit auth endpoints at the nginx layer too
+    location /api/auth/ {
+        limit_req zone=certxa_auth burst=5 nodelay;
+        proxy_pass         http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host              \$host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host  \$host;
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+    }
+
+    # Cache hashed JS/CSS assets for 1 year
+    location /assets/ {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
+NGINXCONF
+
+# Create ACME webroot so certbot can write to it
+mkdir -p /var/www/certbot
+
+# Enable the site
+if [[ ! -L "$NGINX_ENABLED" ]]; then
+  ln -sf "$NGINX_CONF" "$NGINX_ENABLED"
+  ok "nginx site enabled: $NGINX_ENABLED"
+fi
+
+# Disable the default nginx site (it catches all traffic otherwise)
+if [[ -L "/etc/nginx/sites-enabled/default" ]]; then
+  rm -f /etc/nginx/sites-enabled/default
+  ok "Default nginx site disabled"
+fi
+
+# Test without the HTTPS block if SSL cert doesn't exist yet
+if [[ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+  warn "SSL cert not found yet — temporarily disabling the HTTPS server block for nginx -t"
+  # Comment out the HTTPS server block so nginx -t passes before cert exists
+  sed '/listen 443/,/^}/{ /listen 443/{ h; d }; /^}/{ H; g; s/^/# /mg; p; d }; H; d }' \
+    "$NGINX_CONF" > /tmp/certxa-nginx-test.conf 2>/dev/null || true
+
+  # Simpler approach: write a temporary HTTP-only config for the test
+  cat > /tmp/certxa-nginx-http-only.conf << HTTPONLY
+limit_req_zone \$binary_remote_addr zone=certxa_api_tmp:10m rate=30r/m;
+limit_req_zone \$binary_remote_addr zone=certxa_auth_tmp:10m rate=10r/m;
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN};
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+HTTPONLY
+  cp /tmp/certxa-nginx-http-only.conf "$NGINX_CONF"
+fi
+
+if nginx -t 2>&1; then
+  systemctl reload nginx
+  ok "nginx configured and reloaded"
+else
+  fail "nginx config test failed — check the config at $NGINX_CONF"
+  nginx -t
+  exit 1
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 9 — SSL certificate
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 9/10 — SSL certificate"
+
+if [[ "${SKIP_SSL:-0}" == "1" ]]; then
+  warn "Skipping SSL (SKIP_SSL=1) — configure your SSL/Cloudflare manually."
+  warn "You will need to update $NGINX_CONF with your cert paths and reload nginx."
+
+elif [[ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+  ok "SSL certificate already exists for ${DOMAIN}"
+  # Make sure the full nginx config (with HTTPS block) is in place
+  cat > "$NGINX_CONF" << NGINXCONF2
+limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
+limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    client_max_body_size 55M;
+    location / {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+    location /api/auth/ {
+        limit_req zone=certxa_auth burst=5 nodelay;
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location /assets/ {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
+NGINXCONF2
+  nginx -t && systemctl reload nginx
+  ok "nginx reloaded with full HTTPS config"
+
+else
+  info "Requesting SSL certificate from Let's Encrypt for ${DOMAIN}..."
+  info "(Make sure ${DOMAIN} and www.${DOMAIN} already point to this server's IP in DNS)"
+  echo ""
+
+  if certbot certonly --webroot \
+    --webroot-path /var/www/certbot \
+    --non-interactive \
+    --agree-tos \
+    --register-unsafely-without-email \
+    -d "${DOMAIN}" \
+    -d "www.${DOMAIN}" \
+    -d "manage.${DOMAIN}" \
+    2>&1; then
+
+    ok "SSL certificate issued for ${DOMAIN}"
+
+    # Write the full nginx config now that the cert exists
+    cat > "$NGINX_CONF" << NGINXFULL
+limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
+limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    client_max_body_size 55M;
+    location / {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }
+    location /api/auth/ {
+        limit_req zone=certxa_auth burst=5 nodelay;
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    location /assets/ {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
+NGINXFULL
+    nginx -t && systemctl reload nginx
+    ok "nginx reloaded with HTTPS enabled"
+
+    # Set up auto-renewal
+    (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") \
+      | sort -u | crontab -
+    ok "SSL auto-renewal scheduled (daily at 3am)"
+
+  else
+    warn "certbot could not issue a certificate automatically."
+    warn "This usually means ${DOMAIN} doesn't point to this IP yet."
+    warn ""
+    warn "Once your DNS is ready, run manually:"
+    warn "  certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d manage.${DOMAIN}"
+    warn "  systemctl reload nginx"
+    warn ""
+    warn "Continuing setup without HTTPS for now (HTTP only)."
+  fi
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 10 — Start the app under PM2
+# ══════════════════════════════════════════════════════════════════════════════
+step "Step 10/10 — Starting Certxa under PM2"
+
+mkdir -p "$APP_DIR/logs"
+
+# Kill anything already on the app port
+STALE_PIDS="$(lsof -t -i:"${APP_PORT}" 2>/dev/null || true)"
+if [[ -n "$STALE_PIDS" ]]; then
+  warn "Killing stale process(es) on port ${APP_PORT}: $STALE_PIDS"
+  # shellcheck disable=SC2086
+  kill -9 $STALE_PIDS 2>/dev/null || true
+  sleep 1
+fi
+
+# Stop and remove any existing PM2 certxa process, then start fresh
+if pm2 describe certxa &>/dev/null; then
+  pm2 stop certxa 2>/dev/null || true
+  pm2 delete certxa 2>/dev/null || true
+  sleep 1
+fi
+
+# Set the correct cwd in ecosystem.config.cjs (in case it's stale)
+sed -i "s|cwd:.*|// cwd: '$APP_DIR'  ← auto-configured by vps-install.sh|g" \
+  "$APP_DIR/ecosystem.config.cjs" 2>/dev/null || true
+
+# Start with the ecosystem config from the project root
+cd "$APP_DIR"
+pm2 start ecosystem.config.cjs --update-env
+pm2 save --force >/dev/null
+ok "PM2 started — process name: certxa"
+
+# ── Wait for the app to boot (it auto-runs DB migrations on first start) ──────
+info "Waiting up to 60 seconds for the app to boot and run migrations..."
+echo ""
+
+BOOT_ELAPSED=0
+BOOT_STATUS="000"
+while [[ "$BOOT_ELAPSED" -lt 60 ]]; do
+  BOOT_STATUS="$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+    "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "000")"
+
+  if [[ "$BOOT_STATUS" == "200" || "$BOOT_STATUS" == "503" ]]; then
+    break
+  fi
+
+  printf "    %ds — waiting (HTTP %s)...\r" "$BOOT_ELAPSED" "$BOOT_STATUS"
+  sleep 3
+  BOOT_ELAPSED="$((BOOT_ELAPSED + 3))"
+done
+echo ""
+
+# ── Final health check ────────────────────────────────────────────────────────
+INTERNAL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+  "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "000")"
+
+EXTERNAL_STATUS="000"
+if [[ "${SKIP_SSL:-0}" != "1" ]]; then
+  EXTERNAL_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
+    "https://${DOMAIN}/api/health" 2>/dev/null || echo "000")"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FINAL SUMMARY
+# ══════════════════════════════════════════════════════════════════════════════
+echo ""
+banner "╔══════════════════════════════════════════════════════════════╗"
+banner "║                    Setup Complete!                          ║"
+banner "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+echo -e "  ${BOLD}Domain    :${NC} https://${DOMAIN}"
+echo -e "  ${BOLD}App port  :${NC} ${APP_PORT}  (Node.js, localhost-only)"
+echo -e "  ${BOLD}Database  :${NC} ${DB_NAME}  (user: ${DB_USER})"
+echo -e "  ${BOLD}PHP port  :${NC} 8104  (auto-started by Node, internal only)"
+echo ""
+
+if [[ "$INTERNAL_STATUS" == "200" ]]; then
+  ok "Internal health check (port ${APP_PORT}): HTTP 200"
+elif [[ "$INTERNAL_STATUS" == "503" ]]; then
+  warn "Internal health check: HTTP 503 (degraded — check DB or env vars)"
+  warn "Run: curl http://127.0.0.1:${APP_PORT}/api/health"
+else
+  warn "Internal health check: HTTP ${INTERNAL_STATUS} — app may still be booting"
+  warn "Check: pm2 logs certxa --lines 30"
+fi
+
+if [[ "${SKIP_SSL:-0}" != "1" ]]; then
+  if [[ "$EXTERNAL_STATUS" == "200" ]]; then
+    ok "External health check (https://${DOMAIN}): HTTP 200"
+    echo ""
+    echo -e "${GREEN}${BOLD}  🎉  Certxa is live at https://${DOMAIN}${NC}"
+  else
+    warn "External health check (https://${DOMAIN}): HTTP ${EXTERNAL_STATUS}"
+    warn "If SSL cert was just issued, wait 30s and try: curl https://${DOMAIN}/api/health"
+    warn "If still failing, check: sudo nginx -t && sudo systemctl status nginx"
+  fi
+fi
+
+echo ""
+echo -e "  ${DIM}Useful commands:${NC}"
+echo -e "  ${DIM}  pm2 logs certxa --lines 50    # live application logs${NC}"
+echo -e "  ${DIM}  pm2 monit                      # real-time process monitor${NC}"
+echo -e "  ${DIM}  pm2 list                       # all process statuses${NC}"
+echo -e "  ${DIM}  bash scripts/deploy.sh         # deploy future code updates${NC}"
+echo ""
+echo -e "  ${YELLOW}  Save your .env file — it contains your DB password and session secret.${NC}"
+echo ""
+
+# ── DNS reminder ──────────────────────────────────────────────────────────────
+VPS_IP="$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || ip route get 1 | awk '{print $7; exit}' 2>/dev/null || echo 'YOUR_VPS_IP')"
+echo ""
+echo -e "  ${BOLD}DNS records required in your domain registrar / Cloudflare:${NC}"
+echo ""
+printf "  %-10s %-20s %-16s %s\n" "Type" "Name" "Value" "Notes"
+printf "  %-10s %-20s %-16s %s\n" "────" "────────────────────" "────────────────" "─────────────────────────────────"
+printf "  %-10s %-20s %-16s %s\n" "A" "${DOMAIN}" "${VPS_IP}" "Root domain"
+printf "  %-10s %-20s %-16s %s\n" "A" "www" "${VPS_IP}" ""
+printf "  %-10s %-20s %-16s %s\n" "A" "manage" "${VPS_IP}" "Dashboard subdomain"
+printf "  %-10s %-20s %-16s %s\n" "A" "*" "${VPS_IP}" "Wildcard (booking pages) — DNS-only if Cloudflare"
+echo ""
