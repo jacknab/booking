@@ -907,50 +907,9 @@ router.post("/migrate-from-customers", isAuthenticated, async (req, res) => {
     const { storeId } = req.body;
     if (!storeId) return res.status(400).json({ message: "storeId required" });
 
-    const storeIdNum = Number(storeId);
-    const existingCustomers = await db.select().from(customers).where(eq(customers.storeId, storeIdNum));
-
-    let migrated = 0, skipped = 0;
-
-    for (const cust of existingCustomers) {
-      // Check if already migrated (by email or name)
-      const nameParts = (cust.name ?? "").trim().split(" ");
-      const firstName = nameParts[0] ?? "";
-      const lastName = nameParts.slice(1).join(" ") ?? "";
-
-      // Deduplicate by email
-      if (cust.email) {
-        const existing = await db
-          .select({ id: clientEmails.clientId })
-          .from(clientEmails)
-          .innerJoin(clients, eq(clientEmails.clientId, clients.id))
-          .where(and(eq(clientEmails.emailAddress, normalizeEmail(cust.email)), eq(clients.storeId, storeIdNum)))
-          .limit(1);
-        if (existing.length > 0) { skipped++; continue; }
-      }
-
-      const fullName = cust.name ?? firstName;
-      const [client] = await db
-        .insert(clients)
-        .values({ storeId: storeIdNum, firstName, lastName, fullName, source: "migration" })
-        .returning();
-
-      if (cust.email) {
-        await db.insert(clientEmails).values({ clientId: client.id, emailAddress: normalizeEmail(cust.email), isPrimary: true, marketingOptIn: cust.marketingOptIn ?? true }).onConflictDoNothing();
-      }
-      if (cust.phone) {
-        const { e164, display } = normalizePhone(cust.phone);
-        await db.insert(clientPhones).values({ clientId: client.id, phoneNumberE164: e164, displayPhone: display, isPrimary: true }).onConflictDoNothing();
-      }
-      if (cust.notes) {
-        await db.insert(clientNotes).values({ clientId: client.id, storeId: storeIdNum, noteType: "general", noteContent: cust.notes });
-      }
-      await db.insert(clientMarketingPreferences).values({ clientId: client.id, smsMarketingOptIn: cust.marketingOptIn ?? true, emailMarketingOptIn: cust.marketingOptIn ?? true }).onConflictDoNothing();
-
-      migrated++;
-    }
-
-    return res.json({ migrated, skipped, total: existingCustomers.length });
+    const { migrateCustomersToClients } = await import("../../scripts/lib/migrate-customers-to-clients");
+    const result = await migrateCustomersToClients(Number(storeId));
+    return res.json(result);
   } catch (err) {
     console.error("[clients] migration error:", err);
     return res.status(500).json({ message: "Migration failed" });

@@ -40,6 +40,7 @@ import {
 } from "../shared/schema";
 import { businessTemplates } from "../server/onboarding-data";
 import { eq, and } from "drizzle-orm";
+import { migrateCustomersToClients } from "./lib/migrate-customers-to-clients";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -599,6 +600,11 @@ async function seed() {
   console.log("     • Growth Score           — 6 months of varied booking density");
   console.log("     • Staff Rebooking Rates  — 5 techs with varied rebooking profiles");
   console.log("     • LTV / Churn Risk       — power, regular, occasional, and churned clients");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  // ── 9. Sync clients table (new architecture) ──────────────────────────────
+  const migration = await migrateCustomersToClients(store.id);
+  console.log(`  ✅ Clients table: ${migration.migrated} migrated, ${migration.skipped} skipped`);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
   console.log("  Next steps:");

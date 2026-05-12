@@ -22,6 +22,7 @@ import {
 } from "../../shared/schema";
 import { businessTemplates } from "../../server/onboarding-data";
 import { eq } from "drizzle-orm";
+import { migrateCustomersToClients } from "./migrate-customers-to-clients";
 
 // ─── Name pools ──────────────────────────────────────────────────────────────
 
@@ -548,6 +549,11 @@ export async function seedDemoAccount(cfg: DemoSeedConfig): Promise<SeedSummary>
   const upcoming   = allAppts.filter(a => a.status === "confirmed").length;
   const revenue    = allAppts.filter(a => a.totalPaid)
                              .reduce((s, a) => s + parseFloat(a.totalPaid!), 0);
+
+  // ── Sync customers → clients table (new architecture) ─────────────────────
+  console.log("    → Migrating customers to clients table...");
+  const migration = await migrateCustomersToClients(store.id);
+  console.log(`  ✅ Clients table: ${migration.migrated} migrated, ${migration.skipped} skipped`);
 
   return { email: cfg.email, password: cfg.password, storeName: cfg.storeName,
            storeId: store.id, clients: custCount, appointments: allAppts.length,

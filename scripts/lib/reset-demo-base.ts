@@ -21,6 +21,15 @@ import {
   googleBusinessProfiles, googleBusinessAccounts, googleBusinessLocations,
   googleBusinessSyncLogs, googleReviews, googleReviewResponses,
   passwordResetTokens,
+  clients,
+  clientEmails,
+  clientPhones,
+  clientAddresses,
+  clientNotes,
+  clientTagRelationships,
+  clientTags,
+  clientMarketingPreferences,
+  clientAuditLogs,
 } from "../../shared/schema";
 import {
   clientIntelligence,
@@ -71,6 +80,21 @@ export async function resetDemoAccount(EMAIL: string, SLUG: string): Promise<voi
     }
     await db.delete(customers).where(eq(customers.storeId, storeId));
     console.log("    ✓ customers");
+
+    // ── Clients table (new architecture) ──────────────────────────────────────
+    const clientIds = (await db.select({ id: clients.id }).from(clients).where(eq(clients.storeId, storeId))).map(r => r.id);
+    if (clientIds.length) {
+      await db.delete(clientTagRelationships).where(inArray(clientTagRelationships.clientId, clientIds));
+      await db.delete(clientEmails).where(inArray(clientEmails.clientId, clientIds));
+      await db.delete(clientPhones).where(inArray(clientPhones.clientId, clientIds));
+      await db.delete(clientAddresses).where(inArray(clientAddresses.clientId, clientIds));
+      await db.delete(clientNotes).where(inArray(clientNotes.clientId, clientIds));
+      await db.delete(clientMarketingPreferences).where(inArray(clientMarketingPreferences.clientId, clientIds));
+      await db.delete(clientAuditLogs).where(inArray(clientAuditLogs.clientId, clientIds));
+    }
+    await db.delete(clientTags).where(eq(clientTags.storeId, storeId));
+    await db.delete(clients).where(eq(clients.storeId, storeId));
+    console.log("    ✓ clients (new architecture)");
 
     if (staffIds.length) {
       await db.delete(staffServices).where(inArray(staffServices.staffId, staffIds));
