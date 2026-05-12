@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import {
   DollarSign, Calendar, Users, Scissors, TrendingUp, TrendingDown,
-  ArrowUpRight, ArrowDownRight, Printer, UserCheck, UserX, AlertCircle,
+  ArrowUpRight, ArrowDownRight, Printer, UserCheck, UserX, AlertCircle, Download, FileText,
 } from "lucide-react";
 import {
   format, subDays, startOfDay, eachDayOfInterval, parseISO, isWithinInterval,
@@ -303,6 +303,30 @@ export default function Reports() {
       .slice(0, 10);
   }, [customers, appointments]);
 
+  // ── Tax Summary ───────────────────────────────────────────────────────────
+  const taxMonthlyRows = useMemo(() => {
+    const months = eachMonthOfInterval({ start: subMonths(new Date(), 11), end: new Date() });
+    return months.map(m => {
+      const label = format(m, "MMM yyyy");
+      const monthAppts = completedAppts.filter(a => format(new Date(a.date), "MMM yyyy") === label);
+      const revenue = monthAppts.reduce((s, a) => s + parseFloat(a.totalPaid || "0"), 0);
+      const tips = monthAppts.reduce((s, a) => s + parseFloat((a as any).tipAmount || "0"), 0);
+      const services = revenue - tips;
+      return { month: label, services: parseFloat(services.toFixed(2)), tips: parseFloat(tips.toFixed(2)), total: parseFloat(revenue.toFixed(2)) };
+    });
+  }, [completedAppts]);
+
+  function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const newCustomers = useMemo(() =>
     (customers as any[]).filter(c => {
       const d = new Date(c.createdAt || c.created_at || 0);
@@ -345,12 +369,13 @@ export default function Reports() {
         </div>
 
         <Tabs defaultValue="revenue">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="revenue">Revenue</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="staff">Staff</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="customers">Customers</TabsTrigger>
+            <TabsTrigger value="tax">Tax Summary</TabsTrigger>
           </TabsList>
 
           {/* ── REVENUE TAB ───────────────────────────────────────────────── */}
@@ -780,6 +805,69 @@ export default function Reports() {
                     </tbody>
                   </table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          {/* ── TAX TAB ─────────────────────────────────────────────────── */}
+          <TabsContent value="tax" className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <StatCard title="Total Revenue (12m)" value={fmt(taxMonthlyRows.reduce((s, r) => s + r.total, 0))} icon={DollarSign} sub="Last 12 months" />
+              <StatCard title="Service Revenue" value={fmt(taxMonthlyRows.reduce((s, r) => s + r.services, 0))} icon={Scissors} sub="Excluding tips" />
+              <StatCard title="Total Tips" value={fmt(taxMonthlyRows.reduce((s, r) => s + r.tips, 0))} icon={TrendingUp} sub="Last 12 months" />
+            </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div>
+                  <CardTitle className="text-base">Monthly Income Breakdown</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">Last 12 months — for self-assessment & accountant reports</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => downloadCsv(
+                    `tax-summary-${format(new Date(), "yyyy-MM")}.csv`,
+                    ["Month", "Service Revenue", "Tips", "Total Income"],
+                    taxMonthlyRows.map(r => [r.month, r.services.toFixed(2), r.tips.toFixed(2), r.total.toFixed(2)])
+                  )}
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Month</th>
+                        <th className="text-right py-2 px-4 font-medium">Service Revenue</th>
+                        <th className="text-right py-2 px-4 font-medium">Tips</th>
+                        <th className="text-right py-2 pl-4 font-medium">Total Income</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {taxMonthlyRows.map((r) => (
+                        <tr key={r.month} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
+                          <td className="py-2.5 pr-4 font-medium">{r.month}</td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{fmt(r.services)}</td>
+                          <td className="py-2.5 px-4 text-right tabular-nums">{fmt(r.tips)}</td>
+                          <td className="py-2.5 pl-4 text-right tabular-nums font-semibold">{fmt(r.total)}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-t-2 font-bold bg-muted/30">
+                        <td className="py-2.5 pr-4">Total</td>
+                        <td className="py-2.5 px-4 text-right tabular-nums">{fmt(taxMonthlyRows.reduce((s, r) => s + r.services, 0))}</td>
+                        <td className="py-2.5 px-4 text-right tabular-nums">{fmt(taxMonthlyRows.reduce((s, r) => s + r.tips, 0))}</td>
+                        <td className="py-2.5 pl-4 text-right tabular-nums">{fmt(taxMonthlyRows.reduce((s, r) => s + r.total, 0))}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  This report covers completed appointments only. Consult your accountant for tax advice specific to your business.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

@@ -7278,6 +7278,61 @@ If you have any questions, please contact your administrator.
   });
 
   // ============================================================
+  // POS — Email Receipt
+  // ============================================================
+
+  app.post("/api/pos/email-receipt", isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, email, storeName, clientName, items, subtotal, tipAmount, grandTotal, paymentMethod, transactionId, dateStr, timeStr } = req.body;
+      if (!email || !storeId) return res.status(400).json({ message: "email and storeId required" });
+      const { sendPOSReceiptEmail } = await import("./mail");
+      const result = await sendPOSReceiptEmail(Number(storeId), email, {
+        storeName: storeName || "Your Salon",
+        clientName: clientName || "there",
+        items: items || [],
+        subtotal: Number(subtotal) || 0,
+        tipAmount: Number(tipAmount) || 0,
+        grandTotal: Number(grandTotal) || 0,
+        paymentMethod: paymentMethod || "Card",
+        transactionId: transactionId || "",
+        dateStr: dateStr || new Date().toLocaleDateString(),
+        timeStr: timeStr || new Date().toLocaleTimeString(),
+      });
+      if (result.success) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ message: result.error || "Failed to send receipt" });
+      }
+    } catch (err: any) {
+      console.error("[POS email-receipt]", err);
+      res.status(500).json({ message: err.message || "Failed to send receipt" });
+    }
+  });
+
+  // ============================================================
+  // CUSTOMERS — Photo Upload
+  // ============================================================
+
+  app.post("/api/customers/:id/photo", isAuthenticated, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const { photoDataUrl } = req.body;
+      if (!photoDataUrl) return res.status(400).json({ message: "photoDataUrl required" });
+      // Store data-URL directly in avatarUrl (works without external storage)
+      const [updated] = await db
+        .update(customers)
+        .set({ avatarUrl: photoDataUrl })
+        .where(eq(customers.id, customerId))
+        .returning();
+      if (!updated) return res.status(404).json({ message: "Customer not found" });
+      res.json({ success: true, avatarUrl: updated.avatarUrl });
+    } catch (err: any) {
+      console.error("[customer photo]", err);
+      res.status(500).json({ message: err.message || "Failed to update photo" });
+    }
+  });
+
+  // ============================================================
   // REVIEWS
   // ============================================================
 

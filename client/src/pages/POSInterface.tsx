@@ -12,7 +12,7 @@ import { useServiceCategories, useAddonsForService } from "@/hooks/use-addons";
 import { useStaffList } from "@/hooks/use-staff";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2, CreditCard, Trash2, Star, Gift } from "lucide-react";
+import { ArrowLeft, User, X, Sparkles, Loader2, Check, Heart, Printer, CheckCircle2, CreditCard, Trash2, Star, Gift, Mail, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Service, Addon, Customer, Staff } from "@shared/schema";
 import { ReceiptContent, useReceiptPrinter, type ReceiptData } from "@/components/Receipt";
@@ -313,6 +313,10 @@ export default function POSInterface() {
   const [stripeSwipeStatus, setStripeSwipeStatus] = useState("");
   const [stripeProcessing, setStripeProcessing] = useState(false);
   const [mobileView, setMobileView] = useState<"menu" | "cart">("menu");
+  const [showSplitPayment, setShowSplitPayment] = useState(false);
+  const [splitCash, setSplitCash] = useState("");
+  const [splitCard, setSplitCard] = useState("");
+  const [emailReceiptSending, setEmailReceiptSending] = useState(false);
   const { printReceipt } = useReceiptPrinter();
 
   const { data: services, isLoading: servicesLoading } = useServices();
@@ -566,6 +570,61 @@ export default function POSInterface() {
     setReceiptData(null);
     setActiveItemIndex(null);
     setSelectedCategory(null);
+    setShowSplitPayment(false);
+    setSplitCash("");
+    setSplitCard("");
+  };
+
+  const handleSplitCheckout = () => {
+    const cashAmt = parseFloat(splitCash) || 0;
+    const cardAmt = parseFloat(splitCard) || 0;
+    const combined = cashAmt + cardAmt;
+    if (Math.abs(combined - grandTotal) > 0.01) {
+      toast({ title: "Split amounts don't match total", description: `Cash + Card must equal $${grandTotal.toFixed(2)}`, variant: "destructive" });
+      return;
+    }
+    setShowSplitPayment(false);
+    handleCheckout(`Cash:${cashAmt.toFixed(2)},Card:${cardAmt.toFixed(2)}`);
+  };
+
+  const handleEmailReceipt = async () => {
+    if (!receiptData || !client?.email || !selectedStore?.id) return;
+    setEmailReceiptSending(true);
+    try {
+      const res = await fetch("/api/pos/email-receipt", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId: selectedStore.id,
+          email: client.email,
+          storeName: selectedStore.name,
+          clientName: client.name?.split(" ")[0] || "there",
+          items: receiptData.items.map(i => ({
+            name: i.service.name,
+            price: Number(i.service.price),
+            addons: i.addons.map(a => ({ name: a.name, price: Number(a.price) })),
+          })),
+          subtotal: receiptData.subtotal,
+          tipAmount: receiptData.tipAmount,
+          grandTotal: receiptData.grandTotal,
+          paymentMethod: receiptData.paymentMethod,
+          transactionId: receiptData.transactionId,
+          dateStr: receiptData.dateStr,
+          timeStr: receiptData.timeStr,
+        }),
+      });
+      if (res.ok) {
+        toast({ title: "Receipt sent!", description: `Emailed to ${client.email}` });
+      } else {
+        const d = await res.json();
+        toast({ title: "Couldn't send receipt", description: d.message || "Please try again", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to send email receipt", variant: "destructive" });
+    } finally {
+      setEmailReceiptSending(false);
+    }
   };
 
   if (checkoutComplete && receiptData) {
@@ -621,6 +680,22 @@ export default function POSInterface() {
               <Printer className="w-4 h-4 mr-2" />
               Print Receipt
             </Button>
+            {client?.email && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleEmailReceipt}
+                disabled={emailReceiptSending}
+                data-testid="button-email-receipt"
+              >
+                {emailReceiptSending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="w-4 h-4 mr-2" />
+                )}
+                Email Receipt to {client.email}
+              </Button>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
@@ -898,7 +973,42 @@ export default function POSInterface() {
                 </div>
                 <span className="font-bold text-lg">${grandTotal.toFixed(2)}</span>
               </div>
-              <div className="flex gap-2">
+              {showSplitPayment && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <p className="text-sm font-semibold">Split Payment — Total: ${grandTotal.toFixed(2)}</p>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground">Cash</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={splitCash}
+                      onChange={e => { setSplitCash(e.target.value); setSplitCard((grandTotal - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                      placeholder="0.00"
+                      className="mt-0.5"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground">Card</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={splitCard}
+                      onChange={e => { setSplitCard(e.target.value); setSplitCash((grandTotal - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                      placeholder="0.00"
+                      className="mt-0.5"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1" onClick={handleSplitCheckout}>Confirm Split</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setShowSplitPayment(false); setSplitCash(""); setSplitCard(""); }}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          <div className="flex gap-2">
                 <Button
                   variant="outline"
                   className="flex-shrink-0"
@@ -906,6 +1016,15 @@ export default function POSInterface() {
                   onClick={() => setShowTipScreen(true)}
                 >
                   <Heart className="w-4 h-4 mr-1" /> Tip
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-shrink-0"
+                  disabled={ticketItems.length === 0}
+                  onClick={() => { setShowSplitPayment(!showSplitPayment); setSplitCash(""); setSplitCard(""); }}
+                  title="Split payment between cash and card"
+                >
+                  <Banknote className="w-4 h-4" />
                 </Button>
                 <Button
                   className="flex-1"
@@ -1163,6 +1282,41 @@ export default function POSInterface() {
             </div>
             <span className="font-bold text-lg" data-testid="pos-ticket-total">${grandTotal.toFixed(2)}</span>
           </div>
+          {showSplitPayment && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <p className="text-sm font-semibold">Split Payment — Total: ${grandTotal.toFixed(2)}</p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Cash</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCash}
+                    onChange={e => { setSplitCash(e.target.value); setSplitCard((grandTotal - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                    placeholder="0.00"
+                    className="mt-0.5"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Card</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCard}
+                    onChange={e => { setSplitCard(e.target.value); setSplitCash((grandTotal - (parseFloat(e.target.value) || 0)).toFixed(2)); }}
+                    placeholder="0.00"
+                    className="mt-0.5"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="flex-1" onClick={handleSplitCheckout} data-testid="button-split-confirm">Confirm Split</Button>
+                <Button size="sm" variant="outline" onClick={() => { setShowSplitPayment(false); setSplitCash(""); setSplitCard(""); }}>Cancel</Button>
+              </div>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -1173,6 +1327,16 @@ export default function POSInterface() {
             >
               <Heart className="w-4 h-4 mr-1" />
               Tip
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-shrink-0"
+              disabled={ticketItems.length === 0}
+              onClick={() => { setShowSplitPayment(!showSplitPayment); setSplitCash(""); setSplitCard(""); }}
+              title="Split payment between cash and card"
+              data-testid="button-pos-split"
+            >
+              <Banknote className="w-4 h-4" />
             </Button>
             <Button
               className="flex-1"

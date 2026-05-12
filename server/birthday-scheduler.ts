@@ -2,14 +2,14 @@ import { db } from "./db";
 import { sendSms } from "./sms";
 import { sendEmail } from "./mail";
 import { storage } from "./storage";
-import { customers, smsLog, locations } from "@shared/schema";
+import { customers, smsLog, locations, appointments } from "@shared/schema";
 import {
   clients,
   clientEmails,
   clientPhones,
   clientMarketingPreferences,
 } from "@shared/schema/clients";
-import { eq, and, sql, isNotNull } from "drizzle-orm";
+import { eq, and, sql, isNotNull, min } from "drizzle-orm";
 
 let birthdayIntervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -167,12 +167,97 @@ async function processBirthdaysForClientsTable(store: { id: number; name: string
   }
 }
 
+// ─── Anniversary of first visit ───────────────────────────────────────────────
+
+/**
+ * Returns true if today's month and day match the given date (any year).
+ * Used to detect "anniversary of first visit" regardless of which year it was.
+ */
+function isAnniversaryToday(date: Date | string | null | undefined): boolean {
+  if (!date) return false;
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return false;
+  const today = new Date();
+  return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+}
+
+async function processAnniversariesForStore(store: { id: number; name: string }): Promise<void> {
+  const smsSettings = await storage.getSmsSettings(store.id);
+
+  // Find each customer's earliest appointment for this store
+  const firstVisits = await db
+    .select({
+      customerId: appointments.customerId,
+      firstVisit: min(appointments.date),
+    })
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.storeId, store.id),
+        eq(appointments.status, "completed"),
+        isNotNull(appointments.customerId)
+      )
+    )
+    .groupBy(appointments.customerId);
+
+  const today = new Date();
+
+  for (const row of firstVisits) {
+    if (!row.customerId || !row.firstVisit) continue;
+
+    // Skip if first visit was this calendar year (not yet a full year)
+    const firstVisitDate = new Date(row.firstVisit);
+    if (firstVisitDate.getFullYear() >= today.getFullYear()) continue;
+
+    if (!isAnniversaryToday(firstVisitDate)) continue;
+
+    const yearsAgo = today.getFullYear() - firstVisitDate.getFullYear();
+    const messageType = `visit_anniversary_${today.getFullYear()}`;
+
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, row.customerId))
+      .limit(1);
+
+    if (!customer) continue;
+
+    const alreadySent = await alreadySentToday(store.id, customer.id, messageType);
+    if (alreadySent) continue;
+
+    if (customer.marketingOptIn === false) continue;
+
+    const firstName = customer.name?.split(" ")[0] || "there";
+    const yearLabel = yearsAgo === 1 ? "1 year" : `${yearsAgo} years`;
+
+    if (customer.phone && smsSettings) {
+      const body = `Happy ${yearLabel} anniversary, ${firstName}! 🎉 It's been ${yearLabel} since your first visit to ${store.name}. Book a treat today: ${process.env.APP_URL ? `${process.env.APP_URL}/book` : "our booking page"}`;
+      await sendSms(store.id, customer.phone, body, messageType, undefined, customer.id);
+    }
+
+    if (customer.email) {
+      const html = `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+          <h2 style="color: #5b21b6;">Happy ${yearLabel} Anniversary, ${firstName}! 🎉</h2>
+          <p>We can't believe it's already been <strong>${yearLabel}</strong> since your first visit to <strong>${store.name}</strong>.</p>
+          <p>Thank you for being a loyal client — we truly appreciate you. Treat yourself to something special today.</p>
+          <p style="margin-top: 24px;">
+            <a href="${process.env.APP_URL || "#"}/book" style="background:#5b21b6;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">Book Now</a>
+          </p>
+          <p style="color:#888;font-size:0.8rem;margin-top:24px;">You're receiving this because you opted into marketing messages at ${store.name}.</p>
+        </div>`;
+      await sendEmail(store.id, customer.email, `${yearLabel} Anniversary — Thank You, ${firstName}!`, html);
+    }
+  }
+}
+
 async function processAllBirthdays(): Promise<void> {
   const allStores = await db.select({ id: locations.id, name: locations.name }).from(locations);
   for (const store of allStores) {
     try {
       await processBirthdaysForStore(store);
       await processBirthdaysForClientsTable(store);
+      await processAnniversariesForStore(store);
     } catch (err) {
       console.error(`[Birthday] Error processing store ${store.id}:`, err);
     }

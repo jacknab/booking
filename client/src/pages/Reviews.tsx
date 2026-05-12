@@ -20,6 +20,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Loader2,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Review } from "@shared/schema";
@@ -185,6 +186,88 @@ export default function Reviews() {
     if (!appointmentId) return;
     navigator.clipboard.writeText(`${window.location.origin}/review/${appointmentId}`);
     toast({ title: "Review link copied!" });
+  };
+
+  const shareReviewAsImage = (review: Review) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1080;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Background gradient
+    const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+    grad.addColorStop(0, "#1e1b4b");
+    grad.addColorStop(1, "#312e81");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1080, 1080);
+
+    // White card
+    ctx.fillStyle = "rgba(255,255,255,0.07)";
+    ctx.beginPath();
+    ctx.roundRect(80, 80, 920, 920, 32);
+    ctx.fill();
+
+    // Stars
+    const starY = 220;
+    const starSize = 52;
+    const starGap = 12;
+    const totalStarW = review.rating * starSize + (review.rating - 1) * starGap;
+    let sx = (1080 - totalStarW) / 2;
+    ctx.fillStyle = "#facc15";
+    for (let i = 0; i < review.rating; i++) {
+      ctx.font = `${starSize}px serif`;
+      ctx.textAlign = "left";
+      ctx.fillText("★", sx, starY);
+      sx += starSize + starGap;
+    }
+
+    // Review text
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 52px sans-serif";
+    ctx.textAlign = "center";
+    const comment = review.comment ? `"${review.comment}"` : "";
+    const maxW = 820;
+    const words = comment.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxW && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    const lineH = 68;
+    const textStartY = 320;
+    lines.slice(0, 6).forEach((line, i) => {
+      ctx.fillText(line, 540, textStartY + i * lineH);
+    });
+
+    // Client name
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.font = "36px sans-serif";
+    ctx.fillText(`— ${review.customerName || "Anonymous"}`, 540, textStartY + Math.min(lines.length, 6) * lineH + 60);
+
+    // Store name at bottom
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = "28px sans-serif";
+    ctx.fillText("Powered by Certxa", 540, 950);
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `review-${review.id}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Review graphic downloaded!", description: "Ready to share on Instagram or Facebook." });
+    }, "image/png");
   };
 
   const filtered = reviewsData.filter((r) => {
@@ -479,6 +562,17 @@ export default function Reviews() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      {review.comment && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          title="Download shareable graphic for Instagram/Facebook"
+                          onClick={() => shareReviewAsImage(review)}
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       {review.appointmentId && (
                         <Button
                           size="icon"

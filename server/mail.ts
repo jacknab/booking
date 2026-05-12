@@ -292,3 +292,60 @@ export function stopEmailReminderScheduler(): void {
     emailReminderIntervalId = null;
   }
 }
+
+export async function sendPOSReceiptEmail(
+  storeId: number,
+  to: string,
+  opts: {
+    storeName: string;
+    clientName: string;
+    items: { name: string; price: number; addons?: { name: string; price: number }[] }[];
+    subtotal: number;
+    tipAmount: number;
+    grandTotal: number;
+    paymentMethod: string;
+    transactionId: string;
+    dateStr: string;
+    timeStr: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const itemRows = opts.items.map(item => {
+    const addonRows = (item.addons || []).map(a =>
+      `<tr><td style="padding:4px 0 4px 16px;color:#666;font-size:13px;">+ ${a.name}</td><td style="padding:4px 0;text-align:right;color:#666;font-size:13px;">$${a.price.toFixed(2)}</td></tr>`
+    ).join("");
+    return `<tr><td style="padding:6px 0;font-size:14px;">${item.name}</td><td style="padding:6px 0;text-align:right;font-size:14px;font-weight:600;">$${item.price.toFixed(2)}</td></tr>${addonRows}`;
+  }).join("");
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#fff;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <h2 style="margin:0;font-size:20px;color:#111;">${opts.storeName}</h2>
+        <p style="margin:4px 0 0;color:#888;font-size:13px;">Receipt — ${opts.dateStr} at ${opts.timeStr}</p>
+      </div>
+      <p style="font-size:14px;color:#333;">Hi ${opts.clientName}, thank you for your visit! Here's your receipt.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <thead>
+          <tr style="border-bottom:2px solid #eee;">
+            <th style="text-align:left;padding:8px 0;font-size:13px;color:#888;font-weight:500;">Service</th>
+            <th style="text-align:right;padding:8px 0;font-size:13px;color:#888;font-weight:500;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr style="border-top:1px solid #eee;">
+            <td style="padding:8px 0;font-size:13px;color:#666;">Subtotal</td>
+            <td style="padding:8px 0;text-align:right;font-size:13px;color:#666;">$${opts.subtotal.toFixed(2)}</td>
+          </tr>
+          ${opts.tipAmount > 0 ? `<tr><td style="padding:4px 0;font-size:13px;color:#666;">Tip</td><td style="padding:4px 0;text-align:right;font-size:13px;color:#666;">$${opts.tipAmount.toFixed(2)}</td></tr>` : ""}
+          <tr style="border-top:2px solid #111;">
+            <td style="padding:10px 0;font-size:16px;font-weight:700;">Total</td>
+            <td style="padding:10px 0;text-align:right;font-size:16px;font-weight:700;">$${opts.grandTotal.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <p style="font-size:13px;color:#666;margin:0;">Payment: ${opts.paymentMethod} &nbsp;·&nbsp; Ref #${opts.transactionId}</p>
+      <p style="font-size:11px;color:#bbb;margin-top:24px;text-align:center;">Powered by Certxa</p>
+    </div>`;
+
+  return sendEmail(storeId, to, `Your receipt from ${opts.storeName}`, html);
+}

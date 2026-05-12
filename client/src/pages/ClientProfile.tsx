@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { formatInTz } from "@/lib/timezone";
-import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy, AlertTriangle, Brain, TrendingUp, Zap, Send, RefreshCw } from "lucide-react";
+import { ArrowLeft, Phone, Mail, ChevronRight, Calendar, Clock, FileText, CreditCard, ShoppingBag, X, Star, Copy, AlertTriangle, Brain, TrendingUp, Zap, Send, RefreshCw, Camera, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Customer, AppointmentWithDetails, Review } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -59,6 +59,7 @@ export default function ClientProfile() {
   const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const { data: client, isLoading: clientLoading } = useQuery<Customer>({
     queryKey: ["/api/customers", clientId],
@@ -647,11 +648,57 @@ export default function ClientProfile() {
         </div>
 
         <div className="p-6 flex flex-col items-center text-center border-b">
-          <Avatar className="w-16 h-16 mb-3">
-            <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary" data-testid="client-avatar">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative group mb-3">
+            <Avatar className="w-16 h-16">
+              {(client as any).avatarUrl && <AvatarImage src={(client as any).avatarUrl} alt={client.name} />}
+              <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary" data-testid="client-avatar">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <label
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              title="Upload photo"
+            >
+              {photoUploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) {
+                    toast({ title: "Photo too large", description: "Please choose an image under 2MB", variant: "destructive" });
+                    return;
+                  }
+                  setPhotoUploading(true);
+                  const reader = new FileReader();
+                  reader.onload = async (ev) => {
+                    const dataUrl = ev.target?.result as string;
+                    try {
+                      const res = await fetch(`/api/customers/${clientId}/photo`, {
+                        method: "POST",
+                        credentials: "include",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ photoDataUrl: dataUrl }),
+                      });
+                      if (res.ok) {
+                        queryClient.invalidateQueries({ queryKey: ["/api/customers", clientId] });
+                        toast({ title: "Photo updated!" });
+                      } else {
+                        toast({ title: "Upload failed", variant: "destructive" });
+                      }
+                    } catch {
+                      toast({ title: "Upload failed", variant: "destructive" });
+                    } finally {
+                      setPhotoUploading(false);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </label>
+          </div>
           <h2 className="text-lg font-bold" data-testid="client-name">{client.name}</h2>
           {client.phone && (
             <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground">
