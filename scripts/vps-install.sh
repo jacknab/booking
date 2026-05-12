@@ -305,8 +305,9 @@ ok ".env written (permissions: 600 — root-only)"
 # ══════════════════════════════════════════════════════════════════════════════
 step "Step 5/10 — Installing npm dependencies"
 
-# Use npm install (not ci) so it works with or without a lockfile
-npm install --prefer-offline --loglevel=warn 2>&1 | grep -v "^npm warn" | tail -5
+# NODE_ENV=production (set in .env above) causes npm to skip devDependencies.
+# Override it here so tsx, vite, esbuild and other build tools get installed.
+NODE_ENV=development npm install --prefer-offline --loglevel=warn 2>&1 | grep -v "^npm warn" | tail -5
 ok "npm dependencies installed"
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -364,78 +365,123 @@ ok "Build complete — $ASSET_COUNT JS asset(s) in dist/public/assets/"
 # ══════════════════════════════════════════════════════════════════════════════
 step "Step 8/10 — nginx configuration"
 
-NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}"
-NGINX_ENABLED="/etc/nginx/sites-enabled/${DOMAIN}"
+mkdir -p /var/www/certbot
 
-# Write the nginx config (HTTP-only first so certbot can issue the cert)
-cat > "$NGINX_CONF" << NGINXCONF
+# ── Find any existing SSL cert for this domain (checks common Let's Encrypt paths) ──
+SSL_CERT_DIR=""
+for _candidate in \
+  "/etc/letsencrypt/live/${DOMAIN}" \
+  "/etc/letsencrypt/live/www.${DOMAIN}" \
+  "/etc/letsencrypt/live/${DOMAIN}-0001" \
+  "/etc/letsencrypt/live/${DOMAIN}-0002"; do
+  if [[ -f "${_candidate}/fullchain.pem" && -f "${_candidate}/privkey.pem" ]]; then
+    SSL_CERT_DIR="$_candidate"
+    break
+  fi
+done
+
+if [[ -n "$SSL_CERT_DIR" ]]; then
+  ok "Existing SSL certificate found: $SSL_CERT_DIR"
+else
+  warn "No SSL certificate found yet — will write HTTP-only nginx config for now"
+fi
+
+# ── Find the nginx config file for this domain (may be named differently) ────
+NGINX_CONF=""
+for _candidate in \
+  "/etc/nginx/sites-available/${DOMAIN}" \
+  "/etc/nginx/sites-available/certxa" \
+  "/etc/nginx/sites-available/certxa.conf" \
+  "/etc/nginx/conf.d/${DOMAIN}.conf" \
+  "/etc/nginx/conf.d/certxa.conf"; do
+  if [[ -f "$_candidate" ]]; then
+    NGINX_CONF="$_candidate"
+    break
+  fi
+done
+
+# Decide the target config path (use existing one if found, else create new)
+NGINX_CONF_TARGET="${NGINX_CONF:-/etc/nginx/sites-available/${DOMAIN}}"
+
+# ── Check if the existing config already looks correct ───────────────────────
+NGINX_NEEDS_REWRITE=1
+if [[ -n "$NGINX_CONF" ]]; then
+  # Config is correct if it proxies to the right port AND has SSL if cert exists
+  _proxies_right_port=0
+  _has_ssl_block=0
+  grep -q "127.0.0.1:${APP_PORT}" "$NGINX_CONF" && _proxies_right_port=1
+  grep -q "listen 443" "$NGINX_CONF"            && _has_ssl_block=1
+
+  if [[ "$_proxies_right_port" -eq 1 ]]; then
+    if [[ -n "$SSL_CERT_DIR" && "$_has_ssl_block" -eq 1 ]]; then
+      ok "Existing nginx config already correct (port ${APP_PORT}, HTTPS enabled)"
+      NGINX_NEEDS_REWRITE=0
+    elif [[ -z "$SSL_CERT_DIR" && "$_has_ssl_block" -eq 0 ]]; then
+      ok "Existing nginx config already correct (port ${APP_PORT}, HTTP-only — no cert yet)"
+      NGINX_NEEDS_REWRITE=0
+    elif [[ -n "$SSL_CERT_DIR" && "$_has_ssl_block" -eq 0 ]]; then
+      warn "Existing config found but is missing the HTTPS block — will add it now"
+    elif [[ "$_proxies_right_port" -eq 0 ]]; then
+      warn "Existing config routes to a different port — will update to ${APP_PORT}"
+    fi
+  else
+    warn "Existing nginx config found but proxies to wrong port — will rewrite for port ${APP_PORT}"
+  fi
+fi
+
+# ── Write (or rewrite) the nginx config ──────────────────────────────────────
+write_nginx_config() {
+  local cert_dir="$1"   # empty = HTTP-only, non-empty = include HTTPS block
+
+  if [[ -n "$cert_dir" ]]; then
+    # Full HTTP + HTTPS config
+    cat > "$NGINX_CONF_TARGET" << NGINXFULL
 # ── Rate limiting ──────────────────────────────────────────────────────────────
 limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
 limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
 
-# ── HTTP server (also serves the ACME challenge for Let's Encrypt) ─────────────
+# ── HTTP → HTTPS redirect ──────────────────────────────────────────────────────
 server {
     listen 80;
     listen [::]:80;
     server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
-
-    # Let's Encrypt ACME challenge
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    # Redirect everything else to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://\$host\$request_uri; }
 }
 
 # ── HTTPS server ───────────────────────────────────────────────────────────────
-# NOTE: If certbot hasn't run yet, comment out this block until SSL is issued.
-#       Uncomment it after running: certbot --nginx -d ${DOMAIN} -d www.${DOMAIN}
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
 
-    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate     ${cert_dir}/fullchain.pem;
+    ssl_certificate_key ${cert_dir}/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
     ssl_session_cache   shared:SSL:10m;
     ssl_session_timeout 10m;
 
-    # Security headers (app also sets these — belt and suspenders)
     add_header X-Frame-Options SAMEORIGIN always;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
-
-    # Client upload limit (profile photos, import files)
     client_max_body_size 55M;
 
-    # Proxy everything to Node
     location / {
         proxy_pass         http://127.0.0.1:${APP_PORT};
         proxy_http_version 1.1;
-
-        # WebSocket support (Vite HMR in dev + internal WS connections)
         proxy_set_header Upgrade    \$http_upgrade;
         proxy_set_header Connection "upgrade";
-
-        # Pass real client info through
         proxy_set_header Host              \$host;
         proxy_set_header X-Real-IP         \$remote_addr;
         proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header X-Forwarded-Host  \$host;
-
-        # Timeouts — long for AI/PDF generation requests
         proxy_connect_timeout 60s;
         proxy_send_timeout    120s;
         proxy_read_timeout    120s;
     }
 
-    # Rate-limit auth endpoints at the nginx layer too
     location /api/auth/ {
         limit_req zone=certxa_auth burst=5 nodelay;
         proxy_pass         http://127.0.0.1:${APP_PORT};
@@ -447,56 +493,84 @@ server {
         proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
     }
 
-    # Cache hashed JS/CSS assets for 1 year
     location /assets/ {
         proxy_pass http://127.0.0.1:${APP_PORT};
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 }
-NGINXCONF
+NGINXFULL
+  else
+    # HTTP-only config (SSL cert not available yet)
+    cat > "$NGINX_CONF_TARGET" << NGINXHTTP
+# ── Rate limiting ──────────────────────────────────────────────────────────────
+limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
+limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
 
-# Create ACME webroot so certbot can write to it
-mkdir -p /var/www/certbot
+# ── HTTP server (HTTPS redirect added once SSL cert is issued) ─────────────────
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
 
-# Enable the site
-if [[ ! -L "$NGINX_ENABLED" ]]; then
-  ln -sf "$NGINX_CONF" "$NGINX_ENABLED"
-  ok "nginx site enabled: $NGINX_ENABLED"
+    # Let's Encrypt ACME challenge (needed when issuing the cert)
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+
+    location / {
+        proxy_pass         http://127.0.0.1:${APP_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host              \$host;
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host  \$host;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout    120s;
+        proxy_read_timeout    120s;
+    }
+
+    location /assets/ {
+        proxy_pass http://127.0.0.1:${APP_PORT};
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
+NGINXHTTP
+  fi
+}
+
+if [[ "$NGINX_NEEDS_REWRITE" -eq 1 ]]; then
+  # Back up the existing config if present
+  if [[ -n "$NGINX_CONF" && -f "$NGINX_CONF" ]]; then
+    cp "$NGINX_CONF" "${NGINX_CONF}.bak.$(date +%Y%m%d%H%M%S)"
+    warn "Existing nginx config backed up as ${NGINX_CONF}.bak.*"
+  fi
+  write_nginx_config "$SSL_CERT_DIR"
+  ok "nginx config written: $NGINX_CONF_TARGET"
 fi
 
-# Disable the default nginx site (it catches all traffic otherwise)
+# ── Enable the site (symlink in sites-enabled) ────────────────────────────────
+NGINX_ENABLED_LINK="/etc/nginx/sites-enabled/$(basename "$NGINX_CONF_TARGET")"
+if [[ ! -L "$NGINX_ENABLED_LINK" ]]; then
+  ln -sf "$NGINX_CONF_TARGET" "$NGINX_ENABLED_LINK"
+  ok "nginx site enabled: $NGINX_ENABLED_LINK"
+else
+  ok "nginx site already enabled: $NGINX_ENABLED_LINK"
+fi
+
+# ── Disable the default site (it catches all traffic if left enabled) ─────────
 if [[ -L "/etc/nginx/sites-enabled/default" ]]; then
   rm -f /etc/nginx/sites-enabled/default
   ok "Default nginx site disabled"
 fi
 
-# Test without the HTTPS block if SSL cert doesn't exist yet
-if [[ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
-  warn "SSL cert not found yet — temporarily disabling the HTTPS server block for nginx -t"
-  # Comment out the HTTPS server block so nginx -t passes before cert exists
-  sed '/listen 443/,/^}/{ /listen 443/{ h; d }; /^}/{ H; g; s/^/# /mg; p; d }; H; d }' \
-    "$NGINX_CONF" > /tmp/certxa-nginx-test.conf 2>/dev/null || true
-
-  # Simpler approach: write a temporary HTTP-only config for the test
-  cat > /tmp/certxa-nginx-http-only.conf << HTTPONLY
-limit_req_zone \$binary_remote_addr zone=certxa_api_tmp:10m rate=30r/m;
-limit_req_zone \$binary_remote_addr zone=certxa_auth_tmp:10m rate=10r/m;
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN};
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
-    location / { return 301 https://\$host\$request_uri; }
-}
-HTTPONLY
-  cp /tmp/certxa-nginx-http-only.conf "$NGINX_CONF"
-fi
-
+# ── Validate and reload ───────────────────────────────────────────────────────
 if nginx -t 2>&1; then
   systemctl reload nginx
-  ok "nginx configured and reloaded"
+  ok "nginx validated and reloaded"
 else
-  fail "nginx config test failed — check the config at $NGINX_CONF"
+  fail "nginx config test failed. Config is at: $NGINX_CONF_TARGET"
+  fail "Original backed up as: ${NGINX_CONF_TARGET}.bak.*"
   nginx -t
   exit 1
 fi
@@ -507,69 +581,24 @@ fi
 step "Step 9/10 — SSL certificate"
 
 if [[ "${SKIP_SSL:-0}" == "1" ]]; then
-  warn "Skipping SSL (SKIP_SSL=1) — configure your SSL/Cloudflare manually."
-  warn "You will need to update $NGINX_CONF with your cert paths and reload nginx."
+  warn "Skipping SSL (SKIP_SSL=1) — configure SSL manually and reload nginx."
 
-elif [[ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
-  ok "SSL certificate already exists for ${DOMAIN}"
-  # Make sure the full nginx config (with HTTPS block) is in place
-  cat > "$NGINX_CONF" << NGINXCONF2
-limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
-limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
-    location / { return 301 https://\$host\$request_uri; }
-}
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
-    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    add_header X-Frame-Options SAMEORIGIN always;
-    add_header X-Content-Type-Options nosniff always;
-    client_max_body_size 55M;
-    location / {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 120s;
-        proxy_read_timeout 120s;
-    }
-    location /api/auth/ {
-        limit_req zone=certxa_auth burst=5 nodelay;
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }
-    location /assets/ {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        add_header Cache-Control "public, max-age=31536000, immutable";
-    }
-}
-NGINXCONF2
-  nginx -t && systemctl reload nginx
-  ok "nginx reloaded with full HTTPS config"
+elif [[ -n "$SSL_CERT_DIR" ]]; then
+  ok "SSL certificate already exists at $SSL_CERT_DIR — skipping certbot"
+  ok "nginx is already configured to use it"
+
+  # Make sure auto-renewal is set up (may not be if cert was issued manually)
+  if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
+    (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") \
+      | sort -u | crontab -
+    ok "SSL auto-renewal cron job added (daily at 3am)"
+  else
+    ok "SSL auto-renewal already scheduled"
+  fi
 
 else
-  info "Requesting SSL certificate from Let's Encrypt for ${DOMAIN}..."
-  info "(Make sure ${DOMAIN} and www.${DOMAIN} already point to this server's IP in DNS)"
+  info "No SSL certificate found — requesting one from Let's Encrypt..."
+  info "Make sure ${DOMAIN} and www.${DOMAIN} DNS records point to this server's IP first."
   echo ""
 
   if certbot certonly --webroot \
@@ -582,63 +611,21 @@ else
     -d "manage.${DOMAIN}" \
     2>&1; then
 
-    ok "SSL certificate issued for ${DOMAIN}"
+    # Find the cert that was just issued
+    SSL_CERT_DIR=""
+    for _candidate in \
+      "/etc/letsencrypt/live/${DOMAIN}" \
+      "/etc/letsencrypt/live/${DOMAIN}-0001"; do
+      if [[ -f "${_candidate}/fullchain.pem" ]]; then
+        SSL_CERT_DIR="$_candidate"
+        break
+      fi
+    done
 
-    # Write the full nginx config now that the cert exists
-    cat > "$NGINX_CONF" << NGINXFULL
-limit_req_zone \$binary_remote_addr zone=certxa_api:10m rate=30r/m;
-limit_req_zone \$binary_remote_addr zone=certxa_auth:10m rate=10r/m;
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
-    location / { return 301 https://\$host\$request_uri; }
-}
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ${DOMAIN} www.${DOMAIN} manage.${DOMAIN} *.${DOMAIN};
-    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    add_header X-Frame-Options SAMEORIGIN always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header Referrer-Policy strict-origin-when-cross-origin always;
-    client_max_body_size 55M;
-    location / {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 120s;
-        proxy_read_timeout 120s;
-    }
-    location /api/auth/ {
-        limit_req zone=certxa_auth burst=5 nodelay;
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }
-    location /assets/ {
-        proxy_pass http://127.0.0.1:${APP_PORT};
-        add_header Cache-Control "public, max-age=31536000, immutable";
-    }
-}
-NGINXFULL
+    ok "SSL certificate issued: $SSL_CERT_DIR"
+
+    # Rewrite nginx config with the HTTPS block now that the cert exists
+    write_nginx_config "$SSL_CERT_DIR"
     nginx -t && systemctl reload nginx
     ok "nginx reloaded with HTTPS enabled"
 
@@ -649,13 +636,13 @@ NGINXFULL
 
   else
     warn "certbot could not issue a certificate automatically."
-    warn "This usually means ${DOMAIN} doesn't point to this IP yet."
+    warn "This usually means the domain DNS doesn't point here yet, or port 80 is blocked."
     warn ""
-    warn "Once your DNS is ready, run manually:"
-    warn "  certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d manage.${DOMAIN}"
-    warn "  systemctl reload nginx"
+    warn "Once DNS is ready, run manually:"
+    warn "  certbot certonly --webroot --webroot-path /var/www/certbot -d ${DOMAIN} -d www.${DOMAIN}"
+    warn "  # Then re-run this script — it will detect the cert and update nginx."
     warn ""
-    warn "Continuing setup without HTTPS for now (HTTP only)."
+    warn "Continuing with HTTP-only for now."
   fi
 fi
 
