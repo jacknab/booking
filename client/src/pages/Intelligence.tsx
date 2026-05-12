@@ -669,6 +669,24 @@ export default function Intelligence() {
           </div>
         </div>
 
+        {/* Demo session timer — only shown to demo account while engines are active */}
+        {isDemoAccount && demoStatus === "cooldown" && demoMsLeft > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 dark:border-violet-800 dark:bg-violet-950/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Zap className="h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" />
+              <p className="text-sm text-violet-800 dark:text-violet-300 font-medium truncate">
+                You're in the live demo — explore every tab. This session resets automatically for the next person.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Clock className="h-3.5 w-3.5 text-violet-500 dark:text-violet-400" />
+              <span className="text-sm font-mono font-semibold text-violet-700 dark:text-violet-300 tabular-nums">
+                {formatCountdown(demoMsLeft)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Top KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
