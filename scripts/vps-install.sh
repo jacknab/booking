@@ -1,30 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  vps-install.sh — Certxa Complete First-Time VPS Setup
+#  vps-install.sh — Certxa Complete VPS Setup / Repair Script
 #
-#  Runs on a fresh Ubuntu 22.04 / 24.04 VPS (or any Debian-based system).
+#  Runs on a fresh OR existing Ubuntu 22.04 / 24.04 VPS.
 #  Safe to re-run — every step checks before acting.
 #
-#  What it does (fully unattended after the initial questions):
-#    1.  Install system packages (Node 20, PHP 8.3, PostgreSQL, nginx, certbot)
-#    2.  Install PM2 process manager
-#    3.  Create the PostgreSQL database and user
-#    4.  Write a complete .env file (SESSION_SECRET auto-generated)
-#    5.  Install npm dependencies
-#    6.  Build the production bundle (Vite + SSR + Express)
-#    7.  Write nginx config and reload
-#    8.  Issue a Let's Encrypt SSL certificate (certbot)
-#    9.  Start the app under PM2 (migrations run automatically on first boot)
-#    10. Health check and final summary
+#  MODES:
 #
-#  Usage:
+#  Normal (first-time or re-run):
 #    bash scripts/vps-install.sh
+#    Asks a few questions, then does everything fully unattended.
 #
-#  Skip SSL (if you handle SSL yourself / Cloudflare):
-#    SKIP_SSL=1 bash scripts/vps-install.sh
+#  Repair (existing server — no questions asked):
+#    bash scripts/vps-install.sh --repair
+#    Reads all values from the existing .env, skips package install questions,
+#    rebuilds, fixes nginx/SSL if needed, and restarts PM2.
+#    Use this when the app goes down and you need a one-command recovery.
 #
-#  Skip git pull (code already on disk):
-#    SKIP_GIT=1 bash scripts/vps-install.sh
+#  Flags (work in both modes):
+#    SKIP_SSL=1   — skip Let's Encrypt (use when SSL is handled by Cloudflare etc.)
+#    SKIP_GIT=1   — skip git pull (use when code is already up to date on disk)
 # =============================================================================
 set -euo pipefail
 
@@ -63,53 +58,124 @@ if [[ ! -f "$APP_DIR/package.json" ]] || ! grep -q '"name"' "$APP_DIR/package.js
   exit 1
 fi
 
-echo ""
-banner "╔══════════════════════════════════════════════════════════════╗"
-banner "║          Certxa — Complete VPS Setup Script                 ║"
-banner "╚══════════════════════════════════════════════════════════════╝"
-echo ""
-warn "This installs system packages and configures nginx. Run as root or with sudo."
-echo ""
-
-# ── Collect everything up-front so the rest runs unattended ──────────────────
-echo "  Please answer a few questions. Press Enter to accept defaults."
-echo ""
-
-ask "Your domain (e.g. certxa.com — no https://, no www):" DOMAIN
-[[ -z "$DOMAIN" ]] && { fail "Domain is required."; exit 1; }
-
 APP_PORT="8100"
-ask_default "PostgreSQL database name:" DB_NAME "certxa_db"
-ask_default "PostgreSQL user name:" DB_USER "certxa_user"
 
-echo -e "${YELLOW}  ? PostgreSQL password ${DIM}(blank = auto-generate)${NC}"
-read -r -s -p "    → " DB_PASS
-echo ""
-if [[ -z "$DB_PASS" ]]; then
-  DB_PASS="$(openssl rand -hex 24)"
-  warn "Generated DB password: ${BOLD}$DB_PASS${NC}  ← save this somewhere safe!"
+# ── Detect repair mode ────────────────────────────────────────────────────────
+REPAIR_MODE=0
+for arg in "$@"; do
+  [[ "$arg" == "--repair" ]] && REPAIR_MODE=1
+done
+
+if [[ "$REPAIR_MODE" == "1" ]]; then
+  echo ""
+  banner "╔══════════════════════════════════════════════════════════════╗"
+  banner "║               Certxa — Repair / Recovery Mode               ║"
+  banner "╚══════════════════════════════════════════════════════════════╝"
+  echo ""
+  warn "Running in REPAIR mode — all values will be read from the existing .env."
+  echo ""
+
+  ENV_FILE="$APP_DIR/.env"
+  if [[ ! -f "$ENV_FILE" ]]; then
+    fail "No .env file found at $ENV_FILE — cannot repair without it."
+    fail "Run without --repair to do a fresh install instead."
+    exit 1
+  fi
+
+  # Helper: extract a value from .env (handles quoted and unquoted values)
+  env_val() {
+    local key="$1"
+    grep -E "^${key}=" "$ENV_FILE" | head -1 | sed -E "s/^${key}=//;s/^['\"]//;s/['\"]$//"
+  }
+
+  DOMAIN="$(env_val APP_URL | sed -E 's|https?://(www\.)?||;s|/.*||')"
+  [[ -z "$DOMAIN" ]] && DOMAIN="$(env_val DOMAIN)"
+  if [[ -z "$DOMAIN" ]]; then
+    fail "Could not determine DOMAIN from .env (APP_URL or DOMAIN key missing)."
+    ask "Enter your domain manually (e.g. certxa.com):" DOMAIN
+    [[ -z "$DOMAIN" ]] && { fail "Domain is required."; exit 1; }
+  fi
+
+  DATABASE_URL="$(env_val DATABASE_URL)"
+  if [[ -z "$DATABASE_URL" ]]; then
+    fail "DATABASE_URL not found in .env — cannot repair database connection."
+    exit 1
+  fi
+
+  # Extract DB components from DATABASE_URL
+  # Format: postgresql://user:pass@host:port/dbname?...
+  DB_USER="$(echo "$DATABASE_URL" | sed -E 's|postgresql://([^:]+):.*|\1|')"
+  DB_PASS="$(echo "$DATABASE_URL" | sed -E 's|postgresql://[^:]+:([^@]+)@.*|\1|')"
+  DB_NAME="$(echo "$DATABASE_URL" | sed -E 's|.*/([^?]+)(\?.*)?$|\1|')"
+
+  # Load remaining API keys from .env so they survive the repair
+  GOOGLE_CLIENT_ID="$(env_val GOOGLE_CLIENT_ID)"
+  GOOGLE_CLIENT_SECRET="$(env_val GOOGLE_CLIENT_SECRET)"
+  MAILGUN_API_KEY="$(env_val MAILGUN_API_KEY)"
+  MAILGUN_DOMAIN="$(env_val MAILGUN_DOMAIN)"
+  TWILIO_SID="$(env_val TWILIO_ACCOUNT_SID)"
+  TWILIO_TOKEN="$(env_val TWILIO_AUTH_TOKEN)"
+  TWILIO_PHONE="$(env_val TWILIO_PHONE_NUMBER)"
+  STRIPE_KEY="$(env_val STRIPE_SECRET_KEY)"
+  OPENAI_KEY="$(env_val OPENAI_API_KEY)"
+
+  ok "Read configuration from .env"
+  info "  Domain      : $DOMAIN"
+  info "  DB name     : $DB_NAME"
+  info "  DB user     : $DB_USER"
+  info "  App port    : $APP_PORT"
+  echo ""
+  info "Starting repair — this usually takes 3-8 minutes."
+  echo ""
+
+else
+  echo ""
+  banner "╔══════════════════════════════════════════════════════════════╗"
+  banner "║          Certxa — Complete VPS Setup Script                 ║"
+  banner "╚══════════════════════════════════════════════════════════════╝"
+  echo ""
+  warn "This installs system packages and configures nginx. Run as root or with sudo."
+  echo ""
+
+  # ── Collect everything up-front so the rest runs unattended ────────────────
+  echo "  Please answer a few questions. Press Enter to accept defaults."
+  echo ""
+
+  ask "Your domain (e.g. certxa.com — no https://, no www):" DOMAIN
+  [[ -z "$DOMAIN" ]] && { fail "Domain is required."; exit 1; }
+
+  ask_default "PostgreSQL database name:" DB_NAME "certxa_db"
+  ask_default "PostgreSQL user name:" DB_USER "certxa_user"
+
+  echo -e "${YELLOW}  ? PostgreSQL password ${DIM}(blank = auto-generate)${NC}"
+  read -r -s -p "    → " DB_PASS
+  echo ""
+  if [[ -z "$DB_PASS" ]]; then
+    DB_PASS="$(openssl rand -hex 24)"
+    warn "Generated DB password: ${BOLD}$DB_PASS${NC}  ← save this somewhere safe!"
+  fi
+
+  echo ""
+  echo "  Now enter your API keys. All are optional — skip with Enter and add later."
+  echo ""
+
+  ask_secret "Google OAuth Client ID:" GOOGLE_CLIENT_ID
+  ask_secret "Google OAuth Client Secret:" GOOGLE_CLIENT_SECRET
+  ask_secret "Mailgun API Key:" MAILGUN_API_KEY
+  ask_default "Mailgun domain (e.g. mg.${DOMAIN}):" MAILGUN_DOMAIN "mg.${DOMAIN}"
+  ask_secret "Twilio Account SID:" TWILIO_SID
+  ask_secret "Twilio Auth Token:" TWILIO_TOKEN
+  ask_default "Twilio phone number:" TWILIO_PHONE "+18888147623"
+  ask_secret "Stripe Secret Key:" STRIPE_KEY
+  ask_secret "OpenAI API Key:" OPENAI_KEY
+
+  echo ""
+  info "All answers collected — starting fully automated setup."
+  info "This will take 5-15 minutes depending on server speed."
+  echo ""
+
+  DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:5432/${DB_NAME}?sslmode=disable"
 fi
-
-echo ""
-echo "  Now enter your API keys. All are optional — skip with Enter and add later."
-echo ""
-
-ask_secret "Google OAuth Client ID:" GOOGLE_CLIENT_ID
-ask_secret "Google OAuth Client Secret:" GOOGLE_CLIENT_SECRET
-ask_secret "Mailgun API Key:" MAILGUN_API_KEY
-ask_default "Mailgun domain (e.g. mg.${DOMAIN}):" MAILGUN_DOMAIN "mg.${DOMAIN}"
-ask_secret "Twilio Account SID:" TWILIO_SID
-ask_secret "Twilio Auth Token:" TWILIO_TOKEN
-ask_default "Twilio phone number:" TWILIO_PHONE "+18888147623"
-ask_secret "Stripe Secret Key:" STRIPE_KEY
-ask_secret "OpenAI API Key:" OPENAI_KEY
-
-echo ""
-info "All answers collected — starting fully automated setup."
-info "This will take 5-15 minutes depending on server speed."
-echo ""
-
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:5432/${DB_NAME}?sslmode=disable"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 1 — System packages
@@ -236,6 +302,10 @@ fi
 # ══════════════════════════════════════════════════════════════════════════════
 step "Step 4/10 — Environment file (.env)"
 
+if [[ "$REPAIR_MODE" == "1" ]]; then
+  ok ".env kept as-is (repair mode — existing credentials preserved)"
+else
+
 SESSION_SECRET="$(openssl rand -hex 64)"
 
 if [[ -f "$APP_DIR/.env" ]]; then
@@ -299,6 +369,8 @@ ENVFILE
 
 chmod 600 "$APP_DIR/.env"
 ok ".env written (permissions: 600 — root-only)"
+
+fi  # end repair-mode skip block for .env
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 5 — npm dependencies

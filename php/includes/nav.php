@@ -19,10 +19,6 @@
             <a href="/online-booking"><span class="nav-dot"></span>Online Booking</a>
             <a href="/client-management"><span class="nav-dot"></span>Client Management</a>
             <a href="/client-notifications"><span class="nav-dot"></span>Client Notifications</a>
-            <div class="dropdown-section" style="margin-top:10px;">Payments &amp; Revenue</div>
-            <a href="/payments"><span class="nav-dot"></span>Payment Solutions</a>
-            <a href="/card-reader-pos"><span class="nav-dot"></span>Card Reader &amp; POS</a>
-            <a href="/payment-processing"><span class="nav-dot"></span>Payment Processing</a>
             <div class="dropdown-section" style="margin-top:10px;">Revenue &amp; Intelligence</div>
             <a href="/revenue-intelligence" style="font-weight:600;"><span class="nav-dot" style="background:#a78bfa;"></span>Revenue Intelligence</a>
             <div class="dropdown-section" style="margin-top:10px;">Build Your Brand</div>

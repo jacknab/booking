@@ -36,13 +36,6 @@ const NAV_ITEMS: NavItem[] = [
         ],
       },
       {
-        section: "Payments & Revenue",
-        items: [
-          { label: "Payment Solutions",   href: "/payments.php" },
-          { label: "Card Reader & POS",   href: "/card-reader-pos.php" },
-        ],
-      },
-      {
         section: "Build Your Brand",
         items: [
           { label: "Reserve With Google", href: "/reserve-with-google.php" },
