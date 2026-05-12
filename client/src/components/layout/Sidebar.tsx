@@ -223,9 +223,19 @@ export function Sidebar({ onLinkClick }: { onLinkClick?: () => void }) {
     <aside className="w-64 border-r border-border/60 bg-background/95 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold" onClick={onLinkClick}>
-            <img src="/web-app.png" alt="Logo" className="h-6 w-6" />
-            <span>Certxa</span>
+          <Link to="/" className="flex items-center" onClick={onLinkClick}>
+            <span
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 700,
+                fontSize: "1.55rem",
+                letterSpacing: "-0.02em",
+                color: "#3B0764",
+                lineHeight: 1,
+              }}
+            >
+              Certxa<span style={{ color: "#F59E0B" }}>.</span>
+            </span>
           </Link>
         </div>
         
