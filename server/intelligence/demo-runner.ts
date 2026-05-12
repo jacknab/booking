@@ -4,6 +4,8 @@ import {
   clientIntelligence,
   staffIntelligence,
   growthScoreSnapshots,
+  deadSeatPatterns,
+  intelligenceInterventions,
 } from "../../shared/schema/intelligence";
 import { computeClientCadence } from "./cadence";
 import { computeClientLtv } from "./ltv";
@@ -30,6 +32,13 @@ export async function runDemoEngines(
   storeId: number,
   emit: (event: DemoEngineEvent) => void
 ): Promise<void> {
+
+  // ── Wipe stale intelligence data so every run starts from zero ───────────
+  await db.delete(intelligenceInterventions).where(eq(intelligenceInterventions.storeId, storeId));
+  await db.delete(clientIntelligence).where(eq(clientIntelligence.storeId, storeId));
+  await db.delete(staffIntelligence).where(eq(staffIntelligence.storeId, storeId));
+  await db.delete(growthScoreSnapshots).where(eq(growthScoreSnapshots.storeId, storeId));
+  await db.delete(deadSeatPatterns).where(eq(deadSeatPatterns.storeId, storeId));
 
   // ── Phase 1: Data Scan ────────────────────────────────────────────────────
   emit({

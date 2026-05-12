@@ -22,6 +22,13 @@ import {
   googleBusinessSyncLogs, googleReviews, googleReviewResponses,
   passwordResetTokens,
 } from "../../shared/schema";
+import {
+  clientIntelligence,
+  staffIntelligence,
+  growthScoreSnapshots,
+  deadSeatPatterns,
+  intelligenceInterventions,
+} from "../../shared/schema/intelligence";
 import { eq, inArray } from "drizzle-orm";
 
 export async function resetDemoAccount(EMAIL: string, SLUG: string): Promise<void> {
@@ -109,6 +116,14 @@ export async function resetDemoAccount(EMAIL: string, SLUG: string): Promise<voi
     await db.delete(products).where(eq(products.storeId, storeId));
     await db.delete(waitlist).where(eq(waitlist.storeId, storeId));
     console.log("    ✓ store settings & config");
+
+    // ── Intelligence tables (not store-FK-cascaded, must delete explicitly) ──
+    await db.delete(intelligenceInterventions).where(eq(intelligenceInterventions.storeId, storeId));
+    await db.delete(clientIntelligence).where(eq(clientIntelligence.storeId, storeId));
+    await db.delete(staffIntelligence).where(eq(staffIntelligence.storeId, storeId));
+    await db.delete(growthScoreSnapshots).where(eq(growthScoreSnapshots.storeId, storeId));
+    await db.delete(deadSeatPatterns).where(eq(deadSeatPatterns.storeId, storeId));
+    console.log("    ✓ intelligence data");
 
     await db.delete(locations).where(eq(locations.id, storeId));
     console.log("    ✓ store record");

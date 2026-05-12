@@ -167,7 +167,7 @@ export default function Intelligence() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
-  const isDemoAccount = DEMO_EMAILS.includes(user?.email ?? "");
+  const isDemoAccount = (user as any)?.accountType === "tester" || DEMO_EMAILS.includes(user?.email ?? "");
 
   // ── Demo launch button state ───────────────────────────────────────────
   type DemoStatus = "ready" | "running" | "cooldown";
@@ -551,6 +551,75 @@ export default function Intelligence() {
       </div>
     </AppLayout>
   );
+
+  // ── Demo gate: if engines have never been run, show the launch prompt ──────
+  if (isDemoAccount && !growthLoading && !score?.hasData) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
+          <div
+            className="text-center max-w-lg"
+            style={{ animation: "fadeIn 0.5s ease both" }}
+          >
+            <style>{`
+              @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+              @keyframes pulse-glow {
+                0%, 100% { box-shadow: 0 0 24px rgba(124,58,237,0.4), 0 0 48px rgba(124,58,237,0.2); }
+                50%       { box-shadow: 0 0 40px rgba(124,58,237,0.6), 0 0 80px rgba(124,58,237,0.3); }
+              }
+            `}</style>
+
+            {/* Icon ring */}
+            <div
+              className="mx-auto mb-8 w-24 h-24 rounded-full flex items-center justify-center"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                animation: "pulse-glow 2.5s ease-in-out infinite",
+              }}
+            >
+              <Brain className="h-11 w-11 text-white" />
+            </div>
+
+            {/* Copy */}
+            <p className="text-xs font-mono tracking-widest text-violet-500 uppercase mb-3">
+              engines offline
+            </p>
+            <h2 className="text-3xl font-bold text-foreground mb-3">
+              Intelligence Not Yet Active
+            </h2>
+            <p className="text-muted-foreground text-base mb-2">
+              The Revenue Intelligence engines haven't been launched for this session yet.
+            </p>
+            <p className="text-muted-foreground text-sm mb-10">
+              Run the engine sequence to scan your booking history, score every client, detect churn risk, map revenue leakage, and compute your Growth Score — then come back here to see the full dashboard.
+            </p>
+
+            {/* Launch CTA */}
+            <button
+              onClick={() => navigate("/intelligence/launch")}
+              className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl font-bold text-white text-base transition-all duration-200 active:scale-95 hover:scale-105 mb-6"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                boxShadow: "0 0 32px rgba(124,58,237,0.5)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              <Zap className="h-5 w-5" />
+              Launch Intelligence Engines
+              <Zap className="h-5 w-5" />
+            </button>
+
+            <p className="text-xs text-muted-foreground">
+              Takes 30–60 seconds · All 8 engines run live against your demo data
+            </p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
