@@ -13,6 +13,14 @@ import {
 import { users } from "../../shared/schema";
 import { runDemoEngines } from "../intelligence/demo-runner";
 
+// ── Helper: load the authenticated user from the session ──────────────────────
+async function getSessionUser(req: any) {
+  const userId = req.session?.userId;
+  if (!userId) return null;
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  return user ?? null;
+}
+
 const router = Router();
 
 // ── All demo account emails ───────────────────────────────────────────────────
@@ -142,8 +150,8 @@ function spawnFullReseed(storeId: number, email: string): void {
 }
 
 // ── GET /status ───────────────────────────────────────────────────────────────
-router.get("/status", (req: any, res) => {
-  const user = req.user;
+router.get("/status", async (req: any, res) => {
+  const user = await getSessionUser(req);
   if (!user || !DEMO_EMAILS.has(user.email)) {
     return res.status(403).json({ error: "Demo account only." });
   }
@@ -176,7 +184,7 @@ router.get("/status", (req: any, res) => {
 
 // ── GET /launch (SSE) ─────────────────────────────────────────────────────────
 router.get("/launch", async (req: any, res) => {
-  const user = req.user;
+  const user = await getSessionUser(req);
   if (!user || !DEMO_EMAILS.has(user.email)) {
     return res.status(403).json({ error: "This endpoint is only available for demo accounts." });
   }
