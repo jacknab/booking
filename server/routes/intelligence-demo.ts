@@ -98,7 +98,7 @@ const RESEED_SCRIPTS: Record<string, string> = {
   "barber-demo@certxa.com": "scripts/reseed-barber-demo.ts",
 };
 
-const RESET_DELAY_MS = 15 * 60 * 1000; // 15 minutes after engines finish
+const RESET_DELAY_MS = 90 * 60 * 1000; // 90 minutes after engines finish
 
 // esbuild injects __dirname in CJS bundles. In ESM dev (tsx), use process.cwd().
 const _cjsDirname: string | undefined = (globalThis as any).__dirname;
@@ -109,8 +109,8 @@ const TSX  = path.join(ROOT, "node_modules/.bin/tsx");
 
 // ── In-memory state per store ─────────────────────────────────────────────────
 // running   → engines are animating right now
-// resetAt   → engines done, 15-min countdown in progress
-// reseeding → 15-min timer fired, full reseed running in background
+// resetAt   → engines done, 90-min countdown in progress
+// reseeding → 90-min timer fired, full reseed running in background
 // email     → the demo user who launched (determines which reseed script to run)
 interface DemoState {
   running:   boolean;
@@ -233,7 +233,7 @@ router.get("/launch", async (req: any, res) => {
     const resetAt = Date.now() + RESET_DELAY_MS;
     demoState.set(storeId, { running: false, resetAt, email: user.email });
     setTimeout(() => spawnFullReseed(storeId, user.email), RESET_DELAY_MS);
-    console.log(`[DemoReset] Full reseed scheduled for store ${storeId} (${user.email}) in 15 min`);
+    console.log(`[DemoReset] Full reseed scheduled for store ${storeId} (${user.email}) in 90 min`);
   } else {
     demoState.delete(storeId);
   }

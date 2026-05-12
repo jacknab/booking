@@ -4,7 +4,7 @@ Certxa is a full-stack booking and business management application for service p
 
 ## Demo Accounts — Revenue Intelligence
 
-Four fully-seeded demo stores, each with ~430 clients and ~2,900 appointments covering all 8 Revenue Intelligence archetypes (power clients, gel regulars, monthly spa, occasional, DRIFTING ★, new, lapsed ★, no-show prone ★). All reset to a pristine state automatically 15 minutes after engines complete.
+Four fully-seeded demo stores, each with ~430 clients and ~2,900 appointments covering all 8 Revenue Intelligence archetypes (power clients, gel regulars, monthly spa, occasional, DRIFTING ★, new, lapsed ★, no-show prone ★). All reset to a pristine state automatically 90 minutes after engines complete.
 
 | Business Type  | Email                    | Password  | Store Name                  | Slug                          |
 |----------------|--------------------------|-----------|-----------------------------|-------------------------------|
@@ -18,7 +18,7 @@ Four fully-seeded demo stores, each with ~430 clients and ~2,900 appointments co
 2. Navigate to **Revenue Intelligence** → click **⚡ Launch Engines**
 3. Watch all 8 engines compute live against the real booking history
 4. The guided walkthrough tour auto-appears, stepping through all 10 tabs with context
-5. A session timer in the header counts down 15 minutes, then a full reseed fires automatically
+5. A session timer in the header counts down 90 minutes, then a full reseed fires automatically
 
 **Seed / reset / reseed commands (run from project root):**
 ```

@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   TrendingUp, TrendingDown, AlertTriangle, Users, DollarSign,
@@ -175,7 +175,10 @@ export default function Intelligence() {
   const [demoMsLeft, setDemoMsLeft] = useState<number>(0);
   const [demoResetAt, setDemoResetAt] = useState<number | null>(null);
 
-  // Poll the status endpoint every 10s when the demo account is active
+  // Poll the status endpoint every 6s when the demo account is active.
+  // When status transitions running → cooldown, invalidate all intelligence
+  // queries so the dashboard populates automatically without a manual refresh.
+  const prevDemoStatus = useRef<DemoStatus>("ready");
   useEffect(() => {
     if (!isDemoAccount || !storeId) return;
 
@@ -184,8 +187,16 @@ export default function Intelligence() {
         const res = await fetch(`/api/intelligence/demo/status?storeId=${storeId}`, { credentials: "include" });
         if (!res.ok) return;
         const data = await res.json();
-        setDemoStatus(data.status);
-        if (data.status === "cooldown" && data.resetAt) {
+        const newStatus: DemoStatus = data.status;
+
+        // Auto-refresh all dashboard queries the moment engines finish
+        if (prevDemoStatus.current === "running" && newStatus === "cooldown") {
+          queryClient.invalidateQueries({ queryKey: ["/api/intelligence"] });
+        }
+        prevDemoStatus.current = newStatus;
+
+        setDemoStatus(newStatus);
+        if (newStatus === "cooldown" && data.resetAt) {
           setDemoResetAt(data.resetAt);
           setDemoMsLeft(Math.max(0, data.resetAt - Date.now()));
         } else {
@@ -196,9 +207,9 @@ export default function Intelligence() {
     };
 
     fetchStatus();
-    const poll = setInterval(fetchStatus, 10_000);
+    const poll = setInterval(fetchStatus, 6_000);
     return () => clearInterval(poll);
-  }, [isDemoAccount, storeId]);
+  }, [isDemoAccount, storeId, queryClient]);
 
   // Tick the countdown every second during cooldown
   useEffect(() => {
@@ -744,13 +755,54 @@ export default function Intelligence() {
           </div>
         </div>
 
+        {/* Demo — engines actively running banner */}
+        {isDemoAccount && demoStatus === "running" && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <RefreshCw className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 animate-spin" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                    Intelligence engines are running…
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    All 8 engines are computing live against your booking history. The dashboard will populate automatically when complete.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate("/intelligence/launch")}
+                className="shrink-0 text-xs font-medium text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:no-underline whitespace-nowrap"
+              >
+                Watch live →
+              </button>
+            </div>
+            {/* Indeterminate progress bar */}
+            <div className="h-1 bg-amber-100 dark:bg-amber-900 overflow-hidden">
+              <div
+                className="h-full bg-amber-400 dark:bg-amber-500"
+                style={{
+                  width: "40%",
+                  animation: "slide-indeterminate 1.6s ease-in-out infinite",
+                }}
+              />
+            </div>
+            <style>{`
+              @keyframes slide-indeterminate {
+                0%   { transform: translateX(-100%); }
+                100% { transform: translateX(350%); }
+              }
+            `}</style>
+          </div>
+        )}
+
         {/* Demo session timer — only shown to demo account while engines are active */}
         {isDemoAccount && demoStatus === "cooldown" && demoMsLeft > 0 && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 dark:border-violet-800 dark:bg-violet-950/40">
             <div className="flex items-center gap-2.5 min-w-0">
               <Zap className="h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" />
               <p className="text-sm text-violet-800 dark:text-violet-300 font-medium truncate">
-                You're in the live demo — explore every tab. This session resets automatically for the next person.
+                You're in the live demo — explore every tab. This session resets automatically after 90 minutes.
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
