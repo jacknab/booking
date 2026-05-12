@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { DemoWalkthrough } from "@/components/intelligence/DemoWalkthrough";
 
 function GradeColor(grade: string) {
   if (grade === "A") return "text-emerald-600";
@@ -150,7 +151,12 @@ function BookingHeatmapGrid({ data }: { data: any }) {
   );
 }
 
-const DEMO_EMAIL = "nail-demo@certxa.com";
+const DEMO_EMAILS = [
+  "nail-demo@certxa.com",
+  "hair-demo@certxa.com",
+  "spa-demo@certxa.com",
+  "barber-demo@certxa.com",
+];
 
 export default function Intelligence() {
   const { selectedStore } = useSelectedStore();
@@ -161,7 +167,7 @@ export default function Intelligence() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
-  const isDemoAccount = user?.email === DEMO_EMAIL;
+  const isDemoAccount = DEMO_EMAILS.includes(user?.email ?? "");
 
   // ── Demo launch button state ───────────────────────────────────────────
   type DemoStatus = "ready" | "running" | "cooldown";
@@ -749,6 +755,18 @@ export default function Intelligence() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Demo guided walkthrough — only during active cooldown session */}
+        {isDemoAccount && demoStatus === "cooldown" && (
+          <DemoWalkthrough
+            activeTab={activeTab}
+            setActiveTab={(tab) => {
+              setActiveTab(tab);
+              setSearchParams({ tab }, { replace: true });
+            }}
+            businessType={selectedStore?.category}
+          />
+        )}
 
         {/* Main tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>

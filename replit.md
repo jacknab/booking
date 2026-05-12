@@ -2,6 +2,51 @@
 
 Certxa is a full-stack booking and business management application for service professionals across various industries, handling appointments, services, staff, customers, products, and analytics.
 
+## Demo Accounts — Revenue Intelligence
+
+Four fully-seeded demo stores, each with ~430 clients and ~2,900 appointments covering all 8 Revenue Intelligence archetypes (power clients, gel regulars, monthly spa, occasional, DRIFTING ★, new, lapsed ★, no-show prone ★). All reset to a pristine state automatically 15 minutes after engines complete.
+
+| Business Type  | Email                    | Password  | Store Name                  | Slug                          |
+|----------------|--------------------------|-----------|-----------------------------|-------------------------------|
+| Nail Salon     | nail-demo@certxa.com     | demo1234  | Luxe Nails & Spa            | luxe-nails-spa-demo           |
+| Hair Salon     | hair-demo@certxa.com     | demo1234  | Elevate Hair Studio         | elevate-hair-studio-demo      |
+| Spa / Wellness | spa-demo@certxa.com      | demo1234  | Serenity Spa & Wellness     | serenity-spa-wellness-demo    |
+| Barbershop     | barber-demo@certxa.com   | demo1234  | Prime Cuts Barbershop       | prime-cuts-barbershop-demo    |
+
+**Demo flow:**
+1. Log in with any demo account above
+2. Navigate to **Revenue Intelligence** → click **⚡ Launch Engines**
+3. Watch all 8 engines compute live against the real booking history
+4. The guided walkthrough tour auto-appears, stepping through all 10 tabs with context
+5. A session timer in the header counts down 15 minutes, then a full reseed fires automatically
+
+**Seed / reset / reseed commands (run from project root):**
+```
+npm run db:seed:nail-demo      # Seed Luxe Nails & Spa
+npm run db:reseed:nail-demo    # Full wipe + reseed (safe to re-run)
+npm run db:reset:nail-demo     # Wipe only
+
+npm run db:seed:hair-demo      # Seed Elevate Hair Studio
+npm run db:reseed:hair-demo    # Full wipe + reseed
+npm run db:reset:hair-demo     # Wipe only
+
+npm run db:seed:spa-demo       # Seed Serenity Spa & Wellness
+npm run db:reseed:spa-demo     # Full wipe + reseed
+npm run db:reset:spa-demo      # Wipe only
+
+npm run db:seed:barber-demo    # Seed Prime Cuts Barbershop
+npm run db:reseed:barber-demo  # Full wipe + reseed
+npm run db:reset:barber-demo   # Wipe only
+```
+
+**Key files:**
+- `scripts/lib/seed-demo-base.ts` — shared parameterized seeder (used by all 4 business types)
+- `scripts/lib/reset-demo-base.ts` — shared reset logic
+- `scripts/seed-*.ts` / `scripts/reset-*.ts` / `scripts/reseed-*.ts` — per-business scripts
+- `server/routes/intelligence-demo.ts` — SSE launch, status, and auto-reseed orchestration
+- `client/src/components/intelligence/DemoWalkthrough.tsx` — guided tour component (8 steps)
+- `client/src/pages/DemoLaunchEngines.tsx` — engine animation page (all 4 demo emails allowed)
+
 ## Run & Operate
 
 - **Run Dev**: `npm run dev` (Vite HMR, `PORT=5000`, binds to `0.0.0.0`)

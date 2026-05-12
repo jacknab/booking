@@ -8,7 +8,12 @@ import {
   Radio
 } from "lucide-react";
 
-const DEMO_EMAIL = "nail-demo@certxa.com";
+const DEMO_EMAILS = [
+  "nail-demo@certxa.com",
+  "hair-demo@certxa.com",
+  "spa-demo@certxa.com",
+  "barber-demo@certxa.com",
+];
 
 type EngineStatus = "offline" | "initializing" | "running" | "online";
 
@@ -115,7 +120,7 @@ export default function DemoLaunchEngines() {
 
   useEffect(() => () => { esRef.current?.close(); }, []);
 
-  if (!user || user.email !== DEMO_EMAIL) {
+  if (!user || !DEMO_EMAILS.includes(user.email)) {
     navigate("/intelligence", { replace: true });
     return null;
   }
