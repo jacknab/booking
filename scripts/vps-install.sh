@@ -78,7 +78,7 @@ echo ""
 ask "Your domain (e.g. certxa.com — no https://, no www):" DOMAIN
 [[ -z "$DOMAIN" ]] && { fail "Domain is required."; exit 1; }
 
-ask_default "App port (the port Node listens on — nginx proxies this):" APP_PORT "8100"
+APP_PORT="8100"
 ask_default "PostgreSQL database name:" DB_NAME "certxa_db"
 ask_default "PostgreSQL user name:" DB_USER "certxa_user"
 
