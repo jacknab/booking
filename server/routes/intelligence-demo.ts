@@ -300,22 +300,31 @@ router.get("/launch", async (req: any, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
-  // Disable Nagle's algorithm so every res.write() goes out immediately
-  // instead of being coalesced with adjacent small packets.
+  // Disable Nagle's algorithm on the Express↔proxy socket so each
+  // res.write() is sent as its own TCP segment without coalescing.
   (req as any).socket?.setNoDelay(true);
 
   demoState.set(storeId, { running: true, email: user.email });
 
+  // Pre-built 4 KB comment padding — most reverse proxies (including Replit's)
+  // buffer chunked SSE until they accumulate ~4 KB before forwarding.
+  // Prefixing every event with this comment fills the buffer immediately,
+  // forcing the proxy to flush the data event along with it.
+  const SSE_PAD = `: ${"x".repeat(4080)}\n`;
+
   const send = (data: object) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-    // Flush any remaining buffered data (needed when compression or other
-    // middleware wraps the response with a PassThrough stream that has .flush)
+    const payload = `data: ${JSON.stringify(data)}\n\n`;
+    // Write padding + payload as one chunk so proxy flushes both together
+    res.write(SSE_PAD + payload);
     if (typeof (res as any).flush === "function") (res as any).flush();
   };
+
+  // Send a ping every second to keep the connection alive through idle gaps
+  // and to push any residual proxy buffer between engine sleeps.
   const keepAlive = setInterval(() => {
-    res.write(": ping\n\n");
+    res.write(SSE_PAD + ": keepalive\n\n");
     if (typeof (res as any).flush === "function") (res as any).flush();
-  }, 15_000);
+  }, 1_000);
 
   let enginesCompleted = false;
   try {
