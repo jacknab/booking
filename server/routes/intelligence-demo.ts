@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { spawn } from "child_process";
 import path from "path";
-import { fileURLToPath } from "url";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import {
@@ -33,8 +32,11 @@ const RESEED_SCRIPTS: Record<string, string> = {
 
 const RESET_DELAY_MS = 15 * 60 * 1000; // 15 minutes after engines finish
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "../..");
+// esbuild injects __dirname in CJS bundles. In ESM dev (tsx), use process.cwd().
+const _cjsDirname: string | undefined = (globalThis as any).__dirname;
+const ROOT = _cjsDirname
+  ? path.resolve(_cjsDirname, "..", "..")
+  : path.resolve(process.cwd());
 const TSX  = path.join(ROOT, "node_modules/.bin/tsx");
 
 // ── In-memory state per store ─────────────────────────────────────────────────

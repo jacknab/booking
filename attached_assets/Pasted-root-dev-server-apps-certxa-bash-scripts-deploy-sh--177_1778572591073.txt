@@ -1,0 +1,131 @@
+root@dev-server:/apps/certxa# bash scripts/deploy.sh
+
+╔══════════════════════════════════════════════════════╗
+║              Certxa — VPS Deploy Script              ║
+╚══════════════════════════════════════════════════════╝
+
+  App dir : /apps/certxa
+  App name: certxa (PM2)
+  Port    : 8100
+
+▶ Step 1/5 — Pulling latest code
+remote: Enumerating objects: 89, done.
+remote: Counting objects: 100% (89/89), done.
+remote: Compressing objects: 100% (15/15), done.
+remote: Total 74 (delta 58), reused 74 (delta 58), pack-reused 0 (from 0)
+Unpacking objects: 100% (74/74), 390.46 KiB | 2.44 MiB/s, done.
+From https://github.com/jacknab/booking
+   19df0e3..c9e6401  main       -> origin/main
+Updating 19df0e3..c9e6401
+Fast-forward
+ attached_assets/image_1778564184011.png                | Bin 0 -> 366130 bytes
+ client/src/components/intelligence/DemoWalkthrough.tsx | 188 +++++++++++++
+ client/src/pages/DemoLaunchEngines.tsx                 |  24 +-
+ client/src/pages/Intelligence.tsx                      | 127 ++++++++-
+ package.json                                           |  16 +-
+ replit.md                                              |  45 +++
+ scripts/lib/reset-demo-base.ts                         | 122 ++++++++
+ scripts/lib/seed-demo-base.ts                          | 555 +++++++++++++++++++++++++++++++++++++
+ scripts/reseed-barber-demo.ts                          |  26 ++
+ scripts/reseed-hair-demo.ts                            |  26 ++
+ scripts/reseed-spa-demo.ts                             |  26 ++
+ scripts/reset-barber-demo.ts                           |  23 ++
+ scripts/reset-hair-demo.ts                             |  23 ++
+ scripts/reset-spa-demo.ts                              |  23 ++
+ scripts/seed-barber-demo.ts                            |  96 +++++++
+ scripts/seed-hair-demo.ts                              |  95 +++++++
+ scripts/seed-spa-demo.ts                               |  95 +++++++
+ scripts/smoke-test-demo.ts                             | 184 ++++++++++++
+ server/index.ts                                        |   8 +-
+ server/routes/intelligence-demo.ts                     | 144 +++++++++-
+ 20 files changed, 1817 insertions(+), 29 deletions(-)
+ create mode 100644 attached_assets/image_1778564184011.png
+ create mode 100644 client/src/components/intelligence/DemoWalkthrough.tsx
+ create mode 100644 scripts/lib/reset-demo-base.ts
+ create mode 100644 scripts/lib/seed-demo-base.ts
+ create mode 100644 scripts/reseed-barber-demo.ts
+ create mode 100644 scripts/reseed-hair-demo.ts
+ create mode 100644 scripts/reseed-spa-demo.ts
+ create mode 100644 scripts/reset-barber-demo.ts
+ create mode 100644 scripts/reset-hair-demo.ts
+ create mode 100644 scripts/reset-spa-demo.ts
+ create mode 100644 scripts/seed-barber-demo.ts
+ create mode 100644 scripts/seed-hair-demo.ts
+ create mode 100644 scripts/seed-spa-demo.ts
+ create mode 100644 scripts/smoke-test-demo.ts
+  Commit:     c9e6401
+  Build time: 2026-05-12T07:37:41Z
+
+▶ Step 2/5 — Installing dependencies
+a different dependency.
+
+Run `npm audit` for details.
+
+▶ Step 3/5 — Building production bundle
+
+> rest-express@1.0.0 build
+> node_modules/.bin/tsx script/build.ts
+
+building client...
+vite v7.3.3 building client environment for production...
+✓ 3958 modules transformed.
+../dist/public/index.html                     4.25 kB │ gzip:   1.47 kB
+../dist/public/assets/index-OZ2P2Nza.css    195.68 kB │ gzip:  33.11 kB
+../dist/public/assets/index-B1RPqscF.js   3,056.45 kB │ gzip: 783.42 kB
+✓ built in 21.45s
+
+✨ [vite-plugin-compression]:algorithm=gzip - compressed file successfully:
+public/dallas-tx-booking.html.gz        23.03kb / gzip: 5.79kb
+public/houston-tx-hair-salons.html.gz   22.59kb / gzip: 5.72kb
+public/houston-tx-nail-salons.html.gz   22.10kb / gzip: 5.59kb
+public/seo-assets/seo.css.gz            16.25kb / gzip: 3.56kb
+public/phoenix-az-nail-salons.html.gz   22.11kb / gzip: 5.58kb
+public/phoenix-az-hair-salons.html.gz   22.60kb / gzip: 5.70kb
+public/tempe-az-nail-salons.html.gz     22.03kb / gzip: 5.58kb
+public/assets/index-OZ2P2Nza.css.gz     191.09kb / gzip: 31.99kb
+public/assets/index-B1RPqscF.js.gz      2984.82kb / gzip: 761.67kb
+
+
+building SSR bundle...
+
+  dist/server/entry-server.cjs  1.1kb
+
+⚡ Done in 6ms
+building server...
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/routes/intelligence-demo.ts:36:45:
+      36 │ const __dirname = path.dirname(fileURLToPath(import.meta.url));
+         ╵                                              ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+1 warning
+
+  dist/index.cjs  1.9mb ⚠️
+
+⚡ Done in 292ms
+  New bundle: index-B1RPqscF.js
+
+▶ Step 4/5 — Clearing ports 8100 and 8104
+  Killing stale process(es) on port 8100: 2881204
+  Killing stale process(es) on port 8104: 2881260
+
+▶ Step 5/5 — Reloading PM2 (certxa)
+[PM2] Applying action reloadProcessId on app [certxa](ids: [ 16 ])
+[PM2] [certxa](16) ✓
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+
+  Waiting 4 seconds for app to come up...
+
+╔══════════════════════════════════════════════════════╗
+║                   Deploy Complete                    ║
+╚══════════════════════════════════════════════════════╝
+
+  Commit    : c9e6401
+  Bundle    : index-B1RPqscF.js
+  Health    : https://certxa.com/api/health → HTTP 502
+
+  ❌ Health check failed (HTTP 502). Check PM2 logs:
+     pm2 logs certxa --lines 30
