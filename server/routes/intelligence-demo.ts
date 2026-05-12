@@ -165,6 +165,16 @@ function spawnFullReseedAndRunEngines(storeId: number, email: string): void {
       console.error(`[DemoReset] Silent engine error for store ${storeId}:`, err.message);
     }
 
+    // Keep the clients table in sync with the freshly reseeded customers so
+    // the Customers page always shows real data after every auto-reseed cycle.
+    try {
+      const { migrateCustomersToClients } = await import("../../scripts/lib/migrate-customers-to-clients");
+      const syncResult = await migrateCustomersToClients(storeId);
+      console.log(`[DemoReset] Clients table synced: ${syncResult.migrated} migrated, ${syncResult.skipped} already present`);
+    } catch (syncErr: any) {
+      console.error(`[DemoReset] Clients table sync error for store ${storeId}:`, syncErr.message);
+    }
+
     // Whether engines succeeded or errored, start a new cooldown cycle
     const resetAt = Date.now() + RESET_DELAY_MS;
     demoState.set(storeId, { running: false, resetAt, email });

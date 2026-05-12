@@ -80,6 +80,35 @@ router.get("/", isAuthenticated, async (req, res) => {
     const limitNum = Math.min(200, Math.max(1, parseInt(limit)));
     const offset = (pageNum - 1) * limitNum;
 
+    // ── Auto-migration: if no clients exist but customers do, sync automatically ──
+    // This handles demo accounts and any store that was onboarded before the
+    // clients table architecture existed. Runs once — subsequent calls are instant
+    // because the clients table will already be populated.
+    if (!search && !tag && !status) {
+      const [clientCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(clients)
+        .where(and(eq(clients.storeId, storeId), isNull(clients.archivedAt)));
+
+      if (Number(clientCount.count) === 0) {
+        const [custCount] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(customers)
+          .where(eq(customers.storeId, storeId));
+
+        if (Number(custCount.count) > 0) {
+          console.log(`[clients] Auto-migrating ${custCount.count} customers → clients for store ${storeId}`);
+          try {
+            const { migrateCustomersToClients } = await import("../../scripts/lib/migrate-customers-to-clients");
+            const result = await migrateCustomersToClients(storeId);
+            console.log(`[clients] Auto-migration done: ${result.migrated} migrated, ${result.skipped} skipped`);
+          } catch (migrErr) {
+            console.error("[clients] Auto-migration failed:", migrErr);
+          }
+        }
+      }
+    }
+
     let query = db
       .select({
         client: clients,
