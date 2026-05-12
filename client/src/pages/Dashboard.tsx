@@ -21,6 +21,7 @@ import {
   YAxis,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -734,8 +735,8 @@ export default function Dashboard() {
       {/* Revenue Chart */}
       <div className="rounded-2xl border border-border bg-card shadow-sm p-6 mb-6">
         <p className="text-sm font-semibold text-foreground mb-5">Revenue — last 7 days</p>
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={chartData} barSize={28} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={185}>
+          <BarChart data={chartData} barSize={28} margin={{ top: 24, right: 0, left: -20, bottom: 0 }}>
             <XAxis
               dataKey="day"
               axisLine={false}
@@ -750,6 +751,12 @@ export default function Dashboard() {
                   fill={entry.isToday ? "#f59e0b" : "#7c3aed"}
                 />
               ))}
+              <LabelList
+                dataKey="revenue"
+                position="top"
+                formatter={(v: number) => v > 0 ? `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}` : ""}
+                style={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--foreground))" }}
+              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
