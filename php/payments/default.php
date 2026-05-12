@@ -107,58 +107,12 @@ require 'includes/nav.php';
   </div>
 </section>
 
-<!-- PAYMENT LINKS -->
 <section class="section">
   <div class="container">
     <div class="section-header">
       <span class="tag tag-plum">Complete Payment Ecosystem</span>
       <h2 class="section-title">Every way to get paid, all in one place</h2>
       <p class="section-subtitle">From the booking confirmation to the final tip, Certxa handles every payment touchpoint so you can focus on what you love — without chasing money.</p>
-    </div>
-
-    <!-- Payment Links -->
-    <div class="feature-block">
-      <div class="feature-content">
-        <span class="tag tag-gold">Payment Links</span>
-        <h3 class="feature-title">Send a link. Get paid instantly.</h3>
-        <p class="feature-text">Generate a branded payment link in seconds and send it to any client via SMS, WhatsApp, or email. They pay on any device — you see the money hit your account within minutes. No card machine needed.</p>
-        <ul class="feature-list">
-          <li>Custom branded checkout page with your salon logo</li>
-          <li>Accepts Apple Pay, Google Pay, all major cards</li>
-          <li>Send via SMS, email, WhatsApp, or DM</li>
-          <li>Automatic receipt sent to client on payment</li>
-          <li>Payment logged instantly in client profile</li>
-        </ul>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a href="#" class="btn btn-primary">Try Payment Links</a>
-          <a href="#" class="btn btn-secondary">See Example</a>
-        </div>
-      </div>
-      <div class="feature-visual" style="background:linear-gradient(145deg,var(--plum-light),#DDD6FE);">
-        <div class="ui-card" style="width:100%;max-width:300px;">
-          <div style="text-align:center;margin-bottom:16px;">
-            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--plum),var(--plum-mid));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">💅</div>
-            <div style="font-weight:700;font-size:.95rem;color:var(--charcoal);">The Colour Room</div>
-            <div style="font-size:.8rem;color:var(--mid-grey);">Secure payment via Certxa</div>
-          </div>
-          <div style="background:var(--cream);border-radius:10px;padding:14px;margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-size:.85rem;color:var(--mid-grey);">Balayage Treatment</span>
-              <span style="font-size:.85rem;font-weight:600;">$145</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;">
-              <span style="font-size:.85rem;color:var(--mid-grey);">Olaplex Add-on</span>
-              <span style="font-size:.85rem;font-weight:600;">$25</span>
-            </div>
-            <div style="border-top:1px solid var(--light-grey);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;">
-              <span style="font-weight:700;font-size:.9rem;">Total</span>
-              <span style="font-weight:700;font-size:.9rem;color:var(--plum);">$170</span>
-            </div>
-          </div>
-          <div style="background:var(--plum);color:#fff;text-align:center;padding:13px;border-radius:10px;font-weight:600;font-size:.9rem;cursor:pointer;">Pay $170 Securely →</div>
-          <div style="text-align:center;font-size:.72rem;color:var(--mid-grey);margin-top:10px;">🔒 Secured by Certxa Payments</div>
-        </div>
-      </div>
     </div>
 
     <!-- Deposits -->
@@ -391,7 +345,6 @@ require 'includes/nav.php';
           <tr><td>Monthly hardware rental</td><td><span class="check">✓ None</span></td><td class="cross">$0–$29</td><td class="cross">$0–$29</td><td class="cross">$0–$49</td></tr>
           <tr><td>Payout speed (standard)</td><td><strong style="color:#059669;">Next day</strong></td><td class="partial">2 days</td><td class="partial">2 days</td><td class="partial">2 days</td></tr>
           <tr><td>Same-day payout option</td><td><span class="check">✓</span></td><td class="partial">Add-on cost</td><td class="partial">1.5% fee</td><td class="cross">✗</td></tr>
-          <tr><td>Payment links</td><td><span class="check">✓ Built-in</span></td><td class="partial">Via Stripe</td><td class="partial">Via Square</td><td class="cross">✗</td></tr>
           <tr><td>Deposit protection</td><td><span class="check">✓ Automated</span></td><td class="cross">✗</td><td class="cross">✗</td><td class="partial">Basic</td></tr>
           <tr><td>Memberships &amp; subscriptions</td><td><span class="check">✓</span></td><td class="cross">✗</td><td class="partial">Add-on</td><td class="partial">Basic</td></tr>
           <tr><td>Gift cards (digital)</td><td><span class="check">✓ Branded</span></td><td class="cross">✗</td><td class="partial">Add-on</td><td class="partial">Basic</td></tr>
@@ -494,7 +447,7 @@ require 'includes/nav.php';
   <div class="container" style="position:relative;z-index:1;">
     <span class="tag" style="background:rgba(255,255,255,.15);color:#fff;margin-bottom:16px;display:inline-block;">Start Getting Paid</span>
     <h2 class="cta-title">Every tool to maximise<br><em>your revenue.</em></h2>
-    <p class="cta-text">Payment links, deposits, gift cards, memberships, instant payouts — all in one beautifully simple platform. Start your free trial today.</p>
+    <p class="cta-text">Deposits, gift cards, memberships, instant payouts — all in one beautifully simple platform. Start your free trial today.</p>
     <div class="cta-actions">
       <a href="#" class="btn btn-gold">Start Free Trial</a>
       <a href="#" class="btn btn-outline-white">View Pricing</a>

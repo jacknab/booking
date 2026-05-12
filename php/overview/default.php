@@ -615,7 +615,6 @@ require 'includes/nav.php';
         <ul class="feature-list">
           <li>Accept cards, Apple Pay, Google Pay &amp; cash</li>
           <li>Require deposits at booking — protect your time</li>
-          <li>Send payment links via SMS in seconds</li>
           <li>Next-day payouts, every time</li>
         </ul>
         <a href="/payments" class="btn btn-primary">Explore Payments →</a>
