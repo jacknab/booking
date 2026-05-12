@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -89,6 +90,7 @@ export default function DemoLaunchEngines() {
   const { user } = useAuth();
   const { selectedStore } = useSelectedStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [phase, setPhase] = useState<"idle" | "seeding" | "launching" | "complete">("idle");
   const [engines, setEngines] = useState<Record<string, EngineState>>(
@@ -136,11 +138,16 @@ export default function DemoLaunchEngines() {
       if (pct < 100) {
         setTimeout(step, 28);
       } else {
+        // Remove all cached intelligence data so Intelligence.tsx starts a
+        // fresh fetch on mount — invalidateQueries alone keeps the stale
+        // "hasData: false" value in cache and the gate fires before the
+        // background refetch completes.
+        queryClient.removeQueries({ queryKey: ["/api/intelligence"] });
         setTimeout(() => navigate("/intelligence", { replace: true }), 600);
       }
     };
     setTimeout(step, 200);
-  }, [showFinish, navigate]);
+  }, [showFinish, navigate, queryClient]);
 
   // Guard: only tester accounts (accountType === "tester") or legacy demo emails can access
   const isDemoUser = (user as any)?.accountType === "tester" || [

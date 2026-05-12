@@ -21,7 +21,17 @@ import {
   staff,
   staffServices,
   appointmentAddons,
+  clients,
+  clientEmails,
+  clientPhones,
+  clientAddresses,
+  clientNotes,
+  clientTags,
+  clientTagRelationships,
+  clientMarketingPreferences,
+  clientAuditLogs,
 } from "../../shared/schema";
+import { migrateCustomersToClients } from "../../scripts/lib/migrate-customers-to-clients";
 import {
   clientIntelligence,
   staffIntelligence,
@@ -167,6 +177,21 @@ export async function seedTesterStore(
   }
   await db.delete(appointments).where(eq(appointments.storeId, storeId));
   await db.delete(customers).where(eq(customers.storeId, storeId));
+
+  // Clear clients table (new architecture) so it stays in sync
+  const existingClientIds = (await db.select({ id: clients.id }).from(clients)
+    .where(eq(clients.storeId, storeId))).map(r => r.id);
+  if (existingClientIds.length) {
+    await db.delete(clientTagRelationships).where(inArray(clientTagRelationships.clientId, existingClientIds));
+    await db.delete(clientEmails).where(inArray(clientEmails.clientId, existingClientIds));
+    await db.delete(clientPhones).where(inArray(clientPhones.clientId, existingClientIds));
+    await db.delete(clientAddresses).where(inArray(clientAddresses.clientId, existingClientIds));
+    await db.delete(clientNotes).where(inArray(clientNotes.clientId, existingClientIds));
+    await db.delete(clientMarketingPreferences).where(inArray(clientMarketingPreferences.clientId, existingClientIds));
+    await db.delete(clientAuditLogs).where(inArray(clientAuditLogs.clientId, existingClientIds));
+  }
+  await db.delete(clientTags).where(eq(clientTags.storeId, storeId));
+  await db.delete(clients).where(eq(clients.storeId, storeId));
 
   // Clear intelligence tables so engines start from zero
   await db.delete(intelligenceInterventions).where(eq(intelligenceInterventions.storeId, storeId));
@@ -496,4 +521,10 @@ export async function seedTesterStore(
   log(`[SEED] ✓ $${Math.round(revenue).toLocaleString()} historical revenue`);
   log(`[SEED] ✓ All 8 intelligence archetypes present — engines ready`);
   log(`[SEED] ══════════════════════════════════════════════════`);
+
+  // Sync customers → clients table (new architecture) so the Clients page
+  // is populated immediately after seeding completes.
+  log(`[SEED] Syncing clients table…`);
+  const migration = await migrateCustomersToClients(storeId);
+  log(`[SEED] ✓ Clients table: ${migration.migrated} migrated, ${migration.skipped} skipped`);
 }
