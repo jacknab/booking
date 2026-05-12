@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { customers, appointments, staff } from "@shared/schema";
+import { customers, appointments, staff, smsSettings } from "@shared/schema";
 import { clientEmails } from "../../shared/schema/clients";
 import {
   clientIntelligence,
@@ -1431,6 +1431,46 @@ router.get("/booking-heatmap", async (req, res) => {
   } catch (err: any) {
     console.error("[intelligence] booking-heatmap error:", err);
     res.status(500).json({ error: "Failed to compute booking heatmap" });
+  }
+});
+
+// ─── GET /api/intelligence/auto-engage ────────────────────────────────────────
+// Returns whether autonomous SMS engagement is enabled for this store.
+router.get("/auto-engage", async (req, res) => {
+  const storeId = requireStoreId(req, res);
+  if (!storeId) return;
+  try {
+    const [row] = await db
+      .select({ autoEngageEnabled: smsSettings.autoEngageEnabled })
+      .from(smsSettings)
+      .where(eq(smsSettings.storeId, storeId))
+      .limit(1);
+    return res.json({ enabled: row?.autoEngageEnabled ?? true });
+  } catch (err: any) {
+    console.error("[intelligence] auto-engage get error:", err);
+    return res.status(500).json({ error: "Failed to get auto-engage setting" });
+  }
+});
+
+// ─── PATCH /api/intelligence/auto-engage ──────────────────────────────────────
+// Toggles autonomous SMS engagement on or off for this store.
+router.patch("/auto-engage", async (req, res) => {
+  const { storeId, enabled } = req.body as { storeId: number; enabled: boolean };
+  if (!storeId || typeof enabled !== "boolean") {
+    return res.status(400).json({ error: "storeId and enabled (boolean) required" });
+  }
+  try {
+    // Upsert: create an sms_settings row if one doesn't exist yet
+    await db.execute(sql`
+      INSERT INTO sms_settings (store_id, auto_engage_enabled)
+      VALUES (${storeId}, ${enabled})
+      ON CONFLICT (store_id) DO UPDATE SET auto_engage_enabled = ${enabled}
+    `);
+    console.log(`[intelligence] Auto-engage ${enabled ? "enabled" : "disabled"} for store ${storeId}`);
+    return res.json({ enabled });
+  } catch (err: any) {
+    console.error("[intelligence] auto-engage patch error:", err);
+    return res.status(500).json({ error: "Failed to update auto-engage setting" });
   }
 });
 

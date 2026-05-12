@@ -387,6 +387,20 @@ async function runAutoLeakageRecovery(storeId: number): Promise<void> {
   }
 }
 
+async function isAutoEngageEnabled(storeId: number): Promise<boolean> {
+  try {
+    const [row] = await db
+      .select({ autoEngageEnabled: smsSettings.autoEngageEnabled })
+      .from(smsSettings)
+      .where(eq(smsSettings.storeId, storeId))
+      .limit(1);
+    // If no row exists, default to true (no settings row = not configured yet)
+    return row?.autoEngageEnabled ?? true;
+  } catch {
+    return true; // fail open — never silently block sends on a DB error
+  }
+}
+
 export async function runIntelligenceForAllStores(): Promise<void> {
   try {
     const stores = await db.execute(sql`SELECT DISTINCT id FROM locations`);
@@ -394,7 +408,15 @@ export async function runIntelligenceForAllStores(): Promise<void> {
     console.log(`[intelligence] Running for ${storeIds.length} stores`);
     for (const storeId of storeIds) {
       await runIntelligenceForStore(storeId);
-      // Automated outreach — runs every 6 hours, all rate-limited
+
+      // Automated outreach — only runs when the owner has Autonomous Mode enabled
+      const autoEngaged = await isAutoEngageEnabled(storeId);
+      if (!autoEngaged) {
+        console.log(`[intelligence] Autonomous Mode OFF for store ${storeId} — skipping auto SMS sends`);
+        continue;
+      }
+
+      // Runs every 6 hours, all rate-limited
       await runRebookingNudges(storeId);
       await runDriftRecovery(storeId).catch((err) =>
         console.error(`[intelligence] Drift recovery error for store ${storeId}:`, err)

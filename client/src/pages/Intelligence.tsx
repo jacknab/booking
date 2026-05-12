@@ -9,8 +9,9 @@ import {
   Calendar, Zap, RefreshCw, Send, ChevronRight, BarChart3,
   Clock, Target, Activity, CheckCircle2, XCircle, ArrowUpRight,
   ArrowDownRight, Minus, Brain, LineChart, Download, Sparkles,
-  Trophy, AlertCircle, Mail, BellOff
+  Trophy, AlertCircle, Mail, BellOff, Bot, BotOff
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine,
@@ -385,6 +386,43 @@ export default function Intelligence() {
     staleTime: 60 * 1000,
   });
 
+  // ── Autonomous Mode (auto-engage) ─────────────────────────────────────────
+  const { data: autoEngageData } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/intelligence/auto-engage", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/intelligence/auto-engage?storeId=${storeId}`, { credentials: "include" });
+      if (!res.ok) return { enabled: true };
+      return res.json();
+    },
+    enabled: !!storeId,
+    staleTime: 60 * 1000,
+  });
+
+  const autoEngageMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await fetch("/api/intelligence/auto-engage", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ storeId, enabled }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/intelligence/auto-engage", storeId], { enabled: data.enabled });
+      toast({
+        title: data.enabled ? "Autonomous Mode enabled" : "Autonomous Mode paused",
+        description: data.enabled
+          ? "The system will now automatically send win-back, rebooking, and recovery SMS messages."
+          : "Auto-SMS paused. Insights will still compute — you can send messages manually anytime.",
+      });
+    },
+    onError: () => toast({ title: "Failed to update setting", variant: "destructive" }),
+  });
+
+  const autoEngageEnabled = autoEngageData?.enabled ?? true;
+
   const digestPrefMutation = useMutation({
     mutationFn: async (optOut: boolean) => {
       const res = await fetch("/api/intelligence/digest-preferences", {
@@ -752,6 +790,52 @@ export default function Intelligence() {
               <RefreshCw className={`h-4 w-4 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
               Refresh
             </Button>
+          </div>
+        </div>
+
+        {/* ── Autonomous Mode toggle ──────────────────────────────────────── */}
+        <div className={`rounded-xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${
+          autoEngageEnabled
+            ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
+            : "bg-muted/40 border-border"
+        }`}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+              autoEngageEnabled ? "bg-emerald-100 dark:bg-emerald-900/50" : "bg-muted"
+            }`}>
+              {autoEngageEnabled
+                ? <Bot className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                : <BotOff className="w-5 h-5 text-muted-foreground" />
+              }
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-sm">Autonomous Mode</p>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  autoEngageEnabled
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-400"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {autoEngageEnabled ? "Active" : "Paused"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                {autoEngageEnabled
+                  ? "The system automatically sends win-back, rebooking nudge, and recovery SMS to your clients — uses SMS credits each cycle."
+                  : "Auto-SMS is paused. Insights and risk scores still update — you can send messages manually anytime."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs text-muted-foreground hidden sm:block">
+              {autoEngageEnabled ? "Turn off to pause auto-sends" : "Turn on to resume auto-sends"}
+            </span>
+            <Switch
+              checked={autoEngageEnabled}
+              onCheckedChange={(val) => autoEngageMutation.mutate(val)}
+              disabled={autoEngageMutation.isPending}
+              className="data-[state=checked]:bg-emerald-600"
+            />
           </div>
         </div>
 

@@ -336,6 +336,7 @@ export const smsSettings = pgTable("sms_settings", {
   confirmationTemplate: text("confirmation_template").default("Hi {customerName}, your appointment at {storeName} is confirmed for {appointmentDate} at {appointmentTime}. See you then!"),
   reminderTemplate: text("reminder_template").default("Hi {customerName}, this is a reminder of your appointment at {storeName} tomorrow at {appointmentTime}. Reply STOP to opt out."),
   reviewTemplate: text("review_template").default("Hi {customerName}, thank you for visiting {storeName}! We'd love your feedback. Leave us a review: {reviewUrl}"),
+  autoEngageEnabled: boolean("auto_engage_enabled").notNull().default(true),
 });
 
 export const smsLog = pgTable("sms_log", {
