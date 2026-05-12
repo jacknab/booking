@@ -212,69 +212,44 @@ router.get("/status", async (req: any, res) => {
 });
 
 // ── Reseed synchronously inside an SSE stream ────────────────────────────────
-// Runs the reseed script for the given email and streams its output as seed
-// phase log lines. Resolves when the child exits (success or failure).
-// If there is no reseed script (tester accounts) it resolves immediately.
+// Always uses the inline seedTesterStore seeder, regardless of account type.
+//
+// WHY: The shell-script reseed path (reseed-nail-demo.ts etc.) deletes and
+// recreates the user + store records with NEW database IDs. This breaks the
+// active SSE session because the storeId the client sent in the query-string
+// now points to a deleted row — so every engine write goes nowhere and the
+// dashboard shows zero data when the user lands back on /intelligence.
+//
+// The inline seeder is correct for the live-launch flow:
+//   • It targets the EXISTING storeId (the one the client passed)
+//   • It only clears clients + appointments (not the store or user record)
+//   • It uses whatever services/staff already exist in the store (nail-demo
+//     already has nail-specific services, so the seeded data is still themed)
+//   • The session stays valid throughout
+//
+// The full shell-script reseed is still used by spawnFullReseedAndRunEngines
+// (the background 90-minute cycle) where no live session is active.
 function reseedForLaunch(
-  email: string,
+  _email: string,
   storeId: number,
   send: (data: object) => void
 ): Promise<void> {
-  const script = RESEED_SCRIPTS[email];
-
-  // ── Tester accounts: seed demo data inline, no shell script needed ────────
-  if (!script) {
-    return seedTesterStore(storeId, send).then(() => {
-      send({ phase: "seed", status: "done", logLine: "[SEED] ✓ Demo data ready — launching intelligence engines..." });
-    }).catch((err: Error) => {
-      send({ phase: "seed", status: "done", logLine: `[SEED] ⚠ Seed error: ${err.message} — proceeding` });
+  return seedTesterStore(storeId, send)
+    .then(() => {
+      send({
+        phase: "seed",
+        status: "done",
+        logLine: "[SEED] ✓ Demo data ready — launching intelligence engines...",
+      });
+    })
+    .catch((err: Error) => {
+      console.error("[DemoLaunch] Seed error for store", storeId, err);
+      send({
+        phase: "seed",
+        status: "done",
+        logLine: `[SEED] ⚠ Seed error: ${err.message} — proceeding with existing data`,
+      });
     });
-  }
-
-  return new Promise<void>((resolve) => {
-    send({ phase: "seed", status: "start", logLine: "[SEED] ══════════════════════════════════════" });
-    send({ phase: "seed", status: "start", logLine: "[SEED] Resetting & reseeding demo store data..." });
-    send({ phase: "seed", status: "start", logLine: "[SEED] ══════════════════════════════════════" });
-
-    const child = spawn(TSX, [path.join(ROOT, script)], {
-      cwd: ROOT,
-      stdio: "pipe",
-      env: { ...process.env },
-    });
-
-    let buf = "";
-    child.stdout?.on("data", (chunk: Buffer) => {
-      buf += chunk.toString();
-      const lines = buf.split("\n");
-      buf = lines.pop() ?? "";
-      for (const raw of lines) {
-        const line = raw.trim();
-        if (!line) continue;
-        // Skip pure progress-counter lines (e.g. "  3261 / 3261 inserted")
-        if (/^\d+\s*\/\s*\d+/.test(line)) continue;
-        send({ phase: "seed", status: "progress", logLine: `[SEED] ${line}` });
-      }
-    });
-
-    child.stderr?.on("data", (chunk: Buffer) => {
-      const line = chunk.toString().trim();
-      if (line) send({ phase: "seed", status: "progress", logLine: `[SEED:warn] ${line}` });
-    });
-
-    child.on("close", (code: number | null) => {
-      if (code === 0) {
-        send({ phase: "seed", status: "done", logLine: "[SEED] ✓ Demo data ready — launching intelligence engines..." });
-      } else {
-        send({ phase: "seed", status: "done", logLine: `[SEED] ⚠ Reseed exited with code ${code} — proceeding with existing data` });
-      }
-      resolve(); // Always proceed to engines
-    });
-
-    child.on("error", (err: Error) => {
-      send({ phase: "seed", status: "done", logLine: `[SEED] ⚠ Reseed spawn error: ${err.message} — proceeding` });
-      resolve();
-    });
-  });
 }
 
 // ── GET /launch (SSE) ─────────────────────────────────────────────────────────
