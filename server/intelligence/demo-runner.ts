@@ -21,7 +21,10 @@ export interface DemoEngineEvent {
   description?: string;
   result?: string;
   progress?: number;
+  logLine?: string;
 }
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export async function runDemoEngines(
   storeId: number,
@@ -29,7 +32,23 @@ export async function runDemoEngines(
 ): Promise<void> {
 
   // ── Phase 1: Data Scan ────────────────────────────────────────────────────
-  emit({ phase: "data_scan", status: "starting", label: "Appointment History Scanner", description: "Indexing booking records" });
+  emit({
+    phase: "data_scan",
+    status: "starting",
+    label: "Appointment History Scanner",
+    description: "Indexing booking records",
+    logLine: "[BOOT] Appointment History Scanner — scanning booking database...",
+  });
+  await sleep(300);
+
+  emit({
+    phase: "data_scan",
+    status: "running",
+    label: "Appointment History Scanner",
+    progress: 35,
+    logLine: "[RUN]  Appointment History Scanner — indexing client records...",
+  });
+  await sleep(400);
 
   const allCustomers = await db
     .select({ id: customers.id })
@@ -43,12 +62,24 @@ export async function runDemoEngines(
 
   emit({
     phase: "data_scan",
+    status: "running",
+    label: "Appointment History Scanner",
+    progress: 75,
+    logLine: `[RUN]  Appointment History Scanner — found ${allCustomers.length.toLocaleString()} clients, ${totalAppts.toLocaleString()} bookings`,
+  });
+  await sleep(350);
+
+  emit({
+    phase: "data_scan",
     status: "done",
     label: "Appointment History Scanner",
     result: `${allCustomers.length} clients · ${totalAppts.toLocaleString()} appointments indexed`,
+    logLine: `[ONLINE] ✓ Appointment History Scanner — ${allCustomers.length} clients · ${totalAppts.toLocaleString()} appointments indexed`,
   });
 
   if (allCustomers.length === 0) return;
+
+  await sleep(200);
 
   // ── Phase 2: Client Profile Engine ───────────────────────────────────────
   emit({
@@ -56,13 +87,16 @@ export async function runDemoEngines(
     status: "starting",
     label: "Client Profile Engine",
     description: `Building cadence & LTV for ${allCustomers.length} clients`,
+    logLine: `[BOOT] Client Profile Engine — building cadence & LTV for ${allCustomers.length} clients...`,
   });
+  await sleep(350);
 
   let processed = 0;
   let driftingCount = 0;
   let atRiskCount = 0;
   let totalRebookingRate = 0;
   let rebookingRateCount = 0;
+  let highLtvCount = 0;
 
   for (const customer of allCustomers) {
     try {
@@ -94,6 +128,7 @@ export async function runDemoEngines(
 
       if (cadence.isDrifting) driftingCount++;
       if (churn.isAtRisk) atRiskCount++;
+      if (ltv.ltvAllTime > 500) highLtvCount++;
       if (ltv.totalVisits > 0) {
         totalRebookingRate += rebookingRate;
         rebookingRateCount++;
@@ -151,11 +186,13 @@ export async function runDemoEngines(
 
       processed++;
       if (processed % 40 === 0) {
+        const pct = Math.round((processed / allCustomers.length) * 100);
         emit({
           phase: "client_profiles",
           status: "running",
           label: "Client Profile Engine",
-          progress: Math.round((processed / allCustomers.length) * 100),
+          progress: pct,
+          logLine: `[RUN]  Client Profile Engine — ${processed}/${allCustomers.length} profiles scored (${pct}%)`,
         });
       }
     } catch {
@@ -167,8 +204,11 @@ export async function runDemoEngines(
     phase: "client_profiles",
     status: "done",
     label: "Client Profile Engine",
-    result: `${processed} profiles built`,
+    result: `${processed} profiles built · ${highLtvCount} high-LTV clients`,
+    logLine: `[ONLINE] ✓ Client Profile Engine — ${processed} profiles built · ${highLtvCount} high-LTV clients identified`,
   });
+
+  await sleep(200);
 
   // ── Phase 3: Churn Risk Scoring ───────────────────────────────────────────
   emit({
@@ -176,14 +216,34 @@ export async function runDemoEngines(
     status: "starting",
     label: "Churn Risk Scoring",
     description: "Classifying retention risk across client base",
+    logLine: "[BOOT] Churn Risk Scoring — applying multi-factor retention model...",
   });
-  await new Promise<void>((r) => setTimeout(r, 350));
+  await sleep(400);
+  emit({
+    phase: "churn_scoring",
+    status: "running",
+    label: "Churn Risk Scoring",
+    progress: 40,
+    logLine: `[RUN]  Churn Risk Scoring — evaluating cadence overdue %, visit frequency, no-show history...`,
+  });
+  await sleep(500);
+  emit({
+    phase: "churn_scoring",
+    status: "running",
+    label: "Churn Risk Scoring",
+    progress: 80,
+    logLine: `[RUN]  Churn Risk Scoring — ${driftingCount} drifting detected · ${atRiskCount} critical risk flagged`,
+  });
+  await sleep(350);
   emit({
     phase: "churn_scoring",
     status: "done",
     label: "Churn Risk Scoring",
-    result: `${atRiskCount} clients flagged · ${driftingCount} drifting`,
+    result: `${atRiskCount} at-risk · ${driftingCount} drifting`,
+    logLine: `[ONLINE] ✓ Churn Risk Scoring — ${atRiskCount} clients at risk · ${driftingCount} drifting past cadence`,
   });
+
+  await sleep(200);
 
   // ── Phase 4: Staff Intelligence ───────────────────────────────────────────
   emit({
@@ -191,8 +251,19 @@ export async function runDemoEngines(
     status: "starting",
     label: "Staff Intelligence",
     description: "Rebooking rates & revenue per tech",
+    logLine: "[BOOT] Staff Intelligence — pulling completed appointment data per technician...",
   });
+  await sleep(400);
+  emit({
+    phase: "staff_intelligence",
+    status: "running",
+    label: "Staff Intelligence",
+    progress: 50,
+    logLine: "[RUN]  Staff Intelligence — computing rebooking rates, avg ticket, no-show counts...",
+  });
+
   let staffCount = 0;
+  let topRebookPct = 0;
   try {
     const staffRates = await computeRebookingRates(storeId);
     for (const s of staffRates) {
@@ -218,17 +289,23 @@ export async function runDemoEngines(
           trend                  = EXCLUDED.trend,
           computed_at            = NOW()
       `);
+      if (s.rebookingRatePct > topRebookPct) topRebookPct = s.rebookingRatePct;
     }
     totalRebookingRate = staffRates.reduce((sum, s) => sum + s.rebookingRatePct, 0);
     rebookingRateCount = staffRates.length;
     staffCount = staffRates.length;
   } catch { /* silent */ }
+
+  await sleep(300);
   emit({
     phase: "staff_intelligence",
     status: "done",
     label: "Staff Intelligence",
-    result: `${staffCount} techs analysed`,
+    result: `${staffCount} techs analysed · top rebooking ${topRebookPct.toFixed(0)}%`,
+    logLine: `[ONLINE] ✓ Staff Intelligence — ${staffCount} techs scored · top rebooking rate ${topRebookPct.toFixed(0)}%`,
   });
+
+  await sleep(200);
 
   // ── Phase 5: Dead Seat Detector ───────────────────────────────────────────
   emit({
@@ -236,18 +313,43 @@ export async function runDemoEngines(
     status: "starting",
     label: "Dead Seat Detector",
     description: "Scanning for chronically underbooked slots",
+    logLine: "[BOOT] Dead Seat Detector — scanning 90-day day×hour booking heatmap...",
   });
+  await sleep(450);
+  emit({
+    phase: "dead_seats",
+    status: "running",
+    label: "Dead Seat Detector",
+    progress: 45,
+    logLine: "[RUN]  Dead Seat Detector — computing slot utilization across all staff & hours...",
+  });
+  await sleep(400);
+
   let utilizationPct = 50;
+  let deadSlotCount = 0;
   try {
     const deadSeats = await computeDeadSeats(storeId);
     utilizationPct = deadSeats.overallUtilization;
+    deadSlotCount = deadSeats.patterns?.length ?? 0;
   } catch { /* silent */ }
+
+  emit({
+    phase: "dead_seats",
+    status: "running",
+    label: "Dead Seat Detector",
+    progress: 85,
+    logLine: `[RUN]  Dead Seat Detector — ${utilizationPct.toFixed(0)}% utilization · flagging underbooked windows...`,
+  });
+  await sleep(300);
   emit({
     phase: "dead_seats",
     status: "done",
     label: "Dead Seat Detector",
-    result: `${utilizationPct.toFixed(0)}% seat utilization`,
+    result: `${utilizationPct.toFixed(0)}% seat utilization · ${deadSlotCount} dead slots`,
+    logLine: `[ONLINE] ✓ Dead Seat Detector — ${utilizationPct.toFixed(0)}% overall utilization · ${deadSlotCount} underbooked slots found`,
   });
+
+  await sleep(200);
 
   // ── Phase 6: Growth Score Engine ─────────────────────────────────────────
   emit({
@@ -255,8 +357,20 @@ export async function runDemoEngines(
     status: "starting",
     label: "Growth Score Engine",
     description: "Computing composite 0–100 business health score",
+    logLine: "[BOOT] Growth Score Engine — loading retention, rebooking, utilization components...",
   });
+  await sleep(400);
+  emit({
+    phase: "growth_score",
+    status: "running",
+    label: "Growth Score Engine",
+    progress: 40,
+    logLine: "[RUN]  Growth Score Engine — weighting 5 component scores (retention, rebooking, utilization, revenue, new clients)...",
+  });
+  await sleep(450);
+
   let growthScoreValue = 0;
+  let growthGrade = "C";
   try {
     const avgRebooking = rebookingRateCount > 0 ? totalRebookingRate / rebookingRateCount : 0;
     const gs = await computeGrowthScore(
@@ -270,6 +384,10 @@ export async function runDemoEngines(
       utilizationPct
     );
     growthScoreValue = gs.overallScore;
+    growthGrade = gs.overallScore >= 85 ? "A"
+      : gs.overallScore >= 70 ? "B"
+      : gs.overallScore >= 55 ? "C"
+      : gs.overallScore >= 40 ? "D" : "F";
     await db.insert(growthScoreSnapshots).values({
       storeId,
       overallScore: gs.overallScore,
@@ -287,12 +405,24 @@ export async function runDemoEngines(
       snapshotDate: new Date(),
     });
   } catch { /* silent */ }
+
+  emit({
+    phase: "growth_score",
+    status: "running",
+    label: "Growth Score Engine",
+    progress: 90,
+    logLine: `[RUN]  Growth Score Engine — final score computed: ${growthScoreValue}/100 (Grade ${growthGrade})`,
+  });
+  await sleep(300);
   emit({
     phase: "growth_score",
     status: "done",
     label: "Growth Score Engine",
-    result: `Business health score: ${growthScoreValue}/100`,
+    result: `Score: ${growthScoreValue}/100 · Grade ${growthGrade}`,
+    logLine: `[ONLINE] ✓ Growth Score Engine — business health score: ${growthScoreValue}/100 (Grade ${growthGrade})`,
   });
+
+  await sleep(200);
 
   // ── Phase 7: Revenue Leakage Scanner ─────────────────────────────────────
   emit({
@@ -300,19 +430,46 @@ export async function runDemoEngines(
     status: "starting",
     label: "Revenue Leakage Scanner",
     description: "Mapping lapsed clients to lost revenue",
+    logLine: "[BOOT] Revenue Leakage Scanner — identifying clients lost in the last 90–180 days...",
   });
+  await sleep(400);
+  emit({
+    phase: "revenue_leakage",
+    status: "running",
+    label: "Revenue Leakage Scanner",
+    progress: 50,
+    logLine: "[RUN]  Revenue Leakage Scanner — cross-referencing avg ticket × expected cadence...",
+  });
+  await sleep(450);
+
   let leakageResult = "Leakage report ready";
+  let lapsedCount = 0;
+  let recoverableAmount = 0;
   try {
     const leakage = await computeRevenueLeakage(storeId);
     const total = leakage.reduce((sum: number, c: any) => sum + Number(c.estimatedRevenueLost || 0), 0);
-    leakageResult = `${leakage.length} lapsed clients · $${Math.round(total).toLocaleString()} recoverable`;
+    lapsedCount = leakage.length;
+    recoverableAmount = Math.round(total);
+    leakageResult = `${lapsedCount} lapsed · $${recoverableAmount.toLocaleString()} recoverable`;
   } catch { /* silent */ }
+
+  emit({
+    phase: "revenue_leakage",
+    status: "running",
+    label: "Revenue Leakage Scanner",
+    progress: 88,
+    logLine: `[RUN]  Revenue Leakage Scanner — $${recoverableAmount.toLocaleString()} in recoverable revenue mapped to ${lapsedCount} clients`,
+  });
+  await sleep(300);
   emit({
     phase: "revenue_leakage",
     status: "done",
     label: "Revenue Leakage Scanner",
     result: leakageResult,
+    logLine: `[ONLINE] ✓ Revenue Leakage Scanner — ${lapsedCount} lapsed clients · $${recoverableAmount.toLocaleString()} recovery potential`,
   });
+
+  await sleep(200);
 
   // ── Phase 8: Drift Recovery Engine ───────────────────────────────────────
   emit({
@@ -320,12 +477,30 @@ export async function runDemoEngines(
     status: "starting",
     label: "Drift Recovery Engine",
     description: "Identifying win-back candidates",
+    logLine: "[BOOT] Drift Recovery Engine — scanning clients who've drifted past expected cadence...",
   });
-  await new Promise<void>((r) => setTimeout(r, 400));
+  await sleep(450);
+  emit({
+    phase: "drift_engine",
+    status: "running",
+    label: "Drift Recovery Engine",
+    progress: 55,
+    logLine: `[RUN]  Drift Recovery Engine — ${driftingCount} clients are 20%+ past their visit window...`,
+  });
+  await sleep(500);
+  emit({
+    phase: "drift_engine",
+    status: "running",
+    label: "Drift Recovery Engine",
+    progress: 85,
+    logLine: `[RUN]  Drift Recovery Engine — preparing personalised win-back messaging queue...`,
+  });
+  await sleep(350);
   emit({
     phase: "drift_engine",
     status: "done",
     label: "Drift Recovery Engine",
     result: `${driftingCount} clients queued for win-back`,
+    logLine: `[ONLINE] ✓ Drift Recovery Engine — ${driftingCount} win-back candidates ready · revenue recovery active`,
   });
 }

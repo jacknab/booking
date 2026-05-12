@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   subscriptionStatus: varchar("subscription_status", { length: 20 }).default("active"),
   trialStartedAt: timestamp("trial_started_at"),
   trialEndsAt: timestamp("trial_ends_at"),
+  // Account type — "tester" for temporary demo sessions, null/undefined = regular account
+  accountType: varchar("account_type", { length: 32 }),
 });
 
 export type UpsertUser = typeof users.$inferInsert;

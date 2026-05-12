@@ -21,6 +21,13 @@ async function getSessionUser(req: any) {
   return user ?? null;
 }
 
+// ── Check if a user is allowed to access demo / intelligence launch ───────────
+function isDemoAllowed(user: any): boolean {
+  if (!user) return false;
+  if (user.accountType === "tester") return true;
+  return DEMO_EMAILS.has(user.email);
+}
+
 const router = Router();
 
 // ── All demo account emails ───────────────────────────────────────────────────
@@ -152,7 +159,7 @@ function spawnFullReseed(storeId: number, email: string): void {
 // ── GET /status ───────────────────────────────────────────────────────────────
 router.get("/status", async (req: any, res) => {
   const user = await getSessionUser(req);
-  if (!user || !DEMO_EMAILS.has(user.email)) {
+  if (!isDemoAllowed(user)) {
     return res.status(403).json({ error: "Demo account only." });
   }
 
@@ -185,7 +192,7 @@ router.get("/status", async (req: any, res) => {
 // ── GET /launch (SSE) ─────────────────────────────────────────────────────────
 router.get("/launch", async (req: any, res) => {
   const user = await getSessionUser(req);
-  if (!user || !DEMO_EMAILS.has(user.email)) {
+  if (!isDemoAllowed(user)) {
     return res.status(403).json({ error: "This endpoint is only available for demo accounts." });
   }
 

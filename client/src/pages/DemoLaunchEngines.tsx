@@ -4,16 +4,9 @@ import { useSelectedStore } from "@/hooks/use-store";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Database, Users, AlertTriangle, Star, Clock,
-  TrendingUp, DollarSign, Zap, CheckCircle2, ChevronRight,
+  TrendingUp, DollarSign, Zap, CheckCircle2,
   Radio
 } from "lucide-react";
-
-const DEMO_EMAILS = [
-  "nail-demo@certxa.com",
-  "hair-demo@certxa.com",
-  "spa-demo@certxa.com",
-  "barber-demo@certxa.com",
-];
 
 type EngineStatus = "offline" | "initializing" | "running" | "online";
 
@@ -103,6 +96,12 @@ export default function DemoLaunchEngines() {
   );
   const [log, setLog] = useState<string[]>([]);
   const [dots, setDots] = useState(".");
+
+  // Finish overlay state
+  const [showFinish, setShowFinish] = useState(false);
+  const [finishPct, setFinishPct] = useState(0);
+  const [finishLabel, setFinishLabel] = useState("Finalising dashboard...");
+
   const logRef = useRef<HTMLDivElement>(null);
   const esRef = useRef<EventSource | null>(null);
 
@@ -120,24 +119,59 @@ export default function DemoLaunchEngines() {
 
   useEffect(() => () => { esRef.current?.close(); }, []);
 
-  if (!user || !DEMO_EMAILS.includes(user.email)) {
-    navigate("/intelligence", { replace: true });
-    return null;
-  }
+  // Auto-redirect after finish overlay completes
+  useEffect(() => {
+    if (!showFinish) return;
+
+    let pct = 0;
+    const step = () => {
+      pct += 1.4;
+      setFinishPct(Math.min(100, pct));
+      if (pct >= 70 && pct < 72) {
+        setFinishLabel("Loading intelligence data...");
+      }
+      if (pct >= 95) {
+        setFinishLabel("Finished ✓");
+      }
+      if (pct < 100) {
+        setTimeout(step, 28);
+      } else {
+        setTimeout(() => navigate("/intelligence", { replace: true }), 600);
+      }
+    };
+    setTimeout(step, 200);
+  }, [showFinish, navigate]);
+
+  // Guard: only tester accounts (accountType === "tester") or legacy demo emails can access
+  const isDemoUser = (user as any)?.accountType === "tester" || [
+    "nail-demo@certxa.com",
+    "hair-demo@certxa.com",
+    "spa-demo@certxa.com",
+    "barber-demo@certxa.com",
+  ].includes(user?.email ?? "");
+
+  useEffect(() => {
+    if (user && !isDemoUser) {
+      navigate("/intelligence", { replace: true });
+    }
+  }, [user, isDemoUser, navigate]);
 
   function setEngine(id: string, patch: Partial<EngineState>) {
     setEngines((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   }
 
   function appendLog(msg: string) {
-    setLog((prev) => [...prev.slice(-80), msg]);
+    setLog((prev) => [...prev.slice(-120), msg]);
   }
 
   function handleLaunch() {
     if (!selectedStore?.id) return;
     setPhase("launching");
-    appendLog("[SYSTEM] Initiating Revenue Intelligence engine sequence...");
+    appendLog("[SYSTEM] ═══════════════════════════════════════════════════");
+    appendLog("[SYSTEM] Certxa Revenue Intelligence — Engine Boot Sequence");
+    appendLog("[SYSTEM] ═══════════════════════════════════════════════════");
     appendLog("[SYSTEM] Establishing secure data pipeline...");
+    appendLog("[SYSTEM] 8 engines standing by for initialisation.");
 
     const url = `/api/intelligence/demo/launch?storeId=${selectedStore.id}`;
     const es = new EventSource(url);
@@ -148,9 +182,12 @@ export default function DemoLaunchEngines() {
         const data = JSON.parse(ev.data);
 
         if (data.phase === "complete") {
+          appendLog("[SYSTEM] ───────────────────────────────────────────────");
+          appendLog("[SYSTEM] ✅ ALL 8 ENGINES ONLINE — Intelligence stack ready");
+          appendLog("[SYSTEM] ───────────────────────────────────────────────");
           setPhase("complete");
-          appendLog("[SYSTEM] ✅ ALL ENGINES ONLINE — Intelligence dashboard ready.");
           es.close();
+          setTimeout(() => setShowFinish(true), 800);
           return;
         }
 
@@ -160,17 +197,19 @@ export default function DemoLaunchEngines() {
           return;
         }
 
-        const { phase: p, status, label, result, progress, description } = data;
+        const { phase: p, status, result, progress, logLine } = data;
+
+        // Append log line from server if available
+        if (logLine) {
+          appendLog(logLine);
+        }
 
         if (status === "starting") {
           setEngine(p, { status: "initializing", progress: 0, result: "" });
-          appendLog(`[BOOT] ${label} — ${description || "initializing..."}`);
         } else if (status === "running") {
           setEngine(p, { status: "running", progress: progress ?? 50 });
-          appendLog(`[RUN]  ${label} — ${progress ?? 0}% complete`);
         } else if (status === "done") {
           setEngine(p, { status: "online", progress: 100, result: result || "" });
-          appendLog(`[ONLINE] ✓ ${label}${result ? ` — ${result}` : ""}`);
         }
       } catch {
         /* ignore parse errors */
@@ -183,8 +222,6 @@ export default function DemoLaunchEngines() {
     };
   }
 
-  const allOnline = ENGINES.every((e) => engines[e.id].status === "online");
-
   return (
     <div
       className="min-h-screen w-full overflow-auto"
@@ -194,18 +231,6 @@ export default function DemoLaunchEngines() {
       }}
     >
       <style>{`
-        @keyframes pulse-ring {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.08); }
-        }
-        @keyframes glow-in {
-          from { box-shadow: none; }
-          to { box-shadow: var(--glow); }
-        }
-        @keyframes scan-line {
-          0% { background-position: 0 0; }
-          100% { background-position: 0 100px; }
-        }
         @keyframes blink-dot {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.2; }
@@ -222,9 +247,13 @@ export default function DemoLaunchEngines() {
           0%, 100% { box-shadow: 0 0 20px #7c3aed88, 0 0 40px #7c3aed44; }
           50%       { box-shadow: 0 0 40px #7c3aedcc, 0 0 80px #7c3aed66; }
         }
-        @keyframes progress-fill {
-          from { width: 0%; }
-          to   { width: var(--target-width); }
+        @keyframes overlay-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes card-in {
+          from { opacity: 0; transform: scale(0.92) translateY(20px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         .engine-card { transition: all 0.4s ease; }
         .engine-card.online {
@@ -249,7 +278,98 @@ export default function DemoLaunchEngines() {
                             linear-gradient(90deg, rgba(124,58,237,0.05) 1px, transparent 1px);
           background-size: 40px 40px;
         }
+        .log-line-online  { color: #34d399; }
+        .log-line-error   { color: #f87171; }
+        .log-line-system  { color: #a78bfa; }
+        .log-line-boot    { color: #fbbf24; }
+        .log-line-run     { color: #60a5fa; }
+        .log-line-default { color: #64748b; }
       `}</style>
+
+      {/* ── Finish overlay ──────────────────────────────────────────────────── */}
+      {showFinish && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(7, 0, 15, 0.82)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            animation: "overlay-in 0.4s ease both",
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(139,92,246,0.35)",
+              borderRadius: 24,
+              padding: "48px 56px",
+              textAlign: "center",
+              minWidth: 360,
+              animation: "card-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: 64, height: 64, borderRadius: "50%", margin: "0 auto 24px",
+              background: finishPct >= 100
+                ? "radial-gradient(circle, #059669, #047857)"
+                : "radial-gradient(circle, #7c3aed, #5b21b6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: finishPct >= 100 ? "0 0 32px #05966966" : "0 0 32px #7c3aed66",
+              transition: "all 0.5s ease",
+            }}>
+              {finishPct >= 100
+                ? <CheckCircle2 size={28} color="#fff" />
+                : <Zap size={28} color="#fff" />
+              }
+            </div>
+
+            {/* Label */}
+            <p style={{
+              fontSize: "1rem",
+              fontWeight: 700,
+              color: finishPct >= 100 ? "#34d399" : "#e2e8f0",
+              marginBottom: 24,
+              letterSpacing: "0.02em",
+              transition: "color 0.4s ease",
+            }}>
+              {finishLabel}
+            </p>
+
+            {/* Progress bar track */}
+            <div style={{
+              height: 8,
+              background: "rgba(255,255,255,0.07)",
+              borderRadius: 100,
+              overflow: "hidden",
+              marginBottom: 16,
+              width: "100%",
+            }}>
+              <div style={{
+                height: "100%",
+                width: `${finishPct}%`,
+                borderRadius: 100,
+                background: finishPct >= 100
+                  ? "linear-gradient(90deg, #059669, #34d399)"
+                  : "linear-gradient(90deg, #7c3aed, #a78bfa)",
+                boxShadow: finishPct >= 100
+                  ? "0 0 12px #34d39966"
+                  : "0 0 12px #a78bfa66",
+                transition: "background 0.5s ease, box-shadow 0.5s ease",
+              }} />
+            </div>
+
+            <p style={{ fontSize: "0.72rem", color: "#475569", fontFamily: "monospace", letterSpacing: "0.06em" }}>
+              {finishPct >= 100 ? "Redirecting to dashboard..." : `${Math.round(finishPct)}% — loading intelligence data`}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid-bg min-h-screen">
 
@@ -265,7 +385,7 @@ export default function DemoLaunchEngines() {
             onClick={() => navigate("/intelligence")}
             className="text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
           >
-            Skip → Dashboard
+            Skip to Dashboard →
           </button>
         </div>
 
@@ -282,20 +402,20 @@ export default function DemoLaunchEngines() {
                   Revenue Intelligence
                 </h1>
                 <p className="text-slate-400 text-base max-w-md mx-auto">
-                  All engines are offline. Press the button below to initialise the full intelligence stack on your demo data.
+                  All engines are offline. Press the button below to initialise the full intelligence stack against your live demo data.
                 </p>
               </div>
             )}
             {phase === "launching" && (
               <div style={{ animation: "slide-up 0.4s ease both" }}>
                 <p className="text-xs font-mono tracking-widest text-amber-400 uppercase mb-3">
-                  sequence in progress
+                  boot sequence in progress
                 </p>
                 <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">
                   Initialising{dots}
                 </h1>
                 <p className="text-slate-400 text-sm">
-                  Engines are coming online. This takes 20–40 seconds.
+                  Engines are coming online one by one. This takes 30–60 seconds.
                 </p>
               </div>
             )}
@@ -314,14 +434,14 @@ export default function DemoLaunchEngines() {
                   All Engines Online
                 </h1>
                 <p className="text-slate-400 text-sm mt-3">
-                  Revenue Intelligence is fully initialised. Your dashboard is ready.
+                  Revenue Intelligence is fully initialised. Loading your dashboard...
                 </p>
               </div>
             )}
           </div>
 
           {/* Engine grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
             {ENGINES.map((engine) => {
               const state = engines[engine.id];
               return (
@@ -338,7 +458,7 @@ export default function DemoLaunchEngines() {
                     ["--dot-color" as any]: engine.color,
                   }}
                 >
-                  {/* Status dot */}
+                  {/* Status dot + label */}
                   <div className="flex items-center justify-between mb-3">
                     <span
                       className={`status-dot ${state.status}`}
@@ -412,7 +532,7 @@ export default function DemoLaunchEngines() {
 
           {/* Launch button */}
           {phase === "idle" && (
-            <div className="flex justify-center" style={{ animation: "slide-up 0.8s ease both" }}>
+            <div className="flex justify-center mb-8" style={{ animation: "slide-up 0.8s ease both" }}>
               <button
                 onClick={handleLaunch}
                 disabled={!selectedStore?.id}
@@ -432,54 +552,53 @@ export default function DemoLaunchEngines() {
             </div>
           )}
 
-          {/* Open dashboard button */}
-          {phase === "complete" && (
-            <div className="flex justify-center" style={{ animation: "slide-up 0.6s ease both" }}>
-              <button
-                onClick={() => navigate("/intelligence")}
-                className="flex items-center gap-3 px-10 py-4 rounded-2xl font-bold text-base text-white transition-all duration-200 active:scale-95 hover:scale-105"
-                style={{
-                  background: "linear-gradient(135deg, #059669, #047857)",
-                  boxShadow: "0 0 32px #059669aa, 0 0 64px #05966944",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Open Intelligence Dashboard
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          )}
-
-          {/* Activity log */}
+          {/* Activity log — shown during and after launch */}
           {phase !== "idle" && (
             <div
-              className="mt-8 rounded-xl border border-white/5 overflow-hidden"
-              style={{ background: "rgba(0,0,0,0.5)" }}
+              className="rounded-xl border border-white/5 overflow-hidden"
+              style={{ background: "rgba(0,0,0,0.6)" }}
             >
-              <div className="px-4 py-2 border-b border-white/5 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" style={{ animation: phase === "launching" ? "blink-dot 1s infinite" : undefined }} />
-                <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">
-                  Engine Activity Log
+              <div className="px-4 py-2 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background: phase === "complete" ? "#34d399" : "#fbbf24",
+                      boxShadow: phase === "complete" ? "0 0 8px #34d399" : "0 0 8px #fbbf24",
+                      animation: phase === "launching" ? "blink-dot 1s infinite" : undefined,
+                    }}
+                  />
+                  <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">
+                    Engine Activity Log
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-slate-600 tracking-widest">
+                  {log.length} lines
                 </span>
               </div>
               <div
                 ref={logRef}
-                className="font-mono text-[11px] text-slate-400 px-4 py-3 space-y-0.5 overflow-y-auto"
-                style={{ maxHeight: "160px" }}
+                className="font-mono text-[11px] px-4 py-3 space-y-0.5 overflow-y-auto"
+                style={{ maxHeight: "260px" }}
               >
-                {log.map((line, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      color: line.startsWith("[ONLINE]") ? "#34d399"
-                        : line.startsWith("[ERROR]") ? "#f87171"
-                        : line.startsWith("[SYSTEM]") ? "#a78bfa"
-                        : "#64748b",
-                    }}
-                  >
-                    {line}
+                {log.map((line, i) => {
+                  const cls = line.startsWith("[ONLINE]") ? "log-line-online"
+                    : line.startsWith("[ERROR]") ? "log-line-error"
+                    : line.startsWith("[SYSTEM]") ? "log-line-system"
+                    : line.startsWith("[BOOT]") ? "log-line-boot"
+                    : line.startsWith("[RUN]") ? "log-line-run"
+                    : "log-line-default";
+                  return (
+                    <div key={i} className={cls}>
+                      {line}
+                    </div>
+                  );
+                })}
+                {phase === "launching" && (
+                  <div className="log-line-system" style={{ animation: "blink-dot 1s infinite" }}>
+                    ▋
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
