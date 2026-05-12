@@ -10,6 +10,7 @@ import {
   intelligenceInterventions,
   deadSeatPatterns,
 } from "../../shared/schema/intelligence";
+import { users } from "../../shared/schema";
 import { runDemoEngines } from "../intelligence/demo-runner";
 
 const router = Router();
@@ -21,6 +22,58 @@ export const DEMO_EMAILS = new Set([
   "spa-demo@certxa.com",
   "barber-demo@certxa.com",
 ]);
+
+// ── Business-type → demo email map (used by the public /enter/:type endpoint) ─
+const DEMO_TYPE_EMAIL: Record<string, string> = {
+  nail:   "nail-demo@certxa.com",
+  hair:   "hair-demo@certxa.com",
+  spa:    "spa-demo@certxa.com",
+  barber: "barber-demo@certxa.com",
+};
+
+// ── GET /enter/:type — public auto-login for demo landing page ────────────────
+// Accepts: nail | hair | spa | barber
+// Creates a real session for the matching demo account and redirects to
+// /intelligence/launch so the prospect lands directly in the live demo.
+router.get("/enter/:type", async (req: any, res) => {
+  const email = DEMO_TYPE_EMAIL[req.params.type?.toLowerCase()];
+  if (!email) {
+    return res.status(400).send(
+      "Unknown demo type. Valid options: nail, hair, spa, barber"
+    );
+  }
+
+  try {
+    // Look up the demo user from the database
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+
+    if (!user) {
+      console.error(`[DemoEnter] Demo account not found: ${email}`);
+      return res.status(503).send(
+        `Demo account not ready (${email}). ` +
+        "Ask your admin to run: npm run seed:demo"
+      );
+    }
+
+    // Set the session the same way the regular login endpoint does
+    (req.session as any).userId = user.id;
+
+    // Keep the demo session alive for 2 hours — long enough for any prospect
+    req.session.cookie.maxAge = 2 * 60 * 60 * 1000;
+
+    req.session.save((err: any) => {
+      if (err) {
+        console.error("[DemoEnter] Session save failed:", err);
+        return res.status(500).send("Session error — please try again.");
+      }
+      console.log(`[DemoEnter] Auto-login: ${email} → /intelligence/launch`);
+      res.redirect("/intelligence/launch");
+    });
+  } catch (err: any) {
+    console.error("[DemoEnter] DB error:", err.message);
+    res.status(500).send("Server error — please try again.");
+  }
+});
 
 // Map each demo email to its reseed script
 const RESEED_SCRIPTS: Record<string, string> = {

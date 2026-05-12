@@ -100,6 +100,7 @@ import AccountOverview from "@/pages/AccountOverview";
 import Intelligence from "@/pages/Intelligence";
 import DemoLaunchEngines from "@/pages/DemoLaunchEngines";
 import WebsiteDesigns from "@/pages/WebsiteDesigns";
+import DemoLanding from "@/pages/DemoLanding";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
 import { AccountStatusGate } from "@/components/AccountStatusGate";
@@ -243,6 +244,9 @@ function AppRoutes() {
       {/* Industry landing pages */}
       <Route path="/spa" element={<SpaLandingPage />} />
       <Route path="/tattoo-studio" element={<TattooStudioLandingPage />} />
+
+      {/* Public demo landing — zero-friction, one-click entry into intelligence demo */}
+      <Route path="/demo" element={<DemoLanding />} />
 
       {/* Admin */}
       <Route path="/isadmin/*" element={<AdminDashboard />} />
