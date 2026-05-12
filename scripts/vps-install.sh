@@ -17,7 +17,12 @@
 #    rebuilds, fixes nginx/SSL if needed, and restarts PM2.
 #    Use this when the app goes down and you need a one-command recovery.
 #
-#  Flags (work in both modes):
+#  Server status report (no install, no changes — read-only):
+#    bash scripts/vps-install.sh --status
+#    Checks PM2, nginx, PostgreSQL, SSL cert expiry, and HTTP/HTTPS health.
+#    Finishes in seconds. Safe to run at any time.
+#
+#  Flags (work in all modes):
 #    SKIP_SSL=1   — skip Let's Encrypt (use when SSL is handled by Cloudflare etc.)
 #    SKIP_GIT=1   — skip git pull (use when code is already up to date on disk)
 # =============================================================================
@@ -60,11 +65,156 @@ fi
 
 APP_PORT="8100"
 
-# ── Detect repair mode ────────────────────────────────────────────────────────
+# ── Detect flags ──────────────────────────────────────────────────────────────
 REPAIR_MODE=0
+STATUS_MODE=0
 for arg in "$@"; do
   [[ "$arg" == "--repair" ]] && REPAIR_MODE=1
+  [[ "$arg" == "--status" ]] && STATUS_MODE=1
 done
+
+# ── --status: quick health report then exit ───────────────────────────────────
+if [[ "$STATUS_MODE" == "1" ]]; then
+  echo ""
+  banner "╔══════════════════════════════════════════════════════════════╗"
+  banner "║                Certxa — Server Status Report                ║"
+  banner "╚══════════════════════════════════════════════════════════════╝"
+  echo ""
+
+  # ── PM2 ──────────────────────────────────────────────────────────────────
+  echo -e "${BOLD}${CYAN}━━  PM2 Process${NC}"
+  if command -v pm2 &>/dev/null; then
+    PM2_STATUS="$(pm2 describe certxa 2>/dev/null | grep -E 'status' | awk '{print $4}' | head -1)"
+    PM2_UPTIME="$(pm2 describe certxa 2>/dev/null | grep -E 'uptime' | awk '{print $4}' | head -1)"
+    PM2_MEM="$(pm2 describe certxa 2>/dev/null | grep -E 'heap size' | awk '{print $NF}' | head -1)"
+    if [[ "$PM2_STATUS" == "online" ]]; then
+      ok "certxa is ${PM2_STATUS}  |  uptime: ${PM2_UPTIME:-unknown}  |  heap: ${PM2_MEM:-unknown}"
+    elif [[ -n "$PM2_STATUS" ]]; then
+      fail "certxa status: ${PM2_STATUS}"
+      warn "To restart: pm2 restart certxa"
+    else
+      fail "certxa process not found in PM2"
+      warn "To start: pm2 start ecosystem.config.cjs"
+    fi
+  else
+    fail "PM2 not installed"
+  fi
+  echo ""
+
+  # ── nginx ─────────────────────────────────────────────────────────────────
+  echo -e "${BOLD}${CYAN}━━  nginx${NC}"
+  if command -v nginx &>/dev/null; then
+    NGINX_SVC="$(systemctl is-active nginx 2>/dev/null || echo 'unknown')"
+    if [[ "$NGINX_SVC" == "active" ]]; then
+      ok "nginx is running"
+    else
+      fail "nginx status: ${NGINX_SVC}"
+      warn "To fix: sudo nginx -t && sudo systemctl restart nginx"
+    fi
+    if nginx -t 2>&1 | grep -q "ok"; then
+      ok "nginx config test passed"
+    else
+      fail "nginx config has errors:"
+      nginx -t 2>&1 | tail -5 | sed 's/^/    /'
+    fi
+  else
+    fail "nginx not installed"
+  fi
+  echo ""
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  echo -e "${BOLD}${CYAN}━━  PostgreSQL${NC}"
+  PG_SVC="$(systemctl is-active postgresql 2>/dev/null || echo 'unknown')"
+  if [[ "$PG_SVC" == "active" ]]; then
+    ok "PostgreSQL is running"
+    # Try to test DB connection using DATABASE_URL from .env
+    ENV_FILE="$APP_DIR/.env"
+    if [[ -f "$ENV_FILE" ]]; then
+      DB_URL="$(grep -E '^DATABASE_URL=' "$ENV_FILE" | head -1 | sed -E 's/^DATABASE_URL=//')"
+      if [[ -n "$DB_URL" ]]; then
+        if psql "$DB_URL" -c "SELECT 1" >/dev/null 2>&1; then
+          ok "Database connection verified"
+        else
+          fail "Could not connect to database with DATABASE_URL from .env"
+          warn "Check credentials or run: sudo systemctl status postgresql"
+        fi
+      else
+        warn "DATABASE_URL not found in .env — skipping connection test"
+      fi
+    else
+      warn ".env not found at $ENV_FILE — skipping connection test"
+    fi
+  else
+    fail "PostgreSQL status: ${PG_SVC}"
+    warn "To fix: sudo systemctl start postgresql"
+  fi
+  echo ""
+
+  # ── SSL Certificate ───────────────────────────────────────────────────────
+  echo -e "${BOLD}${CYAN}━━  SSL Certificate${NC}"
+  # Try to read domain from .env
+  ENV_FILE="$APP_DIR/.env"
+  STATUS_DOMAIN=""
+  if [[ -f "$ENV_FILE" ]]; then
+    STATUS_DOMAIN="$(grep -E '^APP_URL=' "$ENV_FILE" | head -1 | sed -E 's|^APP_URL=https?://(www\.)?||;s|/.*||')"
+  fi
+  if [[ -n "$STATUS_DOMAIN" ]]; then
+    CERT_FOUND=""
+    for CERT_PATH in \
+      "/etc/letsencrypt/live/${STATUS_DOMAIN}/fullchain.pem" \
+      "/etc/letsencrypt/live/www.${STATUS_DOMAIN}/fullchain.pem" \
+      "/etc/letsencrypt/live/${STATUS_DOMAIN}-0001/fullchain.pem" \
+      "/etc/letsencrypt/live/${STATUS_DOMAIN}-0002/fullchain.pem"; do
+      [[ -f "$CERT_PATH" ]] && { CERT_FOUND="$CERT_PATH"; break; }
+    done
+    if [[ -n "$CERT_FOUND" ]]; then
+      EXPIRY="$(openssl x509 -noout -enddate -in "$CERT_FOUND" 2>/dev/null | sed 's/notAfter=//')"
+      EXPIRY_EPOCH="$(date -d "${EXPIRY}" +%s 2>/dev/null || echo 0)"
+      NOW_EPOCH="$(date +%s)"
+      DAYS_LEFT="$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))"
+      if [[ "$DAYS_LEFT" -gt 14 ]]; then
+        ok "SSL cert valid — expires in ${DAYS_LEFT} days  (${EXPIRY})"
+      elif [[ "$DAYS_LEFT" -gt 0 ]]; then
+        warn "SSL cert expires in ${DAYS_LEFT} days — renew soon: certbot renew"
+      else
+        fail "SSL cert has EXPIRED — run: certbot renew"
+      fi
+    else
+      warn "No Let's Encrypt cert found for ${STATUS_DOMAIN}"
+    fi
+  else
+    warn "Could not determine domain — skipping SSL check (no .env found)"
+  fi
+  echo ""
+
+  # ── HTTP/HTTPS Health ─────────────────────────────────────────────────────
+  echo -e "${BOLD}${CYAN}━━  Health Endpoints${NC}"
+  INT_STATUS="$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+    "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "000")"
+  if [[ "$INT_STATUS" == "200" ]]; then
+    ok "Internal  http://127.0.0.1:${APP_PORT}/api/health → HTTP ${INT_STATUS}"
+  else
+    fail "Internal  http://127.0.0.1:${APP_PORT}/api/health → HTTP ${INT_STATUS}"
+  fi
+
+  if [[ -n "$STATUS_DOMAIN" ]]; then
+    EXT_STATUS="$(curl -sk -o /dev/null -w "%{http_code}" --max-time 8 \
+      "https://${STATUS_DOMAIN}/api/health" 2>/dev/null || echo "000")"
+    if [[ "$EXT_STATUS" == "200" ]]; then
+      ok "External  https://${STATUS_DOMAIN}/api/health → HTTP ${EXT_STATUS}"
+    else
+      fail "External  https://${STATUS_DOMAIN}/api/health → HTTP ${EXT_STATUS}"
+    fi
+  fi
+  echo ""
+
+  # ── Quick fix hints ───────────────────────────────────────────────────────
+  echo -e "  ${DIM}One-command recovery if something is broken:${NC}"
+  echo -e "  ${DIM}  bash scripts/vps-install.sh --repair${NC}"
+  echo -e "  ${DIM}  bash scripts/deploy.sh${NC}"
+  echo ""
+  exit 0
+fi
 
 if [[ "$REPAIR_MODE" == "1" ]]; then
   echo ""
