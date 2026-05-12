@@ -300,10 +300,22 @@ router.get("/launch", async (req: any, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  // Disable Nagle's algorithm so every res.write() goes out immediately
+  // instead of being coalesced with adjacent small packets.
+  (req as any).socket?.setNoDelay(true);
+
   demoState.set(storeId, { running: true, email: user.email });
 
-  const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
-  const keepAlive = setInterval(() => res.write(": ping\n\n"), 20_000);
+  const send = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    // Flush any remaining buffered data (needed when compression or other
+    // middleware wraps the response with a PassThrough stream that has .flush)
+    if (typeof (res as any).flush === "function") (res as any).flush();
+  };
+  const keepAlive = setInterval(() => {
+    res.write(": ping\n\n");
+    if (typeof (res as any).flush === "function") (res as any).flush();
+  }, 15_000);
 
   let enginesCompleted = false;
   try {

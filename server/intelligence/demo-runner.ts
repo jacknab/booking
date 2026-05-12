@@ -48,7 +48,7 @@ export async function runDemoEngines(
     description: "Indexing booking records",
     logLine: "[BOOT] Appointment History Scanner — scanning booking database...",
   });
-  await sleep(300);
+  await sleep(700);
 
   emit({
     phase: "data_scan",
@@ -57,7 +57,7 @@ export async function runDemoEngines(
     progress: 35,
     logLine: "[RUN]  Appointment History Scanner — indexing client records...",
   });
-  await sleep(400);
+  await sleep(800);
 
   const allCustomers = await db
     .select({ id: customers.id })
@@ -76,7 +76,7 @@ export async function runDemoEngines(
     progress: 75,
     logLine: `[RUN]  Appointment History Scanner — found ${allCustomers.length.toLocaleString()} clients, ${totalAppts.toLocaleString()} bookings`,
   });
-  await sleep(350);
+  await sleep(700);
 
   emit({
     phase: "data_scan",
@@ -86,7 +86,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Appointment History Scanner — ${allCustomers.length} clients · ${totalAppts.toLocaleString()} appointments indexed`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 2: Client Profile Engine ───────────────────────────────────────
   emit({
@@ -96,7 +96,7 @@ export async function runDemoEngines(
     description: `Building cadence & LTV for ${allCustomers.length} clients`,
     logLine: `[BOOT] Client Profile Engine — building cadence & LTV for ${allCustomers.length} clients...`,
   });
-  await sleep(350);
+  await sleep(750);
 
   let processed = 0;
   let driftingCount = 0;
@@ -215,7 +215,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Client Profile Engine — ${processed} profiles built · ${highLtvCount} high-LTV clients identified`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 3: Churn Risk Scoring ───────────────────────────────────────────
   emit({
@@ -225,7 +225,7 @@ export async function runDemoEngines(
     description: "Classifying retention risk across client base",
     logLine: "[BOOT] Churn Risk Scoring — applying multi-factor retention model...",
   });
-  await sleep(400);
+  await sleep(800);
   emit({
     phase: "churn_scoring",
     status: "running",
@@ -233,7 +233,7 @@ export async function runDemoEngines(
     progress: 40,
     logLine: `[RUN]  Churn Risk Scoring — evaluating cadence overdue %, visit frequency, no-show history...`,
   });
-  await sleep(500);
+  await sleep(900);
   emit({
     phase: "churn_scoring",
     status: "running",
@@ -241,7 +241,7 @@ export async function runDemoEngines(
     progress: 80,
     logLine: `[RUN]  Churn Risk Scoring — ${driftingCount} drifting detected · ${atRiskCount} critical risk flagged`,
   });
-  await sleep(350);
+  await sleep(750);
   emit({
     phase: "churn_scoring",
     status: "done",
@@ -250,7 +250,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Churn Risk Scoring — ${atRiskCount} clients at risk · ${driftingCount} drifting past cadence`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 4: Staff Intelligence ───────────────────────────────────────────
   emit({
@@ -260,7 +260,7 @@ export async function runDemoEngines(
     description: "Rebooking rates & revenue per tech",
     logLine: "[BOOT] Staff Intelligence — pulling completed appointment data per technician...",
   });
-  await sleep(400);
+  await sleep(800);
   emit({
     phase: "staff_intelligence",
     status: "running",
@@ -303,7 +303,7 @@ export async function runDemoEngines(
     staffCount = staffRates.length;
   } catch { /* silent */ }
 
-  await sleep(300);
+  await sleep(750);
   emit({
     phase: "staff_intelligence",
     status: "done",
@@ -312,7 +312,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Staff Intelligence — ${staffCount} techs scored · top rebooking rate ${topRebookPct.toFixed(0)}%`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 5: Dead Seat Detector ───────────────────────────────────────────
   emit({
@@ -322,7 +322,7 @@ export async function runDemoEngines(
     description: "Scanning for chronically underbooked slots",
     logLine: "[BOOT] Dead Seat Detector — scanning 90-day day×hour booking heatmap...",
   });
-  await sleep(450);
+  await sleep(800);
   emit({
     phase: "dead_seats",
     status: "running",
@@ -330,7 +330,7 @@ export async function runDemoEngines(
     progress: 45,
     logLine: "[RUN]  Dead Seat Detector — computing slot utilization across all staff & hours...",
   });
-  await sleep(400);
+  await sleep(800);
 
   let utilizationPct = 50;
   let deadSlotCount = 0;
@@ -347,7 +347,7 @@ export async function runDemoEngines(
     progress: 85,
     logLine: `[RUN]  Dead Seat Detector — ${utilizationPct.toFixed(0)}% utilization · flagging underbooked windows...`,
   });
-  await sleep(300);
+  await sleep(750);
   emit({
     phase: "dead_seats",
     status: "done",
@@ -356,7 +356,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Dead Seat Detector — ${utilizationPct.toFixed(0)}% overall utilization · ${deadSlotCount} underbooked slots found`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 6: Growth Score Engine ─────────────────────────────────────────
   emit({
@@ -366,7 +366,7 @@ export async function runDemoEngines(
     description: "Computing composite 0–100 business health score",
     logLine: "[BOOT] Growth Score Engine — loading retention, rebooking, utilization components...",
   });
-  await sleep(400);
+  await sleep(800);
   emit({
     phase: "growth_score",
     status: "running",
@@ -374,7 +374,7 @@ export async function runDemoEngines(
     progress: 40,
     logLine: "[RUN]  Growth Score Engine — weighting 5 component scores (retention, rebooking, utilization, revenue, new clients)...",
   });
-  await sleep(450);
+  await sleep(850);
 
   let growthScoreValue = 0;
   let growthGrade = "C";
@@ -420,7 +420,7 @@ export async function runDemoEngines(
     progress: 90,
     logLine: `[RUN]  Growth Score Engine — final score computed: ${growthScoreValue}/100 (Grade ${growthGrade})`,
   });
-  await sleep(300);
+  await sleep(750);
   emit({
     phase: "growth_score",
     status: "done",
@@ -429,7 +429,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Growth Score Engine — business health score: ${growthScoreValue}/100 (Grade ${growthGrade})`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 7: Revenue Leakage Scanner ─────────────────────────────────────
   emit({
@@ -439,7 +439,7 @@ export async function runDemoEngines(
     description: "Mapping lapsed clients to lost revenue",
     logLine: "[BOOT] Revenue Leakage Scanner — identifying clients lost in the last 90–180 days...",
   });
-  await sleep(400);
+  await sleep(800);
   emit({
     phase: "revenue_leakage",
     status: "running",
@@ -447,7 +447,7 @@ export async function runDemoEngines(
     progress: 50,
     logLine: "[RUN]  Revenue Leakage Scanner — cross-referencing avg ticket × expected cadence...",
   });
-  await sleep(450);
+  await sleep(850);
 
   let leakageResult = "Leakage report ready";
   let lapsedCount = 0;
@@ -467,7 +467,7 @@ export async function runDemoEngines(
     progress: 88,
     logLine: `[RUN]  Revenue Leakage Scanner — $${recoverableAmount.toLocaleString()} in recoverable revenue mapped to ${lapsedCount} clients`,
   });
-  await sleep(300);
+  await sleep(750);
   emit({
     phase: "revenue_leakage",
     status: "done",
@@ -476,7 +476,7 @@ export async function runDemoEngines(
     logLine: `[ONLINE] ✓ Revenue Leakage Scanner — ${lapsedCount} lapsed clients · $${recoverableAmount.toLocaleString()} recovery potential`,
   });
 
-  await sleep(200);
+  await sleep(900);
 
   // ── Phase 8: Drift Recovery Engine ───────────────────────────────────────
   emit({
@@ -486,7 +486,7 @@ export async function runDemoEngines(
     description: "Identifying win-back candidates",
     logLine: "[BOOT] Drift Recovery Engine — scanning clients who've drifted past expected cadence...",
   });
-  await sleep(450);
+  await sleep(800);
   emit({
     phase: "drift_engine",
     status: "running",
@@ -494,7 +494,7 @@ export async function runDemoEngines(
     progress: 55,
     logLine: `[RUN]  Drift Recovery Engine — ${driftingCount} clients are 20%+ past their visit window...`,
   });
-  await sleep(500);
+  await sleep(900);
   emit({
     phase: "drift_engine",
     status: "running",
@@ -502,7 +502,7 @@ export async function runDemoEngines(
     progress: 85,
     logLine: `[RUN]  Drift Recovery Engine — preparing personalised win-back messaging queue...`,
   });
-  await sleep(350);
+  await sleep(750);
   emit({
     phase: "drift_engine",
     status: "done",
