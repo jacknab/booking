@@ -163,6 +163,55 @@ export default function Intelligence() {
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
   const isDemoAccount = user?.email === DEMO_EMAIL;
 
+  // ── Demo launch button state ───────────────────────────────────────────
+  type DemoStatus = "ready" | "running" | "cooldown";
+  const [demoStatus, setDemoStatus] = useState<DemoStatus>("ready");
+  const [demoMsLeft, setDemoMsLeft] = useState<number>(0);
+  const [demoResetAt, setDemoResetAt] = useState<number | null>(null);
+
+  // Poll the status endpoint every 10s when the demo account is active
+  useEffect(() => {
+    if (!isDemoAccount || !storeId) return;
+
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`/api/intelligence/demo/status?storeId=${storeId}`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setDemoStatus(data.status);
+        if (data.status === "cooldown" && data.resetAt) {
+          setDemoResetAt(data.resetAt);
+          setDemoMsLeft(Math.max(0, data.resetAt - Date.now()));
+        } else {
+          setDemoResetAt(null);
+          setDemoMsLeft(0);
+        }
+      } catch { /* ignore */ }
+    };
+
+    fetchStatus();
+    const poll = setInterval(fetchStatus, 10_000);
+    return () => clearInterval(poll);
+  }, [isDemoAccount, storeId]);
+
+  // Tick the countdown every second during cooldown
+  useEffect(() => {
+    if (demoStatus !== "cooldown" || !demoResetAt) return;
+    const tick = setInterval(() => {
+      const left = Math.max(0, demoResetAt - Date.now());
+      setDemoMsLeft(left);
+      if (left === 0) setDemoStatus("ready");
+    }, 1_000);
+    return () => clearInterval(tick);
+  }, [demoStatus, demoResetAt]);
+
+  function formatCountdown(ms: number): string {
+    const total = Math.ceil(ms / 1000);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== activeTab) setActiveTab(tabFromUrl);
@@ -521,11 +570,34 @@ export default function Intelligence() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate("/intelligence/launch")}
-                className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
+                onClick={() => demoStatus === "ready" && navigate("/intelligence/launch")}
+                disabled={demoStatus !== "ready"}
+                className={
+                  demoStatus === "ready"
+                    ? "gap-2 border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
+                    : demoStatus === "running"
+                    ? "gap-2 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400 cursor-not-allowed opacity-80"
+                    : "gap-2 border-slate-300 text-slate-500 dark:border-slate-600 dark:text-slate-400 cursor-not-allowed opacity-80"
+                }
               >
-                <Zap className="h-4 w-4" />
-                Launch Engines
+                {demoStatus === "ready" && (
+                  <>
+                    <Zap className="h-4 w-4" />
+                    Launch Engines
+                  </>
+                )}
+                {demoStatus === "running" && (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Engines Running…
+                  </>
+                )}
+                {demoStatus === "cooldown" && (
+                  <>
+                    <Clock className="h-4 w-4" />
+                    Ready in {formatCountdown(demoMsLeft)}
+                  </>
+                )}
               </Button>
             )}
             <TooltipProvider>
