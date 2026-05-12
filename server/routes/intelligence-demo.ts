@@ -12,6 +12,7 @@ import {
 } from "../../shared/schema/intelligence";
 import { users } from "../../shared/schema";
 import { runDemoEngines } from "../intelligence/demo-runner";
+import { runIntelligenceForStore } from "../intelligence/orchestrator";
 
 // ── Helper: load the authenticated user from the session ──────────────────────
 async function getSessionUser(req: any) {
@@ -120,16 +121,20 @@ interface DemoState {
 }
 const demoState = new Map<number, DemoState>();
 
-// ── Full reseed in background child process ───────────────────────────────────
-function spawnFullReseed(storeId: number, email: string): void {
+// ── Full reseed + silent engine run in background ─────────────────────────────
+// After every reseed the intelligence engines are run automatically so the
+// dashboard is fully populated before the next visitor even clicks anything.
+// When engines finish a new 90-min cooldown starts and the cycle repeats —
+// one human click is all that's ever needed.
+function spawnFullReseedAndRunEngines(storeId: number, email: string): void {
   const script = RESEED_SCRIPTS[email];
   if (!script) {
-    console.error(`[DemoReset] No reseed script mapped for email: ${email}`);
+    console.error(`[DemoReset] No reseed script for ${email} — clearing state`);
     demoState.delete(storeId);
     return;
   }
 
-  console.log(`[DemoReset] Spawning full reseed for store ${storeId} (${email}) …`);
+  console.log(`[DemoReset] Spawning reseed for store ${storeId} (${email}) …`);
   demoState.set(storeId, { running: false, reseeding: true, email });
 
   const child = spawn(TSX, [path.join(ROOT, script)], {
@@ -141,17 +146,33 @@ function spawnFullReseed(storeId: number, email: string): void {
   child.stdout?.on("data", (d) => process.stdout.write(`[DemoReseed] ${d}`));
   child.stderr?.on("data", (d) => process.stderr.write(`[DemoReseed:err] ${d}`));
 
-  child.on("close", (code) => {
-    if (code === 0) {
-      console.log(`[DemoReset] Reseed complete for store ${storeId} — ready for next demo`);
-    } else {
-      console.error(`[DemoReset] Reseed exited with code ${code} for store ${storeId}`);
+  child.on("close", async (code) => {
+    if (code !== 0) {
+      console.error(`[DemoReset] Reseed exited ${code} for store ${storeId} — clearing state`);
+      demoState.delete(storeId);
+      return;
     }
-    demoState.delete(storeId);
+
+    console.log(`[DemoReset] Reseed done for store ${storeId} — running engines silently…`);
+    // Mark as running so the dashboard banner shows if anyone is watching
+    demoState.set(storeId, { running: true, email });
+
+    try {
+      await runIntelligenceForStore(storeId);
+      console.log(`[DemoReset] Silent engines done for store ${storeId} — starting new 90-min cooldown`);
+    } catch (err: any) {
+      console.error(`[DemoReset] Silent engine error for store ${storeId}:`, err.message);
+    }
+
+    // Whether engines succeeded or errored, start a new cooldown cycle
+    const resetAt = Date.now() + RESET_DELAY_MS;
+    demoState.set(storeId, { running: false, resetAt, email });
+    setTimeout(() => spawnFullReseedAndRunEngines(storeId, email), RESET_DELAY_MS);
+    console.log(`[DemoReset] Next reseed scheduled for store ${storeId} in 90 min`);
   });
 
   child.on("error", (err) => {
-    console.error(`[DemoReset] Failed to spawn reseed for store ${storeId}:`, err.message);
+    console.error(`[DemoReset] Spawn error for store ${storeId}:`, err.message);
     demoState.delete(storeId);
   });
 }
@@ -182,7 +203,7 @@ router.get("/status", async (req: any, res) => {
     const msLeft = state.resetAt - Date.now();
     if (msLeft > 0) return res.json({ status: "cooldown", resetAt: state.resetAt, msLeft });
     // Timer already fired but child hasn't started — kick off reseed now
-    spawnFullReseed(storeId, state.email);
+    spawnFullReseedAndRunEngines(storeId, state.email);
     return res.json({ status: "cooldown", msLeft: 90_000 });
   }
 
@@ -299,8 +320,8 @@ router.get("/launch", async (req: any, res) => {
   if (enginesCompleted) {
     const resetAt = Date.now() + RESET_DELAY_MS;
     demoState.set(storeId, { running: false, resetAt, email: user.email });
-    setTimeout(() => spawnFullReseed(storeId, user.email), RESET_DELAY_MS);
-    console.log(`[DemoReset] Full reseed scheduled for store ${storeId} (${user.email}) in 90 min`);
+    setTimeout(() => spawnFullReseedAndRunEngines(storeId, user.email), RESET_DELAY_MS);
+    console.log(`[DemoReset] Auto-reseed+engines scheduled for store ${storeId} (${user.email}) in 90 min`);
   } else {
     demoState.delete(storeId);
   }
