@@ -180,6 +180,328 @@ do_rollback() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  NGINX AUDIT & AUTO-REPAIR
+#
+#  Knows about both Certxa nginx configs:
+#    nginx/certxa.conf      → Node.js app  (port __APP_PORT__, domain __DOMAIN__)
+#    nginx/certxa-php.conf  → PHP site     (port 8422, certxa.com hard-coded)
+#
+#  Checks (and auto-fixes) in order:
+#    1.  nginx is installed
+#    2.  Both source configs exist in project nginx/ directory
+#    3.  certxa-php.conf is installed + enabled in sites-available/enabled
+#    4.  certxa.conf is installed + enabled (placeholders substituted)
+#    5.  Installed configs point to the correct ports (patches if stale)
+#    6.  SSL cert paths exist (suggests alternatives if not)
+#    7.  No duplicate limit_req_zone names between the two files
+#    8.  nginx -t passes
+#    9.  nginx reloaded
+#
+#  Returns 0 if nginx is healthy (or was successfully fixed), 1 otherwise.
+# ══════════════════════════════════════════════════════════════════════════════
+NGINX_SITES_AVAIL="/etc/nginx/sites-available"
+NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
+NGINX_CONF_NODE="certxa"             # installed name for Node.js config
+NGINX_CONF_PHP="certxa-php.conf"     # installed name for PHP config
+
+check_and_fix_nginx() {
+  local fixed_something=0
+  local domain
+  domain="$(echo "${APP_URL:-https://certxa.com}" | sed 's|https\?://||;s|/.*||')"
+
+  echo ""
+  echo -e "${CYAN}${BOLD}  ┌─ nginx Audit ──────────────────────────────────────────┐${NC}"
+  echo -e "${CYAN}  │  Node config : $NGINX_CONF_NODE${NC}"
+  echo -e "${CYAN}  │  PHP config  : $NGINX_CONF_PHP${NC}"
+  echo -e "${CYAN}  │  Domain      : $domain${NC}"
+  echo -e "${CYAN}  │  App port    : $APP_PORT${NC}"
+  echo -e "${CYAN}  └────────────────────────────────────────────────────────${NC}"
+  echo ""
+
+  # ── 1. nginx installed? ──────────────────────────────────────────────────────
+  if ! command -v nginx &>/dev/null; then
+    fail "nginx is not installed."
+    if command -v apt-get &>/dev/null; then
+      heal "FIX: Installing nginx via apt-get."
+      apt-get install -y nginx 2>&1 | tail -5
+      systemctl enable nginx 2>/dev/null || true
+      systemctl start nginx 2>/dev/null || true
+      fixed_something=1
+    else
+      fail "Cannot auto-install nginx (no apt-get). Install manually."
+      return 1
+    fi
+  else
+    ok "nginx is installed: $(nginx -v 2>&1 | head -1)"
+  fi
+
+  # ── 2. Source configs exist in project? ─────────────────────────────────────
+  local src_node="$APP_DIR/nginx/certxa.conf"
+  local src_php="$APP_DIR/nginx/certxa-php.conf"
+
+  if [[ ! -f "$src_node" ]]; then
+    fail "Source config not found: $src_node"
+    fail "Make sure nginx/certxa.conf exists in the project repo."
+    return 1
+  fi
+  if [[ ! -f "$src_php" ]]; then
+    fail "Source config not found: $src_php"
+    fail "Make sure nginx/certxa-php.conf exists in the project repo."
+    return 1
+  fi
+  ok "Source configs found in project nginx/"
+
+  # ── 3. Install certxa-php.conf (PHP marketing site) ─────────────────────────
+  local dst_php="$NGINX_SITES_AVAIL/$NGINX_CONF_PHP"
+  local link_php="$NGINX_SITES_ENABLED/$NGINX_CONF_PHP"
+
+  _nginx_install_php_config() {
+    heal "Installing $NGINX_CONF_PHP → $dst_php"
+    cp "$src_php" "$dst_php"
+    chmod 644 "$dst_php"
+
+    # Check if SSL cert path is correct; try to find the real one if not
+    local cert_path
+    cert_path="$(grep -m1 'ssl_certificate ' "$dst_php" | awk '{print $2}' | tr -d ';')"
+    if [[ -n "$cert_path" && ! -f "$cert_path" ]]; then
+      warn "SSL cert not found at: $cert_path"
+      # Try common alternative cert locations
+      local alt_cert=""
+      for candidate in \
+        "/etc/letsencrypt/live/certxa.com/fullchain.pem" \
+        "/etc/letsencrypt/live/certxa.com-0001/fullchain.pem" \
+        "/etc/letsencrypt/live/www.certxa.com/fullchain.pem"; do
+        if [[ -f "$candidate" ]]; then
+          alt_cert="$candidate"
+          break
+        fi
+      done
+
+      if [[ -n "$alt_cert" ]]; then
+        local alt_dir
+        alt_dir="$(dirname "$alt_cert")"
+        heal "FIX: Updating SSL cert paths in $NGINX_CONF_PHP to use: $alt_dir"
+        local orig_cert_dir
+        orig_cert_dir="$(grep -m1 'ssl_certificate ' "$src_php" | awk '{print $2}' | tr -d ';' | xargs dirname)"
+        sed -i "s|$orig_cert_dir|$alt_dir|g" "$dst_php"
+        ok "SSL cert paths updated → $alt_dir"
+      else
+        warn "Could not find an SSL cert for certxa.com under /etc/letsencrypt/live/"
+        warn "Run:  certbot --nginx -d certxa.com -d www.certxa.com"
+        warn "The config has been installed but nginx will not start until SSL is set up."
+      fi
+    else
+      ok "SSL cert path verified: $cert_path"
+    fi
+    fixed_something=1
+  }
+
+  if [[ ! -f "$dst_php" ]]; then
+    _nginx_install_php_config
+  else
+    ok "$NGINX_CONF_PHP exists in sites-available"
+  fi
+
+  # Symlink in sites-enabled
+  if [[ ! -L "$link_php" ]]; then
+    heal "Enabling $NGINX_CONF_PHP (creating symlink in sites-enabled)"
+    ln -sf "$dst_php" "$link_php"
+    ok "Symlink created: $link_php → $dst_php"
+    fixed_something=1
+  else
+    ok "$NGINX_CONF_PHP is enabled (symlink exists)"
+  fi
+
+  # ── 4. Install certxa (Node.js app) ─────────────────────────────────────────
+  local dst_node="$NGINX_SITES_AVAIL/$NGINX_CONF_NODE"
+  local link_node="$NGINX_SITES_ENABLED/$NGINX_CONF_NODE"
+
+  _nginx_install_node_config() {
+    heal "Installing $NGINX_CONF_NODE → $dst_node"
+    sed "s/__DOMAIN__/$domain/g; s/__APP_PORT__/$APP_PORT/g" "$src_node" > "$dst_node"
+    chmod 644 "$dst_node"
+
+    # Remove limit_req_zone lines from certxa.conf to avoid duplicates if
+    # certxa-php.conf is loaded in the same nginx process. The zones are only
+    # needed once — we keep them only if certxa-php.conf is NOT enabled.
+    if [[ -L "$link_php" ]]; then
+      # Both configs active — remove limit_req_zone from certxa.conf to avoid
+      # "duplicate zone" errors (certxa-php.conf does not define them, so this
+      # is safe to keep in certxa.conf; no removal needed currently).
+      # Reserved for future-proofing if certxa-php.conf ever adds rate zones.
+      :
+    fi
+
+    # SSL cert check for Node config
+    local cert_path
+    cert_path="$(grep -m1 'ssl_certificate ' "$dst_node" | awk '{print $2}' | tr -d ';')"
+    if [[ -n "$cert_path" && ! -f "$cert_path" ]]; then
+      warn "SSL cert not found at: $cert_path"
+      for candidate in \
+        "/etc/letsencrypt/live/$domain/fullchain.pem" \
+        "/etc/letsencrypt/live/${domain}-0001/fullchain.pem"; do
+        if [[ -f "$candidate" ]]; then
+          local alt_dir
+          alt_dir="$(dirname "$candidate")"
+          heal "FIX: Updating SSL cert paths in $NGINX_CONF_NODE to: $alt_dir"
+          sed -i "s|/etc/letsencrypt/live/$domain|$alt_dir|g" "$dst_node"
+          ok "SSL cert paths updated → $alt_dir"
+          break
+        fi
+      done
+      if [[ -n "$cert_path" && ! -f "$cert_path" ]]; then
+        warn "No SSL cert found for $domain under /etc/letsencrypt/live/"
+        warn "Run:  certbot --nginx -d $domain"
+      fi
+    else
+      [[ -n "$cert_path" ]] && ok "SSL cert path verified: $cert_path"
+    fi
+    fixed_something=1
+  }
+
+  if [[ ! -f "$dst_node" ]]; then
+    _nginx_install_node_config
+  else
+    ok "$NGINX_CONF_NODE exists in sites-available"
+
+    # ── 4a. Check port is correct in installed config ─────────────────────────
+    local installed_port
+    installed_port="$(grep -oP '127\.0\.0\.1:\K\d+' "$dst_node" | sort -u | head -1 || true)"
+    if [[ -n "$installed_port" && "$installed_port" != "$APP_PORT" ]]; then
+      warn "Installed $NGINX_CONF_NODE routes to port $installed_port but app runs on $APP_PORT."
+      heal "FIX: Patching port in $dst_node ($installed_port → $APP_PORT)"
+      sed -i "s/127\.0\.0\.1:$installed_port/127.0.0.1:$APP_PORT/g" "$dst_node"
+      ok "Port updated: $installed_port → $APP_PORT"
+      fixed_something=1
+    else
+      ok "$NGINX_CONF_NODE correctly points to port $APP_PORT"
+    fi
+
+    # ── 4b. Check domain is correct ───────────────────────────────────────────
+    if grep -q "__DOMAIN__" "$dst_node"; then
+      warn "Installed $NGINX_CONF_NODE still has __DOMAIN__ placeholder."
+      heal "FIX: Substituting __DOMAIN__ → $domain"
+      sed -i "s/__DOMAIN__/$domain/g" "$dst_node"
+      ok "Domain placeholder replaced with: $domain"
+      fixed_something=1
+    fi
+
+    # ── 4c. Check __APP_PORT__ placeholder ───────────────────────────────────
+    if grep -q "__APP_PORT__" "$dst_node"; then
+      warn "Installed $NGINX_CONF_NODE still has __APP_PORT__ placeholder."
+      heal "FIX: Substituting __APP_PORT__ → $APP_PORT"
+      sed -i "s/__APP_PORT__/$APP_PORT/g" "$dst_node"
+      ok "Port placeholder replaced with: $APP_PORT"
+      fixed_something=1
+    fi
+  fi
+
+  # Symlink in sites-enabled
+  if [[ ! -L "$link_node" ]]; then
+    heal "Enabling $NGINX_CONF_NODE (creating symlink in sites-enabled)"
+    ln -sf "$dst_node" "$link_node"
+    ok "Symlink created: $link_node → $dst_node"
+    fixed_something=1
+  else
+    ok "$NGINX_CONF_NODE is enabled (symlink exists)"
+  fi
+
+  # ── 5. Check for duplicate limit_req_zone names ──────────────────────────────
+  local all_zones
+  all_zones="$(grep -h 'limit_req_zone' "$NGINX_SITES_ENABLED"/* 2>/dev/null | \
+               grep -oP 'zone=\K[^:]+' | sort | uniq -d || true)"
+  if [[ -n "$all_zones" ]]; then
+    warn "Duplicate limit_req_zone names found: $all_zones"
+    warn "This causes nginx to fail with 'duplicate zone' errors."
+    heal "FIX: Removing duplicate zone definitions from $dst_node"
+    for zone in $all_zones; do
+      sed -i "/limit_req_zone.*zone=${zone}:/d" "$dst_node" 2>/dev/null || true
+    done
+    ok "Duplicate zones removed from $NGINX_CONF_NODE"
+    fixed_something=1
+  else
+    ok "No duplicate limit_req_zone names"
+  fi
+
+  # ── 6. Remove default nginx site if it conflicts ──────────────────────────────
+  if [[ -L "$NGINX_SITES_ENABLED/default" ]]; then
+    local default_names
+    default_names="$(grep -h 'server_name' "$NGINX_SITES_AVAIL/default" 2>/dev/null | head -3 || true)"
+    # Only remove if it catches all hosts (server_name _ or server_name localhost)
+    if grep -qE 'server_name\s+(_|localhost)\s*;' "$NGINX_SITES_AVAIL/default" 2>/dev/null; then
+      warn "Default nginx site is enabled and may conflict."
+      heal "FIX: Disabling default site (unlinking $NGINX_SITES_ENABLED/default)"
+      rm -f "$NGINX_SITES_ENABLED/default"
+      ok "Default site disabled"
+      fixed_something=1
+    fi
+  fi
+
+  # ── 7. Test nginx config ──────────────────────────────────────────────────────
+  echo ""
+  info "Running nginx -t to validate configuration…"
+  local nginx_test_output
+  nginx_test_output="$(nginx -t 2>&1 || true)"
+
+  if echo "$nginx_test_output" | grep -q "test is successful"; then
+    ok "nginx config test passed"
+  else
+    fail "nginx config test FAILED:"
+    echo "$nginx_test_output"
+    echo ""
+
+    # Try to auto-fix common nginx -t errors
+    # Missing include files (options-ssl-nginx.conf, ssl-dhparams.pem)
+    if echo "$nginx_test_output" | grep -q "options-ssl-nginx.conf"; then
+      heal "FIX: /etc/letsencrypt/options-ssl-nginx.conf is missing."
+      if command -v certbot &>/dev/null; then
+        heal "Running certbot to restore Let's Encrypt nginx options…"
+        certbot --nginx --reinstall -d "$domain" --non-interactive 2>&1 | tail -10 || true
+      else
+        fail "certbot not installed. Install it: sudo snap install certbot --classic"
+      fi
+    fi
+
+    if echo "$nginx_test_output" | grep -q "ssl-dhparams.pem"; then
+      heal "FIX: /etc/letsencrypt/ssl-dhparams.pem is missing — generating…"
+      openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048 2>&1 | tail -5 || true
+      fixed_something=1
+    fi
+
+    # Re-test after fixes
+    nginx_test_output="$(nginx -t 2>&1 || true)"
+    if echo "$nginx_test_output" | grep -q "test is successful"; then
+      ok "nginx config test passed after auto-fix"
+    else
+      fail "nginx config still failing after auto-fix attempts."
+      fail "Review errors above and fix manually, then run: nginx -t && systemctl reload nginx"
+      return 1
+    fi
+  fi
+
+  # ── 8. Reload nginx ──────────────────────────────────────────────────────────
+  info "Reloading nginx…"
+  if systemctl reload nginx 2>/dev/null || service nginx reload 2>/dev/null; then
+    ok "nginx reloaded successfully"
+  else
+    warn "Reload failed — attempting restart instead."
+    systemctl restart nginx 2>/dev/null || service nginx restart 2>/dev/null || {
+      fail "nginx restart also failed."
+      return 1
+    }
+    ok "nginx restarted successfully"
+  fi
+
+  if [[ "$fixed_something" -eq 1 ]]; then
+    heal "nginx audit complete — issues were detected and fixed automatically."
+  else
+    ok "nginx audit complete — both configs are correctly installed and active."
+  fi
+
+  return 0
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  SELF-HEAL ENGINE
 #  Reads PM2 logs, detects the root cause, applies a fix, restarts.
 #  Returns 0 if a fix was applied (caller should retest), 1 if no fix known.
@@ -381,24 +703,10 @@ except: print('unknown')
      [[ -z "${APPLIED_FIXES[nginx_502]:-}" ]]; then
     APPLIED_FIXES[nginx_502]=1
     heal "DIAGNOSIS: App is up on port $APP_PORT (HTTP 200) but nginx is returning 502."
-    heal "FIX: Testing nginx config and reloading."
-    local nginx_test
-    nginx_test="$(nginx -t 2>&1 || true)"
-    if echo "$nginx_test" | grep -q "successful"; then
-      systemctl reload nginx 2>/dev/null || service nginx reload 2>/dev/null || true
-      ok "nginx reloaded successfully."
+    heal "FIX: Running full nginx audit and repair (both certxa + certxa-php.conf)."
+    if check_and_fix_nginx; then
       return 0
     else
-      fail "nginx config test FAILED:"
-      echo "$nginx_test"
-      fail ""
-      fail "Your nginx config has errors — fix them, then run:"
-      fail "  nginx -t && systemctl reload nginx"
-      fail ""
-      # Show the upstream block they should have
-      warn "Expected upstream block in your nginx site config:"
-      warn "  upstream certxa { server 127.0.0.1:$APP_PORT; }"
-      warn "  proxy_pass http://certxa;"
       return 1
     fi
   fi
@@ -936,10 +1244,24 @@ elif [[ "$FINAL_STATUS" == "503" ]]; then
 elif [[ "$INTERNAL_STATUS" == "200" && "$FINAL_EXT_STATUS" != "200" ]]; then
   ok "Internal health (port $APP_PORT) : HTTP 200  ✅  (app is fine)"
   warn "External health ($APP_URL) : HTTP $FINAL_EXT_STATUS  (nginx issue)"
-  warn ""
-  warn "The app is running correctly — nginx is the problem."
-  warn "Run:  nginx -t && systemctl reload nginx"
-  warn "Check your nginx upstream points to 127.0.0.1:$APP_PORT"
+  echo ""
+  heal "App is healthy — the problem is nginx. Running full nginx audit…"
+  if check_and_fix_nginx; then
+    # Re-test external after nginx fix
+    sleep 2
+    RECHECK="$(external_health)"
+    if [[ "$RECHECK" == "200" ]]; then
+      echo ""
+      echo -e "${GREEN}${BOLD}  🎉  nginx fixed! App is now fully live at $APP_URL${NC}"
+    else
+      warn "nginx was repaired but external check still returned HTTP $RECHECK."
+      warn "This may be a DNS propagation delay or SSL cert issue."
+      warn "Try again in 30 seconds: curl -I $APP_URL/api/health"
+    fi
+  else
+    warn "Automatic nginx repair could not fully resolve the issue."
+    warn "See the nginx audit output above for what to fix manually."
+  fi
 
 else
   fail "App did not come up after $MAX_HEAL_ATTEMPTS heal attempts."
