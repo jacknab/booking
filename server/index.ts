@@ -220,10 +220,14 @@ app.use((req, res, next) => {
 // chunked HTML (e.g. admin-install.php progress steps) and gzip buffering
 // prevents that output from reaching the browser until the full response
 // is complete, making streaming pages appear frozen.
+// Also skip compression for SSE (text/event-stream) routes — gzip buffering
+// holds events in the compressor until the buffer fills, which breaks streaming.
+const SSE_PATHS = ["/api/intelligence/demo/launch"];
 app.use(compression({
-  filter: (req: Request, _res: Response) => {
+  filter: (req: Request, res: Response) => {
     if (isPhpRoute(req.path)) return false;
-    return compression.filter(req, _res);
+    if (SSE_PATHS.some((p) => req.path.startsWith(p))) return false;
+    return compression.filter(req, res);
   },
 }));
 app.use(cookieParser());

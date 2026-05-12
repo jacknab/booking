@@ -116,19 +116,8 @@ export default function DemoLaunchEngines() {
   useEffect(() => () => { esRef.current?.close(); }, []);
 
   if (!user || user.email !== DEMO_EMAIL) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">
-        <div className="text-center">
-          <p className="text-lg font-mono">Access restricted to demo account.</p>
-          <button
-            onClick={() => navigate("/intelligence")}
-            className="mt-4 text-sm text-violet-400 hover:text-violet-300 underline"
-          >
-            ← Back to Intelligence Dashboard
-          </button>
-        </div>
-      </div>
-    );
+    navigate("/intelligence", { replace: true });
+    return null;
   }
 
   function setEngine(id: string, patch: Partial<EngineState>) {
