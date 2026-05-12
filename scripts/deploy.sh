@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  deploy.sh — Certxa Smart VPS Deploy Script
+#  deploy.sh — Certxa Self-Healing VPS Deploy Script
 #
 #  Usage:
 #    bash scripts/deploy.sh                    # full deploy
@@ -8,31 +8,49 @@
 #    SKIP_MIGRATE=1  bash scripts/deploy.sh   # skip DB migrations
 #    SKIP_BUILD=1    bash scripts/deploy.sh   # skip build (use existing dist)
 #
-#  What it does (in order):
-#    1.  Pre-flight checks (env file, required vars, tools, disk space)
-#    2.  Backs up current dist/ for automatic rollback
-#    3.  Pulls latest code from git
-#    4.  Installs / updates dependencies
-#    5.  Runs database migrations (standalone, before the app restarts)
-#    6.  Builds the production bundle
-#    7.  Validates the build output
-#    8.  Stops PM2 cleanly, frees ports
-#    9.  Starts PM2 fresh (not reload — fork mode needs a clean start)
-#    10. Smart health-check loop — retries up to 45 seconds with backoff
-#    11. Auto-rollback + full diagnostics if startup fails
+#  Self-healing behaviour:
+#    After starting the app, if the health check fails the script reads PM2
+#    logs, identifies the root cause, applies the appropriate fix, restarts,
+#    and retests — automatically — up to MAX_HEAL_ATTEMPTS times.
+#
+#    Known auto-fixable failures:
+#      • Port already in use          → kill stale processes, restart
+#      • Missing node_modules         → npm ci, restart
+#      • dist/index.cjs missing       → npm run build, restart
+#      • PostgreSQL not running       → systemctl start postgresql, restart
+#      • PM2 process in error/loop    → full delete + fresh start
+#      • nginx 502 (app OK internally)→ nginx config test + reload
+#      • Insufficient file descriptors→ ulimit bump, restart
+#      • Out of memory                → report + suggest swap
+#      • PHP binary missing           → apt install php, restart
+#
+#  Deploy steps:
+#    1.  Pre-flight checks (env file, required vars, tools, disk, DB)
+#    2.  Back up current dist/ for rollback
+#    3.  Pull latest code from git
+#    4.  Install / update dependencies
+#    5.  Run database migrations (standalone, before app restarts)
+#    6.  Build production bundle
+#    7.  Validate build output
+#    8.  Clean stop + port clear + fresh PM2 start
+#    9.  Self-healing health check loop
+#    10. Final summary
 # =============================================================================
-set -euo pipefail
+set -uo pipefail   # no -e: we handle errors manually in the heal loop
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
-ok()    { echo -e "${GREEN}  ✅  $*${NC}"; }
-info()  { echo -e "${CYAN}  ▶  $*${NC}"; }
-warn()  { echo -e "${YELLOW}  ⚠️   $*${NC}"; }
-fail()  { echo -e "${RED}  ❌  $*${NC}"; }
-step()  { echo ""; echo -e "${BOLD}${CYAN}── $* ──${NC}"; }
+CYAN='\033[0;36m'; MAGENTA='\033[0;35m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
+ok()     { echo -e "${GREEN}  ✅  $*${NC}"; }
+info()   { echo -e "${CYAN}  ▶  $*${NC}"; }
+warn()   { echo -e "${YELLOW}  ⚠️   $*${NC}"; }
+fail()   { echo -e "${RED}  ❌  $*${NC}"; }
+heal()   { echo -e "${MAGENTA}  🔧  $*${NC}"; }
+step()   { echo ""; echo -e "${BOLD}${CYAN}── $* ──${NC}"; }
+banner() { echo -e "${BOLD}$*${NC}"; }
+dim()    { echo -e "${DIM}  $*${NC}"; }
 
-# ── Resolve project root (works from any directory) ────────────────────────────
+# ── Project config ─────────────────────────────────────────────────────────────
 cd "$(dirname "$0")/.."
 APP_DIR="$(pwd)"
 APP_NAME="${PM2_APP_NAME:-certxa}"
@@ -43,133 +61,524 @@ ENV_FILE="${ENV_FILE:-.env}"
 DIST_DIR="$APP_DIR/dist"
 BACKUP_DIR="/tmp/certxa-dist-backup"
 LOG_DIR="$APP_DIR/logs"
+MAX_HEAL_ATTEMPTS=5   # how many self-heal cycles before giving up
 
 mkdir -p "$LOG_DIR"
+DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
+# Tee everything to a deploy log file too
+exec > >(tee -a "$DEPLOY_LOG") 2>&1
 
 echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║          Certxa — Smart VPS Deploy Script                ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════════════════════╝${NC}"
+banner "╔══════════════════════════════════════════════════════════╗"
+banner "║       Certxa — Self-Healing VPS Deploy Script            ║"
+banner "╚══════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "  ${CYAN}App dir${NC} : $APP_DIR"
-echo -e "  ${CYAN}PM2 name${NC}: $APP_NAME"
-echo -e "  ${CYAN}Port${NC}    : $APP_PORT"
-echo -e "  ${CYAN}App URL${NC} : $APP_URL"
-echo -e "  ${CYAN}Env file${NC}: $ENV_FILE"
+dim "App dir  : $APP_DIR"
+dim "PM2 name : $APP_NAME"
+dim "Port     : $APP_PORT"
+dim "App URL  : $APP_URL"
+dim "Env file : $ENV_FILE"
+dim "Log      : $DEPLOY_LOG"
 echo ""
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: load .env into the current shell
+# ══════════════════════════════════════════════════════════════════════════════
+load_env() {
+  [[ ! -f "$ENV_FILE" ]] && return
+  while IFS='=' read -r key rest; do
+    [[ "$key" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${key// }" ]] && continue
+    key="${key// /}"
+    rest="${rest%%#*}"
+    rest="${rest%"${rest##*[![:space:]]}"}"
+    rest="${rest#\"}" rest="${rest%\"}"
+    rest="${rest#\'}" rest="${rest%\'}"
+    [[ -n "$key" ]] && export "$key=$rest" 2>/dev/null || true
+  done < "$ENV_FILE"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: cleanly kill a port
+# ══════════════════════════════════════════════════════════════════════════════
+clear_port() {
+  local port="$1"
+  local pids
+  pids="$(lsof -t -i:"$port" 2>/dev/null || true)"
+  if [[ -n "$pids" ]]; then
+    warn "Killing stale process(es) on port $port: $pids"
+    # shellcheck disable=SC2086
+    kill -9 $pids 2>/dev/null || true
+    sleep 1
+  fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: start PM2 fresh (stop/delete first, then start)
+# ══════════════════════════════════════════════════════════════════════════════
+pm2_fresh_start() {
+  if pm2 describe "$APP_NAME" &>/dev/null; then
+    pm2 stop "$APP_NAME" 2>/dev/null || true
+    pm2 delete "$APP_NAME" 2>/dev/null || true
+    sleep 1
+  fi
+  clear_port "$APP_PORT"
+  clear_port "$PHP_PORT"
+  pm2 start ecosystem.config.cjs --update-env
+  pm2 save --force
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: get recent PM2 logs (combined stderr + stdout)
+# ══════════════════════════════════════════════════════════════════════════════
+get_pm2_logs() {
+  local lines="${1:-60}"
+  {
+    pm2 logs "$APP_NAME" --err --lines "$lines" --nostream 2>/dev/null || true
+    pm2 logs "$APP_NAME" --out --lines "$lines" --nostream 2>/dev/null || true
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: internal health check (direct to Node port, bypasses nginx)
+# ══════════════════════════════════════════════════════════════════════════════
+internal_health() {
+  curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+    "http://127.0.0.1:$APP_PORT/api/health" 2>/dev/null || echo "000"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: external health check (through nginx/SSL)
+# ══════════════════════════════════════════════════════════════════════════════
+external_health() {
+  curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+    "$APP_URL/api/health" 2>/dev/null || echo "000"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILITY: rollback to the backed-up dist/
+# ══════════════════════════════════════════════════════════════════════════════
+ROLLBACK_AVAILABLE=0
+PREV_COMMIT="unknown"
+do_rollback() {
+  echo ""
+  fail "─────────────────────────────────────────────"
+  fail "  AUTO-ROLLBACK: restoring previous build…"
+  fail "─────────────────────────────────────────────"
+  if [[ "$ROLLBACK_AVAILABLE" -eq 1 ]] && [[ -d "$BACKUP_DIR" ]]; then
+    pm2 stop "$APP_NAME" 2>/dev/null || true
+    pm2 delete "$APP_NAME" 2>/dev/null || true
+    rm -rf "$DIST_DIR"
+    cp -r "$BACKUP_DIR" "$DIST_DIR"
+    pm2 start ecosystem.config.cjs --update-env
+    pm2 save --force
+    warn "Rolled back to commit $PREV_COMMIT — your previous build is live again."
+  else
+    fail "No backup available — cannot auto-rollback."
+    fail "Restore manually: git stash && git checkout <prev-commit> && npm run build"
+  fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SELF-HEAL ENGINE
+#  Reads PM2 logs, detects the root cause, applies a fix, restarts.
+#  Returns 0 if a fix was applied (caller should retest), 1 if no fix known.
+#  Tracks which fixes have already been tried via APPLIED_FIXES set.
+# ══════════════════════════════════════════════════════════════════════════════
+declare -A APPLIED_FIXES=()
+
+self_heal() {
+  local attempt="$1"
+  local internal_status="$2"
+
+  echo ""
+  echo -e "${MAGENTA}${BOLD}  ┌─ Self-Heal Attempt $attempt / $MAX_HEAL_ATTEMPTS ─────────────────────┐${NC}"
+
+  local logs
+  logs="$(get_pm2_logs 80)"
+  local pm2_status
+  pm2_status="$(pm2 jlist 2>/dev/null | python3 -c "
+import sys,json
+try:
+  data=json.load(sys.stdin)
+  proc=[p for p in data if p.get('name')=='$APP_NAME']
+  print(proc[0]['pm2_env']['status'] if proc else 'unknown')
+except: print('unknown')
+" 2>/dev/null || echo "unknown")"
+
+  echo -e "${MAGENTA}  │  PM2 status   : $pm2_status${NC}"
+  echo -e "${MAGENTA}  │  HTTP (internal): $internal_status${NC}"
+  echo -e "${MAGENTA}  └──────────────────────────────────────────────────────${NC}"
+  echo ""
+
+  # ── Fix 1: Port already in use ─────────────────────────────────────────────
+  if echo "$logs" | grep -qiE "EADDRINUSE|address already in use" && \
+     [[ -z "${APPLIED_FIXES[port_conflict]:-}" ]]; then
+    APPLIED_FIXES[port_conflict]=1
+    heal "DIAGNOSIS: Port $APP_PORT is already in use by another process."
+    heal "FIX: Killing all processes on ports $APP_PORT and $PHP_PORT, then restarting."
+    clear_port "$APP_PORT"
+    clear_port "$PHP_PORT"
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── Fix 2: Missing node_modules / MODULE_NOT_FOUND ────────────────────────
+  if echo "$logs" | grep -qiE "Cannot find module|MODULE_NOT_FOUND|Cannot open module" && \
+     [[ -z "${APPLIED_FIXES[missing_modules]:-}" ]]; then
+    APPLIED_FIXES[missing_modules]=1
+    local missing_mod
+    missing_mod="$(echo "$logs" | grep -iE "Cannot find module" | head -1 | grep -oE "'[^']+'" | head -1 || echo "unknown")"
+    heal "DIAGNOSIS: Missing Node module: $missing_mod"
+    heal "FIX: Running npm ci to reinstall all dependencies."
+    npm ci --prefer-offline --loglevel=warn 2>&1 | tail -5
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── Fix 3: dist/index.cjs missing or corrupted ────────────────────────────
+  if { echo "$logs" | grep -qiE "no such file.*index\.cjs|Cannot open.*index\.cjs|ENOENT.*dist" || \
+       [[ ! -f "$DIST_DIR/index.cjs" ]]; } && \
+     [[ -z "${APPLIED_FIXES[missing_dist]:-}" ]]; then
+    APPLIED_FIXES[missing_dist]=1
+    heal "DIAGNOSIS: dist/index.cjs is missing or was not built correctly."
+    heal "FIX: Rebuilding the production bundle."
+    rm -rf "$DIST_DIR" node_modules/.vite
+    if npm run build; then
+      ok "Rebuild succeeded."
+    else
+      fail "Rebuild failed — see errors above."
+      return 1
+    fi
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── Fix 4: PostgreSQL service not running ─────────────────────────────────
+  if echo "$logs" | grep -qiE "ECONNREFUSED.*5432|connect ECONNREFUSED.*postgres|connection refused.*5432" && \
+     [[ -z "${APPLIED_FIXES[postgres_down]:-}" ]]; then
+    APPLIED_FIXES[postgres_down]=1
+    heal "DIAGNOSIS: PostgreSQL is refusing connections (service may be down)."
+    heal "FIX: Attempting to start the postgresql service."
+    if command -v systemctl &>/dev/null; then
+      systemctl start postgresql 2>/dev/null || systemctl start postgresql@* 2>/dev/null || true
+      sleep 3
+      if psql "${DATABASE_URL:-}" -c "SELECT 1" &>/dev/null; then
+        ok "PostgreSQL is now running."
+        pm2_fresh_start
+        return 0
+      else
+        fail "PostgreSQL still not reachable after start attempt."
+        fail "Check: systemctl status postgresql"
+        fail "And verify DATABASE_URL in your .env file."
+        return 1
+      fi
+    else
+      fail "systemctl not available — cannot auto-start postgresql."
+      fail "Start it manually: sudo service postgresql start"
+      return 1
+    fi
+  fi
+
+  # ── Fix 5: Bad DATABASE_URL credentials (cannot auto-fix — needs human) ───
+  if echo "$logs" | grep -qiE "password authentication failed|FATAL.*role|FATAL.*database.*does not exist" && \
+     [[ -z "${APPLIED_FIXES[bad_db_creds]:-}" ]]; then
+    APPLIED_FIXES[bad_db_creds]=1
+    fail "DIAGNOSIS: Database credentials are wrong (bad user, password, or DB name)."
+    fail "This cannot be auto-fixed — you need to check your .env file."
+    fail ""
+    fail "  Current DATABASE_URL (masked): $(echo "${DATABASE_URL:-not set}" | sed 's/:\/\/[^:]*:[^@]*@/:\/\/****:****@/')"
+    fail ""
+    fail "  Verify with: psql \"\$DATABASE_URL\" -c 'SELECT 1'"
+    return 1
+  fi
+
+  # ── Fix 6: Session secret / env vars not loaded ───────────────────────────
+  if echo "$logs" | grep -qiE "SESSION_SECRET|session secret|missing required environment" && \
+     [[ -z "${APPLIED_FIXES[missing_env]:-}" ]]; then
+    APPLIED_FIXES[missing_env]=1
+    heal "DIAGNOSIS: Required environment variables are not being loaded."
+    heal "FIX: Reloading PM2 with --update-env to force env refresh from .env."
+    pm2 stop "$APP_NAME" 2>/dev/null || true
+    pm2 delete "$APP_NAME" 2>/dev/null || true
+    load_env
+    pm2 start ecosystem.config.cjs --update-env
+    pm2 save --force
+    return 0
+  fi
+
+  # ── Fix 7: PHP binary not found ───────────────────────────────────────────
+  if echo "$logs" | grep -qiE "php.*not found|spawn.*php.*ENOENT|No such file.*php" && \
+     [[ -z "${APPLIED_FIXES[no_php]:-}" ]]; then
+    APPLIED_FIXES[no_php]=1
+    heal "DIAGNOSIS: PHP binary is missing — the marketing site proxy will not work."
+    if command -v apt-get &>/dev/null; then
+      heal "FIX: Installing PHP via apt-get."
+      apt-get install -y php-cli 2>&1 | tail -5
+      pm2_fresh_start
+      return 0
+    else
+      fail "Cannot auto-install PHP (no apt-get). Install it manually:"
+      fail "  sudo apt-get install php-cli    (Ubuntu/Debian)"
+      fail "  sudo yum install php-cli        (CentOS/RHEL)"
+      return 1
+    fi
+  fi
+
+  # ── Fix 8: Too many open files / EMFILE ───────────────────────────────────
+  if echo "$logs" | grep -qiE "EMFILE|too many open files" && \
+     [[ -z "${APPLIED_FIXES[emfile]:-}" ]]; then
+    APPLIED_FIXES[emfile]=1
+    heal "DIAGNOSIS: File descriptor limit too low (EMFILE)."
+    heal "FIX: Raising ulimit and restarting PM2."
+    ulimit -n 65535 2>/dev/null || true
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── Fix 9: Out of memory ──────────────────────────────────────────────────
+  if echo "$logs" | grep -qiE "JavaScript heap out of memory|ENOMEM|Killed.*OOM|out of memory" && \
+     [[ -z "${APPLIED_FIXES[oom]:-}" ]]; then
+    APPLIED_FIXES[oom]=1
+    local free_mb
+    free_mb="$(free -m 2>/dev/null | awk '/^Mem:/{print $7}' || echo "?")"
+    heal "DIAGNOSIS: Out of memory (available: ~${free_mb}MB)."
+    local swap_total
+    swap_total="$(free -m 2>/dev/null | awk '/^Swap:/{print $2}' || echo "0")"
+    if [[ "${swap_total:-0}" -lt 512 ]]; then
+      heal "FIX: Creating a 1GB swap file to give the app more memory."
+      if [[ ! -f /swapfile ]]; then
+        fallocate -l 1G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=1024 2>/dev/null || true
+        chmod 600 /swapfile 2>/dev/null || true
+        mkswap /swapfile 2>/dev/null || true
+        swapon /swapfile 2>/dev/null || true
+        ok "Swap created and enabled."
+      else
+        swapon /swapfile 2>/dev/null || true
+      fi
+    fi
+    # Also set Node max-old-space in ecosystem config
+    if ! grep -q "max-old-space" ecosystem.config.cjs; then
+      heal "Patching ecosystem.config.cjs to set Node --max-old-space-size=512"
+      sed -i "s/script: '.\/dist\/index.cjs'/script: '.\/dist\/index.cjs',\n      node_args: '--max-old-space-size=512'/" ecosystem.config.cjs || true
+    fi
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── Fix 10: PM2 process in "errored" or restart-loop state ───────────────
+  if [[ "$pm2_status" == "errored" || "$pm2_status" == "stopping" ]] && \
+     [[ -z "${APPLIED_FIXES[pm2_error_state]:-}" ]]; then
+    APPLIED_FIXES[pm2_error_state]=1
+    heal "DIAGNOSIS: PM2 process is in '$pm2_status' state (crash/restart loop)."
+    heal "FIX: Full PM2 delete + fresh start."
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── Fix 11: nginx 502 but app is healthy internally ───────────────────────
+  if [[ "$internal_status" == "200" ]] && \
+     [[ -z "${APPLIED_FIXES[nginx_502]:-}" ]]; then
+    APPLIED_FIXES[nginx_502]=1
+    heal "DIAGNOSIS: App is up on port $APP_PORT (HTTP 200) but nginx is returning 502."
+    heal "FIX: Testing nginx config and reloading."
+    local nginx_test
+    nginx_test="$(nginx -t 2>&1 || true)"
+    if echo "$nginx_test" | grep -q "successful"; then
+      systemctl reload nginx 2>/dev/null || service nginx reload 2>/dev/null || true
+      ok "nginx reloaded successfully."
+      return 0
+    else
+      fail "nginx config test FAILED:"
+      echo "$nginx_test"
+      fail ""
+      fail "Your nginx config has errors — fix them, then run:"
+      fail "  nginx -t && systemctl reload nginx"
+      fail ""
+      # Show the upstream block they should have
+      warn "Expected upstream block in your nginx site config:"
+      warn "  upstream certxa { server 127.0.0.1:$APP_PORT; }"
+      warn "  proxy_pass http://certxa;"
+      return 1
+    fi
+  fi
+
+  # ── Fix 12: Generic — PM2 shows errors but no known pattern matched ───────
+  if [[ "$pm2_status" == "errored" || "$internal_status" == "000" ]] && \
+     [[ -z "${APPLIED_FIXES[generic_restart]:-}" ]]; then
+    APPLIED_FIXES[generic_restart]=1
+    heal "DIAGNOSIS: App is not responding and no specific error pattern matched."
+    heal "FIX: Performing a full clean restart as a general recovery measure."
+    pm2_fresh_start
+    return 0
+  fi
+
+  # ── No fix available ───────────────────────────────────────────────────────
+  fail "DIAGNOSIS: Could not identify a known auto-fixable issue."
+  fail "Review the logs below to investigate manually."
+  return 1
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  FULL DIAGNOSTICS DUMP (called on final failure only)
+# ══════════════════════════════════════════════════════════════════════════════
+show_diagnostics() {
+  echo ""
+  banner "══ FULL DIAGNOSTICS ════════════════════════════════════════"
+
+  echo ""
+  echo -e "${YELLOW}▶ PM2 process list:${NC}"
+  pm2 list 2>/dev/null || true
+
+  echo ""
+  echo -e "${YELLOW}▶ Last 60 lines of PM2 stderr:${NC}"
+  pm2 logs "$APP_NAME" --err --lines 60 --nostream 2>/dev/null || true
+
+  echo ""
+  echo -e "${YELLOW}▶ Last 40 lines of PM2 stdout:${NC}"
+  pm2 logs "$APP_NAME" --out --lines 40 --nostream 2>/dev/null || true
+
+  echo ""
+  echo -e "${YELLOW}▶ Port usage:${NC}"
+  lsof -i:"$APP_PORT" 2>/dev/null || echo "  (nothing on port $APP_PORT)"
+  lsof -i:"$PHP_PORT" 2>/dev/null || echo "  (nothing on port $PHP_PORT)"
+
+  echo ""
+  echo -e "${YELLOW}▶ Internal health check (raw JSON):${NC}"
+  curl -s --max-time 5 "http://127.0.0.1:$APP_PORT/api/health" 2>/dev/null \
+    | python3 -m json.tool 2>/dev/null \
+    || echo "  (no response — app is not up on port $APP_PORT)"
+
+  echo ""
+  echo -e "${YELLOW}▶ Database connectivity:${NC}"
+  if psql "${DATABASE_URL:-}" -c "SELECT NOW() AS server_time, version();" 2>&1; then
+    ok "Database reachable"
+  else
+    fail "Database NOT reachable"
+  fi
+
+  echo ""
+  echo -e "${YELLOW}▶ System resources:${NC}"
+  free -h 2>/dev/null || true
+  df -h "$APP_DIR" 2>/dev/null || true
+
+  echo ""
+  echo -e "${YELLOW}▶ Environment variables (existence check):${NC}"
+  for var in DATABASE_URL SESSION_SECRET APP_URL GOOGLE_CLIENT_ID \
+             TWILIO_ACCOUNT_SID MAILGUN_API_KEY STRIPE_SECRET_KEY; do
+    if [[ -n "${!var:-}" ]]; then
+      echo -e "  ${GREEN}✓${NC} $var"
+    else
+      echo -e "  ${RED}✗${NC} $var  (not set)"
+    fi
+  done
+
+  echo ""
+  echo -e "${YELLOW}▶ dist/ contents:${NC}"
+  ls -lh "$DIST_DIR/" 2>/dev/null || echo "  (dist/ missing entirely)"
+  ls -lh "$DIST_DIR/public/" 2>/dev/null | head -12 || echo "  (dist/public/ missing)"
+
+  echo ""
+  echo -e "${YELLOW}▶ nginx status:${NC}"
+  nginx -t 2>&1 || true
+  systemctl is-active nginx 2>/dev/null || service nginx status 2>/dev/null | head -5 || true
+
+  echo ""
+  echo -e "${YELLOW}▶ Full deploy log saved to:${NC}"
+  echo "  $DEPLOY_LOG"
+
+  banner "══ END DIAGNOSTICS ═════════════════════════════════════════"
+  echo ""
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ─────────────────────────────  DEPLOY STEPS  ────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Step 1: Pre-flight checks ─────────────────────────────────────────────────
 step "Step 1/9 — Pre-flight checks"
-# ═══════════════════════════════════════════════════════════════════════════════
 
 PREFLIGHT_FAIL=0
 
-# 1a. .env file
+# .env exists
 if [[ ! -f "$ENV_FILE" ]]; then
   fail ".env file not found at $APP_DIR/$ENV_FILE"
   fail "Copy .env.example to .env and fill in your secrets."
   PREFLIGHT_FAIL=1
 else
   ok ".env file found"
+  load_env
 fi
 
-# 1b. Load env so we can validate vars (without exporting everything blindly)
-if [[ -f "$ENV_FILE" ]]; then
-  set +u  # allow unbound during source
-  # Parse .env manually (handles comments and quoted values)
-  while IFS='=' read -r key value; do
-    [[ "$key" =~ ^[[:space:]]*# ]] && continue  # skip comments
-    [[ -z "$key" ]] && continue                  # skip blank lines
-    key="${key// /}"                              # trim spaces from key
-    value="${value%%#*}"                          # strip inline comments
-    value="${value%"${value##*[![:space:]]}"}"    # trim trailing whitespace
-    value="${value#\"}" value="${value%\"}"        # strip surrounding quotes
-    value="${value#\'}" value="${value%\'}"
-    export "$key=$value" 2>/dev/null || true
-  done < "$ENV_FILE"
-  set -u
-fi
-
-# 1c. Required environment variables
-REQUIRED_VARS=(DATABASE_URL SESSION_SECRET APP_URL)
-for var in "${REQUIRED_VARS[@]}"; do
+# Required env vars
+for var in DATABASE_URL SESSION_SECRET APP_URL; do
   if [[ -z "${!var:-}" ]]; then
-    fail "Required env var missing: $var"
+    fail "Required env var not set: $var  (check your .env)"
     PREFLIGHT_FAIL=1
   else
     ok "$var is set"
   fi
 done
 
-# 1d. Required tools
-for tool in node npm pm2 git lsof curl psql; do
+# Required tools
+for tool in node npm pm2 git lsof curl; do
   if ! command -v "$tool" &>/dev/null; then
     fail "Required tool not found: $tool"
     PREFLIGHT_FAIL=1
   else
-    ok "$tool found ($(command -v "$tool"))"
+    ok "$tool  →  $(command -v "$tool")"
   fi
 done
 
-# 1e. Node version check (must be 20.x)
-NODE_VER="$(node --version)"
-NODE_MAJOR="${NODE_VER%%.*}"
-NODE_MAJOR="${NODE_MAJOR#v}"
-if [[ "$NODE_MAJOR" -lt 20 ]]; then
-  fail "Node.js 20+ required, found: $NODE_VER"
+# Node version >= 20
+NODE_VER="$(node --version 2>/dev/null || echo 'v0')"
+NODE_MAJOR="${NODE_VER%%.*}"; NODE_MAJOR="${NODE_MAJOR#v}"
+if [[ "${NODE_MAJOR:-0}" -lt 20 ]]; then
+  fail "Node.js 20+ required — found $NODE_VER"
   PREFLIGHT_FAIL=1
 else
   ok "Node.js $NODE_VER"
 fi
 
-# 1f. Disk space — need at least 500 MB free
-DISK_FREE_KB="$(df -k "$APP_DIR" | awk 'NR==2 {print $4}')"
-DISK_FREE_MB="$((DISK_FREE_KB / 1024))"
-if [[ "$DISK_FREE_MB" -lt 500 ]]; then
-  fail "Low disk space: ${DISK_FREE_MB}MB free (need 500MB+)"
+# Disk space (500 MB minimum)
+DISK_FREE_MB="$(df -k "$APP_DIR" | awk 'NR==2 {printf "%d", $4/1024}')"
+if [[ "${DISK_FREE_MB:-0}" -lt 500 ]]; then
+  fail "Low disk space: ${DISK_FREE_MB}MB free — need 500MB+"
   PREFLIGHT_FAIL=1
 else
   ok "Disk space: ${DISK_FREE_MB}MB free"
 fi
 
-# 1g. Database connectivity test
-info "Testing database connection…"
-if psql "$DATABASE_URL" -c "SELECT 1" &>/dev/null; then
+# Database reachable
+if command -v psql &>/dev/null && psql "${DATABASE_URL:-}" -c "SELECT 1" &>/dev/null; then
   ok "Database connection successful"
 else
-  fail "Cannot connect to database: $DATABASE_URL"
-  fail "Check your DATABASE_URL in $ENV_FILE"
-  PREFLIGHT_FAIL=1
+  warn "Cannot verify database connection (psql not found or connection refused)"
+  warn "The deploy will continue but migrations may fail."
 fi
 
 if [[ "$PREFLIGHT_FAIL" -eq 1 ]]; then
-  echo ""
-  fail "Pre-flight checks failed — aborting deploy. Fix the issues above and re-run."
+  fail "Pre-flight failed — fix the issues above, then re-run: bash scripts/deploy.sh"
   exit 1
 fi
-
 ok "All pre-flight checks passed"
 
-# ═══════════════════════════════════════════════════════════════════════════════
-step "Step 2/9 — Backing up current dist for rollback"
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 2: Backup current dist ───────────────────────────────────────────────
+step "Step 2/9 — Backing up current dist/ for rollback"
 
-ROLLBACK_AVAILABLE=0
 if [[ -d "$DIST_DIR" ]]; then
   rm -rf "$BACKUP_DIR"
   cp -r "$DIST_DIR" "$BACKUP_DIR"
-  ok "dist/ backed up to $BACKUP_DIR"
+  ok "Backed up dist/ → $BACKUP_DIR"
   ROLLBACK_AVAILABLE=1
 else
-  warn "No existing dist/ to back up — rollback will not be available"
+  warn "No existing dist/ — rollback will not be available this deploy"
 fi
 
-# Capture commit before pull for comparison
 PREV_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 3: Git pull ──────────────────────────────────────────────────────────
 step "Step 3/9 — Pulling latest code"
-# ═══════════════════════════════════════════════════════════════════════════════
 
 if [[ "${SKIP_GIT_PULL:-0}" == "1" ]]; then
   warn "Skipping git pull (SKIP_GIT_PULL=1)"
@@ -177,257 +586,205 @@ else
   git pull --ff-only
 fi
 
-COMMIT="$(git rev-parse --short HEAD)"
+COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-ok "Commit: $COMMIT (was: $PREV_COMMIT)  |  $BUILD_TIME"
+ok "At commit $COMMIT (was $PREV_COMMIT) — $BUILD_TIME"
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 4: Install dependencies ──────────────────────────────────────────────
 step "Step 4/9 — Installing dependencies"
-# ═══════════════════════════════════════════════════════════════════════════════
 
 npm ci --prefer-offline --loglevel=warn 2>&1 | grep -v "^npm warn" | tail -5
-ok "Dependencies installed"
+ok "npm ci complete"
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 5: Database migrations ───────────────────────────────────────────────
 step "Step 5/9 — Running database migrations"
-# ═══════════════════════════════════════════════════════════════════════════════
 
 if [[ "${SKIP_MIGRATE:-0}" == "1" ]]; then
-  warn "Skipping database migrations (SKIP_MIGRATE=1)"
+  warn "Skipping migrations (SKIP_MIGRATE=1)"
 else
-  info "Running pending SQL migrations against: $DATABASE_URL"
-  # Run the standalone migrate script (not via startup — that runs inside the
-  # live server and we want migrations done BEFORE PM2 restarts).
-  if DATABASE_URL="$DATABASE_URL" node_modules/.bin/tsx scripts/migrate.ts; then
-    ok "Database migrations complete"
+  info "Applying pending SQL migrations…"
+  if DATABASE_URL="${DATABASE_URL:-}" node_modules/.bin/tsx scripts/migrate.ts; then
+    ok "Migrations complete"
   else
-    fail "Database migration FAILED — aborting deploy to protect your data."
-    fail "Fix the migration error above, then re-run: bash scripts/deploy.sh"
+    fail "Migration FAILED — aborting to protect your data."
+    fail "Fix the migration error above, then re-run."
     exit 1
   fi
 fi
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 6: Build production bundle ───────────────────────────────────────────
 step "Step 6/9 — Building production bundle"
-# ═══════════════════════════════════════════════════════════════════════════════
 
 if [[ "${SKIP_BUILD:-0}" == "1" ]]; then
   warn "Skipping build (SKIP_BUILD=1)"
 else
-  rm -rf dist node_modules/.vite
-  GIT_COMMIT="$COMMIT" BUILD_TIME="$BUILD_TIME" npm run build
-  ok "Build complete"
+  rm -rf "$DIST_DIR" node_modules/.vite
+  if GIT_COMMIT="$COMMIT" BUILD_TIME="$BUILD_TIME" npm run build; then
+    ok "Build succeeded"
+  else
+    fail "Build FAILED — see errors above."
+    exit 1
+  fi
 fi
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 7: Validate build output ─────────────────────────────────────────────
 step "Step 7/9 — Validating build output"
-# ═══════════════════════════════════════════════════════════════════════════════
 
-BUILD_OK=1
-for required_file in dist/index.cjs dist/public/index.html; do
-  if [[ ! -f "$required_file" ]]; then
-    fail "Missing required build artifact: $required_file"
-    BUILD_OK=0
+BUILD_VALID=1
+for f in "$DIST_DIR/index.cjs" "$DIST_DIR/public/index.html"; do
+  if [[ ! -f "$f" ]]; then
+    fail "Missing: $f"
+    BUILD_VALID=0
   fi
 done
 
-if [[ "$BUILD_OK" -eq 0 ]]; then
-  fail "Build validation failed. The dist/ is incomplete — aborting."
+if [[ "$BUILD_VALID" -eq 0 ]]; then
+  fail "Build validation failed — dist/ is incomplete."
   exit 1
 fi
 
-NEW_BUNDLE="$(grep -oE 'index-[A-Za-z0-9_-]+\.js' dist/public/index.html | head -n1 || true)"
-if [[ -z "$NEW_BUNDLE" ]]; then
-  fail "Could not find a hashed JS bundle in dist/public/index.html — build may be broken."
-  exit 1
-fi
-ok "Build validated — bundle: $NEW_BUNDLE"
+NEW_BUNDLE="$(grep -oE 'index-[A-Za-z0-9_-]+\.js' "$DIST_DIR/public/index.html" | head -1 || true)"
+[[ -z "$NEW_BUNDLE" ]] && { fail "No hashed JS bundle found in index.html."; exit 1; }
+ok "Build valid — bundle: $NEW_BUNDLE"
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Step 8: Start the application ─────────────────────────────────────────────
 step "Step 8/9 — Starting application (clean restart)"
-# ═══════════════════════════════════════════════════════════════════════════════
 
-# Stop PM2 gracefully first (fork mode apps need a full stop/start for clean state)
-info "Stopping PM2 process: $APP_NAME"
-if pm2 describe "$APP_NAME" &>/dev/null; then
-  pm2 stop "$APP_NAME" 2>/dev/null || true
-  pm2 delete "$APP_NAME" 2>/dev/null || true
-  ok "PM2 process stopped and deleted"
-else
-  warn "PM2 process '$APP_NAME' was not running"
-fi
+pm2_fresh_start
+ok "PM2 process started"
 
-# Kill any lingering processes on our ports
-for PORT_TO_CLEAR in "$APP_PORT" "$PHP_PORT"; do
-  PIDS="$(lsof -t -i:"$PORT_TO_CLEAR" 2>/dev/null || true)"
-  if [[ -n "$PIDS" ]]; then
-    warn "Killing stale process(es) on port $PORT_TO_CLEAR: $PIDS"
-    kill -9 $PIDS 2>/dev/null || true
-    sleep 1
-  fi
-done
+# ── Step 9: Self-healing health check loop ────────────────────────────────────
+step "Step 9/9 — Self-healing health check"
+echo ""
+info "Initial startup wait (10 seconds for migrations + PHP server)…"
+sleep 10
 
-# Start fresh with ecosystem config
-info "Starting PM2: $APP_NAME"
-pm2 start ecosystem.config.cjs --update-env
-pm2 save
-ok "PM2 started"
+HEAL_ATTEMPT=0
+FINAL_STATUS="000"
+FINAL_EXT_STATUS="000"
+HEALED_ISSUES=()
 
-# ═══════════════════════════════════════════════════════════════════════════════
-step "Step 9/9 — Health check (up to 45 seconds)"
-# ═══════════════════════════════════════════════════════════════════════════════
+while [[ "$HEAL_ATTEMPT" -le "$MAX_HEAL_ATTEMPTS" ]]; do
 
-# ── Rollback function ──────────────────────────────────────────────────────────
-do_rollback() {
-  echo ""
-  fail "═══════════════════════════════════════════"
-  fail "  ROLLING BACK to previous build…"
-  fail "═══════════════════════════════════════════"
-  if [[ "$ROLLBACK_AVAILABLE" -eq 1 ]] && [[ -d "$BACKUP_DIR" ]]; then
-    pm2 stop "$APP_NAME" 2>/dev/null || true
-    pm2 delete "$APP_NAME" 2>/dev/null || true
-    rm -rf "$DIST_DIR"
-    cp -r "$BACKUP_DIR" "$DIST_DIR"
-    pm2 start ecosystem.config.cjs --update-env
-    pm2 save
-    warn "Rollback to commit $PREV_COMMIT complete."
-    warn "Your previous version has been restored."
-  else
-    fail "No backup available — cannot roll back automatically."
-    fail "You may need to re-deploy manually or restore from git."
-  fi
-}
+  # ── Wait for the app to respond (up to 45 seconds per attempt) ─────────────
+  CHECK_ELAPSED=0
+  CHECK_MAX=45
+  CHECK_INTERVAL=3
+  INTERNAL_STATUS="000"
 
-# ── Diagnostics function ───────────────────────────────────────────────────────
-show_diagnostics() {
-  echo ""
-  echo -e "${BOLD}${YELLOW}══ DIAGNOSTICS ══════════════════════════════════════${NC}"
-
-  echo ""
-  echo -e "${YELLOW}▶ PM2 status:${NC}"
-  pm2 list 2>/dev/null || true
-
-  echo ""
-  echo -e "${YELLOW}▶ Last 40 PM2 log lines (error):${NC}"
-  pm2 logs "$APP_NAME" --err --lines 40 --nostream 2>/dev/null || true
-
-  echo ""
-  echo -e "${YELLOW}▶ Last 40 PM2 log lines (output):${NC}"
-  pm2 logs "$APP_NAME" --out --lines 40 --nostream 2>/dev/null || true
-
-  echo ""
-  echo -e "${YELLOW}▶ Port $APP_PORT usage:${NC}"
-  lsof -i:"$APP_PORT" 2>/dev/null || echo "  (nothing on port $APP_PORT)"
-
-  echo ""
-  echo -e "${YELLOW}▶ Database connectivity from server:${NC}"
-  if psql "$DATABASE_URL" -c "SELECT NOW() AS db_time, version();" 2>&1; then
-    ok "Database is reachable"
-  else
-    fail "Database is NOT reachable from this server"
-  fi
-
-  echo ""
-  echo -e "${YELLOW}▶ .env loaded vars (existence only):${NC}"
-  for var in DATABASE_URL SESSION_SECRET APP_URL GOOGLE_CLIENT_ID TWILIO_ACCOUNT_SID MAILGUN_API_KEY STRIPE_SECRET_KEY; do
-    if [[ -n "${!var:-}" ]]; then
-      echo -e "  ${GREEN}✓${NC} $var is set"
-    else
-      echo -e "  ${RED}✗${NC} $var is NOT set"
+  info "Health check — waiting up to ${CHECK_MAX}s for port $APP_PORT…"
+  while [[ "$CHECK_ELAPSED" -lt "$CHECK_MAX" ]]; do
+    INTERNAL_STATUS="$(internal_health)"
+    if [[ "$INTERNAL_STATUS" == "200" || "$INTERNAL_STATUS" == "503" ]]; then
+      break
     fi
+    dim "  ${CHECK_ELAPSED}s — HTTP $INTERNAL_STATUS on port $APP_PORT"
+    sleep "$CHECK_INTERVAL"
+    CHECK_ELAPSED="$((CHECK_ELAPSED + CHECK_INTERVAL))"
   done
 
-  echo ""
-  echo -e "${YELLOW}▶ dist/ contents:${NC}"
-  ls -lh dist/ 2>/dev/null || echo "  (dist/ missing)"
-  ls -lh dist/public/ 2>/dev/null | head -10 || echo "  (dist/public/ missing)"
-
-  echo ""
-  echo -e "${YELLOW}▶ Internal health check (bypass nginx):${NC}"
-  curl -s --max-time 5 "http://127.0.0.1:$APP_PORT/api/health" 2>/dev/null \
-    | python3 -m json.tool 2>/dev/null \
-    || echo "  (no response on port $APP_PORT — app is not up)"
-
-  echo ""
-  echo -e "${BOLD}${YELLOW}══ END DIAGNOSTICS ══════════════════════════════════${NC}"
-  echo ""
-}
-
-# ── Health check retry loop ────────────────────────────────────────────────────
-MAX_WAIT=45
-INTERVAL=3
-ELAPSED=0
-HTTP_STATUS="000"
-
-info "Waiting for app to come up (checking every ${INTERVAL}s, timeout ${MAX_WAIT}s)…"
-echo ""
-
-while [[ "$ELAPSED" -lt "$MAX_WAIT" ]]; do
-  # First check the app port directly (bypasses nginx — catches app-not-up vs nginx issues)
-  INTERNAL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" --max-time 4 "http://127.0.0.1:$APP_PORT/api/health" 2>/dev/null || echo "000")"
-
+  # ── Also check external (nginx) if internal is 200 ─────────────────────────
   if [[ "$INTERNAL_STATUS" == "200" ]]; then
-    ok "App is up on port $APP_PORT (internal check passed in ${ELAPSED}s)"
-    HTTP_STATUS="200"
-    break
-  elif [[ "$INTERNAL_STATUS" == "503" ]]; then
-    warn "App responded 503 on port $APP_PORT (starting up or DB issue) — waiting…"
-  else
-    info "  ${ELAPSED}s — port $APP_PORT: HTTP $INTERNAL_STATUS — waiting…"
+    FINAL_EXT_STATUS="$(external_health)"
+    if [[ "$FINAL_EXT_STATUS" == "200" ]]; then
+      # Both pass — we're done!
+      FINAL_STATUS="200"
+      break
+    elif [[ "$FINAL_EXT_STATUS" == "503" ]]; then
+      # App degraded — report but don't heal (it's a runtime issue, not a boot issue)
+      FINAL_STATUS="503"
+      break
+    else
+      # Internal OK but external not — nginx issue
+      # Fall through to self-heal below with internal_status=200
+      :
+    fi
   fi
 
-  sleep "$INTERVAL"
-  ELAPSED="$((ELAPSED + INTERVAL))"
+  if [[ "$INTERNAL_STATUS" == "503" && "$HEAL_ATTEMPT" -ge "$MAX_HEAL_ATTEMPTS" ]]; then
+    FINAL_STATUS="503"
+    break
+  fi
+
+  # ── Decide whether to heal ─────────────────────────────────────────────────
+  HEAL_ATTEMPT="$((HEAL_ATTEMPT + 1))"
+  if [[ "$HEAL_ATTEMPT" -gt "$MAX_HEAL_ATTEMPTS" ]]; then
+    break
+  fi
+
+  # Run the heal engine
+  if self_heal "$HEAL_ATTEMPT" "$INTERNAL_STATUS"; then
+    HEALED_ISSUES+=("Attempt $HEAL_ATTEMPT")
+    info "Fix applied — waiting 10 seconds before rechecking…"
+    sleep 10
+    # Loop back to re-test
+  else
+    fail "Self-heal could not identify a fix — giving up."
+    break
+  fi
+
 done
 
-# ── Final result ───────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+#  FINAL SUMMARY
+# ══════════════════════════════════════════════════════════════════════════════
 echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║                   Deploy Summary                        ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════════════════════╝${NC}"
+banner "╔══════════════════════════════════════════════════════════╗"
+banner "║                   Deploy Summary                        ║"
+banner "╚══════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "  ${CYAN}Commit${NC}   : $COMMIT (was: $PREV_COMMIT)"
-echo -e "  ${CYAN}Bundle${NC}   : $NEW_BUNDLE"
-echo -e "  ${CYAN}Started${NC}  : $BUILD_TIME"
+dim "Commit   : $COMMIT  (was: $PREV_COMMIT)"
+dim "Bundle   : $NEW_BUNDLE"
+dim "Built at : $BUILD_TIME"
+dim "Log file : $DEPLOY_LOG"
+if [[ "${#HEALED_ISSUES[@]}" -gt 0 ]]; then
+  echo -e "${MAGENTA}  🔧  Self-healed ${#HEALED_ISSUES[@]} issue(s) automatically${NC}"
+fi
 echo ""
 
-if [[ "$HTTP_STATUS" == "200" ]]; then
-  # Also do the external health check through nginx
-  EXT_STATUS="$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$APP_URL/api/health" 2>/dev/null || echo "failed")"
-  ok "Internal health check: HTTP 200 ✅"
-  if [[ "$EXT_STATUS" == "200" ]]; then
-    ok "External health check ($APP_URL): HTTP 200 ✅"
-    echo ""
-    echo -e "${GREEN}${BOLD}  🎉 Deploy successful! App is live at $APP_URL${NC}"
-  else
-    warn "External health check ($APP_URL): HTTP $EXT_STATUS"
-    warn "The app is running fine internally but nginx returned $EXT_STATUS."
-    warn "This is usually an nginx config or SSL issue, not the app itself."
-    warn "Check: nginx -t && systemctl reload nginx"
-    echo ""
-    echo -e "${YELLOW}  App is up internally but may not be reachable via nginx.${NC}"
-  fi
-
-elif [[ "$HTTP_STATUS" == "503" ]]; then
-  warn "App started but health check returned 503 — check your env vars or DB."
-  warn "Run:  pm2 logs $APP_NAME --lines 50"
+if [[ "$FINAL_STATUS" == "200" ]]; then
+  ok "Internal health (port $APP_PORT) : HTTP 200"
+  ok "External health ($APP_URL)       : HTTP $FINAL_EXT_STATUS"
   echo ""
-  show_diagnostics
+  echo -e "${GREEN}${BOLD}  🎉  Deploy successful! App is live at $APP_URL${NC}"
+
+elif [[ "$FINAL_STATUS" == "503" ]]; then
+  warn "App started but returned HTTP 503 (degraded — DB connection or env var issue)."
+  warn ""
+  warn "Check the health endpoint for details:"
+  curl -s --max-time 5 "http://127.0.0.1:$APP_PORT/api/health" 2>/dev/null \
+    | python3 -m json.tool 2>/dev/null || true
+  warn ""
+  warn "Common causes:"
+  warn "  • DATABASE_URL wrong or DB is down"
+  warn "  • Missing SESSION_SECRET"
+  warn "  • Run: pm2 logs $APP_NAME --lines 50"
+
+elif [[ "$INTERNAL_STATUS" == "200" && "$FINAL_EXT_STATUS" != "200" ]]; then
+  ok "Internal health (port $APP_PORT) : HTTP 200  ✅  (app is fine)"
+  warn "External health ($APP_URL) : HTTP $FINAL_EXT_STATUS  (nginx issue)"
+  warn ""
+  warn "The app is running correctly — nginx is the problem."
+  warn "Run:  nginx -t && systemctl reload nginx"
+  warn "Check your nginx upstream points to 127.0.0.1:$APP_PORT"
 
 else
-  fail "App did not come up after ${MAX_WAIT}s (HTTP $HTTP_STATUS on port $APP_PORT)."
+  fail "App did not come up after $MAX_HEAL_ATTEMPTS heal attempts."
+  fail "Internal port $APP_PORT: HTTP $INTERNAL_STATUS"
   echo ""
   show_diagnostics
   do_rollback
   echo ""
   fail "Deploy FAILED. Your previous build has been restored."
-  fail "Fix the errors shown above, then re-run: bash scripts/deploy.sh"
+  fail "Review the diagnostics above and fix the root cause."
+  fail "Full log: $DEPLOY_LOG"
   exit 1
 fi
 
 echo ""
-echo -e "  ${CYAN}Useful commands:${NC}"
-echo -e "    pm2 logs $APP_NAME --lines 50     # live logs"
-echo -e "    pm2 monit                         # process monitor"
-echo -e "    curl $APP_URL/api/health           # health check"
+dim "Useful commands:"
+dim "  pm2 logs $APP_NAME --lines 50   # live application logs"
+dim "  pm2 monit                       # real-time process monitor"
+dim "  pm2 list                        # all process statuses"
+dim "  curl $APP_URL/api/health         # health check"
 echo ""
