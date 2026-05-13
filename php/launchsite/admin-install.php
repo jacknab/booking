@@ -637,12 +637,42 @@ step('✅',
 // ── 3. Move source to artifacts ───────────────────────────────────────────────
 step('📁', "Moving source to <code>artifacts/template-$tid/</code>…");
 
-if (is_dir($dest_dir)) run_cmd("rm -rf " . escapeshellarg($dest_dir));
+// Ensure the artifacts directory exists (it may not on a fresh install)
+if (!is_dir($artifacts_dir)) {
+    if (!@mkdir($artifacts_dir, 0755, true)) {
+        $err = error_get_last();
+        abort('Could not create artifacts directory <code>' . htmlspecialchars($artifacts_dir) . '</code>: ' . htmlspecialchars($err['message'] ?? 'unknown error'));
+    }
+}
+if (!is_writable($artifacts_dir)) {
+    abort('Artifacts directory <code>' . htmlspecialchars($artifacts_dir) . '</code> is not writable by the current process (uid=' . posix_geteuid() . ').');
+}
+
+if (is_dir($dest_dir)) {
+    $rm_r = run_cmd("rm -rf " . escapeshellarg($dest_dir));
+    if ($rm_r['code'] !== 0) {
+        abort('Could not remove existing destination <code>' . htmlspecialchars($dest_dir) . '</code>: ' . htmlspecialchars($rm_r['output']));
+    }
+}
+
+if (!is_dir($src)) {
+    abort('Source directory missing after extraction: <code>' . htmlspecialchars($src) . '</code>');
+}
 
 if (!@rename($src, $dest_dir)) {
+    $rename_err = error_get_last();
     $r = run_cmd("cp -r " . escapeshellarg($src) . " " . escapeshellarg($dest_dir));
     run_cmd("rm -rf " . escapeshellarg($tmp_extract));
-    if ($r['code'] !== 0) abort('Could not move files to the artifacts directory. Check server permissions.');
+    if ($r['code'] !== 0) {
+        abort(
+            'Could not move files to the artifacts directory.<br>'
+            . '<strong>rename() error:</strong> <code>' . htmlspecialchars($rename_err['message'] ?? '(no message)') . '</code><br>'
+            . '<strong>cp -r exit code:</strong> ' . $r['code'] . '<br>'
+            . '<strong>cp -r output:</strong> <pre style="white-space:pre-wrap;color:#fbb;">' . htmlspecialchars($r['output']) . '</pre>'
+            . '<strong>src:</strong> <code>' . htmlspecialchars($src) . '</code><br>'
+            . '<strong>dest:</strong> <code>' . htmlspecialchars($dest_dir) . '</code>'
+        );
+    }
 }
 step('✅', "Source at <code>artifacts/template-$tid/</code>");
 
