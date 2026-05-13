@@ -274,44 +274,72 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
   // Only act on subdomains of the configured app domain or localhost.
   // Replit dev domains and any other hosts are passed through immediately.
   const rootDomain = parts.slice(-2).join('.');
-  if (rootDomain !== _appDomain && rootDomain !== 'localhost') return next();
+  const isAppDomain = rootDomain === _appDomain || rootDomain === 'localhost';
+  
+  let subdomain = '';
+  let isCustomDomain = false;
 
-  // Only act on subdomains: slug.certxa.com or slug.localhost
-  if (parts.length < 2) return next();
-
-  const subdomain = parts[0];
+  if (isAppDomain) {
+    // Only act on subdomains: slug.certxa.com or slug.localhost
+    if (parts.length < 2) return next();
+    subdomain = parts[0];
+  } else {
+    // Could be a custom domain — treat entire host as custom domain
+    isCustomDomain = true;
+  }
 
   // manage.certxa.com → unified subscriber hub served by the React SPA
-  if (subdomain === 'manage') {
+  if (subdomain === 'manage' && !isCustomDomain) {
     (req as any).isManageSubdomain = true;
     return next();
   }
 
-  if (RESERVED_SUBDOMAINS.has(subdomain)) return next();
+  if (!isCustomDomain && RESERVED_SUBDOMAINS.has(subdomain)) return next();
 
   try {
-    // 1. Check if this is a booking-app store subdomain (bookingSlug)
-    const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, subdomain));
-    if (store) {
-      req.store = store;
-      return next();
+    // 1. Check if this is a booking-app store subdomain (bookingSlug) — only for app domain
+    if (!isCustomDomain) {
+      const [store] = await db.select().from(locations).where(eq(locations.bookingSlug, subdomain));
+      if (store) {
+        req.store = store;
+        return next();
+      }
     }
 
-    // 2. Check if this is a launchsite user subdomain
+    // 2. Check if this is a launchsite user subdomain (subdomain.certxa.com)
     let row: any = null;
-    try {
-      const result = await db.execute(sql`
-        SELECT os.template_id, os.business_name, os.hours, os.status
-        FROM subdomains s
-        JOIN onboarding_submissions os ON os.id = s.submission_id
-        WHERE s.slug = ${subdomain}
-        LIMIT 1
-      `) as any;
-      row = result?.rows?.[0];
-    } catch {
-      // subdomains/onboarding_submissions tables not yet created — skip launchsite lookup
+    if (!isCustomDomain) {
+      try {
+        const result = await db.execute(sql`
+          SELECT os.template_id, os.business_name, os.hours, os.status, os.domain_type
+          FROM subdomains s
+          JOIN onboarding_submissions os ON os.id = s.submission_id
+          WHERE s.slug = ${subdomain}
+          LIMIT 1
+        `) as any;
+        row = result?.rows?.[0];
+      } catch {
+        // subdomains/onboarding_submissions tables not yet created — skip launchsite lookup
+      }
     }
 
+    // 3. If no subdomain match, check for custom domain
+    if (!row && isCustomDomain) {
+      try {
+        const result = await db.execute(sql`
+          SELECT id, template_id, business_name, hours, status, domain_type, domain_payment_status
+          FROM onboarding_submissions
+          WHERE custom_domain = ${host}
+          AND domain_type = 'custom'
+          LIMIT 1
+        `) as any;
+        row = result?.rows?.[0];
+      } catch {
+        // Table not yet created or custom domain lookup failed
+      }
+    }
+
+    // Handle inactive sites
     if (row && row.status === 'inactive') {
       return res.status(402).send(`<!DOCTYPE html><html><head><title>${row.business_name}</title>
         <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff;}
@@ -323,8 +351,23 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
         </div></body></html>`);
     }
 
+    // Handle pending payment on custom domains — show DNS setup page
+    if (row && row.status === 'pending_payment' && isCustomDomain) {
+      return res.status(402).send(`<!DOCTYPE html><html><head><title>${row.business_name}</title>
+        <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff;}
+        .box{text-align:center;padding:2rem;max-width:480px;} h1{font-size:1.5rem;margin-bottom:0.5rem;} p{color:rgba(255,255,255,0.7);margin:0.8rem 0;}
+        .code{background:#1a1a1a;padding:1rem;border-radius:0.5rem;font-family:monospace;margin:1rem 0;text-align:left;overflow-x:auto;}
+        a{color:#a78bfa;text-decoration:none;} a:hover{text-decoration:underline;}</style>
+        </head><body><div class="box"><h1>${row.business_name}</h1>
+        <p>DNS verification in progress.</p>
+        <p>Your domain is being set up. Please verify your DNS records and complete payment to go live.</p>
+        <p><a href="${_appUrl || "/"}">Return to dashboard</a></p>
+        </div></body></html>`);
+    }
+
+    // Serve active/pending site templates
     if (row && row.status !== 'pending_payment') {
-      req.launchsiteSlug = subdomain;
+      req.launchsiteSlug = subdomain || host;
 
       // Serve the built template for this user's site
       const templateId: string = row.template_id;
@@ -343,9 +386,17 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
         </head><body><div class="box"><h1>${row.business_name}</h1><p>Your website is being set up. Check back soon.</p></div></body></html>`);
     }
 
-    // 3. No exact match found — look for close slug matches and show smart not-found page
+    // For custom domains that don't match, don't show not-found suggestions
+    if (isCustomDomain) {
+      return res.status(404).send(`<!DOCTYPE html><html><head><title>Domain Not Found</title>
+        <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff;}
+        .box{text-align:center;padding:2rem;} h1{font-size:2rem;margin-bottom:0.5rem;} p{color:rgba(255,255,255,0.6);}</style>
+        </head><body><div class="box"><h1>Domain Not Found</h1><p>This domain is not registered in our system.</p></div></body></html>`);
+    }
+
+    // 4. No exact match found — look for close slug matches and show smart not-found page
     // Only trigger this for subdomains that look like user sites (not API/asset paths)
-    if (req.path === '/' || req.path === '') {
+    if ((req.path === '/' || req.path === '') && !isCustomDomain) {
       const requestedDomain = `${subdomain}.${_appDomain || "localhost"}`;
       const closeMatches = await findCloseSlugs(subdomain);
       return res.status(404).send(renderNotFoundPage(requestedDomain, closeMatches));

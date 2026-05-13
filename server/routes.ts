@@ -2403,6 +2403,95 @@ If you have any questions, please contact your administrator.
     }
   });
 
+  // === DNS VERIFICATION API (for custom domains) ===
+
+  app.post("/api/verify-domain", express.json(), async (req, res) => {
+    try {
+      const { submission_id, domain, email } = req.body;
+
+      if (!submission_id || !domain) {
+        return res.status(400).json({ 
+          verified: false,
+          message: "Missing submission_id or domain" 
+        });
+      }
+
+      // Verify submission exists and email matches (if provided)
+      const result = await db.execute(sql`
+        SELECT id, custom_domain, domain_type, status, domain_payment_status, email
+        FROM onboarding_submissions
+        WHERE id = ${submission_id}
+        AND domain_type = 'custom'
+        AND custom_domain = ${domain}
+        LIMIT 1
+      `) as any;
+
+      const submission = result?.rows?.[0];
+      if (!submission) {
+        return res.status(404).json({ 
+          verified: false,
+          message: "Submission not found or domain mismatch" 
+        });
+      }
+
+      // Optional email verification for extra security
+      if (email && submission.email !== email) {
+        return res.status(403).json({ 
+          verified: false,
+          message: "Email does not match submission" 
+        });
+      }
+
+      // DNS verification using Node's dns module
+      const dns = await import("dns");
+      const { promises: dnsPromises } = dns;
+      const TARGET_IP = "216.128.140.207";
+
+      let verified = false;
+      let dnsError: string | null = null;
+
+      try {
+        const addresses = await dnsPromises.resolve4(domain);
+        if (addresses.includes(TARGET_IP)) {
+          verified = true;
+        } else {
+          dnsError = `A record found but pointing to wrong IP. Expected ${TARGET_IP}, found ${addresses.join(", ")}`;
+        }
+      } catch (err: any) {
+        if (err.code === "ENOTFOUND" || err.code === "ENODATA") {
+          dnsError = "DNS record not detected yet. Please wait 24-48 hours and try again.";
+        } else {
+          dnsError = `DNS lookup error: ${err.message}`;
+        }
+      }
+
+      if (verified) {
+        // Update submission status to verified/active
+        await db.execute(sql`
+          UPDATE onboarding_submissions
+          SET domain_payment_status = 'verified', status = 'active', updated_at = NOW()
+          WHERE id = ${submission_id}
+        `);
+
+        return res.json({ 
+          verified: true,
+          message: "Domain verified! Your site is now live."
+        });
+      } else {
+        return res.json({ 
+          verified: false,
+          message: dnsError || "DNS verification failed"
+        });
+      }
+    } catch (error) {
+      console.error("[DNS Verify] Error:", error);
+      res.status(500).json({ 
+        verified: false,
+        message: "An error occurred during DNS verification"
+      });
+    }
+  });
+
   // === SUBDOMAIN BOOKING ROUTES (accessed via subdomain) ===
 
   app.get("/api/store/by-subdomain", async (req, res) => {

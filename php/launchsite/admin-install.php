@@ -1,6 +1,8 @@
 <?php
 session_start();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/admin-lib.php';
+require_once __DIR__ . '/data/templates.php';
 
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -522,11 +524,16 @@ $env_prefix = 'HOME=' . escapeshellarg(getenv('HOME') ?: '/home/runner')
 
 // Disable proxy/CDN buffering so each step appears in the browser immediately.
 // Without these headers, nginx / Express compression / Cloudflare would hold
-// the chunked response until the full body is ready.
+// the response until the full body is ready.
 header('Content-Type: text/html; charset=utf-8');
 header('X-Accel-Buffering: no');
-header('Cache-Control: no-cache');
-header('Transfer-Encoding: chunked');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
+// Don't set Transfer-Encoding directly — let the server handle it.
+// Instead, set a high timeout for long-running operations.
+set_time_limit(300);
 
 ob_implicit_flush(true);
 @ob_end_flush();
@@ -751,7 +758,7 @@ step('✅', "Build complete → <code>launchsite-php/templates/$tid/index.html</
 // ── 7. Register in database catalog ───────────────────────────────────────────
 step('📝', 'Registering template in the catalog…');
 
-launchit_insert_template([
+$insert_ok = launchit_insert_template([
     'id'            => $tid,
     'name'          => $meta['name'],
     'category'      => $category,
@@ -770,7 +777,11 @@ launchit_insert_template([
     'react_path'    => $base_path_url,
 ]);
 
-step('✅', "Registered — will appear immediately in the <strong>" . htmlspecialchars($category) . "</strong> catalog page");
+if (!$insert_ok) {
+    step('⚠️', "Database insert may have failed — template is built but catalog registration uncertain. You may need to verify in the database.");
+} else {
+    step('✅', "Registered — will appear immediately in the <strong>" . htmlspecialchars($category) . "</strong> catalog page");
+}
 
 // ── 8. Thumbnail — browser screenshot first, GD fallback ─────────────────────
 step('🖼️', 'Capturing thumbnail (browser screenshot of header + hero)…');
@@ -831,7 +842,6 @@ if ($thumb_ok) {
 // ── 9. Save hero image to media library ───────────────────────────────────────
 step('📸', 'Saving hero image to media library…');
 
-require_once __DIR__ . '/admin-lib.php';
 $media_dir = launchit_media_dir($category);
 if (!is_dir($media_dir)) @mkdir($media_dir, 0755, true);
 
