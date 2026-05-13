@@ -68,7 +68,7 @@ export function ServiceForm({ onSuccess, categories, initialData }: ServiceFormP
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
+    const reader = new window.FileReader();
     reader.onloadend = () => {
       setValue("imageUrl", reader.result as string);
     };

@@ -52,11 +52,13 @@ router.get("/overview", requireAuth, async (req: any, res) => {
     let websites: any[] = [];
     try {
       const result = await pool.query(
-        `SELECT os.id, os.business_name, os.template_id, os.status, os.email,
+        `SELECT os.id, os.business_name, os.template_id, os.status,
+                os.domain_type, os.custom_domain, os.domain_payment_status,
+                COALESCE(os.contact_email, os.email) AS email,
                 s.slug
          FROM   onboarding_submissions os
          LEFT   JOIN subdomains s ON s.submission_id = os.id
-         WHERE  os.email = $1
+         WHERE  COALESCE(os.contact_email, os.email) = $1
          ORDER  BY os.id DESC`,
         [user.email]
       );

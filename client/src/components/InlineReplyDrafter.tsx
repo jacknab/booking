@@ -43,7 +43,7 @@ export function InlineReplyDrafter({
   // Kick off generation immediately on mount
   React.useEffect(() => {
     generate();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   async function generate() {
     setStatus("generating");

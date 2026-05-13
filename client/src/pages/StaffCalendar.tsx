@@ -187,13 +187,9 @@ export default function StaffCalendar() {
       for (let m = 0; m < 60; m += timeSlotInterval) {
         if (h === END_HOUR && m > 0) break;
         const isHour = m === 0;
-        let label = "";
-        if (isHour) {
-          label = h === 0 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
-        } else {
-          const dh = h > 12 ? h - 12 : h === 0 ? 12 : h;
-          label = `${dh}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
-        }
+        const label = isHour
+          ? h === 0 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`
+          : `${h > 12 ? h - 12 : h === 0 ? 12 : h}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
         slots.push({ hour: h, minute: m, label, isHour });
       }
     }

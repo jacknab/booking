@@ -127,12 +127,12 @@ try {
     $stmt = $pdo->prepare(
         'INSERT INTO onboarding_submissions
          (template_id, business_name, phone, address_line1, address_line2,
-          city, county_state, postcode, country, contact_email, hours,
+          city, county_state, postcode, country, email, contact_email, hours,
           booking_enabled, domain_type, subdomain, custom_domain,
           domain_payment_status, hero_image, plan, powered_by_certxa, status)
          VALUES
          (:tid, :bname, :phone, :addr1, :addr2,
-          :city, :county, :postcode, :country, :email, :hours::jsonb,
+          :city, :county, :postcode, :country, :email, :email, :hours::jsonb,
           :booking, :dtype, :subdomain, :custom_domain,
           :dpay, :hero_image, :plan, TRUE, :status)
          RETURNING id'

@@ -186,7 +186,7 @@ function ProfileTab({ staff, onDelete }: { staff: Staff; onDelete: () => void })
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
+    const reader = new window.FileReader();
     reader.onloadend = () => {
       setValue("avatarUrl", reader.result as string);
     };

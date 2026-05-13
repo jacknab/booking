@@ -672,7 +672,7 @@ export default function ClientProfile() {
                     return;
                   }
                   setPhotoUploading(true);
-                  const reader = new FileReader();
+                  const reader = new window.FileReader();
                   reader.onload = async (ev) => {
                     const dataUrl = ev.target?.result as string;
                     try {

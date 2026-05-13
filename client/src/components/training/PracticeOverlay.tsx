@@ -328,7 +328,6 @@ export function PracticeOverlay() {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inPractice, activeScenario, showScoreboard]);
 
   // Lock body scroll while open so the page underneath doesn't shift on

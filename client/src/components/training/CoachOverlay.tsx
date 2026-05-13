@@ -83,7 +83,6 @@ export function CoachOverlay({ category, steps, active, onComplete }: Props) {
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOverlay, step?.id, step?.testid]);
 
   // Route-based advance.
@@ -95,7 +94,6 @@ export function CoachOverlay({ category, steps, active, onComplete }: Props) {
       advance();
     }
     lastPathRef.current = location.pathname;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   // Abandonment: route changes away while overlay is active and not on last step.
@@ -106,7 +104,6 @@ export function CoachOverlay({ category, steps, active, onComplete }: Props) {
         record("abandoned", { stepId: step?.id, stepIndex });
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function advance() {

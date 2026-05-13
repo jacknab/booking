@@ -191,7 +191,6 @@ export function GoogleBusinessProfileSetup({
     if (googleConnected || googleError || code) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once
 
   // Cleanup quota cooldown timer on unmount
@@ -240,7 +239,6 @@ export function GoogleBusinessProfileSetup({
     }
 
     loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId, capturedParams]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────────

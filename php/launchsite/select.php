@@ -143,7 +143,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="wizard-panel-header">
                             <div class="select-step-badge">Step 1 of 5</div>
                             <h2>Your Business</h2>
-                            <p>Tell us about your salon so we can personalise your new website.</p>
+                            <p>Tell us about your salon so we can personalize your new website.</p>
                         </div>
                         <div class="select-form">
                             <div class="form-group">
@@ -153,7 +153,7 @@ require_once __DIR__ . '/includes/header.php';
                             <div class="form-row-2">
                                 <div class="form-group">
                                     <label for="f_phone">Phone number <span class="form-req">*</span></label>
-                                    <input type="tel" id="f_phone" name="phone" placeholder="+44 7700 000000" autocomplete="tel" required>
+                                    <input type="tel" id="f_phone" name="phone" placeholder="(512) 555-0199" autocomplete="tel" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="f_email">Contact email <span class="form-req">*</span></label>
@@ -162,7 +162,7 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label for="f_addr1">Address line 1 <span class="form-req">*</span></label>
-                                <input type="text" id="f_addr1" name="address_line1" placeholder="12 High Street" autocomplete="address-line1" required>
+                                <input type="text" id="f_addr1" name="address_line1" placeholder="123 Main St" autocomplete="address-line1" required>
                             </div>
                             <div class="form-group">
                                 <label for="f_addr2">Address line 2 <span class="form-optional">(optional)</span></label>
@@ -170,16 +170,16 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                             <div class="form-row-3">
                                 <div class="form-group">
-                                    <label for="f_city">Town / City <span class="form-req">*</span></label>
-                                    <input type="text" id="f_city" name="city" placeholder="London" autocomplete="address-level2" required>
+                                    <label for="f_city">City <span class="form-req">*</span></label>
+                                    <input type="text" id="f_city" name="city" placeholder="Austin" autocomplete="address-level2" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="f_county">County <span class="form-optional">(optional)</span></label>
-                                    <input type="text" id="f_county" name="county_state" placeholder="Essex" autocomplete="address-level1">
+                                    <label for="f_county">State <span class="form-optional">(optional)</span></label>
+                                    <input type="text" id="f_county" name="county_state" placeholder="TX" autocomplete="address-level1">
                                 </div>
                                 <div class="form-group">
-                                    <label for="f_postcode">Postcode <span class="form-req">*</span></label>
-                                    <input type="text" id="f_postcode" name="postcode" placeholder="SW1A 1AA" autocomplete="postal-code" required>
+                                    <label for="f_postcode">ZIP code <span class="form-req">*</span></label>
+                                    <input type="text" id="f_postcode" name="postcode" placeholder="78701" autocomplete="postal-code" required>
                                 </div>
                             </div>
                         </div>
@@ -285,9 +285,9 @@ require_once __DIR__ . '/includes/header.php';
                                 <span class="dtc-inner">
                                     <span class="dtc-top">
                                         <span class="dtc-title">Custom domain</span>
-                                        <span class="dtc-badge dtc-badge--paid">&pound;15/year</span>
+                                        <span class="dtc-badge dtc-badge--paid">$15/year</span>
                                     </span>
-                                    <span class="dtc-sub">mysalon<strong>.co.uk</strong></span>
+                                    <span class="dtc-sub">mysalon<strong>.com</strong></span>
                                     <span class="dtc-note">Use your own domain. Remove &#8220;Powered by Certxa&#8221;. Inactive until payment.</span>
                                 </span>
                             </label>
@@ -319,10 +319,10 @@ require_once __DIR__ . '/includes/header.php';
                             <div class="form-group">
                                 <label for="f_custom_domain">Your domain name <span class="form-req">*</span></label>
                                 <input type="text" id="f_custom_domain" name="custom_domain"
-                                       placeholder="mysalon.co.uk"
+                                       placeholder="mysalon.com"
                                        autocomplete="url"
                                        spellcheck="false">
-                                <span class="form-hint">Enter your domain without www (e.g. mysalon.co.uk)</span>
+                                <span class="form-hint">Enter your domain without www (e.g. mysalon.com)</span>
                             </div>
                             <div class="custom-domain-info">
                                 <div class="cdi-item">
@@ -331,7 +331,7 @@ require_once __DIR__ . '/includes/header.php';
                                 </div>
                                 <div class="cdi-item">
                                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" width="14" height="14"><path d="M13 5l-7 7-3-3"/></svg>
-                                    Your site goes live once your domain is pointed correctly and the &pound;15/year fee is paid.
+                                    Your site goes live once your domain is pointed correctly and the $15/year fee is paid.
                                 </div>
                             </div>
                         </div>
@@ -627,7 +627,7 @@ function validateStep(n) {
         } else {
             var cd = document.getElementById('f_custom_domain').value.trim();
             if (!cd || !/^[a-z0-9][a-z0-9\-\.]{1,250}[a-z0-9]$/i.test(cd)) {
-                showError('Please enter a valid domain name (e.g. mysalon.co.uk).');
+                showError('Please enter a valid domain name (e.g. mysalon.com).');
                 return false;
             }
         }
@@ -660,7 +660,7 @@ btnSubmit.addEventListener('click', function () {
         city:            document.getElementById('f_city').value.trim(),
         county_state:    document.getElementById('f_county').value.trim(),
         postcode:        document.getElementById('f_postcode').value.trim(),
-        country:         'GB',
+        country:         'US',
         hours:           collectHours(),
         booking_enabled: false,
         hero_image:      selectedHeroImage || '',
@@ -735,7 +735,7 @@ function showSuccessScreen(data) {
             '</div>' +
             '<div class="success-detail-item">' +
             '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M13 5l-7 7-3-3"/></svg>' +
-            'Your site goes live once DNS is confirmed and the \u00a315/year fee is paid.' +
+            'Your site goes live once DNS is confirmed and the $15/year fee is paid.' +
             '</div>';
     }
 

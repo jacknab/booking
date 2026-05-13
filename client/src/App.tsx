@@ -101,6 +101,7 @@ import AccountOverview from "@/pages/AccountOverview";
 import Intelligence from "@/pages/Intelligence";
 import DemoLaunchEngines from "@/pages/DemoLaunchEngines";
 import WebsiteDesigns from "@/pages/WebsiteDesigns";
+import LaunchsiteDashboard from "@/pages/LaunchsiteDashboard";
 import DemoLanding from "@/pages/DemoLanding";
 import { RequirePermission } from "@/components/RequirePermission";
 import { PERMISSIONS } from "@shared/permissions";
@@ -151,6 +152,7 @@ const authenticatedPaths = [
   "/staff-calendar",
   "/staff-dashboard",
   "/intelligence",
+  "/launchsite-dashboard",
   "/website-designs",
   "/api-keys",
   "/elite-api-docs",
@@ -309,6 +311,7 @@ function AppRoutes() {
       <Route path="/account" element={<AccountOverview />} />
       <Route path="/intelligence" element={<Intelligence />} />
       <Route path="/intelligence/launch" element={<DemoLaunchEngines />} />
+      <Route path="/launchsite-dashboard" element={<LaunchsiteDashboard />} />
       <Route path="/website-designs" element={<WebsiteDesigns />} />
       <Route path="/marketing" element={<Navigate to="/campaigns" replace />} />
 

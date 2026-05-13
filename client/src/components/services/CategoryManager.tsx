@@ -70,7 +70,7 @@ export function CategoryManager() {
     if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) return;
     
     // Create a complete list of categories based on current sort order
-    let currentList = [...categories];
+    const currentList = [...categories];
     
     // Sort based on categoryOrder if it exists
     if (categoryOrder) {
@@ -148,7 +148,7 @@ export function CategoryManager() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
+    const reader = new window.FileReader();
     reader.onloadend = () => {
       if (isEdit) {
         setEditImageUrl(reader.result as string);

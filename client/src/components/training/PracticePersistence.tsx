@@ -77,7 +77,6 @@ export function PracticePersistence({
       scrollRef.current.scrollTop = snap.scroll;
     }
     // Intentionally only on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Snapshot on path change (always) and on scroll (debounced).

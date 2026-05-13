@@ -392,11 +392,11 @@ function hex2rgb_local(string $hex): array {
     if (strlen($hex) === 3) $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
     return [hexdec(substr($hex,0,2)), hexdec(substr($hex,2,2)), hexdec(substr($hex,4,2))];
 }
-function alloc_c($img, string $hex, int $alpha = 0): int {
+function alloc_c(\GdImage $img, string $hex, int $alpha = 0): int {
     [$r,$g,$b] = hex2rgb_local($hex);
     return imagecolorallocatealpha($img, $r, $g, $b, $alpha);
 }
-function rrect($img, int $x1, int $y1, int $x2, int $y2, int $r, int $color): void {
+function rrect(\GdImage $img, int $x1, int $y1, int $x2, int $y2, int $r, int $color): void {
     if ($r < 1) $r = 1;
     imagefilledrectangle($img, $x1+$r, $y1, $x2-$r, $y2, $color);
     imagefilledrectangle($img, $x1, $y1+$r, $x2, $y2-$r, $color);

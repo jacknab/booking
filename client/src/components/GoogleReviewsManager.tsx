@@ -162,7 +162,7 @@ export function GoogleReviewsManager({ storeId: propStoreId }: GoogleReviewsMana
       if (remaining > 0) startCooldownTimer(remaining);
       else localStorage.removeItem(cooldownKey);
     }
-  }, [cooldownKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cooldownKey]);
 
   function startCooldownTimer(secs: number) {
     if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);

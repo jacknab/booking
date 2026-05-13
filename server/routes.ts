@@ -2418,7 +2418,8 @@ If you have any questions, please contact your administrator.
 
       // Verify submission exists and email matches (if provided)
       const result = await db.execute(sql`
-        SELECT id, custom_domain, domain_type, status, domain_payment_status, email
+        SELECT id, custom_domain, domain_type, status, domain_payment_status,
+               COALESCE(contact_email, email) AS email
         FROM onboarding_submissions
         WHERE id = ${submission_id}
         AND domain_type = 'custom'

@@ -107,6 +107,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Launchit!",
     items: [
+      { to: "/launchsite-dashboard", label: "My Websites", icon: LayoutDashboard },
       { to: "/website-designs", label: "Website Designs", icon: Globe },
     ],
   },

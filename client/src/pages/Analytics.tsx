@@ -146,7 +146,11 @@ export default function Analytics() {
     let returning = 0, newC = 0;
     rangeAppointments.forEach(a => {
       if (!a.customerId) { newC++; return; }
-      (customerVisitCount[a.customerId] || 0) > 1 ? returning++ : newC++;
+      if ((customerVisitCount[a.customerId] || 0) > 1) {
+        returning++;
+      } else {
+        newC++;
+      }
     });
     return [
       { name: "Returning", value: returning },

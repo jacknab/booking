@@ -305,14 +305,9 @@ export default function Calendar() {
       for (let m = 0; m < 60; m += interval) {
         if (h === END_HOUR && m > 0) break;
         const isHour = m === 0;
-        let label = "";
-        if (isHour) {
-          label = h === 0 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`;
-        } else {
-          const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
-          const ampm = h >= 12 ? "PM" : "AM";
-          label = `${displayH}:${String(m).padStart(2, "0")} ${ampm}`;
-        }
+        const label = isHour
+          ? h === 0 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`
+          : `${h > 12 ? h - 12 : h === 0 ? 12 : h}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
         slots.push({ hour: h, minute: m, label, isHour });
       }
     }

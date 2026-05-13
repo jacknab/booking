@@ -92,7 +92,7 @@ export default function Reviews() {
       const message = GOOGLE_ERROR_MESSAGES[googleError] ?? `Google authorization error: ${googleError}`;
       toast({ title: "Google connection failed", description: message, variant: "destructive" });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: googleProfile, isLoading: googleLoading } = useQuery({
     queryKey: ["/api/google-business/profile", storeId],

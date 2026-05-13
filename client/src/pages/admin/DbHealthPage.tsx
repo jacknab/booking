@@ -86,7 +86,11 @@ export default function DbHealthPage() {
   function toggle(table: string) {
     setExpanded(prev => {
       const next = new Set(prev);
-      next.has(table) ? next.delete(table) : next.add(table);
+      if (next.has(table)) {
+        next.delete(table);
+      } else {
+        next.add(table);
+      }
       return next;
     });
   }

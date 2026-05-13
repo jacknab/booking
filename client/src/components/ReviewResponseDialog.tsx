@@ -60,7 +60,7 @@ export function ReviewResponseDialog({
 
   useEffect(() => {
     loadResponses();
-  }, [review.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [review.id]);
 
   const loadResponses = async () => {
     try {

@@ -29,6 +29,36 @@ $built_dir       = __DIR__ . '/templates/' . $template_id;
 $source_dir      = $artifacts_dir . '/template-' . $template_id;
 $thumb_file      = __DIR__ . '/assets/img/thumbs/' . $template_id . '.jpg';
 
+function launchit_delete_dir(string $dir, string $allowed_root): bool {
+    $real_dir  = realpath($dir);
+    $real_root = realpath($allowed_root);
+
+    if ($real_dir === false || $real_root === false || !is_dir($real_dir)) {
+        return true;
+    }
+
+    $real_root = rtrim($real_root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    if (strpos($real_dir . DIRECTORY_SEPARATOR, $real_root) !== 0) {
+        return false;
+    }
+
+    $items = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($real_dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+
+    foreach ($items as $item) {
+        $path = $item->getPathname();
+        if ($item->isDir()) {
+            if (!@rmdir($path)) return false;
+        } elseif (!@unlink($path)) {
+            return false;
+        }
+    }
+
+    return @rmdir($real_dir);
+}
+
 if ($errors) {
     // Show error page
     ?><!DOCTYPE html>
@@ -62,16 +92,20 @@ $skipped  = [];
 
 // ── Delete built React site ───────────────────────────────────────────────────
 if ($type === 'react' && is_dir($built_dir)) {
-    exec('rm -rf ' . escapeshellarg($built_dir), $out, $code);
-    if ($code === 0) $deleted[] = 'Built site files (<code>launchsite-php/templates/' . $template_id . '/</code>)';
-    else             $skipped[] = 'Built site directory (rm failed)';
+    if (launchit_delete_dir($built_dir, __DIR__ . '/templates')) {
+        $deleted[] = 'Built site files (<code>launchsite-php/templates/' . $template_id . '/</code>)';
+    } else {
+        $skipped[] = 'Built site directory (delete failed)';
+    }
 }
 
 // ── Delete artifact source ────────────────────────────────────────────────────
 if ($type === 'react' && is_dir($source_dir)) {
-    exec('rm -rf ' . escapeshellarg($source_dir), $out, $code);
-    if ($code === 0) $deleted[] = 'Source files (<code>artifacts/template-' . $template_id . '/</code>)';
-    else             $skipped[] = 'Source directory (rm failed)';
+    if (launchit_delete_dir($source_dir, $artifacts_dir)) {
+        $deleted[] = 'Source files (<code>artifacts/template-' . $template_id . '/</code>)';
+    } else {
+        $skipped[] = 'Source directory (delete failed)';
+    }
 }
 
 // ── Delete thumbnail ──────────────────────────────────────────────────────────

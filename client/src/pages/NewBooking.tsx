@@ -161,7 +161,6 @@ export default function NewBooking() {
     if (!selectedSlot) return;
     setWalkInBookingPending(false);
     handleRequestBooking();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walkInBookingPending, selectedSlot]);
 
   useEffect(() => {

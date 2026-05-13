@@ -201,7 +201,15 @@ export default function SeoRegionsAdmin() {
   function cityKey(c: SeoCity) { return `${c.city}-${c.stateCode}`; }
 
   function toggleCity(c: SeoCity) {
-    setSelectedCities(prev => { const n = new Set(prev); n.has(cityKey(c)) ? n.delete(cityKey(c)) : n.add(cityKey(c)); return n; });
+    setSelectedCities(prev => {
+      const n = new Set(prev);
+      if (n.has(cityKey(c))) {
+        n.delete(cityKey(c));
+      } else {
+        n.add(cityKey(c));
+      }
+      return n;
+    });
   }
 
   function selectAllCities(group: SeoCity[]) {
@@ -213,7 +221,15 @@ export default function SeoRegionsAdmin() {
   }
 
   function toggleBizType(bt: string) {
-    setSelectedBizTypes(prev => { const n = new Set(prev); n.has(bt) ? n.delete(bt) : n.add(bt); return n; });
+    setSelectedBizTypes(prev => {
+      const n = new Set(prev);
+      if (n.has(bt)) {
+        n.delete(bt);
+      } else {
+        n.add(bt);
+      }
+      return n;
+    });
   }
 
   const bulkTotal = selectedCities.size * selectedBizTypes.size;
